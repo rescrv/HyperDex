@@ -37,20 +37,21 @@ import os
 import os.path
 import random
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 import time
 
-import argparse
-
 
 DOTDOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 BUILDDIR = os.getenv('HYPERDEX_BUILDDIR') or DOTDOT
 
+sys.path.append(DOTDOT)
 sys.path.append(os.path.join(BUILDDIR, './bindings/python'))
-sys.path.append(os.path.join(BUILDDIR, './bindings/python/.libs'))
 
+
+import argparse
 
 import hyperdex.admin
 
@@ -77,7 +78,7 @@ class HyperDexCluster(object):
                'PATH': ((os.getenv('PATH') or '') + ':' + BUILDDIR).strip(':')}
         env['CLASSPATH'] = ((os.getenv('CLASSPATH') or '') + BUILDDIR + '/*').strip(':')
         env['GLOG_logbufsecs'] = '0'
-        if 'HYPERDEX_BUILDDIR' in os.environ:
+        if 'HYPERDEX_BUILDDIR' in os.environ and os.environ['HYPERDEX_BUILDDIR'] != '.':
             env['HYPERDEX_EXEC_PATH'] = BUILDDIR
             env['HYPERDEX_COORD_LIB'] = os.path.join(BUILDDIR, '.libs/libhyperdex-coordinator')
         for i in range(self.coordinators):
@@ -117,17 +118,21 @@ class HyperDexCluster(object):
             if glob.glob(core):
                 print('daemon', i, 'dumped core')
                 self.clean = False
-        for p in self.processes:
+        for p in reversed(self.processes):
+            p.terminate()
+            time.sleep(1)
             p.kill()
             p.wait()
         if self.log_output:
+            print("logging output of failed test run's daemons")
             for i in range(self.coordinators):
                 log = os.path.join(self.base, 'coord%i' % i, 'hyperdex-test-runner.log')
+                print
                 print('coordinator', i)
                 print(open(log).read())
-                print
             for i in range(self.daemons):
                 log = os.path.join(self.base, 'daemon%i' % i, 'hyperdex-test-runner.log')
+                print
                 print('daemon', i)
                 print(open(log).read())
         if self.clean and self.base is not None:
@@ -151,8 +156,9 @@ def main(argv):
         time.sleep(1) # XXX use a barrier tool on cluster
         ctx = {'HOST': '127.0.0.1', 'PORT': 1982}
         cmd_args = [arg.format(**ctx) for arg in args.args]
-        status = subprocess.call(cmd_args)
+        status = subprocess.call(cmd_args, stderr=subprocess.STDOUT)
         if status != 0:
+            print('process exited', status, '; dumping logs')
             hdc.log_output = True
         return status
     finally:

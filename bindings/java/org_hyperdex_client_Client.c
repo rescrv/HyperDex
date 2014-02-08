@@ -1756,7 +1756,7 @@ struct hyperdex_java_client_deferred
 };
 
 JNIEXPORT HYPERDEX_API void JNICALL
-Java_org_hyperdex_client_Deferred_create(JNIEnv* env, jobject deferred)
+Java_org_hyperdex_client_Deferred__1create(JNIEnv* env, jobject deferred)
 {
     jlong lptr;
     struct hyperdex_java_client_deferred* ptr;
@@ -1798,7 +1798,7 @@ Java_org_hyperdex_client_Deferred_create(JNIEnv* env, jobject deferred)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 JNIEXPORT HYPERDEX_API void JNICALL
-Java_org_hyperdex_client_Deferred_destroy(JNIEnv* env, jobject dfrd)
+Java_org_hyperdex_client_Deferred__1destroy(JNIEnv* env, jobject dfrd)
 {
     jlong lptr;
     struct hyperdex_java_client_deferred* ptr;
@@ -2007,7 +2007,7 @@ struct hyperdex_java_client_iterator
 };
 
 JNIEXPORT HYPERDEX_API void JNICALL
-Java_org_hyperdex_client_Iterator_create(JNIEnv* env, jobject iterator)
+Java_org_hyperdex_client_Iterator__1create(JNIEnv* env, jobject iterator)
 {
     jlong lptr;
     struct hyperdex_java_client_iterator* ptr;
@@ -2047,7 +2047,7 @@ Java_org_hyperdex_client_Iterator_create(JNIEnv* env, jobject iterator)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 JNIEXPORT HYPERDEX_API void JNICALL
-Java_org_hyperdex_client_Iterator_destroy(JNIEnv* env, jobject iter)
+Java_org_hyperdex_client_Iterator__1destroy(JNIEnv* env, jobject iter)
 {
     jlong lptr;
     struct hyperdex_java_client_iterator* ptr;
@@ -2241,7 +2241,7 @@ SINGLE_OBJECT_PREDICATE(LengthGreaterEqual, length_greater_equal, LENGTH_GREATER
 /******************************** Client Class ********************************/
 
 JNIEXPORT HYPERDEX_API void JNICALL
-Java_org_hyperdex_client_Client_create(JNIEnv* env, jobject client, jstring _host, jint port)
+Java_org_hyperdex_client_Client__1create(JNIEnv* env, jobject client, jstring _host, jint port)
 {
     jlong lptr;
     const char* host;
@@ -2268,7 +2268,7 @@ Java_org_hyperdex_client_Client_create(JNIEnv* env, jobject client, jstring _hos
 }
 
 JNIEXPORT HYPERDEX_API void JNICALL
-Java_org_hyperdex_client_Client_destroy(JNIEnv* env, jobject client)
+Java_org_hyperdex_client_Client__1destroy(JNIEnv* env, jobject client)
 {
     jlong lptr;
     struct hyperdex_client* ptr;

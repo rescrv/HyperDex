@@ -11,17 +11,17 @@ REVERSE = "space replication key int A attributes int B, int C subspace C subspa
 COMPOSITE = "space replication key int A attributes int B, int C subspace B, C"
 
 configs = [("simple", SIMPLE, 1, 0),
-           ("simple", SIMPLE, 8, 0),
-           ("simple", SIMPLE, 8, 1),
-           ("simple", SIMPLE, 8, 2),
+           ("simple", SIMPLE, 4, 0),
+           ("simple", SIMPLE, 4, 1),
+           ("simple", SIMPLE, 4, 2),
            ("reverse", REVERSE, 1, 0),
-           ("reverse", REVERSE, 8, 0),
-           ("reverse", REVERSE, 8, 1),
-           ("reverse", REVERSE, 8, 2),
+           ("reverse", REVERSE, 4, 0),
+           ("reverse", REVERSE, 4, 1),
+           ("reverse", REVERSE, 4, 2),
            ("composite", COMPOSITE, 1, 0),
-           ("composite", COMPOSITE, 8, 0),
-           ("composite", COMPOSITE, 8, 1),
-           ("composite", COMPOSITE, 8, 2),
+           ("composite", COMPOSITE, 4, 0),
+           ("composite", COMPOSITE, 4, 1),
+           ("composite", COMPOSITE, 4, 2),
            ]
 
 for name, space, daemons, ft in configs:

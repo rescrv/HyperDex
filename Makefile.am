@@ -65,10 +65,9 @@ pkgconfig_DATA =
 jardir = $(datadir)/java
 jar_DATA =
 
-pythonmoddir = $(pyexecdir)/hyperdex
-pythonmod_DATA =
-pythonmod_LTLIBRARIES =
-pyexec_LTLIBRARIES =
+pkgpyexecdir = $(pyexecdir)/hyperdex
+pkgpyexec_DATA =
+pkgpyexec_LTLIBRARIES =
 
 rubyexecdir = $(RUBY_EXT_LIB)
 rubyexec_LTLIBRARIES =
@@ -140,6 +139,7 @@ noinst_HEADERS += common/serialization.h
 noinst_HEADERS += common/server.h
 noinst_HEADERS += common/transfer.h
 noinst_HEADERS += tools/common.h
+noinst_HEADERS += osx/ieee754.h
 
 check_PROGRAMS += common/test/ordered_encoding
 TESTS += common/test/ordered_encoding
@@ -612,7 +612,7 @@ $(hyperdex_client_jarfile): $(wildcard ${JAVA_SRC_PKG}/client/*.java)
 	cd ${JAVA_BUILD_BASE} && $(JAR) cvf $(JARFLAGS) ${abs_top_builddir}/${hyperdex_client_jarfile} org/hyperdex/client/*.class
 
 # YCSB
-$(hyperdex_ycsb_jarfile): ${JAVA_SRC_PKG}/ycsb/HyperDex.java
+$(hyperdex_ycsb_jarfile): ${JAVA_SRC_PKG}/ycsb/HyperDex.java $(hyperdex_client_jarfile)
 	javac -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/client/*.java
 	javac -cp $(abs_top_builddir)/$(hyperdex_client_jarfile):$(CLASSPATH) -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/ycsb/*.java
 	cd ${JAVA_BUILD_BASE} && $(JAR) cvf $(JARFLAGS) ${abs_top_builddir}/${hyperdex_ycsb_jarfile} org/hyperdex/ycsb/*.class
@@ -620,57 +620,62 @@ $(hyperdex_ycsb_jarfile): ${JAVA_SRC_PKG}/ycsb/HyperDex.java
 #################################### Python ####################################
 
 if ENABLE_PYTHON_BINDINGS
-pythonmod_DATA += bindings/python/hyperdex/__init__.py
-pythonmod_DATA += bindings/python/hyperdex/admin.py
-pythonmod_DATA += bindings/python/hyperdex/client.py
+pkgpyexec_DATA += bindings/python/hyperdex/__init__.py
 if ENABLE_CLIENT
-pyexec_LTLIBRARIES += bindings/python/_hyperdex_client.la
+pkgpyexec_LTLIBRARIES += bindings/python/hyperdex/client.la
 endif
 if ENABLE_ADMIN
-pyexec_LTLIBRARIES += bindings/python/_hyperdex_admin.la
+pkgpyexec_LTLIBRARIES += bindings/python/hyperdex/admin.la
 endif
 endif
 
-EXTRA_DIST += bindings/python/client.pyx
-EXTRA_DIST += bindings/python/hyperdex/admin.py
-EXTRA_DIST += bindings/python/hyperdex/client.py
+CLEANFILES += bindings/python/hyperdex/admin.so
+CLEANFILES += bindings/python/hyperdex/client.so
+CLEANFILES += bindings/python/hyperdex/*.pyc
+
+EXTRA_DIST += bindings/python/gen_python.py
 EXTRA_DIST += bindings/python/hyperdex/__init__.py
-bindings_python__hyperdex_client_la_SOURCES = bindings/python/_hyperdex_client.c
-bindings_python__hyperdex_client_la_CPPFLAGS =
-bindings_python__hyperdex_client_la_CPPFLAGS += $(PYTHON_CPPFLAGS)
-bindings_python__hyperdex_client_la_CPPFLAGS += $(AM_CPPFLAGS)
-bindings_python__hyperdex_client_la_CPPFLAGS += $(CPPFLAGS)
-bindings_python__hyperdex_client_la_CFLAGS =
-bindings_python__hyperdex_client_la_CFLAGS += $(AM_CFLAGS)
-bindings_python__hyperdex_client_la_CFLAGS += -fvisibility=default
-bindings_python__hyperdex_client_la_CFLAGS += $(CFLAGS)
-bindings_python__hyperdex_client_la_LIBADD =
-bindings_python__hyperdex_client_la_LIBADD += libhyperdex-client.la
-bindings_python__hyperdex_client_la_LIBADD += $(PYTHON_LDFLAGS)
-bindings_python__hyperdex_client_la_LDFLAGS = -module -avoid-version -export-symbols-regex init_hyperdex_client $(AM_LDFLAGS) $(LDFLAGS)
-bindings/python/_hyperdex_client.c: bindings/python/client.pyx
-	cp bindings/python/client.pyx bindings/python/_hyperdex_client.pyx
-	$(pyx_verbose)cython bindings/python/_hyperdex_client.pyx
-	rm bindings/python/_hyperdex_client.pyx
+EXTRA_DIST += bindings/python/hyperdex/client.pyx.in
 
-EXTRA_DIST += bindings/python/admin.pyx
-bindings_python__hyperdex_admin_la_SOURCES = bindings/python/_hyperdex_admin.c
-bindings_python__hyperdex_admin_la_CPPFLAGS =
-bindings_python__hyperdex_admin_la_CPPFLAGS += $(PYTHON_CPPFLAGS)
-bindings_python__hyperdex_admin_la_CPPFLAGS += $(AM_CPPFLAGS)
-bindings_python__hyperdex_admin_la_CPPFLAGS += $(CPPFLAGS)
-bindings_python__hyperdex_admin_la_CFLAGS =
-bindings_python__hyperdex_admin_la_CFLAGS += $(AM_CFLAGS)
-bindings_python__hyperdex_admin_la_CFLAGS += -fvisibility=default
-bindings_python__hyperdex_admin_la_CFLAGS += $(CFLAGS)
-bindings_python__hyperdex_admin_la_LIBADD =
-bindings_python__hyperdex_admin_la_LIBADD += libhyperdex-admin.la
-bindings_python__hyperdex_admin_la_LIBADD += $(PYTHON_LDFLAGS)
-bindings_python__hyperdex_admin_la_LDFLAGS = -module -avoid-version -export-symbols-regex init_hyperdex_admin $(AM_LDFLAGS) $(LDFLAGS)
-bindings/python/_hyperdex_admin.c: bindings/python/admin.pyx
-	cp bindings/python/admin.pyx bindings/python/_hyperdex_admin.pyx
-	$(pyx_verbose)cython bindings/python/_hyperdex_admin.pyx
-	rm bindings/python/_hyperdex_admin.pyx
+EXTRA_DIST += bindings/python/hyperdex/client.pyx
+bindings_python_hyperdex_client_la_SOURCES = bindings/python/hyperdex/client.c
+bindings_python_hyperdex_client_la_CPPFLAGS =
+bindings_python_hyperdex_client_la_CPPFLAGS += $(PYTHON_CPPFLAGS)
+bindings_python_hyperdex_client_la_CPPFLAGS += $(AM_CPPFLAGS)
+bindings_python_hyperdex_client_la_CPPFLAGS += $(CPPFLAGS)
+bindings_python_hyperdex_client_la_CFLAGS =
+bindings_python_hyperdex_client_la_CFLAGS += $(AM_CFLAGS)
+bindings_python_hyperdex_client_la_CFLAGS += -fvisibility=default
+bindings_python_hyperdex_client_la_CFLAGS += $(CFLAGS)
+bindings_python_hyperdex_client_la_LIBADD =
+bindings_python_hyperdex_client_la_LIBADD += libhyperdex-client.la
+bindings_python_hyperdex_client_la_LIBADD += $(PYTHON_LDFLAGS)
+bindings_python_hyperdex_client_la_LDFLAGS = -module -avoid-version -export-symbols-regex initclient $(AM_LDFLAGS) $(LDFLAGS)
+bindings/python/hyperdex/client.c: bindings/python/hyperdex/client.pyx
+	$(pyx_verbose)cython bindings/python/hyperdex/client.pyx
+
+bindings/python/hyperdex/client.so: bindings/python/hyperdex/client.la
+	$(LN_S) -f ${abs_top_builddir}/bindings/python/hyperdex/.libs/client.so $@
+
+EXTRA_DIST += bindings/python/hyperdex/admin.pyx
+bindings_python_hyperdex_admin_la_SOURCES = bindings/python/hyperdex/admin.c
+bindings_python_hyperdex_admin_la_CPPFLAGS =
+bindings_python_hyperdex_admin_la_CPPFLAGS += $(PYTHON_CPPFLAGS)
+bindings_python_hyperdex_admin_la_CPPFLAGS += $(AM_CPPFLAGS)
+bindings_python_hyperdex_admin_la_CPPFLAGS += $(CPPFLAGS)
+bindings_python_hyperdex_admin_la_CFLAGS =
+bindings_python_hyperdex_admin_la_CFLAGS += $(AM_CFLAGS)
+bindings_python_hyperdex_admin_la_CFLAGS += -fvisibility=default
+bindings_python_hyperdex_admin_la_CFLAGS += $(CFLAGS)
+bindings_python_hyperdex_admin_la_LIBADD =
+bindings_python_hyperdex_admin_la_LIBADD += libhyperdex-admin.la
+bindings_python_hyperdex_admin_la_LIBADD += $(PYTHON_LDFLAGS)
+bindings_python_hyperdex_admin_la_LDFLAGS = -module -avoid-version -export-symbols-regex initadmin $(AM_LDFLAGS) $(LDFLAGS)
+bindings/python/hyperdex/admin.c: bindings/python/hyperdex/admin.pyx
+	$(pyx_verbose)cython bindings/python/hyperdex/admin.pyx
+
+bindings/python/hyperdex/admin.so: bindings/python/hyperdex/admin.la
+	$(LN_S) -f ${abs_top_builddir}/bindings/python/hyperdex/.libs/admin.so $@
 
 ##################################### Ruby #####################################
 
@@ -691,6 +696,9 @@ bindings_ruby_hyperdex_la_CPPFLAGS += -I$(RUBY_EXT_CPPFLAGS)
 bindings_ruby_hyperdex_la_CPPFLAGS += $(AM_CPPFLAGS)
 bindings_ruby_hyperdex_la_CPPFLAGS += $(CPPFLAGS)
 bindings_ruby_hyperdex_la_CFLAGS =
+bindings_ruby_hyperdex_la_CFLAGS += -I$(RUBY_EXT_INC)
+bindings_ruby_hyperdex_la_CFLAGS += -I$(RUBY_EXT_ARCHINC)
+bindings_ruby_hyperdex_la_CFLAGS += -I$(RUBY_EXT_CPPFLAGS)
 bindings_ruby_hyperdex_la_CFLAGS += $(AM_CFLAGS)
 bindings_ruby_hyperdex_la_CFLAGS += $(CFLAGS)
 bindings_ruby_hyperdex_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS) $(LDFLAGS)
@@ -714,6 +722,7 @@ endif
 
 check_PROGRAMS += test/replication-stress-test
 check_PROGRAMS += test/search-stress-test
+check_PROGRAMS += test/simple-consistency-stress-test
 
 shell_wrappers =
 
@@ -726,41 +735,41 @@ shell_wrappers += $(doctest_wrappers)
 
 stress_wrappers =
 stress_wrappers += test/sh/replication.simple.daemons=1.fault-tolerance=0.sh
-stress_wrappers += test/sh/replication.simple.daemons=8.fault-tolerance=0.sh
-stress_wrappers += test/sh/replication.simple.daemons=8.fault-tolerance=1.sh
-stress_wrappers += test/sh/replication.simple.daemons=8.fault-tolerance=2.sh
+stress_wrappers += test/sh/replication.simple.daemons=4.fault-tolerance=0.sh
+stress_wrappers += test/sh/replication.simple.daemons=4.fault-tolerance=1.sh
+stress_wrappers += test/sh/replication.simple.daemons=4.fault-tolerance=2.sh
 stress_wrappers += test/sh/replication.reverse.daemons=1.fault-tolerance=0.sh
-stress_wrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=0.sh
-stress_wrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=1.sh
-stress_wrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=2.sh
+stress_wrappers += test/sh/replication.reverse.daemons=4.fault-tolerance=0.sh
+stress_wrappers += test/sh/replication.reverse.daemons=4.fault-tolerance=1.sh
+stress_wrappers += test/sh/replication.reverse.daemons=4.fault-tolerance=2.sh
 stress_wrappers += test/sh/replication.composite.daemons=1.fault-tolerance=0.sh
-stress_wrappers += test/sh/replication.composite.daemons=8.fault-tolerance=0.sh
-stress_wrappers += test/sh/replication.composite.daemons=8.fault-tolerance=1.sh
-stress_wrappers += test/sh/replication.composite.daemons=8.fault-tolerance=2.sh
+stress_wrappers += test/sh/replication.composite.daemons=4.fault-tolerance=0.sh
+stress_wrappers += test/sh/replication.composite.daemons=4.fault-tolerance=1.sh
+stress_wrappers += test/sh/replication.composite.daemons=4.fault-tolerance=2.sh
 stress_wrappers += test/sh/search.simple.keytype=int,daemons=1.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.simple.keytype=int,daemons=8.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.simple.keytype=int,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.simple.keytype=int,daemons=4.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.simple.keytype=int,daemons=4.fault-tolerance=1.sh
 stress_wrappers += test/sh/search.simple.keytype=string,daemons=1.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.simple.keytype=string,daemons=8.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.simple.keytype=string,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.simple.keytype=string,daemons=4.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.simple.keytype=string,daemons=4.fault-tolerance=1.sh
 stress_wrappers += test/sh/search.index.keytype=int,daemons=1.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.index.keytype=int,daemons=8.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.index.keytype=int,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.index.keytype=int,daemons=4.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.index.keytype=int,daemons=4.fault-tolerance=1.sh
 stress_wrappers += test/sh/search.index.keytype=string,daemons=1.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.index.keytype=string,daemons=8.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.index.keytype=string,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.index.keytype=string,daemons=4.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.index.keytype=string,daemons=4.fault-tolerance=1.sh
 stress_wrappers += test/sh/search.subspace.keytype=int,daemons=1.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.subspace.keytype=int,daemons=8.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.subspace.keytype=int,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.subspace.keytype=int,daemons=4.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.subspace.keytype=int,daemons=4.fault-tolerance=1.sh
 stress_wrappers += test/sh/search.subspace.keytype=string,daemons=1.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.subspace.keytype=string,daemons=8.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.subspace.keytype=string,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.subspace.keytype=string,daemons=4.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.subspace.keytype=string,daemons=4.fault-tolerance=1.sh
 stress_wrappers += test/sh/search.combination.keytype=int,daemons=1.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.combination.keytype=int,daemons=8.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.combination.keytype=int,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.combination.keytype=int,daemons=4.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.combination.keytype=int,daemons=4.fault-tolerance=1.sh
 stress_wrappers += test/sh/search.combination.keytype=string,daemons=1.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=0.sh
-stress_wrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.combination.keytype=string,daemons=4.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.combination.keytype=string,daemons=4.fault-tolerance=1.sh
 shell_wrappers += $(stress_wrappers)
 
 python_wrappers =
@@ -857,6 +866,8 @@ TESTS += $(stress_wrappers)
 endif
 
 TESTS += $(python_wrappers)
+check_PROGRAMS += bindings/python/hyperdex/admin.so
+check_PROGRAMS += bindings/python/hyperdex/client.so
 
 if ENABLE_JAVA_BINDINGS
 TESTS += $(java_wrappers)
@@ -956,10 +967,13 @@ EXTRA_DIST += test/ruby/RangeSearchString.rb
 EXTRA_DIST += test/ruby/RegexSearch.rb
 
 test_replication_stress_test_SOURCES = test/replication-stress-test.cc
-test_replication_stress_test_LDADD = libhyperdex-client.la -le
+test_replication_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
 
 test_search_stress_test_SOURCES = test/search-stress-test.cc
-test_search_stress_test_LDADD = libhyperdex-client.la -le
+test_search_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
+
+test_simple_consistency_stress_test_SOURCES = test/simple-consistency-stress-test.cc
+test_simple_consistency_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
 
 ################################################################################
 ##################################### Tools ####################################
@@ -1200,6 +1214,11 @@ noinst_PROGRAMS += maint/lib-check
 endif
 
 EXTRA_DIST += bindings/generator.py
+EXTRA_DIST += maint/generate-bindings-tests.py
+EXTRA_DIST += maint/generate-doc-shell-stubs.py
+EXTRA_DIST += maint/generate-replication-shell-stubs.py
+EXTRA_DIST += maint/generate-search-shell-stubs.py
+EXTRA_DIST += maint/generate-test-packages.py
 
 maint_lib_check_SOURCES = maint/lib-check.c
 maint_lib_check_LDADD = -ldl

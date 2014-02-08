@@ -59,7 +59,6 @@ AC_DEFUN([ANAL_WARNINGS],
         AX_CHECK_COMPILE_FLAG([-Wformat-security],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wformat-security"],,)
         AX_CHECK_COMPILE_FLAG([-Wformat],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wformat"],,)
         AX_CHECK_COMPILE_FLAG([-Wformat-y2k],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wformat-y2k"],,)
-        dnl AX_CHECK_COMPILE_FLAG([-Wframe-larger-than=8192],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wframe-larger-than=8192"],,)
         AX_CHECK_COMPILE_FLAG([-Wignored-qualifiers],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wignored-qualifiers"],,)
         AX_CHECK_COMPILE_FLAG([-Wimplicit],[WANAL_CFLAGS_ONLY="${WANAL_CFLAGS} -Wimplicit"],,)
         AX_CHECK_COMPILE_FLAG([-Winit-self],[WANAL_CFLAGS="${WANAL_CFLAGS} -Winit-self"],,)
@@ -68,14 +67,11 @@ AC_DEFUN([ANAL_WARNINGS],
         AX_CHECK_COMPILE_FLAG([-Wlogical-op],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wlogical-op"],,)
         AX_CHECK_COMPILE_FLAG([-Wmain],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmain"],,)
         AX_CHECK_COMPILE_FLAG([-Wmissing-braces],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-braces"],,)
-        #AX_CHECK_COMPILE_FLAG([-Wmissing-declarations],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-declarations"],,)
         AX_CHECK_COMPILE_FLAG([-Wmissing-field-initializers],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-field-initializers"],,)
         AX_CHECK_COMPILE_FLAG([-Wmissing-format-attribute],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-format-attribute"],,)
         AX_CHECK_COMPILE_FLAG([-Wmissing-include-dirs],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-include-dirs"],,)
-        dnl AX_CHECK_COMPILE_FLAG([-Wmissing-noreturn],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-noreturn"],,)
         AX_CHECK_COMPILE_FLAG([-Wno-long-long],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wno-long-long"],,)
         AX_CHECK_COMPILE_FLAG([-Wnon-virtual-dtor],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Wnon-virtual-dtor"],,)
-        #AX_CHECK_COMPILE_FLAG([-Wold-style-cast],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Wold-style-cast"],,)
         AX_CHECK_COMPILE_FLAG([-Woverlength-strings],[WANAL_CFLAGS="${WANAL_CFLAGS} -Woverlength-strings"],,)
         AX_CHECK_COMPILE_FLAG([-Woverloaded-virtual],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Woverloaded-virtual"],,)
         AX_CHECK_COMPILE_FLAG([-Wpacked-bitfield-compat],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wpacked-bitfield-compat"],,)
@@ -113,6 +109,8 @@ AC_DEFUN([ANAL_WARNINGS],
         AX_CHECK_COMPILE_FLAG([-Wunused],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wunused"],,)
         AX_CHECK_COMPILE_FLAG([-Wvolatile-register-var],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wvolatile-register-var"],,)
         AX_CHECK_COMPILE_FLAG([-Wwrite-strings],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wwrite-strings"],,)
+        AX_CHECK_COMPILE_FLAG([-Qunused-arguments],[WANAL_CFLAGS="${WANAL_CFLAGS} -Qunused-arguments"],,)
+        AX_CHECK_COMPILE_FLAG([-Wno-unknown-warning-option],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wno-unknown-warning-option"],,)
     fi
     WANAL_CXXFLAGS="${WANAL_CFLAGS} ${WANAL_CXXFLAGS}"
     WANAL_CFLAGS="${WANAL_CFLAGS} ${WANAL_CFLAGS_ONLY}"

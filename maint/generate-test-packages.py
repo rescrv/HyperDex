@@ -25,6 +25,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import argparse
 import os
 import subprocess
 import tarfile
@@ -49,6 +50,7 @@ def generate_test_tarball(name, tests):
     makefile = '''CLASSPATH := /usr/share/java/*:test/java:.
 export CLASSPATH
 export HYPERDEX_SRCDIR=.
+export HYPERDEX_BUILDDIR=.
 
 all:
 {rules}
@@ -62,6 +64,8 @@ install:
         tar.add(test, archive + '/' + test)
     tar.add('test/runner.py', archive + '/test/runner.py')
     tar.add('test/doctest-runner.py', archive + '/test/doctest-runner.py')
+    if argparse.__file__.endswith('.pyc'):
+        tar.add(argparse.__file__[:-1], archive + '/argparse.py')
     tar.close()
     fout = open('test-hyperdex-' + name + '.upack', 'w')
     fout.write("""package test-hyperdex

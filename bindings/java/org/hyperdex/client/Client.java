@@ -46,13 +46,13 @@ public class Client
 
     public Client(String host, Integer port)
     {
-        create(host, port.intValue());
+        _create(host, port.intValue());
         this.ops = new HashMap<Long, Operation>();
     }
 
     public Client(String host, int port)
     {
-        create(host, port);
+        _create(host, port);
         this.ops = new HashMap<Long, Operation>();
     }
 
@@ -60,14 +60,20 @@ public class Client
     {
         try
         {
-            if (ptr != 0)
-            {
-                destroy();
-            }
+            destroy();
         }
         finally
         {
             super.finalize();
+        }
+    }
+
+    public synchronized void destroy()
+    {
+        if (ptr != 0)
+        {
+            _destroy();
+            ptr = 0;
         }
     }
 
@@ -89,8 +95,8 @@ public class Client
     private static native void initialize();
     private static native void terminate();
     /* ctor/dtor */
-    private native void create(String host, int port);
-    private native void destroy();
+    private native void _create(String host, int port);
+    private native void _destroy();
     /* utilities */
     private native long inner_loop();
     private void add_op(long l, Operation op)

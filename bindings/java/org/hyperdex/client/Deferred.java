@@ -36,17 +36,14 @@ public class Deferred implements Operation
     public Deferred(Client c)
     {
         this.c = c;
-        create();
+        _create();
     }
 
     protected void finalize() throws Throwable
     {
         try
         {
-            if (ptr != 0)
-            {
-                destroy();
-            }
+            destroy();
         }
         finally
         {
@@ -54,9 +51,18 @@ public class Deferred implements Operation
         }
     }
 
+    public synchronized void destroy()
+    {
+        if (ptr != 0)
+        {
+            _destroy();
+            ptr = 0;
+        }
+    }
+
     /* ctor/dtor */
-    private native void create();
-    private native void destroy();
+    private native void _create();
+    private native void _destroy();
 
     /* Other calls */
     public native Object waitForIt();
