@@ -27,21 +27,48 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import subprocess
 
+# Configuration Variables - will be added to settings form eventually
+
+approot = os.path.dirname(os.path.abspath(__file__))
+nodedata = os.path.join(approot, 'data/nodedata/')
+nodelog = os.path.join(approot, 'data/nodelog/')
+coordata = os.path.join(approot, 'data/coordata/')
+coorlog = os.path.join(approot, 'data/coorlog/')
 coorip = '127.0.0.1'
 coorport = '1982'
 
-
 def checkcoordstatus():
 	cmd = 'ps -C "replicant-daemon"'
-	status = os.system(cmd)
-	if status == 256:
+	results = os.system(cmd)
+	if results == 256:
 		coordstatus = False
-	elif status == 0:
+	elif results == 0:
 		coordstatus = True
 	else:
 		coordstatus = False
 	return coordstatus
+
+def getconfig():
+	if checkcoordstatus():
+		cmd = 'hyperdex show-config'
+		proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+		(out,err) = proc.communicate()
+		configlist = out.split()
+		cluster = configlist[1]
+		version = configlist[3]
+		flags = configlist[5]
+		try:
+			server = configlist[7]
+		except:
+			server = ''
+	else:
+		cluster = ''
+		version = ''
+		flags = ''
+		server = ''
+	return cluster, version, flags, server
 
 def checknodestatus():
 	results = os.system('ps -C "hyperdex-daemon"')
@@ -53,27 +80,60 @@ def checknodestatus():
 		nodestatus = False
 	return nodestatus
 
+def startnode():
+	startnode = 'hyperdex daemon --daemon --data=%s --log=%s --listen=%s --coordinator-port=%s' % \
+	(nodedata, nodelog, coorip, coorport)
+	os.system(startnode)
+
+def stopnodes():
+	while checknodestatus():
+		stopnodes = 'killall hyperdex-daemon'
+		os.system(stopnodes)
+		
+def startcoord():
+	startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' % \
+		(coordata, coorlog, coorip, coorport)
+	os.system(startcoord)
+
 def setreadonly():
 	setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
 	os.system(setreadonly)
+
+def setreadwrite():
+	setreadonly = 'hyperdex set-read-write --host=%s  --port=%s' % (coorip, coorport)
+	os.system(setreadwrite)
 
 def waituntilstable():
 	waituntilstable = 'hyperdex wait-until-stable --host=%s  --port=%s' % (coorip, coorport)
 	os.system(waituntilstable)
 
-def stopnodes():
-	stopnodes = 'killall hyperdex-daemon'
-	os.system(stopnodes)
-
 def stopcoord():
-	stopcoord = 'killall replicant-daemon'
-	os.system(stopcoord)
-
-def stopall():
 	setreadonly()
 	waituntilstable()
 	while checkcoordstatus():
-		stopcoord()
-	while checknodestatus():
+		stopcoord = 'killall replicant-daemon'
+		os.system(stopcoord)
 		stopnodes()
+
+def listspaces():
+	cmd = 'hyperdex list-spaces'
+	proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+	(out,err) = proc.communicate()
+	spacelist = out.split('\n')
+	spacelist = spacelist[:-1]
+	return spacelist
+
+def deletenodedata():
+	delnodedata = 'rm -r %s*' % nodedata
+	delnodelog = 'rm -r %s*' % nodelog
+	os.system(delnodedata)
+	os.system(delnodelog)
+	
+def deletecoordata():
+	delcoordata = 'rm -r %s*' % coordata
+	delcoorlog = 'rm -r %s*' % coorlog
+	os.system(delcoordata)
+	os.system(delcoorlog)
+
+
 

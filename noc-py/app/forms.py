@@ -10,7 +10,6 @@ class DesignSpace(Form):
 	partitions = IntegerField('Number of Partitions', [validators.required()])
 	failures = IntegerField('Number of Failures to Tolerate', [validators.required()])
 
-
 class AddAttribute(Form):
 
 	attributetype = SelectField('Attribute Type', choices=[
@@ -30,7 +29,6 @@ class AddAttribute(Form):
 		('map(string,float', 'Map String and Float'),
 		('map(int,float', 'Map Integer and Float')
 		])
-
 
  	attributename = TextField('Attribute Name', [validators.Length(min=4,max=25)])
 

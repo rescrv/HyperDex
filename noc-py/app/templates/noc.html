@@ -153,7 +153,7 @@ POSSIBILITY OF SUCH DAMAGE. -->
               <br>
               <ul class="list-group">
               {% for space in spacelist %}
-                <a class="list-group-item"><center>{{space}}</center></a>
+                <a class="list-group-item" href="{{url_for('explore_space', space = space) }}"><center>{{space}}</center></a>
               {% endfor %}
               </ul>
             </div><!--/span-->

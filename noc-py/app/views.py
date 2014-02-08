@@ -25,117 +25,112 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
-from flask import render_template, request, redirect, url_for, session, escape
+from flask import render_template, request, redirect, url_for, session
 from app import app
 from forms import DesignSpace, AddAttribute
-import hyperdex.client
-import hyperdex.admin
-import hyperdexfunc
-
-
+import hypersys
+import hyperadmin
+import hyperclient
 
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 @app.route('/noc', methods=['GET', 'POST'])
-
 def noc():
+    coordstatus = hypersys.checkcoordstatus()
+    nodestatus = hypersys.checknodestatus()
+    spacelist = hypersys.listspaces()
+    config = hypersys.getconfig()
 
-		coordstatus = hyperdexfunc.checkcoordstatus()
-		nodestatus = hyperdexfunc.checknodestatus()
-		spacelist = hyperdexfunc.listspaces()
 
-		try:
-			config = hyperdexfunc.getconfig()
-			cluster = config[0]
-			version = config[1]
-			flags = config[2]
-			try:
-				server = config[3]
-			except:
-				server = ''
+    cluster = config[0]
+    version = config[1]
+    flags = config[2]
+    try:
+        server = config[3]
+    except:
+        server = ''
 
-		except:
-			cluster = ''
-			version = ''
-			flags = ''
-			server = ''
-			pass
 
-		return render_template("noc.html",
-			title = 'NOC', coordstatus = coordstatus, nodestatus = nodestatus, spacelist = spacelist, 
-			cluster = cluster, version = version, flags = flags, server = server)
+    return render_template("noc.html",
+        title = 'NOC', coordstatus = coordstatus, nodestatus = nodestatus, spacelist = spacelist, 
+        cluster = cluster, version = version, flags = flags, server = server)
 
 
 @app.route('/coordinator/start')
 def start_coordinator():
-	hyperdexfunc.startcoord()
-	return redirect(url_for('noc'))
+    hypersys.startcoord()
+    return redirect(url_for('noc'))
 
 @app.route('/coordinator/stop')
 def stop_coordinator():
-	hyperdexfunc.stopcoord()
-	return redirect(url_for('noc'))
+    hypersys.stopcoord()
+    return redirect(url_for('noc'))
 
 @app.route('/node/start')
 def start_node():
-	hyperdexfunc.startnode()
-	return redirect(url_for('noc'))
+    hypersys.startnode()
+    return redirect(url_for('noc'))
 
 @app.route('/node/stop')
 def stop_node():
-	hyperdexfunc.stopnodes()
-	return redirect(url_for('noc'))
+    hypersys.stopnodes()
+    return redirect(url_for('noc'))
 
 @app.route('/coordinator/delete')
 def delete_coordinator():
-	hyperdexfunc.deletecoordata()
-	return redirect(url_for('noc'))
+    hypersys.deletecoordata()
+    return redirect(url_for('noc'))
 
 @app.route('/node/delete')
 def delete_node():
-	hyperdexfunc.deletenodedata()
-	return redirect(url_for('noc'))
+    hypersys.deletenodedata()
+    return redirect(url_for('noc'))
 
 @app.route('/delete/<space>')
 def delete_space(space):
-	hyperdexfunc.delspace(space)
-	return redirect(urlf_or('noc'))
+    hypersys.delspace(space)
+    return redirect(url_for('noc'))
 
 @app.route('/spaces/new', methods=['GET', 'POST'])
 def design_space():
-	session['newspace'] = []
-	session['attrlist'] = []
-	form = DesignSpace()
-	if request.method == 'POST':
-		spacename = form.spacename.data.encode('utf-8')
-		keyname = form.keyname.data.encode('utf-8')
-		partitions = form.partitions.data
-		failures = form.failures.data
-		session['newspace'].extend([spacename, keyname,partitions, failures])
-		return redirect(url_for('design_attributes'))
-	return render_template('newspace.html', form=form)
+    session['newspace'] = []
+    session['attrlist'] = []
+    form = DesignSpace()
+    if request.method == 'POST':
+        spacename = form.spacename.data.encode('utf-8')
+        keyname = form.keyname.data.encode('utf-8')
+        partitions = form.partitions.data
+        failures = form.failures.data
+        session['newspace'].extend([spacename, keyname,partitions, failures])
+        return redirect(url_for('design_attributes'))
+    return render_template('newspace.html', form=form)
 
 @app.route('/spaces/attributes', methods=['GET','POST'])
 def design_attributes():
-	form = AddAttribute()
-	spacename = session['newspace'][0]
+    form = AddAttribute()
+    spacename = session['newspace'][0]
 
-	if request.method == 'POST':
-		attributetype = form.attributetype.data.encode('utf-8')
-		attributename = form.attributename.data.encode('utf-8')
-		attributesub = form.attributesub.data
-		session['attrlist'].append([attributetype, attributename, attributesub])
-		return render_template('newchar.html', form=form,
-			attrlist=session['attrlist'],
-			spacename=spacename)
-	return render_template('newchar.html', form=form,
-		spacename=spacename,
-		attrlist=session['attrlist'])
+    if request.method == 'POST':
+        attributetype = form.attributetype.data.encode('utf-8')
+        attributename = form.attributename.data.encode('utf-8')
+        attributesub = form.attributesub.data
+        session['attrlist'].append([attributetype, attributename, attributesub])
+        return render_template('newchar.html', form=form,
+            attrlist=session['attrlist'],
+            spacename=spacename)
+    return render_template('newchar.html', form=form,
+        spacename=spacename,
+        attrlist=session['attrlist'])
 
 @app.route('/space/create',methods=['POST','GET'])
 def create_space():
-	newspace = session['newspace']
-	attrlist = session['attrlist']
-	hyperdexfunc.create_space(newspace, attrlist)
-	return redirect(url_for('noc'))
+    newspace = session['newspace']
+    attrlist = session['attrlist']
+    hypersys.create_space(newspace, attrlist)
+    return redirect(url_for('noc'))
+
+@app.route('/explore/<space>/', methods=['POST','GET'])
+def explore_space(space):
+    results = hypersys.getall(space)
+    print results
+    return render_template('explorespace.html', space = space)

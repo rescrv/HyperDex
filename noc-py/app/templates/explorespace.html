@@ -30,52 +30,7 @@ POSSIBILITY OF SUCH DAMAGE. -->
 
 <div class="container">
 
-<h1>Create a New Space</h1>
-<br>
-
-
-<form  action="{{url_for('design_space')}} " class="form" method="POST">
-	{{ form.hidden_tag() }}
-
-	<div class="form-group">
-		<div class = "col-sm-3">
-			{{ form.spacename(placeholder="Space Name", class="form-control")}}
-		</div>
-
-	<br>
-	<br>
-	<br>
-		<div class = "col-sm-3">
-	   		{{ form.keyname(placeholder="Key Name", class="form-control")}}
-	    </div>
-
-
-	<br>
-	<br>
-	<br>
-
-		<div class = "col-sm-3">
-	    	{{ form.partitions(placeholder="# of Partitions", class="form-control") }}
-	    </div>
-
-
-	<br>
-	<br>
-	<br>
-		<div class = "col-sm-3">
-	     	{{ form.failures(placeholder="# of Failures to Tolerate", class="form-control") }}
-	    </div>
-
-	</div>
-
-	<br>
-	<br>
-	<br>
-		<div class = "col-sm-3">
-
-  <center><input class="btn btn-default" type=submit value=Create></center>
-</div>
-</form>
+<h1>Explore {{space}}</h1>
 
 </div>
 
