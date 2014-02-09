@@ -88,7 +88,7 @@ def delete_node():
 
 @app.route('/delete/<space>')
 def delete_space(space):
-    hypersys.delspace(space)
+    hyperadmin.delspace(space)
     return redirect(url_for('noc'))
 
 @app.route('/spaces/new', methods=['GET', 'POST'])
@@ -126,11 +126,12 @@ def design_attributes():
 def create_space():
     newspace = session['newspace']
     attrlist = session['attrlist']
-    hypersys.create_space(newspace, attrlist)
+    hyperadmin.create_space(newspace, attrlist)
     return redirect(url_for('noc'))
 
 @app.route('/explore/<space>/', methods=['POST','GET'])
 def explore_space(space):
-    results = hypersys.getall(space)
+    space = space.encode('utf-8')
+    results = hyperclient.getall(space)
     print results
     return render_template('explorespace.html', space = space)

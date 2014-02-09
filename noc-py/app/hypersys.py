@@ -94,13 +94,14 @@ def startcoord():
 	startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' % \
 		(coordata, coorlog, coorip, coorport)
 	os.system(startcoord)
+	setreadwrite()
 
 def setreadonly():
 	setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
 	os.system(setreadonly)
 
 def setreadwrite():
-	setreadonly = 'hyperdex set-read-write --host=%s  --port=%s' % (coorip, coorport)
+	setreadwrite = 'hyperdex set-read-write --host=%s  --port=%s' % (coorip, coorport)
 	os.system(setreadwrite)
 
 def waituntilstable():
