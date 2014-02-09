@@ -228,7 +228,7 @@ datatype_map :: apply_inner(map_t* m,
 
     if (!writeto)
     {
-        return NULL;
+        return false;
     }
 
     //writeto = m_v->write(scratch->get(), e::slice(scratch->get(), writeto - scratch->get()));

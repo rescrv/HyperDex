@@ -521,7 +521,7 @@ hyperspace_set_number_of_partitions(hyperspace* space, uint64_t num)
 {
     if (num < 1)
     {
-        snprintf(space->buffer, BUFFER_SIZE, "the number of partitions must be positive, not %ld", num);
+        snprintf(space->buffer, BUFFER_SIZE, "the number of partitions must be positive, not 0");
         space->buffer[BUFFER_SIZE - 1] = '\0';
         space->error = space->buffer;
         return HYPERSPACE_NO_SUBSPACE;
