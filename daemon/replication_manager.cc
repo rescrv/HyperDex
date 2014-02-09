@@ -50,6 +50,7 @@
 #include "daemon/replication_manager_key_state.h"
 #include "daemon/replication_manager_pending.h"
 
+using po6::threads::make_thread_wrapper;
 using hyperdex::reconfigure_returncode;
 using hyperdex::replication_manager;
 
@@ -63,7 +64,7 @@ replication_manager :: replication_manager(daemon* d)
     , m_checkpoint(0)
     , m_need_check(1)
     , m_timestamps()
-    , m_background_thread(std::tr1::bind(&replication_manager::background_thread, this))
+    , m_background_thread(make_thread_wrapper(&replication_manager::background_thread, this))
     , m_block_background_thread()
     , m_wakeup_background_thread(&m_block_background_thread)
     , m_wakeup_reconfigurer(&m_block_background_thread)

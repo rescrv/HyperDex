@@ -30,7 +30,6 @@
 
 // STL
 #include <list>
-#include <tr1/unordered_map>
 
 // po6
 #include <po6/threads/cond.h>
@@ -39,6 +38,7 @@
 
 // e
 #include <e/buffer.h>
+#include <e/compat.h>
 #include <e/intrusive_ptr.h>
 #include <e/lockfree_hash_map.h>
 #include <e/striped_lock.h>
@@ -129,7 +129,7 @@ class replication_manager
         class key_region; // a tuple of (key, region)
         class key_state; // state for a single key
         typedef state_hash_table<key_region, key_state> key_map_t;
-        friend class std::tr1::hash<key_region>;
+        friend class e::compat::hash<key_region>;
 
     private:
         replication_manager(const replication_manager&);

@@ -63,14 +63,15 @@
 
 // ASSUME:  all keys put into leveldb have a first byte without the high bit set
 
+using po6::threads::make_thread_wrapper;
 using hyperdex::datalayer;
 using hyperdex::reconfigure_returncode;
 
 datalayer :: datalayer(daemon* d)
     : m_daemon(d)
     , m_db()
-    , m_checkpointer(std::tr1::bind(&datalayer::checkpointer, this))
-    , m_wiper(std::tr1::bind(&datalayer::wiper, this))
+    , m_checkpointer(make_thread_wrapper(&datalayer::checkpointer, this))
+    , m_wiper(make_thread_wrapper(&datalayer::wiper, this))
     , m_protect()
     , m_wakeup_checkpointer(&m_protect)
     , m_wakeup_wiper(&m_protect)

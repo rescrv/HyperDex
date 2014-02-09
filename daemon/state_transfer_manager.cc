@@ -43,6 +43,7 @@
 #include "daemon/state_transfer_manager_transfer_in_state.h"
 #include "daemon/state_transfer_manager_transfer_out_state.h"
 
+using po6::threads::make_thread_wrapper;
 using hyperdex::reconfigure_returncode;
 using hyperdex::state_transfer_manager;
 using hyperdex::transfer_id;
@@ -51,7 +52,7 @@ state_transfer_manager :: state_transfer_manager(daemon* d)
     : m_daemon(d)
     , m_transfers_in()
     , m_transfers_out()
-    , m_kickstarter(std::tr1::bind(&state_transfer_manager::kickstarter, this))
+    , m_kickstarter(make_thread_wrapper(&state_transfer_manager::kickstarter, this))
     , m_block_kickstarter()
     , m_wakeup_kickstarter(&m_block_kickstarter)
     , m_wakeup_reconfigurer(&m_block_kickstarter)
