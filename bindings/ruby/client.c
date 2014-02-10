@@ -31,6 +31,8 @@
 
 /* Ruby */
 #include <ruby.h>
+#include <intern.h>
+#include <st.h>
 
 /* HyperDex */
 #include "hyperdex/client.h"
