@@ -37,14 +37,16 @@
 #include "visibility.h"
 #include "bindings/java/org_hyperdex_client_Client.h"
 #include "bindings/java/org_hyperdex_client_Deferred.h"
-#include "bindings/java/org_hyperdex_client_Iterator.h"
-#include "bindings/java/org_hyperdex_client_LessEqual.h"
 #include "bindings/java/org_hyperdex_client_GreaterEqual.h"
+#include "bindings/java/org_hyperdex_client_GreaterThan.h"
+#include "bindings/java/org_hyperdex_client_Iterator.h"
+#include "bindings/java/org_hyperdex_client_LengthEquals.h"
+#include "bindings/java/org_hyperdex_client_LengthGreaterEqual.h"
+#include "bindings/java/org_hyperdex_client_LengthLessEqual.h"
+#include "bindings/java/org_hyperdex_client_LessEqual.h"
+#include "bindings/java/org_hyperdex_client_LessThan.h"
 #include "bindings/java/org_hyperdex_client_Range.h"
 #include "bindings/java/org_hyperdex_client_Regex.h"
-#include "bindings/java/org_hyperdex_client_LengthEquals.h"
-#include "bindings/java/org_hyperdex_client_LengthLessEqual.h"
-#include "bindings/java/org_hyperdex_client_LengthGreaterEqual.h"
 
 /********************************* Cached IDs *********************************/
 
@@ -2191,6 +2193,8 @@ hyperdex_java_client_iterator_encode_status_attributes(JNIEnv* env, jobject obj,
 
 SINGLE_OBJECT_PREDICATE(LessEqual, less_equal, LESS_EQUAL)
 SINGLE_OBJECT_PREDICATE(GreaterEqual, greater_equal, GREATER_EQUAL)
+SINGLE_OBJECT_PREDICATE(LessThan, less_equal, LESS_THAN)
+SINGLE_OBJECT_PREDICATE(GreaterThan, greater_equal, GREATER_THAN)
 
 JNIEXPORT HYPERDEX_API jlong JNICALL
 Java_org_hyperdex_client_Range_checksSize(JNIEnv* env, jobject obj)

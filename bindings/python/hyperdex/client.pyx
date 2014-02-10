@@ -78,8 +78,10 @@ cdef extern from "hyperdex.h":
     cdef enum hyperpredicate:
         HYPERPREDICATE_FAIL          = 9728
         HYPERPREDICATE_EQUALS        = 9729
+        HYPERPREDICATE_LESS_THAN     = 9738
         HYPERPREDICATE_LESS_EQUAL    = 9730
         HYPERPREDICATE_GREATER_EQUAL = 9731
+        HYPERPREDICATE_GREATER_THAN  = 9739
         HYPERPREDICATE_REGEX         = 9733
         HYPERPREDICATE_LENGTH_EQUALS        = 9734
         HYPERPREDICATE_LENGTH_LESS_EQUAL    = 9735
@@ -846,7 +848,7 @@ cdef hyperdex_python_client_iterator_encode_status_attributes(Iterator it):
 
 cdef class Predicate:
 
-    cpdef list _checks
+    cdef list _checks
 
     def __init__(self, raw):
         self._checks = list(raw)
@@ -868,6 +870,16 @@ cdef class GreaterEqual(Predicate):
 
     def __init__(self, lower):
         Predicate.__init__(self, ((HYPERPREDICATE_GREATER_EQUAL, lower),))
+
+cdef class LessThan(Predicate):
+
+    def __init__(self, upper):
+        Predicate.__init__(self, ((HYPERPREDICATE_LESS_THAN, upper),))
+
+cdef class GreaterThan(Predicate):
+
+    def __init__(self, lower):
+        Predicate.__init__(self, ((HYPERPREDICATE_GREATER_THAN, lower),))
 
 cdef class Range(Predicate):
 

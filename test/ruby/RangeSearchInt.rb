@@ -42,9 +42,21 @@ assert { X2.subset?Y2 and Y2.subset?X2 }
 X3 = collapse_iterator(c.search("kv", {"v" => (HyperDex::Client::GreaterEqual.new 0)}))
 Y3 = to_objectset([{:k => 0, :v => 0}, {:k => 1, :v => 1}, {:k => 2, :v => 2}])
 assert { X3.subset?Y3 and Y3.subset?X3 }
-X4 = collapse_iterator(c.search("kv", {"k" => (HyperDex::Client::Range.new -1, 1)}))
-Y4 = to_objectset([{:k => -1, :v => -1}, {:k => 0, :v => 0}, {:k => 1, :v => 1}])
+X4 = collapse_iterator(c.search("kv", {"k" => (HyperDex::Client::LessThan.new 0)}))
+Y4 = to_objectset([{:k => -2, :v => -2}, {:k => -1, :v => -1}])
 assert { X4.subset?Y4 and Y4.subset?X4 }
-X5 = collapse_iterator(c.search("kv", {"v" => (HyperDex::Client::Range.new -1, 1)}))
-Y5 = to_objectset([{:k => -1, :v => -1}, {:k => 0, :v => 0}, {:k => 1, :v => 1}])
+X5 = collapse_iterator(c.search("kv", {"v" => (HyperDex::Client::LessThan.new 0)}))
+Y5 = to_objectset([{:k => -2, :v => -2}, {:k => -1, :v => -1}])
 assert { X5.subset?Y5 and Y5.subset?X5 }
+X6 = collapse_iterator(c.search("kv", {"k" => (HyperDex::Client::GreaterThan.new 0)}))
+Y6 = to_objectset([{:k => 1, :v => 1}, {:k => 2, :v => 2}])
+assert { X6.subset?Y6 and Y6.subset?X6 }
+X7 = collapse_iterator(c.search("kv", {"v" => (HyperDex::Client::GreaterThan.new 0)}))
+Y7 = to_objectset([{:k => 1, :v => 1}, {:k => 2, :v => 2}])
+assert { X7.subset?Y7 and Y7.subset?X7 }
+X8 = collapse_iterator(c.search("kv", {"k" => (HyperDex::Client::Range.new -1, 1)}))
+Y8 = to_objectset([{:k => -1, :v => -1}, {:k => 0, :v => 0}, {:k => 1, :v => 1}])
+assert { X8.subset?Y8 and Y8.subset?X8 }
+X9 = collapse_iterator(c.search("kv", {"v" => (HyperDex::Client::Range.new -1, 1)}))
+Y9 = to_objectset([{:k => -1, :v => -1}, {:k => 0, :v => 0}, {:k => 1, :v => 1}])
+assert { X9.subset?Y9 and Y9.subset?X9 }

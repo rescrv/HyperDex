@@ -66,8 +66,10 @@ hyperdex :: validate_attribute_check(const schema& sc,
             return true;
         case HYPERPREDICATE_EQUALS:
             return di_attr->datatype() == di_check->datatype();
+        case HYPERPREDICATE_LESS_THAN:
         case HYPERPREDICATE_LESS_EQUAL:
         case HYPERPREDICATE_GREATER_EQUAL:
+        case HYPERPREDICATE_GREATER_THAN:
             return di_attr->datatype() == di_check->datatype() &&
                    di_attr->comparable();
         case HYPERPREDICATE_REGEX:
@@ -133,6 +135,10 @@ hyperdex :: passes_attribute_check(const schema& sc,
         case HYPERPREDICATE_EQUALS:
             return di_attr->datatype() == di_check->datatype() &&
                    check.value == value;
+        case HYPERPREDICATE_LESS_THAN:
+            return di_attr->datatype() == di_check->datatype() &&
+                   di_attr->comparable() &&
+                   di_attr->compare(check.value, value) > 0;
         case HYPERPREDICATE_LESS_EQUAL:
             return di_attr->datatype() == di_check->datatype() &&
                    di_attr->comparable() &&
@@ -141,6 +147,10 @@ hyperdex :: passes_attribute_check(const schema& sc,
             return di_attr->datatype() == di_check->datatype() &&
                    di_attr->comparable() &&
                    di_attr->compare(check.value, value) <= 0;
+        case HYPERPREDICATE_GREATER_THAN:
+            return di_attr->datatype() == di_check->datatype() &&
+                   di_attr->comparable() &&
+                   di_attr->compare(check.value, value) < 0;
         case HYPERPREDICATE_REGEX:
             return di_check->datatype() == HYPERDATATYPE_STRING &&
                    di_attr->has_regex() &&

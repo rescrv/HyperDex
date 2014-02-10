@@ -6,6 +6,8 @@ import org.hyperdex.client.HyperDexClientException;
 import org.hyperdex.client.Iterator;
 import org.hyperdex.client.LessEqual;
 import org.hyperdex.client.GreaterEqual;
+import org.hyperdex.client.LessThan;
+import org.hyperdex.client.GreaterThan;
 import org.hyperdex.client.Range;
 import org.hyperdex.client.Regex;
 import org.hyperdex.client.LengthEquals;
@@ -80,7 +82,7 @@ public class RangeSearchInt
             X8.add(it8.next());
         }
         Map<String, Object> checks9 = new HashMap<String, Object>();
-        checks9.put("k", new Range(-1, 1));
+        checks9.put("k", new LessThan(0));
         Set<Object> X9 = new HashSet<Object>();
         Iterator it9 = c.search("kv", checks9);
         while (it9.hasNext())
@@ -88,12 +90,44 @@ public class RangeSearchInt
             X9.add(it9.next());
         }
         Map<String, Object> checks10 = new HashMap<String, Object>();
-        checks10.put("v", new Range(-1, 1));
+        checks10.put("v", new LessThan(0));
         Set<Object> X10 = new HashSet<Object>();
         Iterator it10 = c.search("kv", checks10);
         while (it10.hasNext())
         {
             X10.add(it10.next());
+        }
+        Map<String, Object> checks11 = new HashMap<String, Object>();
+        checks11.put("k", new GreaterThan(0));
+        Set<Object> X11 = new HashSet<Object>();
+        Iterator it11 = c.search("kv", checks11);
+        while (it11.hasNext())
+        {
+            X11.add(it11.next());
+        }
+        Map<String, Object> checks12 = new HashMap<String, Object>();
+        checks12.put("v", new GreaterThan(0));
+        Set<Object> X12 = new HashSet<Object>();
+        Iterator it12 = c.search("kv", checks12);
+        while (it12.hasNext())
+        {
+            X12.add(it12.next());
+        }
+        Map<String, Object> checks13 = new HashMap<String, Object>();
+        checks13.put("k", new Range(-1, 1));
+        Set<Object> X13 = new HashSet<Object>();
+        Iterator it13 = c.search("kv", checks13);
+        while (it13.hasNext())
+        {
+            X13.add(it13.next());
+        }
+        Map<String, Object> checks14 = new HashMap<String, Object>();
+        checks14.put("v", new Range(-1, 1));
+        Set<Object> X14 = new HashSet<Object>();
+        Iterator it14 = c.search("kv", checks14);
+        while (it14.hasNext())
+        {
+            X14.add(it14.next());
         }
     }
 }

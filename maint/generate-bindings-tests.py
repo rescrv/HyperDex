@@ -63,6 +63,18 @@ class GreaterEqual(object):
     def __repr__(self):
         return 'GreaterEqual({0!r})'.format(self.x)
 
+class LessThan(object):
+    def __init__(self, x):
+        self.x = x
+    def __repr__(self):
+        return 'LessThan({0!r})'.format(self.x)
+
+class GreaterThan(object):
+    def __init__(self, x):
+        self.x = x
+    def __repr__(self):
+        return 'GreaterThan({0!r})'.format(self.x)
+
 class Range(object):
     def __init__(self, x, y):
         self.x = x
@@ -118,7 +130,7 @@ class PythonGenerator(BindingGenerator):
         self.f.write('''#!/usr/bin/env python
 import sys
 import hyperdex.client
-from hyperdex.client import LessEqual, GreaterEqual, Range, Regex, LengthEquals, LengthLessEqual, LengthGreaterEqual
+from hyperdex.client import LessEqual, GreaterEqual, LessThan, GreaterThan, Range, Regex, LengthEquals, LengthLessEqual, LengthGreaterEqual
 c = hyperdex.client.Client(sys.argv[1], int(sys.argv[2]))
 def to_objectset(xs):
     return set([frozenset(x.items()) for x in xs])
@@ -219,6 +231,10 @@ c = HyperDex::Client::Client.new(ARGV[0], ARGV[1].to_i)
             return '(HyperDex::Client::LessEqual.new {0})'.format(self.to_ruby(x.x))
         elif isinstance(x, GreaterEqual):
             return '(HyperDex::Client::GreaterEqual.new {0})'.format(self.to_ruby(x.x))
+        elif isinstance(x, LessThan):
+            return '(HyperDex::Client::LessThan.new {0})'.format(self.to_ruby(x.x))
+        elif isinstance(x, GreaterThan):
+            return '(HyperDex::Client::GreaterThan.new {0})'.format(self.to_ruby(x.x))
         elif isinstance(x, Range):
             return '(HyperDex::Client::Range.new {0}, {1})'.format(self.to_ruby(x.x), self.to_ruby(x.y))
         elif isinstance(x, Regex):
@@ -273,6 +289,8 @@ import org.hyperdex.client.HyperDexClientException;
 import org.hyperdex.client.Iterator;
 import org.hyperdex.client.LessEqual;
 import org.hyperdex.client.GreaterEqual;
+import org.hyperdex.client.LessThan;
+import org.hyperdex.client.GreaterThan;
 import org.hyperdex.client.Range;
 import org.hyperdex.client.Regex;
 import org.hyperdex.client.LengthEquals;
@@ -366,6 +384,10 @@ public class {0}
             return 'new LessEqual({0})'.format(self.to_java(x.x))
         elif isinstance(x, GreaterEqual):
             return 'new GreaterEqual({0})'.format(self.to_java(x.x))
+        elif isinstance(x, LessThan):
+            return 'new LessThan({0})'.format(self.to_java(x.x))
+        elif isinstance(x, GreaterThan):
+            return 'new GreaterThan({0})'.format(self.to_java(x.x))
         elif isinstance(x, Range):
             return 'new Range({0}, {1})'.format(self.to_java(x.x), self.to_java(x.y))
         elif isinstance(x, Regex):
@@ -672,6 +694,20 @@ t.search('kv', {'v': GreaterEqual('C')},
          [{'k': 'C', 'v': 'C'},
           {'k': 'D', 'v': 'D'},
           {'k': 'E', 'v': 'E'}])
+# LessThan
+t.search('kv', {'k': LessThan('C')},
+         [{'k': 'A', 'v': 'A'},
+          {'k': 'B', 'v': 'B'}])
+t.search('kv', {'v': LessThan('C')},
+         [{'k': 'A', 'v': 'A'},
+          {'k': 'B', 'v': 'B'}])
+# GreaterThan
+t.search('kv', {'k': GreaterThan('C')},
+         [{'k': 'D', 'v': 'D'},
+          {'k': 'E', 'v': 'E'}])
+t.search('kv', {'v': GreaterThan('C')},
+         [{'k': 'D', 'v': 'D'},
+          {'k': 'E', 'v': 'E'}])
 # Range
 t.search('kv', {'k': Range('B', 'D')},
          [{'k': 'B', 'v': 'B'},
@@ -707,6 +743,20 @@ t.search('kv', {'k': GreaterEqual(0)},
 t.search('kv', {'v': GreaterEqual(0)},
          [{'k': 0, 'v': 0},
           {'k': 1, 'v': 1},
+          {'k': 2, 'v': 2}])
+# LessThan
+t.search('kv', {'k': LessThan(0)},
+         [{'k': -2, 'v': -2},
+          {'k': -1, 'v': -1}])
+t.search('kv', {'v': LessThan(0)},
+         [{'k': -2, 'v': -2},
+          {'k': -1, 'v': -1}])
+# GreaterThan
+t.search('kv', {'k': GreaterThan(0)},
+         [{'k': 1, 'v': 1},
+          {'k': 2, 'v': 2}])
+t.search('kv', {'v': GreaterThan(0)},
+         [{'k': 1, 'v': 1},
           {'k': 2, 'v': 2}])
 # Range
 t.search('kv', {'k': Range(-1, 1)},

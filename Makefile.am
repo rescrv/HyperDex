@@ -569,12 +569,14 @@ EXTRA_DIST += bindings/java/org/hyperdex/client/ByteString.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Client.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Deferred.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/GreaterEqual.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/GreaterThan.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/HyperDexClientException.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Iterator.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LengthEquals.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LengthGreaterEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LengthLessEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LessEqual.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/LessThan.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Operation.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Predicate.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Range.java
@@ -1225,8 +1227,9 @@ maintainer-generate:
 	python bindings/c/gen_doc.py
 	python bindings/c/gen_wrappers.py
 	python bindings/java/gen_java.py
-	python bindings/ruby/gen_ruby.py
+	python bindings/python/gen_python.py
 	python bindings/ruby/gen_doc.py
+	python bindings/ruby/gen_ruby.py
 	python maint/generate-replication-shell-stubs.py
 	python maint/generate-search-shell-stubs.py
 	python maint/generate-doc-shell-stubs.py
