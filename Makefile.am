@@ -55,6 +55,7 @@ bin_PROGRAMS =
 noinst_PROGRAMS =
 check_PROGRAMS =
 
+hyperdexexec_SCRIPTS =
 hyperdexexec_PROGRAMS =
 hyperdexexec_LTLIBRARIES =
 
@@ -588,11 +589,13 @@ EXTRA_DIST += test/java/.exists
 noinst_HEADERS += bindings/java/org_hyperdex_client_Client.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Deferred.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_GreaterEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_GreaterThan.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Iterator.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_LengthEquals.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_LengthGreaterEqual.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_LengthLessEqual.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_LessEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_LessThan.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Range.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Regex.h
 
@@ -996,6 +999,7 @@ hyperdexexec_PROGRAMS += hyperdex-wait-until-stable
 hyperdexexec_PROGRAMS += hyperdex-backup
 hyperdexexec_PROGRAMS += hyperdex-backup-manager
 hyperdexexec_PROGRAMS += hyperdex-raw-backup
+hyperdexexec_SCRIPTS += hyperdex-noc
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
 dist_man_MANS += man/hyperdex-list-spaces.1
@@ -1179,6 +1183,34 @@ hyperdex_raw_backup_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-raw-backup.1: man/hyperdex-raw-backup.1.h2m tools/raw-backup.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-raw-backup$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-raw-backup$(EXEEXT)
+
+# hyperdex-noc
+EXTRA_DIST += hyperdex-noc
+
+################################################################################
+################################# Documentation ################################
+################################################################################
+
+EXTRA_DIST += noc/css/bootstrap.css
+EXTRA_DIST += noc/css/bootstrap.min.css
+EXTRA_DIST += noc/css/bootstrap-responsive.css
+EXTRA_DIST += noc/css/bootstrap-responsive.min.css
+EXTRA_DIST += noc/css/style.css
+EXTRA_DIST += noc/img/glyphicons-halflings.png
+EXTRA_DIST += noc/img/glyphicons-halflings-white.png
+EXTRA_DIST += noc/img/hyperdex.png
+EXTRA_DIST += noc/index.html
+EXTRA_DIST += noc/js/noc.js
+EXTRA_DIST += noc/lib/angular/angular.js
+EXTRA_DIST += noc/lib/angular/angular.min.js
+EXTRA_DIST += noc/lib/angular/angular-resource.js
+EXTRA_DIST += noc/lib/angular/angular-resource.min.js
+EXTRA_DIST += noc/lib/angular/ui-bootstrap.js
+EXTRA_DIST += noc/lib/angular/ui-bootstrap.min.js
+EXTRA_DIST += noc/lib/angular/version.txt
+EXTRA_DIST += noc/partials/default_chart.html
+EXTRA_DIST += noc/partials/edit_chart.html
+EXTRA_DIST += noc/partials/servers.html
 
 ################################################################################
 ################################# Documentation ################################
