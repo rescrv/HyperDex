@@ -91,6 +91,16 @@ def delete_space(space):
     hyperadmin.delspace(space)
     return redirect(url_for('noc'))
 
+@app.route('/rw')
+def rw():
+    hypersys.setreadwrite()
+    return redirect(url_for('noc'))
+
+@app.route('/ro')
+def ro():
+    hypersys.setreadonly()
+    return redirect(url_for('noc'))
+
 @app.route('/spaces/new', methods=['GET', 'POST'])
 def design_space():
     session['newspace'] = []

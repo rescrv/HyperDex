@@ -77,9 +77,23 @@ POSSIBILITY OF SUCH DAMAGE. -->
               <br>
               <p>
                 <center>
+
                       <a class="btn btn-default" href="{{ url_for('stop_coordinator')}}">
                         Stop Coordinator
                       </a>
+                      <br>
+                      <br>
+                  {% if flags == '1' %}
+                      <a class="btn btn-default" href="{{ url_for('rw')}}">
+                        Set Read-Write
+                      </a>
+                      <br>
+
+                  {% elif flags == '0' %}
+                      <a class="btn btn-default" href="{{ url_for('ro')}}">
+                        Set Read-Only
+                      </a>
+                  {% endif %}
                 </center>
               </p>
               {% else %}
