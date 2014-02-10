@@ -187,6 +187,13 @@ AC_DEFUN([AX_RUBY_EXT],[
 -------------------------------------------------
 Could not auto-detect the Ruby extension dir
 Set RUBY_EXT_SITEARCH or RUBY_EXT_VENDORARCH
+
+This problem usually happens because
+RUBY_EXT_SITEARCH does not have the value of
+"--prefix" as its prefix.
+
+It is probably safe to use:
+./configure RUBY_EXT_SITEARCH=$RUBY_EXT_SITEARCH
 -------------------------------------------------])
                 fi
                 AC_MSG_CHECKING([for Ruby extensions dir])
