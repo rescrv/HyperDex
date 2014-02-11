@@ -130,6 +130,8 @@ datalayer :: initialize(const po6::pathname& path,
         first_time = false;
 
         if (rbacking != PACKAGE_VERSION &&
+            rbacking != "1.0.5" &&
+            rbacking != "1.0.4" &&
             rbacking != "1.0.3" &&
             rbacking != "1.0.2" &&
             rbacking != "1.0.1" &&
