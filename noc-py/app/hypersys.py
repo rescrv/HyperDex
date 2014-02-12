@@ -42,13 +42,14 @@ coorport = '1982'
 def checkcoordstatus():
 	cmd = 'ps -C "replicant-daemon"'
 	results = os.system(cmd)
-	if results == 256:
-		coordstatus = False
-	elif results == 0:
-		coordstatus = True
-	else:
-		coordstatus = False
+	coordstatus = True if not results else False
 	return coordstatus
+
+def checknodestatus():
+	cmd = 'ps -C "hyperdex-daemon"'
+	results = os.system(cmd)
+	nodestatus = True if not results else False
+	return nodestatus
 
 def getconfig():
 	if checkcoordstatus():
@@ -70,15 +71,7 @@ def getconfig():
 		server = ''
 	return cluster, version, flags, server
 
-def checknodestatus():
-	results = os.system('ps -C "hyperdex-daemon"')
-	if results == 256:
-		nodestatus = False
-	elif results == 0:
-		nodestatus = True
-	else:
-		nodestatus = False
-	return nodestatus
+
 
 def startnode():
 	startnode = 'hyperdex daemon --daemon --data=%s --log=%s --listen=%s --coordinator-port=%s' % \
