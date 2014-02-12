@@ -39,16 +39,18 @@ def noc():
     coordstatus = hypersys.checkcoordstatus()
     nodestatus = hypersys.checknodestatus()
     spacelist = hypersys.listspaces()
-    config = hypersys.getconfig()
-
-
-    cluster = config[0]
-    version = config[1]
-    flags = config[2]
     try:
-        server = config[3]
-    except:
-        server = ''
+        config = hypersys.getconfig()
+        cluster = config[0]
+        version = config[1]
+        flags = config[2]
+        try:
+            server = config[3]
+        except:
+            server = ''
+    except IndexError:
+        return redirect(url_for('noc'))
+
 
 
     return render_template("noc.html",
@@ -59,6 +61,7 @@ def noc():
 @app.route('/coordinator/start')
 def start_coordinator():
     hypersys.startcoord()
+
     return redirect(url_for('noc'))
 
 @app.route('/coordinator/stop')
