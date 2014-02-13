@@ -21,6 +21,7 @@
 /bindings/cc/admin_testcompile
 /bindings/cc/client_testcompile
 /bindings/c/client_testcompile
+/bindings/node.js/build
 /bindings/python/hyperdex/admin.c
 /bindings/python/hyperdex/admin.so
 /bindings/python/hyperdex/client.c

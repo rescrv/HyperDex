@@ -622,6 +622,15 @@ $(hyperdex_ycsb_jarfile): ${JAVA_SRC_PKG}/ycsb/HyperDex.java $(hyperdex_client_j
 	javac -cp $(abs_top_builddir)/$(hyperdex_client_jarfile):$(CLASSPATH) -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/ycsb/*.java
 	cd ${JAVA_BUILD_BASE} && $(JAR) cvf $(JARFLAGS) ${abs_top_builddir}/${hyperdex_ycsb_jarfile} org/hyperdex/ycsb/*.class
 
+#################################### node.js ###################################
+
+EXTRA_DIST += bindings/node.js/binding.gyp
+EXTRA_DIST += bindings/node.js/client.cc
+EXTRA_DIST += bindings/node.js/client.declarations.cc
+EXTRA_DIST += bindings/node.js/client.definitions.cc
+EXTRA_DIST += bindings/node.js/client.prototypes.cc
+EXTRA_DIST += bindings/node.js/gen-code.py
+
 #################################### Python ####################################
 
 if ENABLE_PYTHON_BINDINGS

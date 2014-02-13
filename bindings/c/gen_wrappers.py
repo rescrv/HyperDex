@@ -200,6 +200,16 @@ hyperdex_client_loop(hyperdex_client* _cl, int timeout,
     );
 }
 
+HYPERDEX_API int
+hyperdex_client_poll(hyperdex_client* _cl)
+{
+    hyperdex_client_returncode _status;
+    hyperdex_client_returncode* status = &_status;
+    C_WRAP_EXCEPT(
+    return cl->poll();
+    );
+}
+
 #ifdef __cplusplus
 } // extern "C"
 #endif // __cplusplus

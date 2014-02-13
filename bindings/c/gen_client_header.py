@@ -125,6 +125,9 @@ int64_t
 hyperdex_client_loop(struct hyperdex_client* client, int timeout,
                      enum hyperdex_client_returncode* status);
 
+int
+hyperdex_client_poll(struct hyperdex_client* client);
+
 enum hyperdatatype
 hyperdex_client_attribute_type(struct hyperdex_client* client,
                                const char* space, const char* name,

@@ -475,6 +475,12 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
     return -1;
 }
 
+int
+client :: poll()
+{
+    return m_busybee.poll_fd();
+}
+
 const char*
 client :: error_message()
 {
