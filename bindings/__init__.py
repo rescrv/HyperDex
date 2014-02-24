@@ -1,4 +1,4 @@
-# Copyright (c) 2013, Cornell University
+# Copyright (c) 2013-2014, Cornell University
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -23,9 +23,6 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-def LaTeX(s):
-    return s.replace('_', '\\_')
 
 class AsyncCall: pass
 class Iterator: pass
@@ -132,4 +129,82 @@ Client = [
     Method('sorted_search', Iterator, (SpaceName, Predicates, SortBy, Limit, MaxMin), (Status, Attributes)),
     Method('group_del', AsyncCall, (SpaceName, Predicates), (Status,)),
     Method('count', AsyncCall, (SpaceName, Predicates), (Status, Count)),
-    None][:-1]
+]
+
+def call_name(x):
+    call  = x.form.__name__.lower()
+    call += '__'
+    call += '_'.join([arg.__name__.lower() for arg in x.args_in])
+    call += '__'
+    call += '_'.join([arg.__name__.lower() for arg in x.args_out])
+    return call
+
+def copyright(style, date):
+    assert style in ('#', '*', '/', '%')
+    template = '''{comment} Copyright (c) {date}, Cornell University
+{comment} All rights reserved.
+{comment}
+{comment} Redistribution and use in source and binary forms, with or without
+{comment} modification, are permitted provided that the following conditions are met:
+{comment}
+{comment}     * Redistributions of source code must retain the above copyright notice,
+{comment}       this list of conditions and the following disclaimer.
+{comment}     * Redistributions in binary form must reproduce the above copyright
+{comment}       notice, this list of conditions and the following disclaimer in the
+{comment}       documentation and/or other materials provided with the distribution.
+{comment}     * Neither the name of HyperDex nor the names of its contributors may be
+{comment}       used to endorse or promote products derived from this software without
+{comment}       specific prior written permission.
+{comment}
+{comment} THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+{comment} AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+{comment} IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+{comment} DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+{comment} FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+{comment} DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+{comment} SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+{comment} CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+{comment} OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+{comment} OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+'''
+    if style == '#':
+        return template.format(comment='#', date=date)
+    if style == '/':
+        return template.format(comment='//', date=date)
+    if style == '*':
+        return '/' + template.format(comment=' *', date=date)[1:] + ' */\n'
+    if style == '%':
+        return template.format(comment='%', date=date)
+
+def LaTeX(s):
+    return s.replace('_', '\\_')
+
+def parameters_c_style(arg):
+    label = ', '.join(['\\code{' + LaTeX(a[1]) + '}' for a in arg.args])
+    return label
+
+def parameters_script_style(arg):
+    label = '\\code{' + LaTeX(str(arg).lower()[17:-2]) + '}'
+    return label
+
+def doc_parameter_list(form, args, descriptions, label_maker):
+    max_label = ''
+    parameters = ''
+    for arg in args:
+        if (form, arg) not in descriptions:
+            print 'missing', (form, arg)
+            continue
+        label = label_maker(arg)
+        parameters += '\\item[{0}] {1}\n'.format(label, descriptions[(form, arg)])
+        if len(label) > len(max_label):
+            max_label = label
+    block = ''
+    if parameters:
+        block += '\\begin{description}[labelindent=\\widthof{{'
+        block += max_label
+        block += '}},leftmargin=*,noitemsep,nolistsep,align=right]\n'
+        block += parameters
+        block += '\\end{description}\n'
+    else:
+        block += 'None\n'
+    return block

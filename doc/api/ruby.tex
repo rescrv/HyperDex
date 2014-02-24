@@ -163,7 +163,6 @@ The HyperDex client recognizes Ruby hashes and automatically converts them to
 HyperDex maps.  For example:
 
 \begin{rubycode}
-require 'set'
 c.put(:kv, "somekey", {:v1 => {"k" => "v"}})
 c.put(:kv, "somekey", {:v2 => {1 => 2}})
 c.put(:kv, "somekey", {:v3 => {3.14 => 0.125}})
@@ -272,7 +271,7 @@ operations and raise a \code{HyperDexClientException} with status
 
 The Ruby module is fully reentrant.  Instances of
 \code{HyperDex::Client::Client} and their associated state may be accessed from
-multiple threads, provided that the application employes its own synchronization
+multiple threads, provided that the application employs its own synchronization
 that provides mutual exclusion.
 
 Put simply, a multi-threaded application should protect each \code{Client}

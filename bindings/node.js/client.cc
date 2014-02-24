@@ -724,6 +724,9 @@ Operation :: build_attributes(v8::Local<v8::Value>& retval,
         attrs = NULL;
         attrs_sz = 0;
     }
+
+    retval = obj;
+    error = v8::Local<v8::Value>::New(v8::Undefined());
 }
 
 void

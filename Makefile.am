@@ -1266,13 +1266,11 @@ maint_lib_check_SOURCES = maint/lib-check.c
 maint_lib_check_LDADD = -ldl
 
 maintainer-generate:
-	python bindings/c/gen_client_header.py
-	python bindings/c/gen_doc.py
-	python bindings/c/gen_wrappers.py
-	python bindings/java/gen_java.py
+	python bindings/c.py
+	python bindings/java.py
+	python bindings/nodejs.py
+	python bindings/ruby.py
 	python bindings/python/gen_python.py
-	python bindings/ruby/gen_doc.py
-	python bindings/ruby/gen_ruby.py
 	python maint/generate-replication-shell-stubs.py
 	python maint/generate-search-shell-stubs.py
 	python maint/generate-doc-shell-stubs.py
