@@ -200,17 +200,20 @@ def generate_c_wrapper(x):
 
 def generate_api_block(x, struct='hyperdex_client'):
     block  = ''
-    block += '\\paragraph{{\code{{{0}}}}}\n'.format(bindings.LaTeX(x.name))
-    block += '\\label{{api:c:{0}}}\n'.format(x.name)
-    block += '\\index{{{0}!C API}}\n'.format(bindings.LaTeX(x.name))
+    block += '%' * 20 + ' ' + x.name + ' ' + '%' * 20 + '\n'
+    block += '\\pagebreak\n'
+    block += '\\subsubsection{\code{%s}}\n' % bindings.LaTeX(x.name)
+    block += '\\label{api:c:%s}\n' % x.name
+    block += '\\index{%s!C API}\n' % bindings.LaTeX(x.name)
+    block += '\\input{\\topdir/api/desc/%s}\n\n' % x.name
+    block += '\\paragraph{Definition:}\n'
     block += '\\begin{ccode}\n'
     block += generate_func(x, struct=struct, sep=' ', padd=8)
-    block += '\\end{ccode}\n'
-    block += '\\funcdesc \input{{\\topdir/api/desc/{0}}}\n\n'.format(x.name)
-    block += '\\noindent\\textbf{Parameters:}\n'
+    block += '\\end{ccode}\n\n'
+    block += '\\paragraph{Parameters:}\n'
     block += bindings.doc_parameter_list(x.form, x.args_in, DOCS_IN,
                                          label_maker=bindings.parameters_c_style)
-    block += '\n\\noindent\\textbf{Returns:}\n'
+    block += '\n\\paragraph{Returns:}\n'
     block += bindings.doc_parameter_list(x.form, x.args_out, DOCS_OUT,
                                          label_maker=bindings.parameters_c_style)
     return block

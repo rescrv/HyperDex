@@ -1,11 +1,8 @@
-Store an object in space "space" under key "key" if and only if it does not
-already exist.
+Store a new object by key.  Values not specified by \code{attrs} will be
+initialized to their defaults.
 
-The object will be create, and the attributes specified by \texttt{attrs} will
-be set to their respective values.  Any attributes not specified by
-\texttt{attrs} will be initialized to their default values.  The check is atomic
-with the write, and is guaranteed to never overwrite an existing object.
-
-\input{\topdir/api/shards/chain-rtt}
-
-\input{\topdir/api/shards/linearizable}
+%%% Generated below here
+\paragraph{Behavior:}
+\begin{itemize}[noitemsep]
+\input{api/fragments/fail_if_found}
+\end{itemize}

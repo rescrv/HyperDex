@@ -13,6 +13,7 @@
 \usepackage{graphicx}
 \usepackage{enumitem}
 \usepackage{calc}
+\usepackage{ulem}
 \usepackage{tikz}
 \usepackage{comment}
 \usepackage[margin=1in]{geometry}
@@ -22,14 +23,9 @@
 \usetikzlibrary{decorations.markings}
 \usepackage{makeidx}
 
-\titleformat{\paragraph}[hang]{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
-\titlespacing*{\paragraph}{0pt}{3.25ex plus 1ex minus .2ex}{1em}
-
 \makeindex
 \AtBeginDocument{\renewcommand{\bibname}{References}}
 
-\newcommand{\funcdesc}{\vspace{-0.5\baselineskip}\noindent}
-\newcommand{\funcsep}{\vspace{0.5\baselineskip}}
 \newcommand{\HyperDexVersion}{1.0.dev}
 \newcommand{\code}[1]{\texttt{#1}}
 
@@ -42,11 +38,10 @@
 }
 \makeatother
 
-\setcounter{secnumdepth}{4}
+\setcounter{secnumdepth}{3}
 \setcounter{tocdepth}{3}
 
 \title{HyperDex Reference Manual v1.0.dev}
-%\date{October 07, 2013}
 \author{Robert Escriva, Bernard Wong, and Emin G{\"u}n Sirer}
 
 \newminted{c}{samepage}
@@ -88,9 +83,10 @@
 \part{API Reference}
 \label{part:api-ref}
 \input{\topdir/api/c}
-\input{\topdir/api/java}
-\input{\topdir/api/node.js}
-\input{\topdir/api/ruby}
+% XXX \input{\topdir/api/java}
+% XXX \input{\topdir/api/node.js}
+% XXX \input{\topdir/api/python}
+% XXX \input{\topdir/api/ruby}
 
 \backmatter
 

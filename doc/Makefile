@@ -24,7 +24,7 @@ $(TARGET).pdf: $(TARGET).ps
 -include $(TARGET).P
 
 clean:
-	rm -f $(TARGET).aux $(TARGET).bbl $(TARGET).log .$(TARGET).xtx.cache data/*.tex data/*.aux data/*.eps
+	rm -f $(TARGET).aux $(TARGET).bbl $(TARGET).log $(TARGET).stdout.log .$(TARGET).xtx.cache data/*.tex data/*.aux data/*.eps
 
 clobber: clean
 	rm -f $(TARGET).dvi $(TARGET).P $(TARGET).pdf $(TARGET).ps

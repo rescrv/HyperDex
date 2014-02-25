@@ -188,23 +188,13 @@ def parameters_script_style(arg):
     return label
 
 def doc_parameter_list(form, args, descriptions, label_maker):
-    max_label = ''
-    parameters = ''
+    block = '\\begin{itemize}[noitemsep]\n'
     for arg in args:
         if (form, arg) not in descriptions:
             print 'missing', (form, arg)
             continue
         label = label_maker(arg)
-        parameters += '\\item[{0}] {1}\n'.format(label, descriptions[(form, arg)])
-        if len(label) > len(max_label):
-            max_label = label
-    block = ''
-    if parameters:
-        block += '\\begin{description}[labelindent=\\widthof{{'
-        block += max_label
-        block += '}},leftmargin=*,noitemsep,nolistsep,align=right]\n'
-        block += parameters
-        block += '\\end{description}\n'
-    else:
-        block += 'None\n'
+        block += '\\item ' + label + '\\\\\n'
+        block += descriptions[(form, arg)].strip() + '\n'
+    block += '\\end{itemize}\n'
     return block
