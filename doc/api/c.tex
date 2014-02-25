@@ -1286,12 +1286,9 @@ non-connectivity with the coordinator.
 \subsection{Working with Signals}
 \label{sec:api:c:client:signals}
 
-The HyperDex client library provides a simple mechanism to cleanly integrate
-with applications that work with signals.
-
-Your application must mask all signals prior to making any calls into the
-library.  The library will unmask the signals during blocking operations and
-return \code{HYPERDEX\_CLIENT\_INTERRUPTED} should any signals be received.
+The HyperDex client library is signal-safe.  Should a signal interrupt the
+client during a blocking operation, it will return
+\code{HYPERDEX\_CLIENT\_INTERRUPTED}.
 
 \subsection{Working with Threads}
 \label{sec:api:c:client:threads}

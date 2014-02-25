@@ -270,10 +270,9 @@ invalid attribute "v": attribute has the wrong type
 \subsection{Working with Signals}
 \label{sec:api:java:signals}
 
-Your application must mask all signals prior to making any calls into the
-Java bindings.  The Java bindings will unmask the signals during blocking
-operations and raise a \code{HyperDexClientException} with status
-\code{'HYPERDEX\_CLIENT\_INTERRUPTED'} should any signals be received.
+The HyperDex client library is signal-safe.  Should a signal interrupt the
+client during a blocking operation, it will raise a
+\code{HyperDexClientException} with status \code{HYPERDEX\_CLIENT\_INTERRUPTED}.
 
 \subsection{Working with Threads}
 \label{sec:api:Java:threads}
