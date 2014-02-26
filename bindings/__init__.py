@@ -25,7 +25,15 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class AsyncCall: pass
+class SyncCall: pass
+class NoFailCall: pass
 class Iterator: pass
+
+class StructClient(object):
+    args = (('struct hyperdex_client*', 'client'),)
+
+class StructAdmin(object):
+    args = (('struct hyperdex_admin*', 'admin'),)
 
 class SpaceName(object):
     args = (('const char*', 'space'),)
@@ -42,6 +50,8 @@ class MapAttributes(object):
             ('size_t', 'mapattrs_sz'))
 class Status(object):
     args = (('enum hyperdex_client_returncode', 'status'),)
+class AdminStatus(object):
+    args = (('enum hyperdex_admin_returncode', 'status'),)
 class Description(object):
     args = (('const char*', 'description'),)
 class SortBy(object):
@@ -52,6 +62,24 @@ class Count(object):
     args = (('uint64_t', 'count'),)
 class MaxMin(object):
     args = (('int', 'maxmin'),)
+class ReadOnly(object):
+    args = (('int', 'ro'),)
+class FaultTolerance(object):
+    args = (('uint64_t', 'ft'),)
+class SpaceDescription(object):
+    args = (('const char*', 'description'),)
+class SpaceList(object):
+    args = (('const char*', 'spaces'),)
+class Token(object):
+    args = (('uint64_t', 'token'),)
+class Address(object):
+    args = (('const char*', 'address'),)
+class BackupName(object):
+    args = (('const char*', 'backup'),)
+class BackupList(object):
+    args = (('const char*', 'backups'),)
+class PerformanceCounters(object):
+    args = (('struct hyperdex_admin_perf_counter', 'pc'),)
 
 class Method(object):
 
@@ -131,6 +159,24 @@ Client = [
     Method('count', AsyncCall, (SpaceName, Predicates), (Status, Count)),
 ]
 
+Admin = [
+    Method('read_only', AsyncCall, (ReadOnly,), (AdminStatus,)),
+    Method('wait_until_stable', AsyncCall, (), (AdminStatus,)),
+    Method('fault_tolerance', AsyncCall, (SpaceName, FaultTolerance), (AdminStatus,)),
+    Method('validate_space', SyncCall, (SpaceDescription,), (AdminStatus,)),
+    Method('add_space', AsyncCall, (SpaceDescription,), (AdminStatus,)),
+    Method('rm_space', AsyncCall, (SpaceName,), (AdminStatus,)),
+    Method('list_spaces', AsyncCall, (), (AdminStatus, SpaceList)),
+    Method('server_register', AsyncCall, (Token, Address), (AdminStatus,)),
+    Method('server_online', AsyncCall, (Token,), (AdminStatus,)),
+    Method('server_offline', AsyncCall, (Token,), (AdminStatus,)),
+    Method('server_forget', AsyncCall, (Token,), (AdminStatus,)),
+    Method('server_kill', AsyncCall, (Token,), (AdminStatus,)),
+    Method('backup', AsyncCall, (BackupName,), (AdminStatus, BackupList)),
+    Method('enable_perf_counters', AsyncCall, (), (AdminStatus, PerformanceCounters)),
+    Method('disable_perf_counters', NoFailCall, (), ()),
+]
+
 def call_name(x):
     call  = x.form.__name__.lower()
     call += '__'
@@ -187,14 +233,14 @@ def parameters_script_style(arg):
     label = '\\code{' + LaTeX(str(arg).lower()[17:-2]) + '}'
     return label
 
-def doc_parameter_list(form, args, descriptions, label_maker):
+def doc_parameter_list(form, args, fragments, label_maker):
+    if not args:
+        return 'None'
     block = '\\begin{itemize}[noitemsep]\n'
     for arg in args:
-        if (form, arg) not in descriptions:
-            print 'missing', (form, arg)
-            continue
         label = label_maker(arg)
         block += '\\item ' + label + '\\\\\n'
-        block += descriptions[(form, arg)].strip() + '\n'
+        frag = fragments + '_' + form.__name__.lower() + '_' + arg.__name__.lower()
+        block += '\\input{\\topdir/api/fragments/' + frag +'}\n'
     block += '\\end{itemize}\n'
     return block

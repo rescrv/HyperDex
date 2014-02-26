@@ -509,9 +509,7 @@ if ENABLE_ADMIN
 noinst_PROGRAMS += bindings/c/admin_testcompile
 endif
 
-EXTRA_DIST += bindings/c/gen_client_header.py
-EXTRA_DIST += bindings/c/gen_doc.py
-EXTRA_DIST += bindings/c/gen_wrappers.py
+EXTRA_DIST += bindings/c.py
 
 bindings_c_client_testcompile_SOURCES = bindings/c/client-testcompile.c
 bindings_c_client_testcompile_LDADD = libhyperdex-client.la
@@ -565,8 +563,9 @@ CLEANFILES += $(hyperdex_ycsb_jarfile)
 CLEANFILES += bindings/java/org/hyperdex/client/*.class
 CLEANFILES += test/java/*.class
 
-EXTRA_DIST += bindings/java/gen_java.py
+EXTRA_DIST += bindings/java.py
 EXTRA_DIST += bindings/java/org/hyperdex/client/ByteString.java
+EXTRA_DIST += bindings/java/org_hyperdex_client_Client.definitions.c
 EXTRA_DIST += bindings/java/org/hyperdex/client/Client.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Deferred.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/GreaterEqual.java
@@ -599,8 +598,6 @@ noinst_HEADERS += bindings/java/org_hyperdex_client_LessThan.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Range.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Regex.h
 
-EXTRA_DIST += bindings/java/org_hyperdex_client_Client.definitions.c
-
 libhyperdex_client_java_la_SOURCES =
 libhyperdex_client_java_la_SOURCES += bindings/java/org_hyperdex_client_Client.c
 libhyperdex_client_java_la_CPPFLAGS = $(JNI_CPPFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)
@@ -624,12 +621,12 @@ $(hyperdex_ycsb_jarfile): ${JAVA_SRC_PKG}/ycsb/HyperDex.java $(hyperdex_client_j
 
 #################################### node.js ###################################
 
+EXTRA_DIST += bindings/nodejs.py
 EXTRA_DIST += bindings/node.js/binding.gyp
 EXTRA_DIST += bindings/node.js/client.cc
 EXTRA_DIST += bindings/node.js/client.declarations.cc
 EXTRA_DIST += bindings/node.js/client.definitions.cc
 EXTRA_DIST += bindings/node.js/client.prototypes.cc
-EXTRA_DIST += bindings/node.js/gen-code.py
 
 #################################### Python ####################################
 
@@ -647,7 +644,7 @@ CLEANFILES += bindings/python/hyperdex/admin.so
 CLEANFILES += bindings/python/hyperdex/client.so
 CLEANFILES += bindings/python/hyperdex/*.pyc
 
-EXTRA_DIST += bindings/python/gen_python.py
+EXTRA_DIST += bindings/python.py
 EXTRA_DIST += bindings/python/hyperdex/__init__.py
 EXTRA_DIST += bindings/python/hyperdex/client.pyx.in
 
@@ -697,8 +694,7 @@ if ENABLE_RUBY_BINDINGS
 rubyexec_LTLIBRARIES += bindings/ruby/hyperdex.la
 endif
 
-EXTRA_DIST += bindings/ruby/gen_doc.py
-EXTRA_DIST += bindings/ruby/gen_ruby.py
+EXTRA_DIST += bindings/ruby.py
 EXTRA_DIST += bindings/ruby/definitions.c
 EXTRA_DIST += bindings/ruby/prototypes.c
 
@@ -1255,7 +1251,7 @@ if ENABLE_MAINTAINER_TOOLS
 noinst_PROGRAMS += maint/lib-check
 endif
 
-EXTRA_DIST += bindings/generator.py
+EXTRA_DIST += bindings/__init__.py
 EXTRA_DIST += maint/generate-bindings-tests.py
 EXTRA_DIST += maint/generate-doc-shell-stubs.py
 EXTRA_DIST += maint/generate-replication-shell-stubs.py
@@ -1269,8 +1265,8 @@ maintainer-generate:
 	python bindings/c.py
 	python bindings/java.py
 	python bindings/nodejs.py
+	python bindings/python.py
 	python bindings/ruby.py
-	python bindings/python/gen_python.py # XXX
 	python maint/generate-replication-shell-stubs.py
 	python maint/generate-search-shell-stubs.py
 	python maint/generate-doc-shell-stubs.py

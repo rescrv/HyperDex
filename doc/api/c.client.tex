@@ -44,18 +44,20 @@ int64_t hyperdex_client_get(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
-\item \code{attrs}, \code{attrs\_sz}\\
-An array of attributes that comprise a returned object.  The application must free the returned values with \code{hyperdex\_client\_destroy\_attrs}.  The pointers must remain valid until the operation completes.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
+\item \code{const struct hyperdex\_client\_attribute** attrs, size\_t* attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_attributes}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% put %%%%%%%%%%%%%%%%%%%%
@@ -76,18 +78,20 @@ int64_t hyperdex_client_put(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_put %%%%%%%%%%%%%%%%%%%%
@@ -109,20 +113,22 @@ int64_t hyperdex_client_cond_put(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% put_if_not_exist %%%%%%%%%%%%%%%%%%%%
@@ -143,18 +149,20 @@ int64_t hyperdex_client_put_if_not_exist(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% del %%%%%%%%%%%%%%%%%%%%
@@ -174,16 +182,18 @@ int64_t hyperdex_client_del(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_del %%%%%%%%%%%%%%%%%%%%
@@ -204,18 +214,20 @@ int64_t hyperdex_client_cond_del(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% atomic_add %%%%%%%%%%%%%%%%%%%%
@@ -236,18 +248,20 @@ int64_t hyperdex_client_atomic_add(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_add %%%%%%%%%%%%%%%%%%%%
@@ -269,20 +283,22 @@ int64_t hyperdex_client_cond_atomic_add(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% atomic_sub %%%%%%%%%%%%%%%%%%%%
@@ -303,18 +319,20 @@ int64_t hyperdex_client_atomic_sub(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_sub %%%%%%%%%%%%%%%%%%%%
@@ -336,20 +354,22 @@ int64_t hyperdex_client_cond_atomic_sub(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% atomic_mul %%%%%%%%%%%%%%%%%%%%
@@ -370,18 +390,20 @@ int64_t hyperdex_client_atomic_mul(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_mul %%%%%%%%%%%%%%%%%%%%
@@ -403,20 +425,22 @@ int64_t hyperdex_client_cond_atomic_mul(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% atomic_div %%%%%%%%%%%%%%%%%%%%
@@ -437,18 +461,20 @@ int64_t hyperdex_client_atomic_div(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_div %%%%%%%%%%%%%%%%%%%%
@@ -470,20 +496,22 @@ int64_t hyperdex_client_cond_atomic_div(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% atomic_mod %%%%%%%%%%%%%%%%%%%%
@@ -504,18 +532,20 @@ int64_t hyperdex_client_atomic_mod(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_mod %%%%%%%%%%%%%%%%%%%%
@@ -537,20 +567,22 @@ int64_t hyperdex_client_cond_atomic_mod(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% atomic_and %%%%%%%%%%%%%%%%%%%%
@@ -571,18 +603,20 @@ int64_t hyperdex_client_atomic_and(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_and %%%%%%%%%%%%%%%%%%%%
@@ -604,20 +638,22 @@ int64_t hyperdex_client_cond_atomic_and(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% atomic_or %%%%%%%%%%%%%%%%%%%%
@@ -638,18 +674,20 @@ int64_t hyperdex_client_atomic_or(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_or %%%%%%%%%%%%%%%%%%%%
@@ -671,20 +709,22 @@ int64_t hyperdex_client_cond_atomic_or(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% atomic_xor %%%%%%%%%%%%%%%%%%%%
@@ -705,18 +745,20 @@ int64_t hyperdex_client_atomic_xor(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_xor %%%%%%%%%%%%%%%%%%%%
@@ -738,20 +780,22 @@ int64_t hyperdex_client_cond_atomic_xor(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% string_prepend %%%%%%%%%%%%%%%%%%%%
@@ -772,18 +816,20 @@ int64_t hyperdex_client_string_prepend(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_string_prepend %%%%%%%%%%%%%%%%%%%%
@@ -805,20 +851,22 @@ int64_t hyperdex_client_cond_string_prepend(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% string_append %%%%%%%%%%%%%%%%%%%%
@@ -839,18 +887,20 @@ int64_t hyperdex_client_string_append(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_string_append %%%%%%%%%%%%%%%%%%%%
@@ -872,20 +922,22 @@ int64_t hyperdex_client_cond_string_append(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% list_lpush %%%%%%%%%%%%%%%%%%%%
@@ -906,18 +958,20 @@ int64_t hyperdex_client_list_lpush(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_list_lpush %%%%%%%%%%%%%%%%%%%%
@@ -939,20 +993,22 @@ int64_t hyperdex_client_cond_list_lpush(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% list_rpush %%%%%%%%%%%%%%%%%%%%
@@ -973,18 +1029,20 @@ int64_t hyperdex_client_list_rpush(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_list_rpush %%%%%%%%%%%%%%%%%%%%
@@ -1006,20 +1064,22 @@ int64_t hyperdex_client_cond_list_rpush(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% set_add %%%%%%%%%%%%%%%%%%%%
@@ -1040,18 +1100,20 @@ int64_t hyperdex_client_set_add(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_set_add %%%%%%%%%%%%%%%%%%%%
@@ -1073,20 +1135,22 @@ int64_t hyperdex_client_cond_set_add(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% set_remove %%%%%%%%%%%%%%%%%%%%
@@ -1107,18 +1171,20 @@ int64_t hyperdex_client_set_remove(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_set_remove %%%%%%%%%%%%%%%%%%%%
@@ -1140,20 +1206,22 @@ int64_t hyperdex_client_cond_set_remove(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% set_intersect %%%%%%%%%%%%%%%%%%%%
@@ -1174,18 +1242,20 @@ int64_t hyperdex_client_set_intersect(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_set_intersect %%%%%%%%%%%%%%%%%%%%
@@ -1207,20 +1277,22 @@ int64_t hyperdex_client_cond_set_intersect(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% set_union %%%%%%%%%%%%%%%%%%%%
@@ -1241,18 +1313,20 @@ int64_t hyperdex_client_set_union(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_set_union %%%%%%%%%%%%%%%%%%%%
@@ -1274,20 +1348,22 @@ int64_t hyperdex_client_cond_set_union(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_add %%%%%%%%%%%%%%%%%%%%
@@ -1308,18 +1384,20 @@ int64_t hyperdex_client_map_add(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_add %%%%%%%%%%%%%%%%%%%%
@@ -1341,20 +1419,22 @@ int64_t hyperdex_client_cond_map_add(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_remove %%%%%%%%%%%%%%%%%%%%
@@ -1375,18 +1455,20 @@ int64_t hyperdex_client_map_remove(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_remove %%%%%%%%%%%%%%%%%%%%
@@ -1408,20 +1490,22 @@ int64_t hyperdex_client_cond_map_remove(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{attrs}, \code{attrs\_sz}\\
-The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_atomic_add %%%%%%%%%%%%%%%%%%%%
@@ -1442,18 +1526,20 @@ int64_t hyperdex_client_map_atomic_add(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_atomic_add %%%%%%%%%%%%%%%%%%%%
@@ -1475,20 +1561,22 @@ int64_t hyperdex_client_cond_map_atomic_add(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_atomic_sub %%%%%%%%%%%%%%%%%%%%
@@ -1509,18 +1597,20 @@ int64_t hyperdex_client_map_atomic_sub(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_atomic_sub %%%%%%%%%%%%%%%%%%%%
@@ -1542,20 +1632,22 @@ int64_t hyperdex_client_cond_map_atomic_sub(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_atomic_mul %%%%%%%%%%%%%%%%%%%%
@@ -1576,18 +1668,20 @@ int64_t hyperdex_client_map_atomic_mul(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_atomic_mul %%%%%%%%%%%%%%%%%%%%
@@ -1609,20 +1703,22 @@ int64_t hyperdex_client_cond_map_atomic_mul(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_atomic_div %%%%%%%%%%%%%%%%%%%%
@@ -1643,18 +1739,20 @@ int64_t hyperdex_client_map_atomic_div(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_atomic_div %%%%%%%%%%%%%%%%%%%%
@@ -1676,20 +1774,22 @@ int64_t hyperdex_client_cond_map_atomic_div(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_atomic_mod %%%%%%%%%%%%%%%%%%%%
@@ -1710,18 +1810,20 @@ int64_t hyperdex_client_map_atomic_mod(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_atomic_mod %%%%%%%%%%%%%%%%%%%%
@@ -1743,20 +1845,22 @@ int64_t hyperdex_client_cond_map_atomic_mod(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_atomic_and %%%%%%%%%%%%%%%%%%%%
@@ -1777,18 +1881,20 @@ int64_t hyperdex_client_map_atomic_and(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_atomic_and %%%%%%%%%%%%%%%%%%%%
@@ -1810,20 +1916,22 @@ int64_t hyperdex_client_cond_map_atomic_and(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_atomic_or %%%%%%%%%%%%%%%%%%%%
@@ -1844,18 +1952,20 @@ int64_t hyperdex_client_map_atomic_or(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_atomic_or %%%%%%%%%%%%%%%%%%%%
@@ -1877,20 +1987,22 @@ int64_t hyperdex_client_cond_map_atomic_or(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_atomic_xor %%%%%%%%%%%%%%%%%%%%
@@ -1911,18 +2023,20 @@ int64_t hyperdex_client_map_atomic_xor(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_atomic_xor %%%%%%%%%%%%%%%%%%%%
@@ -1944,20 +2058,22 @@ int64_t hyperdex_client_cond_map_atomic_xor(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_string_prepend %%%%%%%%%%%%%%%%%%%%
@@ -1978,18 +2094,20 @@ int64_t hyperdex_client_map_string_prepend(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_string_prepend %%%%%%%%%%%%%%%%%%%%
@@ -2011,20 +2129,22 @@ int64_t hyperdex_client_cond_map_string_prepend(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% map_string_append %%%%%%%%%%%%%%%%%%%%
@@ -2045,18 +2165,20 @@ int64_t hyperdex_client_map_string_append(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% cond_map_string_append %%%%%%%%%%%%%%%%%%%%
@@ -2078,20 +2200,22 @@ int64_t hyperdex_client_cond_map_string_append(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{key}, \code{key\_sz}\\
-The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{mapattrs}, \code{mapattrs\_sz}\\
-The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% search %%%%%%%%%%%%%%%%%%%%
@@ -2112,18 +2236,20 @@ int64_t hyperdex_client_search(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_iterator_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_iterator_spacename}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_iterator_predicates}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until the operation completes, and the pointer should not be aliased to the status for any other outstanding operation.
-\item \code{attrs}, \code{attrs\_sz}\\
-An array of attributes that comprise a returned object.  The application must free the returned values with \code{hyperdex\_client\_destroy\_attrs}.  The pointers must remain valid until the operation completes.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_iterator_status}
+\item \code{const struct hyperdex\_client\_attribute** attrs, size\_t* attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/out_iterator_attributes}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% search_describe %%%%%%%%%%%%%%%%%%%%
@@ -2144,18 +2270,20 @@ int64_t hyperdex_client_search_describe(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
-\item \code{description}\\
-The description of the search.  This is a c-string that the client must free.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
+\item \code{const char** description}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_description}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% sorted_search %%%%%%%%%%%%%%%%%%%%
@@ -2179,24 +2307,26 @@ int64_t hyperdex_client_sorted_search(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
-\item \code{sort\_by}\\
-The attribute to sort by.
-\item \code{limit}\\
-The number of results to return.
-\item \code{maxmin}\\
-Maximize (!= 0) or minimize (== 0).
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_iterator_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_iterator_spacename}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_iterator_predicates}
+\item \code{const char* sort\_by}\\
+\input{\topdir/api/fragments/c/client/in_iterator_sortby}
+\item \code{uint64\_t limit}\\
+\input{\topdir/api/fragments/c/client/in_iterator_limit}
+\item \code{int maxmin}\\
+\input{\topdir/api/fragments/c/client/in_iterator_maxmin}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until the operation completes, and the pointer should not be aliased to the status for any other outstanding operation.
-\item \code{attrs}, \code{attrs\_sz}\\
-An array of attributes that comprise a returned object.  The application must free the returned values with \code{hyperdex\_client\_destroy\_attrs}.  The pointers must remain valid until the operation completes.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_iterator_status}
+\item \code{const struct hyperdex\_client\_attribute** attrs, size\_t* attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/out_iterator_attributes}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% group_del %%%%%%%%%%%%%%%%%%%%
@@ -2216,16 +2346,18 @@ int64_t hyperdex_client_group_del(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% count %%%%%%%%%%%%%%%%%%%%
@@ -2246,16 +2378,18 @@ int64_t hyperdex_client_count(struct hyperdex_client* client,
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
-\item \code{space}\\
-The name of the space as a c-string.
-\item \code{checks}, \code{checks\_sz}\\
-A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
 \end{itemize}
 
 \paragraph{Returns:}
 \begin{itemize}[noitemsep]
-\item \code{status}\\
-The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
-\item \code{count}\\
-The number of objects which match the predicates.
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
+\item \code{uint64\_t* count}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_count}
 \end{itemize}

@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import copy
+import itertools
 import os
 import sys
 
@@ -33,6 +34,8 @@ sys.path.append(BASE)
 
 import bindings
 import bindings.c
+
+################################## enum values #################################
 
 # 0 represents a comment
 
@@ -65,54 +68,25 @@ CLIENT_ENUM = [(8448, 'SUCCESS'),
                (8575, 'GARBAGE'),
 ]
 
-DOCS_IN = {(bindings.AsyncCall, bindings.SpaceName): 'The name of the space as a c-string.'
-          ,(bindings.AsyncCall, bindings.Key): 'The key for the operation where '
-           '\\code{key} is a bytestring and \\code{key\\_sz} specifies '
-           'the number of bytes in \\code{key}.'
-          ,(bindings.AsyncCall, bindings.Attributes): 'The set of attributes '
-           'to modify and their respective values.  \\code{attrs} points to '
-           'an array of length \\code{attrs\_sz}.'
-          ,(bindings.AsyncCall, bindings.MapAttributes): 'The set of map '
-           'attributes to modify and their respective key/values.  '
-           '\\code{mapattrs} points to an array of length '
-           '\\code{mapattrs\_sz}.  Each entry specify an attribute that is a '
-           'map and a key within that map.'
-          ,(bindings.AsyncCall, bindings.Predicates): 'A set of predicates '
-           'to check against.  \\code{checks} points to an array of length '
-           '\\code{checks\_sz}.'
-          ,(bindings.Iterator, bindings.SpaceName): 'The name of the space as a c-string.'
-          ,(bindings.Iterator, bindings.SortBy): 'The attribute to sort by.'
-          ,(bindings.Iterator, bindings.Limit): 'The number of results to return.'
-          ,(bindings.Iterator, bindings.MaxMin): 'Maximize (!= 0) or minimize (== 0).'
-          ,(bindings.Iterator, bindings.Predicates): 'A set of predicates '
-           'to check against.  \\code{checks} points to an array of length '
-           '\\code{checks\_sz}.'
-          }
-DOCS_OUT = {(bindings.AsyncCall, bindings.Status): 'The status of the '
-            'operation.  The client library will fill in this variable before '
-            'returning this operation\'s request id from '
-            '\\code{hyperdex\\_client\\_loop}.  The pointer must remain valid '
-            'until then, and the pointer should not be aliased to the status '
-            'for any other outstanding operation.'
-           ,(bindings.AsyncCall, bindings.Attributes): 'An array of attributes '
-            'that comprise a returned object.  The application must free the '
-            'returned values with \\code{hyperdex\_client\_destroy\_attrs}.  The '
-            'pointers must remain valid until the operation completes.'
-           ,(bindings.AsyncCall, bindings.Count): 'The number of objects which '
-            'match the predicates.'
-           ,(bindings.AsyncCall, bindings.Description): 'The description of '
-            'the search.  This is a c-string that the client must free.'
-           ,(bindings.Iterator, bindings.Status): 'The status of the '
-            'operation.  The client library will fill in this variable before '
-            'returning this operation\'s request id from '
-            '\\code{hyperdex\\_client\\_loop}.  The pointer must remain valid '
-            'until the operation completes, and the pointer should not be '
-            'aliased to the status for any other outstanding operation.'
-           ,(bindings.Iterator, bindings.Attributes): 'An array of attributes '
-            'that comprise a returned object.  The application must free the '
-            'returned values with \\code{hyperdex\_client\_destroy\_attrs}.  The '
-            'pointers must remain valid until the operation completes.'
-           }
+# hyperdex_admin_returncode occupies [8704, 8832)
+ADMIN_ENUM = [(8704, 'SUCCESS'),
+              (0, 'Error conditions'),
+              (8768, 'NOMEM'),
+              (8769, 'NONEPENDING'),
+              (8770, 'POLLFAILED'),
+              (8771, 'TIMEOUT'),
+              (8772, 'INTERRUPTED'),
+              (8773, 'SERVERERROR'),
+              (8774, 'COORDFAIL'),
+              (8775, 'BADSPACE'),
+              (8776, 'DUPLICATE'),
+              (8777, 'NOTFOUND'),
+              (8778, 'LOCALERROR'),
+              (0, 'This should never happen.  It indicates a bug'),
+              (8829, 'INTERNAL'),
+              (8830, 'EXCEPTION'),
+              (8831, 'GARBAGE'),
+]
 
 def generate_enum(prefix, E):
     width = len(prefix) + max([len(s) for n, s in E if n != 0])
@@ -125,10 +99,18 @@ def generate_enum(prefix, E):
         enum += ' ' * 4 + (prefix + s).ljust(width) + ' = ' + str(n) + ',\n'
     return enum.rstrip('\n,')
 
-def generate_func(x, struct='hyperdex_client', sep='\n', padd=None):
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
-    name = struct + '_' + x.name
-    func = 'int64_t%s%s(struct %s* client' % (sep, name, struct)
+################################ Code Generation ###############################
+
+def generate_func(x, lib, sep='\n', padd=None):
+    assert x.form in (bindings.AsyncCall, bindings.SyncCall,
+                      bindings.NoFailCall, bindings.Iterator)
+    return_type = 'int64_t'
+    if x.form == bindings.SyncCall:
+        return_type = 'int'
+    if x.form == bindings.NoFailCall:
+        return_type = 'void'
+    name = 'hyperdex_' + lib + '_' + x.name
+    func = '{return_type}{sep}{name}(struct hyperdex_{lib}* {lib}'.format(**locals())
     padd = ' ' * (len(name) + 1) if padd is None else ' ' * padd
     for arg in x.args_in:
         func += ',\n' + padd
@@ -139,27 +121,25 @@ def generate_func(x, struct='hyperdex_client', sep='\n', padd=None):
     func += ');\n'
     return func
 
-def generate_func_ptr(x, struct='hyperdex_client'):
+def generate_func_ptr(x, lib):
     xp = copy.deepcopy(x)
     xp.name = 'WXYZ'
-    fptr = generate_func(xp)
+    fptr = generate_func(xp, 'client')
     fptr = fptr.replace('hyperdex_client_WXYZ', '(*f)')
     fptr = ' ' .join([c.strip() for c in fptr.split('\n')])
     fptr = fptr.strip('; ')
     return fptr
 
-def generate_c_wrapper(x):
-    def rename(x):
-        return x.replace('enum ', '').replace('struct ', '')
+def generate_client_c_wrapper(x):
     assert x.form in (bindings.AsyncCall, bindings.Iterator)
-    func = 'HYPERDEX_API int64_t\nhyperdex_client_%s(hyperdex_client* _cl' % x.name
+    func = 'HYPERDEX_API int64_t\nhyperdex_client_%s(struct hyperdex_client* _cl' % x.name
     padd = ' ' * (len('hyperdex_client_') + len(x.name) + 1)
     for arg in x.args_in:
         func += ',\n' + padd
-        func += ', '.join([rename(p) + ' ' + n for p, n in arg.args])
+        func += ', '.join([p + ' ' + n for p, n in arg.args])
     for arg in x.args_out:
         func += ',\n' + padd
-        func += ', '.join([rename(p) + '* ' + n for p, n in arg.args])
+        func += ', '.join([p + '* ' + n for p, n in arg.args])
     func += ')\n{\n'
     func += '    C_WRAP_EXCEPT(\n'
     if x.name == 'get':
@@ -192,13 +172,44 @@ def generate_c_wrapper(x):
         func += '    const hyperdex_client_keyop_info* opinfo;\n'
         func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
         func += '    return cl->perform_funcall('
-        func += ', '.join([rename(a) for a in args])
+        func += ', '.join([a for a in args])
         func += ');\n'
     func += '    );\n'
     func += '}\n'
     return func
 
-def generate_api_block(x, struct='hyperdex_client'):
+def generate_admin_c_wrapper(x):
+    assert x.form in (bindings.AsyncCall, bindings.SyncCall,
+                      bindings.NoFailCall, bindings.Iterator)
+    return_type = 'int64_t'
+    if x.form == bindings.SyncCall:
+        return_type = 'int'
+    if x.form == bindings.NoFailCall:
+        return_type = 'void'
+    func = 'HYPERDEX_API {return_type}\nhyperdex_admin_{name}(struct hyperdex_admin* _adm'.format(name=x.name, **locals())
+    padd = ' ' * (len('hyperdex_admin_') + len(x.name) + 1)
+    for arg in x.args_in:
+        func += ',\n' + padd
+        func += ', '.join([p + ' ' + n for p, n in arg.args])
+    for arg in x.args_out:
+        func += ',\n' + padd
+        func += ', '.join([p + '* ' + n for p, n in arg.args])
+    func += ')\n{\n'
+    if x.form != bindings.NoFailCall:
+        func += '    C_WRAP_EXCEPT(\n'
+    func += '    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);\n'
+    func += '    return adm->%s(' % x.name
+    args = itertools.chain(*[list(a.args) for a in x.args_in + x.args_out])
+    func += ', '.join([a[1] for a in args])
+    func += ');\n'
+    if x.form != bindings.NoFailCall:
+        func += '    );\n'
+    func += '}\n'
+    return func
+
+################################# Documentation ################################
+
+def generate_api_block(x, lib):
     block  = ''
     block += '%' * 20 + ' ' + x.name + ' ' + '%' * 20 + '\n'
     block += '\\pagebreak\n'
@@ -208,42 +219,81 @@ def generate_api_block(x, struct='hyperdex_client'):
     block += '\\input{\\topdir/api/desc/%s}\n\n' % x.name
     block += '\\paragraph{Definition:}\n'
     block += '\\begin{ccode}\n'
-    block += generate_func(x, struct=struct, sep=' ', padd=8)
+    block += generate_func(x, lib, sep=' ', padd=8)
     block += '\\end{ccode}\n\n'
     block += '\\paragraph{Parameters:}\n'
-    block += bindings.doc_parameter_list(x.form, x.args_in, DOCS_IN,
-                                         label_maker=bindings.parameters_c_style)
+    def c_in_label(arg):
+        args = [p + ' ' + n for p, n in arg.args]
+        return '\\code{' + bindings.LaTeX(', '.join(args)) + '}'
+    if lib == 'client':
+        args = (bindings.StructClient,) + x.args_in
+    elif lib == 'admin':
+        args = (bindings.StructAdmin,) + x.args_in
+    else:
+        assert False
+    block += bindings.doc_parameter_list(x.form, args, 'c/' + lib + '/in',
+                                         label_maker=c_in_label)
     block += '\n\\paragraph{Returns:}\n'
-    block += bindings.doc_parameter_list(x.form, x.args_out, DOCS_OUT,
-                                         label_maker=bindings.parameters_c_style)
+    def c_out_label(arg):
+        args = [p + '* ' + n for p, n in arg.args]
+        return '\\code{' + bindings.LaTeX(', '.join(args)) + '}'
+    block += bindings.doc_parameter_list(x.form, x.args_out, 'c/' + lib + '/out',
+                                         label_maker=c_out_label)
     return block
+
+############################### Output Generators ##############################
 
 def generate_client_header():
     fout = open(os.path.join(BASE, 'include/hyperdex/client.h'), 'w')
     fout.write(bindings.copyright('*', '2011-2014'))
-    fout.write(bindings.c.HEADER_HEAD)
-    fout.write('\n'.join([generate_func(c) for c in bindings.Client]))
-    fout.write(bindings.c.HEADER_FOOT)
+    fout.write(bindings.c.CLIENT_HEADER_HEAD)
+    fout.write('\n'.join([generate_func(c, 'client') for c in bindings.Client]))
+    fout.write(bindings.c.CLIENT_HEADER_FOOT)
 
 def generate_client_wrapper():
     fout = open(os.path.join(BASE, 'client/c.cc'), 'w')
     fout.write(bindings.copyright('/', '2013-2014'))
-    fout.write(bindings.c.WRAPPER_HEAD)
-    fout.write('\n'.join([generate_c_wrapper(c) for c in bindings.Client]))
-    fout.write(bindings.c.WRAPPER_FOOT)
+    fout.write(bindings.c.CLIENT_WRAPPER_HEAD)
+    fout.write('\n'.join([generate_client_c_wrapper(c) for c in bindings.Client]))
+    fout.write(bindings.c.CLIENT_WRAPPER_FOOT)
 
 def generate_client_doc():
     fout = open(os.path.join(BASE, 'doc/api/c.client.tex'), 'w')
     fout.write(bindings.copyright('%', '2013-2014'))
     fout.write('\n% This LaTeX file is generated by bindings/c.py\n\n')
-    fout.write('\n'.join([generate_api_block(c) for c in bindings.Client]))
+    fout.write('\n'.join([generate_api_block(c, 'client') for c in bindings.Client]))
+
+def generate_admin_header():
+    fout = open(os.path.join(BASE, 'include/hyperdex/admin.h'), 'w')
+    fout.write(bindings.copyright('*', '2013-2014'))
+    fout.write(bindings.c.ADMIN_HEADER_HEAD)
+    fout.write('\n'.join([generate_func(c, 'admin') for c in bindings.Admin]))
+    fout.write(bindings.c.ADMIN_HEADER_FOOT)
+
+def generate_admin_wrapper():
+    fout = open(os.path.join(BASE, 'admin/c.cc'), 'w')
+    fout.write(bindings.copyright('/', '2013-2014'))
+    fout.write(bindings.c.ADMIN_WRAPPER_HEAD)
+    fout.write('\n'.join([generate_admin_c_wrapper(c) for c in bindings.Admin]))
+    fout.write(bindings.c.ADMIN_WRAPPER_FOOT)
+
+def generate_admin_doc():
+    fout = open(os.path.join(BASE, 'doc/api/c.admin.tex'), 'w')
+    fout.write(bindings.copyright('%', '2013-2014'))
+    fout.write('\n% This LaTeX file is generated by bindings/c.py\n\n')
+    fout.write('\n'.join([generate_api_block(c, 'admin') for c in bindings.Admin]))
 
 if __name__ == '__main__':
     generate_client_header()
     generate_client_wrapper()
     generate_client_doc()
+    generate_admin_header()
+    generate_admin_wrapper()
+    generate_admin_doc()
 
-HEADER_HEAD = '''
+################################### Templates ##################################
+
+CLIENT_HEADER_HEAD = '''
 #ifndef hyperdex_client_h_
 #define hyperdex_client_h_
 
@@ -302,7 +352,7 @@ hyperdex_client_destroy(struct hyperdex_client* client);
 
 '''
 
-HEADER_FOOT = '''
+CLIENT_HEADER_FOOT = '''
 int64_t
 hyperdex_client_loop(struct hyperdex_client* client, int timeout,
                      enum hyperdex_client_returncode* status);
@@ -333,7 +383,7 @@ hyperdex_client_destroy_attrs(const struct hyperdex_client_attribute* attrs, siz
 #endif /* hyperdex_client_h_ */
 '''
 
-WRAPPER_HEAD = '''
+CLIENT_WRAPPER_HEAD = '''
 // This file is generated by bindings/c.py
 
 // POSIX
@@ -534,7 +584,7 @@ hyperdex_client_destroy_attrs(const hyperdex_client_attribute* attrs, size_t /*a
 
 '''
 
-WRAPPER_FOOT = '''
+CLIENT_WRAPPER_FOOT = '''
 HYPERDEX_API int64_t
 hyperdex_client_loop(hyperdex_client* _cl, int timeout,
                      hyperdex_client_returncode* status)
@@ -556,4 +606,231 @@ hyperdex_client_poll(hyperdex_client* _cl)
 #ifdef __cplusplus
 } // extern "C"
 #endif // __cplusplus
+'''
+
+ADMIN_HEADER_HEAD = '''
+#ifndef hyperdex_admin_h_
+#define hyperdex_admin_h_
+
+/* C */
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+/* HyperDex */
+#include <hyperdex.h>
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
+struct hyperdex_admin;
+
+struct hyperdex_admin_perf_counter
+{
+    uint64_t id;
+    uint64_t time;
+    const char* property;
+    uint64_t measurement;
+};
+
+/* hyperdex_admin_returncode occupies [8704, 8832) */
+enum hyperdex_admin_returncode
+{
+''' + generate_enum('HYPERDEX_ADMIN_', ADMIN_ENUM) + '''
+};
+
+struct hyperdex_admin*
+hyperdex_admin_create(const char* coordinator, uint16_t port);
+
+void
+hyperdex_admin_destroy(struct hyperdex_admin* admin);
+
+int64_t
+hyperdex_admin_dump_config(struct hyperdex_admin* admin,
+                           enum hyperdex_admin_returncode* status,
+                           const char** config);
+'''
+
+ADMIN_HEADER_FOOT = '''
+int64_t
+hyperdex_admin_loop(struct hyperdex_admin* admin, int timeout,
+                    enum hyperdex_admin_returncode* status);
+
+int
+hyperdex_admin_raw_backup(const char* host, uint16_t port,
+                          const char* name,
+                          enum hyperdex_admin_returncode* status);
+
+const char*
+hyperdex_admin_error_message(struct hyperdex_admin* admin);
+const char*
+hyperdex_admin_error_location(struct hyperdex_admin* admin);
+
+const char*
+hyperdex_admin_returncode_to_string(enum hyperdex_admin_returncode);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
+#endif /* hyperdex_admin_h_ */
+'''
+
+ADMIN_WRAPPER_HEAD = '''
+// This file is generated by bindings/c.py
+
+#define __STDC_LIMIT_MACROS
+
+// POSIX
+#include <signal.h>
+
+// e
+#include <e/guard.h>
+
+// HyperDex
+#include "include/hyperdex/admin.h"
+#include "visibility.h"
+#include "common/macros.h"
+#include "admin/admin.h"
+
+#define SIGNAL_PROTECT_ERR(X) \\
+    do \\
+    { \\
+        sigset_t old_sigs; \\
+        sigset_t all_sigs; \\
+        sigfillset(&all_sigs); \\
+        if (pthread_sigmask(SIG_BLOCK, &all_sigs, &old_sigs) < 0) \\
+        { \\
+            *status = HYPERDEX_ADMIN_INTERNAL; \\
+            return (X); \\
+        } \\
+        e::guard g = e::makeguard(pthread_sigmask, SIG_SETMASK, (sigset_t*)&old_sigs, (sigset_t*)NULL); \\
+        g.use_variable(); \\
+    } \\
+    while (0)
+
+#define SIGNAL_PROTECT SIGNAL_PROTECT_ERR(-1);
+inline void return_void() {}
+#define SIGNAL_PROTECT_VOID SIGNAL_PROTECT_ERR(return_void());
+
+#define C_WRAP_EXCEPT(X) \\
+    SIGNAL_PROTECT; \\
+    try \\
+    { \\
+        X \\
+    } \\
+    catch (po6::error& e) \\
+    { \\
+        errno = e; \\
+        *status = HYPERDEX_ADMIN_EXCEPTION; \\
+        return -1; \\
+    } \\
+    catch (std::bad_alloc& ba) \\
+    { \\
+        errno = ENOMEM; \\
+        *status = HYPERDEX_ADMIN_NOMEM; \\
+        return -1; \\
+    } \\
+    catch (...) \\
+    { \\
+        *status = HYPERDEX_ADMIN_EXCEPTION; \\
+        return -1; \\
+    }
+
+extern "C"
+{
+
+HYPERDEX_API struct hyperdex_admin*
+hyperdex_admin_create(const char* coordinator, uint16_t port)
+{
+    try
+    {
+        return reinterpret_cast<struct hyperdex_admin*>(new hyperdex::admin(coordinator, port));
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        return NULL;
+    }
+    catch (std::bad_alloc& ba)
+    {
+        errno = ENOMEM;
+        return NULL;
+    }
+    catch (...)
+    {
+        return NULL;
+    }
+}
+
+HYPERDEX_API void
+hyperdex_admin_destroy(struct hyperdex_admin* admin)
+{
+    delete reinterpret_cast<hyperdex::admin*>(admin);
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_dump_config(struct hyperdex_admin* _adm,
+                           hyperdex_admin_returncode* status,
+                           const char** config)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->dump_config(status, config);
+    );
+}
+'''
+
+ADMIN_WRAPPER_FOOT = '''
+HYPERDEX_API int64_t
+hyperdex_admin_loop(struct hyperdex_admin* _adm, int timeout,
+                    enum hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->loop(timeout, status);
+    );
+}
+
+HYPERDEX_API const char*
+hyperdex_admin_error_message(struct hyperdex_admin* _adm)
+{
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->error_message();
+}
+
+HYPERDEX_API const char*
+hyperdex_admin_error_location(struct hyperdex_admin* _adm)
+{
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->error_location();
+}
+
+HYPERDEX_API const char*
+hyperdex_admin_returncode_to_string(enum hyperdex_admin_returncode status)
+{
+    switch (status)
+    {
+        CSTRINGIFY(HYPERDEX_ADMIN_SUCCESS);
+        CSTRINGIFY(HYPERDEX_ADMIN_NOMEM);
+        CSTRINGIFY(HYPERDEX_ADMIN_NONEPENDING);
+        CSTRINGIFY(HYPERDEX_ADMIN_POLLFAILED);
+        CSTRINGIFY(HYPERDEX_ADMIN_TIMEOUT);
+        CSTRINGIFY(HYPERDEX_ADMIN_INTERRUPTED);
+        CSTRINGIFY(HYPERDEX_ADMIN_SERVERERROR);
+        CSTRINGIFY(HYPERDEX_ADMIN_COORDFAIL);
+        CSTRINGIFY(HYPERDEX_ADMIN_BADSPACE);
+        CSTRINGIFY(HYPERDEX_ADMIN_DUPLICATE);
+        CSTRINGIFY(HYPERDEX_ADMIN_NOTFOUND);
+        CSTRINGIFY(HYPERDEX_ADMIN_LOCALERROR);
+        CSTRINGIFY(HYPERDEX_ADMIN_INTERNAL);
+        CSTRINGIFY(HYPERDEX_ADMIN_EXCEPTION);
+        CSTRINGIFY(HYPERDEX_ADMIN_GARBAGE);
+        default:
+            return "unknown hyperdex_admin_returncode";
+    }
+}
+
+} // extern "C"
 '''

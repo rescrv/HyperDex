@@ -169,7 +169,7 @@ NULL and set \code{errno} appropriately.  This call does not establish the
 connection to the coordinator; that will be established and maintained
 automatically by other calls made with this client instance.
 
-\noindent\textbf{Parameters:}
+\textbf{Parameters:}
 \begin{description}[labelindent=\widthof{{\code{coordinator}}},leftmargin=*,noitemsep,nolistsep,align=right]
 \item[\code{coordinator}] A C-string containing IP address or hostname of the
     coordinator.
@@ -183,7 +183,7 @@ hyperdex_client_destroy(struct hyperdex_client* client);
 Destroy a previously instantiated client, and release all associated
 resources.  This call always succeeds.
 
-\noindent\textbf{Parameters:}
+\textbf{Parameters:}
 \begin{description}[labelindent=\widthof{{\code{client}}},leftmargin=*,noitemsep,nolistsep,align=right]
 \item[\code{client}] A previously created client instance.
 \end{description}
@@ -1300,3 +1300,11 @@ provides mutual exclusion.
 
 Put simply, a multi-threaded application should protect each \code{struct
 hyperdex\_client} instance with a mutex or lock to ensure correct operation.
+
+\section{Admin Library}
+\label{sec:api:c:admin}
+
+\subsection{Operations}
+\label{sec:api:c:admin:ops}
+
+\input{\topdir/api/c.admin}

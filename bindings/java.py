@@ -24,6 +24,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import copy
 import os
 import sys
 
@@ -33,23 +34,6 @@ sys.path.append(BASE)
 import bindings
 import bindings.c
 import bindings.java
-
-DOCS_IN = {(bindings.AsyncCall, bindings.SpaceName): 'The name of the space as a string.'
-          ,(bindings.AsyncCall, bindings.Key): 'The key for the operation as a Java object'
-          ,(bindings.AsyncCall, bindings.Attributes): 'A map specifying attributes '
-           'to modify and their respective values.'
-          ,(bindings.AsyncCall, bindings.MapAttributes): 'A map specifying map '
-           'attributes to modify and their respective key/values.'
-          ,(bindings.AsyncCall, bindings.Predicates): 'A map of predicates '
-           'to check against.'
-          ,(bindings.Iterator, bindings.SpaceName): 'The name of the space as string.'
-          ,(bindings.Iterator, bindings.SortBy): 'The attribute to sort by.'
-          ,(bindings.Iterator, bindings.Limit): 'The number of results to return.'
-          ,(bindings.Iterator, bindings.MaxMin): 'Maximize or minimize (e.g., '
-          '"max", "min").'
-          ,(bindings.Iterator, bindings.Predicates): 'A map of predicates '
-           'to check against.'
-          }
 
 def JTYPEOF(x):
     if x == bindings.Attributes:
@@ -113,7 +97,7 @@ def generate_worker(call, x):
         cls = 'deferred'
     if x.form == bindings.Iterator:
         cls = 'iterator'
-    fptr = bindings.c.generate_func_ptr(x)
+    fptr = bindings.c.generate_func_ptr(x, 'client')
     func = 'JNIEXPORT HYPERDEX_API jobject JNICALL\n'
     func += 'hyperdex_java_client_{0}(JNIEnv* env, jobject obj, {1}'.format(call, fptr)
     for arg in x.args_in:
@@ -174,41 +158,80 @@ def generate_definition(x):
     func += ');\n}\n'
     return func
 
-def generate_api_func(x, cls):
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
-    func = 'Client :: %s(' % x.name
-    padd = ' ' * 16
-    func += ', '.join([str(arg).lower()[17:-2] for arg in x.args_in])
-    func += ')\n'
-    return func
+def generate_api_func_cleanup(func):
+    func = func.strip().strip(';')
+    func = func.replace('native ', '')
+    if len(func) > 85:
+        funcx, funcy = func.split('(', 1)
+        funcz = ''
+        for x in funcy.split(', '):
+            if funcz.count('<') == funcz.count('>'):
+                if funcz:
+                    funcz += ',\n' + ' ' * 8
+            elif funcz:
+                funcz += ', '
+            funcz += x
+        func = funcx + '(\n' + ' ' * 8 + funcz
+    return func + '\n'
 
-def generate_api_block(x, cls='Client'):
+def generate_api_norm_func(func):
+    xs = generate_prototype(func)
+    xs = [x.strip() for x in xs.split('\n')]
+    xs = [x for x in xs if x.startswith('public')]
+    xs = [x for x in xs if 'async_' not in x]
+    assert len(xs) == 1
+    xs = xs[0]
+    return generate_api_func_cleanup(xs)
+
+def generate_api_async_func(func):
+    xs = generate_prototype(func)
+    xs = [x.strip() for x in xs.split('\n')]
+    xs = [x for x in xs if x.startswith('public')]
+    xs = [x for x in xs if 'async_' in x]
+    assert len(xs) == 1
+    xs = xs[0]
+    return generate_api_func_cleanup(xs)
+
+def generate_api_block(x, lib):
     block  = ''
-    block += '\\paragraph{{\code{{{0}}}}}\n'.format(bindings.LaTeX(x.name))
-    block += '\\label{{api:java:{0}}}\n'.format(x.name)
-    block += '\\index{{{0}!Java API}}\n'.format(bindings.LaTeX(x.name))
+    block += '%' * 20 + ' ' + x.name + ' ' + '%' * 20 + '\n'
+    block += '\\pagebreak\n'
+    block += '\\subsubsection{\code{%s}}\n' % bindings.LaTeX(x.name)
+    block += '\\label{api:java:%s}\n' % x.name
+    block += '\\index{%s!Java API}\n' % bindings.LaTeX(x.name)
+    block += '\\input{\\topdir/api/desc/%s}\n\n' % x.name
+    block += '\\paragraph{Definition:}\n'
     block += '\\begin{javacode}\n'
-    block += generate_api_func(x, cls=cls)
-    block += '\\end{javacode}\n'
-    block += '\\funcdesc \input{{\\topdir/api/desc/{0}}}\n\n'.format(x.name)
-    block += '\\noindent\\textbf{Parameters:}\n'
-    block += bindings.doc_parameter_list(x.form, x.args_in, DOCS_IN,
-                                         label_maker=bindings.parameters_script_style)
-    block += '\n\\noindent\\textbf{Returns:}\n'
-    if x.args_out == (bindings.Status,):
-        if bindings.Predicates in x.args_in:
-            block += 'True if predicate, False if not predicate.  Raises exception on error.'
-        else:
-            block += 'True.  Raises exception on error.'
-    elif x.args_out == (bindings.Status, bindings.Attributes):
-        block += 'Object if found, null if not found.  Raises exception on error.'
-    elif x.args_out == (bindings.Status, bindings.Count):
-        block += 'Number of objects found.  Raises exception on error.'
-    elif x.args_out == (bindings.Status, bindings.Description):
-        block += 'Description of search.  Raises exception on error.'
-    else:
-        assert False
-    block += '\n'
+    block += generate_api_norm_func(x)
+    block += '\\end{javacode}\n\n'
+    block += '\\paragraph{Parameters:}\n'
+    def java_label(arg):
+        return '\\code{' + bindings.LaTeX(JTYPEOF(arg) + ' ' + arg.__name__.lower()) + '}'
+    block += bindings.doc_parameter_list(x.form, x.args_in, 'java/' + lib + '/in',
+                                         label_maker=java_label)
+    block += '\n\\paragraph{Returns:}\n'
+    frag  = 'java/' + lib + '/return_' + x.form.__name__.lower()
+    frag += '__' + '_'.join([a.__name__.lower() for a in x.args_out])
+    block += '\\input{\\topdir/api/fragments/' + frag + '}\n'
+    if x.form == bindings.AsyncCall:
+        block += '\n\\pagebreak\n'
+        block += '\\subsubsection{\code{async\\_%s}}\n' % bindings.LaTeX(x.name)
+        block += '\\label{api:java:async_%s}\n' % x.name
+        block += '\\index{async\_%s!Java API}\n' % bindings.LaTeX(x.name)
+        block += '\\input{\\topdir/api/desc/%s}\n\n' % x.name
+        block += '\\paragraph{Definition:}\n'
+        block += '\\begin{javacode}\n'
+        block += generate_api_async_func(x)
+        block += '\\end{javacode}\n\n'
+        block += '\\paragraph{Parameters:}\n'
+        block += bindings.doc_parameter_list(x.form, x.args_in, 'java/' + lib + '/in',
+                                             label_maker=java_label)
+        block += '\n\\paragraph{Returns:}\n'
+        frag  = 'java/' + lib + '/return_async_' + x.form.__name__.lower()
+        frag += '__' + '_'.join([a.__name__.lower() for a in x.args_out])
+        block += '\\input{\\topdir/api/fragments/' + frag + '}\n'
+        block += '\n\\paragraph{See also:}  This is the asynchronous form of '
+        block += '\code{%s}.\n' % bindings.LaTeX(x.name)
     return block
 
 def generate_client_java():
@@ -244,7 +267,7 @@ def generate_client_doc():
     fout = open(os.path.join(BASE, 'doc/api/java.client.tex'), 'w')
     fout.write(bindings.copyright('%', '2014'))
     fout.write('\n% This LaTeX file is generated by bindings/java.py\n\n')
-    fout.write('\n'.join([generate_api_block(c) for c in bindings.Client]))
+    fout.write('\n'.join([generate_api_block(c, 'client') for c in bindings.Client]))
 
 if __name__ == '__main__':
     generate_client_java()

@@ -70,25 +70,25 @@ for name, erase, fail_if_not_found, fail_if_found in APIS:
     content += '\\begin{itemize}[noitemsep]\n'
     # What type of operation is this?
     if erase:
-        content += '\\input{api/fragments/erase}\n'
+        content += '\\input{\\topdir/api/fragments/erase}\n'
     elif not fail_if_not_found and not fail_if_found:
-        content += '\\input{api/fragments/no_fail}\n'
+        content += '\\input{\\topdir/api/fragments/no_fail}\n'
     elif fail_if_not_found:
-        content += '\\input{api/fragments/fail_if_not_found}\n'
+        content += '\\input{\\topdir/api/fragments/fail_if_not_found}\n'
     elif fail_if_found:
-        content += '\\input{api/fragments/fail_if_found}\n'
+        content += '\\input{\\topdir/api/fragments/fail_if_found}\n'
     elif fail_if_not_found and fail_if_found:
         assert False
     # Is it a conditional operation
     if name.startswith('cond_'):
-        content += '\\input{api/fragments/conditional}\n'
+        content += '\\input{\\topdir/api/fragments/conditional}\n'
     # Is it a map operation
     if name.startswith('map_'):
         if name[4:] in NAMES:
-            content += '\\input{api/fragments/map_operation}\n'
+            content += '\\input{\\topdir/api/fragments/map_operation}\n'
     if name.startswith('cond_map_'):
         if name[9:] in NAMES:
-            content += '\\input{api/fragments/map_operation}\n'
+            content += '\\input{\\topdir/api/fragments/map_operation}\n'
     content += '\\end{itemize}\n'
     fout = open('api/desc/%s.tex' % name, 'w')
     fout.write(content)

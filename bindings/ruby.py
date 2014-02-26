@@ -24,6 +24,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import copy
 import os
 import sys
 
@@ -34,29 +35,13 @@ import bindings
 import bindings.c
 import bindings.ruby
 
-DOCS_IN = {(bindings.AsyncCall, bindings.SpaceName): 'The name of the space as a string or symbol.'
-          ,(bindings.AsyncCall, bindings.Key): 'The key for the operation as a Ruby type'
-          ,(bindings.AsyncCall, bindings.Attributes): 'A hash specifying attributes '
-           'to modify and their respective values.'
-          ,(bindings.AsyncCall, bindings.MapAttributes): 'A hash specifying map '
-           'attributes to modify and their respective key/values.'
-          ,(bindings.AsyncCall, bindings.Predicates): 'A hash of predicates '
-           'to check against.'
-          ,(bindings.Iterator, bindings.SpaceName): 'The name of the space as string or symbol.'
-          ,(bindings.Iterator, bindings.SortBy): 'The attribute to sort by.'
-          ,(bindings.Iterator, bindings.Limit): 'The number of results to return.'
-          ,(bindings.Iterator, bindings.MaxMin): 'Maximize (!= 0) or minimize (== 0).'
-          ,(bindings.Iterator, bindings.Predicates): 'A hash of predicates '
-           'to check against.'
-          }
-
 def generate_worker(call, x):
     assert x.form in (bindings.AsyncCall, bindings.Iterator)
     if x.form == bindings.AsyncCall:
         cls = 'deferred'
     if x.form == bindings.Iterator:
         cls = 'iterator'
-    fptr = bindings.c.generate_func_ptr(x)
+    fptr = bindings.c.generate_func_ptr(x, 'client')
     func = 'static VALUE\n'
     func += 'hyperdex_ruby_client_{0}({1}, VALUE self'.format(call, fptr)
     for arg in x.args_in:
@@ -128,41 +113,60 @@ def generate_prototype(x):
     if x.form == bindings.Iterator:
         return 'rb_define_method(class_client, "{0}", hyperdex_ruby_client_{0}, {1});\n'.format(x.name, len(x.args_in))
 
-def generate_api_func(x, cls):
+def generate_api_func(x):
     assert x.form in (bindings.AsyncCall, bindings.Iterator)
-    func = 'Client :: %s(' % x.name
+    func = '%s(' % x.name
     padd = ' ' * 16
     func += ', '.join([str(arg).lower()[17:-2] for arg in x.args_in])
     func += ')\n'
     return func
 
-def generate_api_block(x, cls='Client'):
+def generate_api_norm_func(x):
+    return generate_api_func(x)
+
+def generate_api_async_func(x):
+    xp = copy.deepcopy(x)
+    xp.name = 'async_' + x.name
+    return generate_api_func(xp)
+
+def generate_api_block(x, lib):
     block  = ''
-    block += '\\paragraph{{\code{{{0}}}}}\n'.format(bindings.LaTeX(x.name))
-    block += '\\label{{api:ruby:{0}}}\n'.format(x.name)
-    block += '\\index{{{0}!Ruby API}}\n'.format(bindings.LaTeX(x.name))
+    block += '%' * 20 + ' ' + x.name + ' ' + '%' * 20 + '\n'
+    block += '\\pagebreak\n'
+    block += '\\subsubsection{\code{%s}}\n' % bindings.LaTeX(x.name)
+    block += '\\label{api:ruby:%s}\n' % x.name
+    block += '\\index{%s!Ruby API}\n' % bindings.LaTeX(x.name)
+    block += '\\input{\\topdir/api/desc/%s}\n\n' % x.name
+    block += '\\paragraph{Definition:}\n'
     block += '\\begin{rubycode}\n'
-    block += generate_api_func(x, cls=cls)
-    block += '\\end{rubycode}\n'
-    block += '\\funcdesc \input{{\\topdir/api/desc/{0}}}\n\n'.format(x.name)
-    block += '\\noindent\\textbf{Parameters:}\n'
-    block += bindings.doc_parameter_list(x.form, x.args_in, DOCS_IN,
+    block += generate_api_norm_func(x)
+    block += '\\end{rubycode}\n\n'
+    block += '\\paragraph{Parameters:}\n'
+    block += bindings.doc_parameter_list(x.form, x.args_in, 'ruby/' + lib + '/in',
                                          label_maker=bindings.parameters_script_style)
-    block += '\n\\noindent\\textbf{Returns:}\n'
-    if x.args_out == (bindings.Status,):
-        if bindings.Predicates in x.args_in:
-            block += 'True if predicate, False if not predicate.  Raises exception on error.'
-        else:
-            block += 'True.  Raises exception on error.'
-    elif x.args_out == (bindings.Status, bindings.Attributes):
-        block += 'Object if found, nil if not found.  Raises exception on error.'
-    elif x.args_out == (bindings.Status, bindings.Count):
-        block += 'Number of objects found.  Raises exception on error.'
-    elif x.args_out == (bindings.Status, bindings.Description):
-        block += 'Description of search.  Raises exception on error.'
-    else:
-        assert False
-    block += '\n'
+    block += '\n\\paragraph{Returns:}\n'
+    frag  = 'ruby/' + lib + '/return_' + x.form.__name__.lower()
+    frag += '__' + '_'.join([a.__name__.lower() for a in x.args_out])
+    block += '\\input{\\topdir/api/fragments/' + frag + '}\n'
+    if x.form == bindings.AsyncCall:
+        block += '\n\\pagebreak\n'
+        block += '\\subsubsection{\code{async\\_%s}}\n' % bindings.LaTeX(x.name)
+        block += '\\label{api:ruby:async_%s}\n' % x.name
+        block += '\\index{async\_%s!Ruby API}\n' % bindings.LaTeX(x.name)
+        block += '\\input{\\topdir/api/desc/%s}\n\n' % x.name
+        block += '\\paragraph{Definition:}\n'
+        block += '\\begin{rubycode}\n'
+        block += generate_api_async_func(x)
+        block += '\\end{rubycode}\n\n'
+        block += '\\paragraph{Parameters:}\n'
+        block += bindings.doc_parameter_list(x.form, x.args_in, 'ruby/' + lib + '/in',
+                                             label_maker=bindings.parameters_script_style)
+        block += '\n\\paragraph{Returns:}\n'
+        frag  = 'ruby/' + lib + '/return_async_' + x.form.__name__.lower()
+        frag += '__' + '_'.join([a.__name__.lower() for a in x.args_out])
+        block += '\\input{\\topdir/api/fragments/' + frag + '}\n'
+        block += '\n\\paragraph{See also:}  This is the asynchronous form of '
+        block += '\code{%s}.\n' % bindings.LaTeX(x.name)
     return block
 
 def generate_client_prototypes():
@@ -182,7 +186,7 @@ def generate_client_doc():
     fout = open(os.path.join(BASE, 'doc/api/ruby.client.tex'), 'w')
     fout.write(bindings.copyright('%', '2013-2014'))
     fout.write('\n% This LaTeX file is generated by bindings/ruby.py\n\n')
-    fout.write('\n'.join([generate_api_block(c) for c in bindings.Client]))
+    fout.write('\n'.join([generate_api_block(c, 'client') for c in bindings.Client]))
 
 if __name__ == '__main__':
     generate_client_prototypes()

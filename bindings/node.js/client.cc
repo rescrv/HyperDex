@@ -325,8 +325,7 @@ HyperDexClient :: New(const v8::Arguments& args)
 
     if (!args.IsConstructCall())
     {
-        v8::Local<v8::Value> argv[2] = {argv[0], argv[1]};
-        return scope.Close(ctor->NewInstance(2, argv));
+        return v8::ThrowException(v8::String::New("client must be constructed with \"new\""));
     }
 
     if (args.Length() != 2)
