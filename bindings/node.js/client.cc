@@ -123,7 +123,60 @@ class Operation
         bool convert_maxmin(v8::Handle<v8::Value>& _maxmin,
                             int* maximize);
 
-        v8::Local<v8::Value> build_string(const char* value, size_t value_sz);
+        bool build_string(const char* value, size_t value_sz,
+                          v8::Local<v8::Value>& retval,
+                          v8::Local<v8::Value>& error);
+        bool build_int(const char* value, size_t value_sz,
+                       v8::Local<v8::Value>& retval,
+                       v8::Local<v8::Value>& error);
+        bool build_float(const char* value, size_t value_sz,
+                         v8::Local<v8::Value>& retval,
+                         v8::Local<v8::Value>& error);
+        bool build_list_string(const char* value, size_t value_sz,
+                               v8::Local<v8::Value>& retval,
+                               v8::Local<v8::Value>& error);
+        bool build_list_int(const char* value, size_t value_sz,
+                            v8::Local<v8::Value>& retval,
+                            v8::Local<v8::Value>& error);
+        bool build_list_float(const char* value, size_t value_sz,
+                              v8::Local<v8::Value>& retval,
+                              v8::Local<v8::Value>& error);
+        bool build_set_string(const char* value, size_t value_sz,
+                              v8::Local<v8::Value>& retval,
+                              v8::Local<v8::Value>& error);
+        bool build_set_int(const char* value, size_t value_sz,
+                           v8::Local<v8::Value>& retval,
+                           v8::Local<v8::Value>& error);
+        bool build_set_float(const char* value, size_t value_sz,
+                             v8::Local<v8::Value>& retval,
+                             v8::Local<v8::Value>& error);
+        bool build_map_string_string(const char* value, size_t value_sz,
+                                     v8::Local<v8::Value>& retval,
+                                     v8::Local<v8::Value>& error);
+        bool build_map_string_int(const char* value, size_t value_sz,
+                                  v8::Local<v8::Value>& retval,
+                                  v8::Local<v8::Value>& error);
+        bool build_map_string_float(const char* value, size_t value_sz,
+                                    v8::Local<v8::Value>& retval,
+                                    v8::Local<v8::Value>& error);
+        bool build_map_int_string(const char* value, size_t value_sz,
+                                  v8::Local<v8::Value>& retval,
+                                  v8::Local<v8::Value>& error);
+        bool build_map_int_int(const char* value, size_t value_sz,
+                               v8::Local<v8::Value>& retval,
+                               v8::Local<v8::Value>& error);
+        bool build_map_int_float(const char* value, size_t value_sz,
+                                 v8::Local<v8::Value>& retval,
+                                 v8::Local<v8::Value>& error);
+        bool build_map_float_string(const char* value, size_t value_sz,
+                                    v8::Local<v8::Value>& retval,
+                                    v8::Local<v8::Value>& error);
+        bool build_map_float_int(const char* value, size_t value_sz,
+                                 v8::Local<v8::Value>& retval,
+                                 v8::Local<v8::Value>& error);
+        bool build_map_float_float(const char* value, size_t value_sz,
+                                   v8::Local<v8::Value>& retval,
+                                   v8::Local<v8::Value>& error);
         bool build_attribute(const hyperdex_client_attribute* attr,
                              v8::Local<v8::Value>& retval,
                              v8::Local<v8::Value>& error);
@@ -629,10 +682,11 @@ Operation :: convert_maxmin(v8::Handle<v8::Value>& _maxmin,
     return true;
 }
 
-v8::Local<v8::Value>
-Operation :: build_string(const char* value, size_t value_sz)
+bool
+Operation :: build_string(const char* value, size_t value_sz,
+                          v8::Local<v8::Value>& retval,
+                          v8::Local<v8::Value>& error)
 {
-    v8::HandleScope scope;
     node::Buffer* buf = node::Buffer::New(value_sz);
     memmove(node::Buffer::Data(buf), value, value_sz);
     v8::Local<v8::Object> global = v8::Context::GetCurrent()->Global();
@@ -642,7 +696,715 @@ Operation :: build_string(const char* value, size_t value_sz)
     v8::Local<v8::Integer> B(v8::Integer::New(0));
     v8::Handle<v8::Value> argv[3] = { buf->handle_, A, B };
     v8::Local<v8::Object> jsbuf = buf_ctor->NewInstance(3, argv);
-    return scope.Close(jsbuf);
+    retval = jsbuf;
+    return true;
+}
+
+bool
+Operation :: build_int(const char* value, size_t value_sz,
+                       v8::Local<v8::Value>& retval,
+                       v8::Local<v8::Value>& error)
+{
+    int64_t tmp;
+
+    if (hyperdex_ds_unpack_int(value, value_sz, &tmp) < 0)
+    {
+        return false;
+    }
+
+    retval = v8::Integer::New(tmp);
+    return true;
+}
+
+bool
+Operation :: build_float(const char* value, size_t value_sz,
+                         v8::Local<v8::Value>& retval,
+                         v8::Local<v8::Value>& error)
+{
+    double tmp;
+
+    if (hyperdex_ds_unpack_float(value, value_sz, &tmp) < 0)
+    {
+        return false;
+    }
+
+    retval = v8::Number::New(tmp);
+    return true;
+}
+
+bool
+Operation :: build_list_string(const char* value, size_t value_sz,
+                               v8::Local<v8::Value>& retval,
+                               v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_LIST_STRING, value, value_sz);
+    const char* tmp_str = NULL;
+    size_t tmp_str_sz = 0;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_list_string_next(&iter, &tmp_str, &tmp_str_sz)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed list(string)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_LIST_STRING, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_list_string_next(&iter, &tmp_str, &tmp_str_sz)) > 0)
+    {
+        v8::Local<v8::Value> elem;
+
+        if (!build_string(tmp_str, tmp_str_sz, elem, error))
+        {
+            return false;
+        }
+
+        arr->Set(idx, elem);
+        ++idx;
+    }
+
+    retval = arr;
+    return true;
+}
+
+bool
+Operation :: build_list_int(const char* value, size_t value_sz,
+                            v8::Local<v8::Value>& retval,
+                            v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_LIST_INT64, value, value_sz);
+    int64_t tmp;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_list_int_next(&iter, &tmp)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed list(int)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_LIST_INT64, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_list_int_next(&iter, &tmp)) > 0)
+    {
+        v8::Local<v8::Value> elem(v8::Integer::New(tmp));
+        arr->Set(idx, elem);
+        ++idx;
+    }
+
+    retval = arr;
+    return true;
+}
+
+bool
+Operation :: build_list_float(const char* value, size_t value_sz,
+                              v8::Local<v8::Value>& retval,
+                              v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_LIST_FLOAT, value, value_sz);
+    double tmp;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_list_float_next(&iter, &tmp)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed list(float)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_LIST_FLOAT, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_list_float_next(&iter, &tmp)) > 0)
+    {
+        v8::Local<v8::Value> elem(v8::Number::New(tmp));
+        arr->Set(idx, elem);
+        ++idx;
+    }
+
+    retval = arr;
+    return true;
+}
+
+bool
+Operation :: build_set_string(const char* value, size_t value_sz,
+                               v8::Local<v8::Value>& retval,
+                               v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_SET_STRING, value, value_sz);
+    const char* tmp_str = NULL;
+    size_t tmp_str_sz = 0;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_set_string_next(&iter, &tmp_str, &tmp_str_sz)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed set(string)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_SET_STRING, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_set_string_next(&iter, &tmp_str, &tmp_str_sz)) > 0)
+    {
+        v8::Local<v8::Value> elem;
+
+        if (!build_string(tmp_str, tmp_str_sz, elem, error))
+        {
+            return false;
+        }
+
+        arr->Set(idx, elem);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("set"), arr);
+    retval = obj;
+    return true;
+}
+
+bool
+Operation :: build_set_int(const char* value, size_t value_sz,
+                            v8::Local<v8::Value>& retval,
+                            v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_SET_INT64, value, value_sz);
+    int64_t tmp;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_set_int_next(&iter, &tmp)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed set(int)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_SET_INT64, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_set_int_next(&iter, &tmp)) > 0)
+    {
+        v8::Local<v8::Value> elem(v8::Integer::New(tmp));
+        arr->Set(idx, elem);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("set"), arr);
+    retval = obj;
+    return true;
+}
+
+bool
+Operation :: build_set_float(const char* value, size_t value_sz,
+                              v8::Local<v8::Value>& retval,
+                              v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_SET_FLOAT, value, value_sz);
+    double tmp;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_set_float_next(&iter, &tmp)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed set(float)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_SET_FLOAT, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_set_float_next(&iter, &tmp)) > 0)
+    {
+        v8::Local<v8::Value> elem(v8::Number::New(tmp));
+        arr->Set(idx, elem);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("set"), arr);
+    retval = obj;
+    return true;
+}
+
+bool
+Operation :: build_map_string_string(const char* value, size_t value_sz,
+                                      v8::Local<v8::Value>& retval,
+                                      v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_STRING_STRING, value, value_sz);
+    const char* k = NULL;
+    const char* v = NULL;
+    size_t k_sz = 0;
+    size_t v_sz = 0;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_map_string_string_next(&iter, &k, &k_sz, &v, &v_sz)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed map(string, string)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_STRING_STRING, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_map_string_string_next(&iter, &k, &k_sz, &v, &v_sz)) > 0)
+    {
+        v8::Local<v8::Value> key;
+        v8::Local<v8::Value> val;
+
+        if (!build_string(k, k_sz, key, error) ||
+            !build_string(v, v_sz, val, error))
+        {
+            return false;
+        }
+
+        v8::Local<v8::Array> pair(v8::Array::New(2));
+        pair->Set(0, key);
+        pair->Set(1, val);
+        arr->Set(idx, pair);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("map"), arr);
+    retval = obj;
+    return true;
+}
+
+bool
+Operation :: build_map_string_int(const char* value, size_t value_sz,
+                                   v8::Local<v8::Value>& retval,
+                                   v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_STRING_INT64, value, value_sz);
+    const char* k = NULL;
+    size_t k_sz = 0;
+    int64_t v;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_map_string_int_next(&iter, &k, &k_sz, &v)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed map(string, int)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_STRING_INT64, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_map_string_int_next(&iter, &k, &k_sz, &v)) > 0)
+    {
+        v8::Local<v8::Value> key;
+        v8::Local<v8::Value> val(v8::Integer::New(v));
+
+        if (!build_string(k, k_sz, key, error))
+        {
+            return false;
+        }
+
+        v8::Local<v8::Array> pair(v8::Array::New(2));
+        pair->Set(0, key);
+        pair->Set(1, val);
+        arr->Set(idx, pair);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("map"), arr);
+    retval = obj;
+    return true;
+}
+
+bool
+Operation :: build_map_string_float(const char* value, size_t value_sz,
+                                     v8::Local<v8::Value>& retval,
+                                     v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_STRING_FLOAT, value, value_sz);
+    const char* k = NULL;
+    size_t k_sz = 0;
+    double v;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_map_string_float_next(&iter, &k, &k_sz, &v)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed map(string, float)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_STRING_FLOAT, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_map_string_float_next(&iter, &k, &k_sz, &v)) > 0)
+    {
+        v8::Local<v8::Value> key;
+        v8::Local<v8::Value> val(v8::Number::New(v));
+
+        if (!build_string(k, k_sz, key, error))
+        {
+            return false;
+        }
+
+        v8::Local<v8::Array> pair(v8::Array::New(2));
+        pair->Set(0, key);
+        pair->Set(1, val);
+        arr->Set(idx, pair);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("map"), arr);
+    retval = obj;
+    return true;
+}
+
+bool
+Operation :: build_map_int_string(const char* value, size_t value_sz,
+                                  v8::Local<v8::Value>& retval,
+                                  v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_INT64_STRING, value, value_sz);
+    int64_t k;
+    const char* v = NULL;
+    size_t v_sz = 0;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_map_int_string_next(&iter, &k, &v, &v_sz)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed map(int, string)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_INT64_STRING, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_map_int_string_next(&iter, &k, &v, &v_sz)) > 0)
+    {
+        v8::Local<v8::Value> key(v8::Integer::New(k));
+        v8::Local<v8::Value> val;
+
+        if (!build_string(v, v_sz, val, error))
+        {
+            return false;
+        }
+
+        v8::Local<v8::Array> pair(v8::Array::New(2));
+        pair->Set(0, key);
+        pair->Set(1, val);
+        arr->Set(idx, pair);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("map"), arr);
+    retval = obj;
+    return true;
+}
+
+bool
+Operation :: build_map_int_int(const char* value, size_t value_sz,
+                               v8::Local<v8::Value>& retval,
+                               v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_INT64_INT64, value, value_sz);
+    int64_t k;
+    int64_t v;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_map_int_int_next(&iter, &k, &v)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed map(int, int)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_INT64_INT64, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_map_int_int_next(&iter, &k, &v)) > 0)
+    {
+        v8::Local<v8::Value> key(v8::Integer::New(k));
+        v8::Local<v8::Value> val(v8::Integer::New(v));
+        v8::Local<v8::Array> pair(v8::Array::New(2));
+        pair->Set(0, key);
+        pair->Set(1, val);
+        arr->Set(idx, pair);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("map"), arr);
+    retval = obj;
+    return true;
+}
+
+bool
+Operation :: build_map_int_float(const char* value, size_t value_sz,
+                                 v8::Local<v8::Value>& retval,
+                                 v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_INT64_FLOAT, value, value_sz);
+    int64_t k;
+    double v;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_map_int_float_next(&iter, &k, &v)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed map(int, float)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_INT64_FLOAT, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_map_int_float_next(&iter, &k, &v)) > 0)
+    {
+        v8::Local<v8::Value> key(v8::Integer::New(k));
+        v8::Local<v8::Value> val(v8::Number::New(v));
+        v8::Local<v8::Array> pair(v8::Array::New(2));
+        pair->Set(0, key);
+        pair->Set(1, val);
+        arr->Set(idx, pair);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("map"), arr);
+    retval = obj;
+    return true;
+}
+
+bool
+Operation :: build_map_float_string(const char* value, size_t value_sz,
+                                    v8::Local<v8::Value>& retval,
+                                    v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_FLOAT_STRING, value, value_sz);
+    double k;
+    const char* v = NULL;
+    size_t v_sz = 0;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_map_float_string_next(&iter, &k, &v, &v_sz)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed map(float, string)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_FLOAT_STRING, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_map_float_string_next(&iter, &k, &v, &v_sz)) > 0)
+    {
+        v8::Local<v8::Value> key(v8::Number::New(k));
+        v8::Local<v8::Value> val;
+
+        if (!build_string(v, v_sz, val, error))
+        {
+            return false;
+        }
+
+        v8::Local<v8::Array> pair(v8::Array::New(2));
+        pair->Set(0, key);
+        pair->Set(1, val);
+        arr->Set(idx, pair);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("map"), arr);
+    retval = obj;
+    return true;
+}
+
+bool
+Operation :: build_map_float_int(const char* value, size_t value_sz,
+                                 v8::Local<v8::Value>& retval,
+                                 v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_FLOAT_INT64, value, value_sz);
+    double k;
+    int64_t v;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_map_float_int_next(&iter, &k, &v)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed map(float, int)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_FLOAT_INT64, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_map_float_int_next(&iter, &k, &v)) > 0)
+    {
+        v8::Local<v8::Value> key(v8::Number::New(k));
+        v8::Local<v8::Value> val(v8::Integer::New(v));
+        v8::Local<v8::Array> pair(v8::Array::New(2));
+        pair->Set(0, key);
+        pair->Set(1, val);
+        arr->Set(idx, pair);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("map"), arr);
+    retval = obj;
+    return true;
+}
+
+bool
+Operation :: build_map_float_float(const char* value, size_t value_sz,
+                                   v8::Local<v8::Value>& retval,
+                                   v8::Local<v8::Value>& error)
+{
+    hyperdex_ds_iterator iter;
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_FLOAT_FLOAT, value, value_sz);
+    double k;
+    double v;
+    size_t len = 0;
+    int result = 0;
+
+    while ((result = hyperdex_ds_iterate_map_float_float_next(&iter, &k, &v)) > 0)
+    {
+        ++len;
+    }
+
+    if (result < 0)
+    {
+        error = error_message("server sent malformed map(float, float)");
+        return false;
+    }
+
+    hyperdex_ds_iterator_init(&iter, HYPERDATATYPE_MAP_FLOAT_FLOAT, value, value_sz);
+    v8::Local<v8::Array> arr(v8::Array::New(len));
+    size_t idx = 0;
+
+    while ((result = hyperdex_ds_iterate_map_float_float_next(&iter, &k, &v)) > 0)
+    {
+        v8::Local<v8::Value> key(v8::Number::New(k));
+        v8::Local<v8::Value> val(v8::Number::New(v));
+        v8::Local<v8::Array> pair(v8::Array::New(2));
+        pair->Set(0, key);
+        pair->Set(1, val);
+        arr->Set(idx, pair);
+        ++idx;
+    }
+
+    v8::Local<v8::Object> obj(v8::Object::New());
+    obj->Set(v8::String::New("map"), arr);
+    retval = obj;
+    return true;
 }
 
 bool
@@ -650,41 +1412,44 @@ Operation :: build_attribute(const hyperdex_client_attribute* attr,
                              v8::Local<v8::Value>& retval,
                              v8::Local<v8::Value>& error)
 {
-    struct hyperdex_ds_iterator iter;
-    const char* tmp_str = NULL;
-    size_t tmp_str_sz = 0;
-    const char* tmp_str2 = NULL;
-    size_t tmp_str2_sz = 0;
-    int64_t tmp_i = 0;
-    int64_t tmp_i2 = 0;
-    double tmp_d = 0;
-    double tmp_d2 = 0;
-    int result = 0;
-
     switch (attr->datatype)
     {
         case HYPERDATATYPE_STRING:
-            retval = build_string(attr->value, attr->value_sz);
-            return true;
+            return build_string(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_INT64:
+            return build_int(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_FLOAT:
+            return build_float(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_LIST_STRING:
+            return build_list_string(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_LIST_INT64:
+            return build_list_int(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_LIST_FLOAT:
+            return build_list_float(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_SET_STRING:
+            return build_set_string(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_SET_INT64:
+            return build_set_int(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_SET_FLOAT:
+            return build_set_float(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_MAP_STRING_STRING:
+            return build_map_string_string(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_MAP_STRING_INT64:
+            return build_map_string_int(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_MAP_STRING_FLOAT:
+            return build_map_string_float(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_MAP_INT64_STRING:
+            return build_map_int_string(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_MAP_INT64_INT64:
+            return build_map_int_int(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_MAP_INT64_FLOAT:
+            return build_map_int_float(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_MAP_FLOAT_STRING:
+            return build_map_float_string(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_MAP_FLOAT_INT64:
+            return build_map_float_int(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_MAP_FLOAT_FLOAT:
-            error = this->error_message("node.js only supports type String");
-            return false;
+            return build_map_float_float(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_GENERIC:
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
