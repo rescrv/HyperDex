@@ -57,6 +57,7 @@ class HyperDexClient : public node::ObjectWrap
     public:
         static v8::Persistent<v8::Function> ctor;
         static v8::Persistent<v8::Function> global_err;
+        static v8::Persistent<v8::Function> type_hint;
         static void Init(v8::Handle<v8::Object> exports);
         static v8::Handle<v8::Value> New(const v8::Arguments& args);
 
@@ -65,6 +66,11 @@ class HyperDexClient : public node::ObjectWrap
         ~HyperDexClient() throw ();
 
     public:
+        static v8::Handle<v8::Value> asInt(const v8::Arguments& args);
+        static v8::Handle<v8::Value> asFloat(const v8::Arguments& args);
+        static v8::Handle<v8::Value> asList(const v8::Arguments& args);
+        static v8::Handle<v8::Value> asSet(const v8::Arguments& args);
+        static v8::Handle<v8::Value> asMap(const v8::Arguments& args);
         static v8::Handle<v8::Value> loop(const v8::Arguments& args);
         static v8::Handle<v8::Value> loop_error(const v8::Arguments& args);
 
@@ -89,6 +95,10 @@ class HyperDexClient : public node::ObjectWrap
         bool m_poll_active;
 };
 
+typedef int (*elem_string_fptr)(void*, const char*, size_t, enum hyperdex_ds_returncode*);
+typedef int (*elem_int_fptr)(void*, int64_t, enum hyperdex_ds_returncode*);
+typedef int (*elem_float_fptr)(void*, double, enum hyperdex_ds_returncode*);
+
 class Operation
 {
     public:
@@ -96,12 +106,36 @@ class Operation
         ~Operation() throw ();
 
     public:
+        typedef bool (Operation::*type_converter)(v8::Handle<v8::Value>&, const char**, size_t*, hyperdatatype*);
+
         bool set_callback(v8::Handle<v8::Function>& func, unsigned func_sz);
-        bool convert_cstring(v8::Handle<v8::Value>& _cstring,
-                             const char** cstring);
+        bool convert_error(v8::Handle<v8::Value>& _value,
+                           const char** value, size_t* value_sz,
+                           hyperdatatype* datatype);
+        bool convert_int(v8::Handle<v8::Value>& _value,
+                         const char** value, size_t* value_sz,
+                         hyperdatatype* datatype);
+        bool convert_float(v8::Handle<v8::Value>& _value,
+                           const char** value, size_t* value_sz,
+                           hyperdatatype* datatype);
+        bool convert_elem(v8::Handle<v8::Value>& value, void* x,
+                          elem_string_fptr f_string,
+                          elem_int_fptr f_int,
+                          elem_float_fptr f_float);
+        bool convert_list(v8::Handle<v8::Value>& _value,
+                          const char** value, size_t* value_sz,
+                          hyperdatatype* datatype);
+        bool convert_set(v8::Handle<v8::Value>& _value,
+                         const char** value, size_t* value_sz,
+                         hyperdatatype* datatype);
+        bool convert_map(v8::Handle<v8::Value>& _value,
+                         const char** value, size_t* value_sz,
+                         hyperdatatype* datatype);
         bool convert_type(v8::Handle<v8::Value>& _value,
                           const char** value, size_t* value_sz,
                           hyperdatatype* datatype);
+        bool convert_cstring(v8::Handle<v8::Value>& _cstring,
+                             const char** cstring);
 
         bool convert_spacename(v8::Handle<v8::Value>& _spacename,
                                const char** spacename);
@@ -229,8 +263,28 @@ class Operation
         unsigned m_callback_sz;
 };
 
+class TypeHint : public node::ObjectWrap
+{
+    public:
+        static v8::Handle<v8::Value> New(const v8::Arguments& args);
+
+    public:
+        TypeHint(hyperdatatype t, v8::Local<v8::Value>& o);
+        ~TypeHint() throw ();
+
+    public:
+        Operation::type_converter get_converter();
+        v8::Handle<v8::Value> value();
+        hyperdatatype get_type();
+
+    private:
+        hyperdatatype m_type;
+        v8::Persistent<v8::Value> m_obj;
+};
+
 v8::Persistent<v8::Function> HyperDexClient::ctor;
 v8::Persistent<v8::Function> HyperDexClient::global_err;
+v8::Persistent<v8::Function> HyperDexClient::type_hint;
 
 void
 HyperDexClient :: Init(v8::Handle<v8::Object> target)
@@ -239,6 +293,13 @@ HyperDexClient :: Init(v8::Handle<v8::Object> target)
         = v8::FunctionTemplate::New(HyperDexClient::New);
     tpl->SetClassName(v8::String::NewSymbol("Client"));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+    NODE_SET_PROTOTYPE_METHOD(tpl, "asInt", HyperDexClient::asInt);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "asInt", HyperDexClient::asInt);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "asFloat", HyperDexClient::asFloat);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "asList", HyperDexClient::asList);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "asSet", HyperDexClient::asSet);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "asMap", HyperDexClient::asMap);
 
     NODE_SET_PROTOTYPE_METHOD(tpl, "loop", HyperDexClient::loop);
 #include "client.prototypes.cc"
@@ -249,6 +310,12 @@ HyperDexClient :: Init(v8::Handle<v8::Object> target)
     v8::Local<v8::FunctionTemplate> tpl_err
         = v8::FunctionTemplate::New(HyperDexClient::loop_error);
     global_err = v8::Persistent<v8::Function>::New(tpl_err->GetFunction());
+
+    v8::Local<v8::FunctionTemplate> tpl_type
+        = v8::FunctionTemplate::New(TypeHint::New);
+    tpl_type->SetClassName(v8::String::NewSymbol("TypeHint"));
+    tpl_type->InstanceTemplate()->SetInternalFieldCount(1);
+    type_hint = v8::Persistent<v8::Function>::New(tpl_type->GetFunction());
 }
 
 v8::Handle<v8::Value>
@@ -448,6 +515,156 @@ HyperDexClient :: loop_error(const v8::Arguments& args)
     return scope.Close(v8::Undefined());
 }
 
+v8::Handle<v8::Value>
+TypeHint :: New(const v8::Arguments& args)
+{
+    v8::HandleScope scope;
+
+    if (!args.IsConstructCall())
+    {
+        return v8::ThrowException(v8::String::New("client must be constructed with \"new\""));
+    }
+
+    if (args.Length() != 2)
+    {
+        return v8::ThrowException(v8::String::New("type hint requires (type, obj) arguments"));
+    }
+
+    if (args[0].IsEmpty() || !args[0]->IsString())
+    {
+        return v8::ThrowException(v8::String::New("type hint requires that the \"type\" argument be a string"));
+    }
+
+    if (args[1].IsEmpty())
+    {
+        return v8::ThrowException(v8::String::New("type hint requires something to cast"));
+    }
+
+    v8::Local<v8::String> _type = args[0].As<v8::String>();
+    v8::String::AsciiValue s(_type);
+    hyperdatatype t = HYPERDATATYPE_GARBAGE;
+
+    if (strcmp("int", *s) == 0 ||
+        strcmp("int64", *s) == 0)
+    {
+        t = HYPERDATATYPE_INT64;
+    }
+    else if (strcmp("float", *s) == 0)
+    {
+        t = HYPERDATATYPE_FLOAT;
+    }
+    else if (strcmp("list", *s) == 0)
+    {
+        t = HYPERDATATYPE_LIST_GENERIC;
+    }
+    else if (strcmp("set", *s) == 0)
+    {
+        t = HYPERDATATYPE_SET_GENERIC;
+    }
+    else if (strcmp("map", *s) == 0)
+    {
+        t = HYPERDATATYPE_MAP_GENERIC;
+    }
+    else
+    {
+        return v8::ThrowException(v8::String::New("cannot cast unknown type"));
+    }
+
+    v8::Local<v8::Value> obj = v8::Local<v8::Value>::New(args[1]);
+    TypeHint* th = new TypeHint(t, obj);
+    th->Wrap(args.This());
+    return scope.Close(args.This());
+}
+
+TypeHint :: TypeHint(hyperdatatype t, v8::Local<v8::Value>& o)
+    : m_type(t)
+    , m_obj()
+{
+    if (!o.IsEmpty())
+    {
+        m_obj = v8::Persistent<v8::Value>::New(o);
+    }
+}
+
+TypeHint :: ~TypeHint() throw ()
+{
+    if (!m_obj.IsEmpty())
+    {
+        m_obj.Dispose();
+        m_obj.Clear();
+    }
+}
+
+#define HYPERDEX_TYPE_CAST(X, Y) \
+    v8::Handle<v8::Value> \
+    HyperDexClient :: X(const v8::Arguments& args) \
+    { \
+        v8::Local<v8::Function> th = v8::Local<v8::Function>::New(type_hint); \
+        v8::Local<v8::Value> t(v8::String::New(Y)); \
+        v8::Handle<v8::Value> argv[] = {t, args[0]}; \
+        return th->NewInstance(2, argv); \
+    }
+
+HYPERDEX_TYPE_CAST(asInt, "int");
+HYPERDEX_TYPE_CAST(asFloat, "float");
+HYPERDEX_TYPE_CAST(asList, "list");
+HYPERDEX_TYPE_CAST(asSet, "set");
+HYPERDEX_TYPE_CAST(asMap, "map");
+
+Operation::type_converter
+TypeHint :: get_converter()
+{
+    switch (m_type)
+    {
+        case HYPERDATATYPE_INT64:
+            return &Operation::convert_int;
+        case HYPERDATATYPE_FLOAT:
+            return &Operation::convert_float;
+        case HYPERDATATYPE_LIST_GENERIC:
+            return &Operation::convert_list;
+        case HYPERDATATYPE_SET_GENERIC:
+            return &Operation::convert_set;
+        case HYPERDATATYPE_MAP_GENERIC:
+            return &Operation::convert_map;
+        case HYPERDATATYPE_GENERIC:
+        case HYPERDATATYPE_STRING:
+        case HYPERDATATYPE_LIST_STRING:
+        case HYPERDATATYPE_LIST_INT64:
+        case HYPERDATATYPE_LIST_FLOAT:
+        case HYPERDATATYPE_SET_STRING:
+        case HYPERDATATYPE_SET_INT64:
+        case HYPERDATATYPE_SET_FLOAT:
+        case HYPERDATATYPE_MAP_STRING_KEYONLY:
+        case HYPERDATATYPE_MAP_STRING_STRING:
+        case HYPERDATATYPE_MAP_STRING_INT64:
+        case HYPERDATATYPE_MAP_STRING_FLOAT:
+        case HYPERDATATYPE_MAP_INT64_KEYONLY:
+        case HYPERDATATYPE_MAP_INT64_STRING:
+        case HYPERDATATYPE_MAP_INT64_INT64:
+        case HYPERDATATYPE_MAP_INT64_FLOAT:
+        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+        case HYPERDATATYPE_MAP_FLOAT_STRING:
+        case HYPERDATATYPE_MAP_FLOAT_INT64:
+        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
+        case HYPERDATATYPE_GARBAGE:
+        default:
+            return &Operation::convert_error;
+    }
+}
+
+v8::Handle<v8::Value>
+TypeHint :: value()
+{
+    v8::HandleScope scope;
+    return scope.Close(v8::Local<v8::Value>::New(m_obj));
+}
+
+hyperdatatype
+TypeHint :: get_type()
+{
+    return m_type;
+}
+
 #include "client.definitions.cc"
 
 Operation :: Operation(v8::Handle<v8::Object>& c1, HyperDexClient* c2)
@@ -510,6 +727,342 @@ Operation :: set_callback(v8::Handle<v8::Function>& func, unsigned func_sz)
 }
 
 bool
+Operation :: convert_error(v8::Handle<v8::Value>& _value,
+                           const char** value, size_t* value_sz,
+                           hyperdatatype* datatype)
+{
+    this->callback_error_message("cannot convert to HyperDex type");
+    return false;
+}
+
+bool
+Operation :: convert_int(v8::Handle<v8::Value>& _value,
+                         const char** value, size_t* value_sz,
+                         hyperdatatype* datatype)
+{
+    if (_value->IsNumber())
+    {
+        double _num = _value.As<v8::Number>()->Value();
+        int64_t num = _num;
+        hyperdex_ds_returncode error;
+
+        if (hyperdex_ds_copy_int(m_arena, num, &error, value, value_sz) < 0)
+        {
+            this->callback_error_out_of_memory();
+            return false;
+        }
+
+        *datatype = HYPERDATATYPE_INT64;
+        return true;
+    }
+    else
+    {
+        this->callback_error_message("cannot convert to an int");
+        return false;
+    }
+}
+
+bool
+Operation :: convert_float(v8::Handle<v8::Value>& _value,
+                           const char** value, size_t* value_sz,
+                           hyperdatatype* datatype)
+{
+    if (_value->IsNumber())
+    {
+        double num = _value.As<v8::Number>()->Value();
+        hyperdex_ds_returncode error;
+
+        if (hyperdex_ds_copy_float(m_arena, num, &error, value, value_sz) < 0)
+        {
+            this->callback_error_out_of_memory();
+            return false;
+        }
+
+        *datatype = HYPERDATATYPE_FLOAT;
+        return true;
+    }
+    else
+    {
+        this->callback_error_message("cannot convert to a float");
+        return false;
+    }
+}
+
+#define HDJS_HANDLE_ELEM_ERROR(X, TYPE) \
+    switch (X) \
+    { \
+        case HYPERDEX_DS_NOMEM: \
+            this->callback_error_out_of_memory(); \
+            return false; \
+        case HYPERDEX_DS_MIXED_TYPES: \
+            this->callback_error_message("Cannot add " TYPE " to a heterogenous container"); \
+            return false; \
+        case HYPERDEX_DS_SUCCESS: \
+        case HYPERDEX_DS_STRING_TOO_LONG: \
+        case HYPERDEX_DS_WRONG_STATE: \
+        default: \
+            this->callback_error_message("Cannot convert " TYPE " to a HyperDex type"); \
+            return false; \
+    }
+
+bool
+Operation :: convert_elem(v8::Handle<v8::Value>& value, void* x,
+                          elem_string_fptr f_string,
+                          elem_int_fptr f_int,
+                          elem_float_fptr f_float)
+{
+    if (value.IsEmpty())
+    {
+        this->callback_error_message("cannot convert undefined to HyperDex type");
+        return false;
+    }
+
+    if (value->IsObject() &&
+        value->ToObject()->GetConstructor()->StrictEquals(HyperDexClient::type_hint))
+    {
+        TypeHint* hint = node::ObjectWrap::Unwrap<TypeHint>(value.As<v8::Object>());
+        assert(hint);
+
+        if (hint->get_type() == HYPERDATATYPE_INT64)
+        {
+            double _num = hint->value().As<v8::Number>()->Value();
+            int64_t num = _num;
+            hyperdex_ds_returncode error;
+
+            if (f_int(x, num, &error) < 0)
+            {
+                HDJS_HANDLE_ELEM_ERROR(error, "int");
+            }
+
+            return true;
+        }
+        else if (hint->get_type() == HYPERDATATYPE_FLOAT)
+        {
+            double num = hint->value().As<v8::Number>()->Value();
+            hyperdex_ds_returncode error;
+
+            if (f_float(x, num, &error) < 0)
+            {
+                HDJS_HANDLE_ELEM_ERROR(error, "float");
+            }
+
+            return true;
+        }
+        else
+        {
+            this->callback_error_message("cannot convert to HyperDex type");
+            return false;
+        }
+    }
+
+    if (value->IsNumber())
+    {
+        double _num = value.As<v8::Number>()->Value();
+        int64_t num = _num;
+        hyperdex_ds_returncode error;
+
+        if (f_int(x, num, &error) < 0)
+        {
+            HDJS_HANDLE_ELEM_ERROR(error, "int");
+        }
+
+        return true;
+    }
+
+    if (node::Buffer::HasInstance(value->ToObject()))
+    {
+        size_t sz = node::Buffer::Length(value->ToObject());
+        char* data = node::Buffer::Data(value->ToObject());
+        hyperdex_ds_returncode error;
+
+        if (f_string(x, data, sz, &error) < 0)
+        {
+            HDJS_HANDLE_ELEM_ERROR(error, "string");
+        }
+
+        return true;
+    }
+
+    if (value->IsString())
+    {
+        hyperdex_ds_returncode error;
+        v8::String::Utf8Value s(value);
+
+        if (s.length() == 0 && *s == NULL)
+        {
+            this->callback_error_message("cannot convert object to string");
+            return false;
+        }
+
+        if (f_string(x, *s, s.length(), &error) < 0)
+        {
+            HDJS_HANDLE_ELEM_ERROR(error, "string");
+        }
+
+        return true;
+    }
+
+    this->callback_error_message("cannot convert to HyperDex type");
+    return false;
+}
+
+bool
+Operation :: convert_list(v8::Handle<v8::Value>& _value,
+                          const char** value, size_t* value_sz,
+                          hyperdatatype* datatype)
+{
+    if (!_value->IsArray())
+    {
+        this->callback_error_message("lists must be specified as arrays");
+        return false;
+    }
+
+    struct hyperdex_ds_list* list;
+    enum hyperdex_ds_returncode error;
+    list = hyperdex_ds_allocate_list(m_arena);
+
+    if (!list)
+    {
+        this->callback_error_out_of_memory();
+        return false;
+    }
+
+    v8::Local<v8::Array> arr = v8::Local<v8::Array>::New(_value.As<v8::Array>());
+
+    for (size_t i = 0; i < arr->Length(); ++i)
+    {
+        v8::Local<v8::Value> entry = arr->Get(i);
+
+        if (!this->convert_elem(entry, list,
+                (elem_string_fptr) hyperdex_ds_list_append_string,
+                (elem_int_fptr) hyperdex_ds_list_append_int,
+                (elem_float_fptr) hyperdex_ds_list_append_float))
+        {
+            return false;
+        }
+    }
+
+    if (hyperdex_ds_list_finalize(list, &error, value, value_sz, datatype) < 0)
+    {
+        this->callback_error_out_of_memory();
+        return false;
+    }
+
+    return true;
+}
+
+bool
+Operation :: convert_set(v8::Handle<v8::Value>& _value,
+                         const char** value, size_t* value_sz,
+                         hyperdatatype* datatype)
+{
+    if (!_value->IsArray())
+    {
+        this->callback_error_message("sets must be specified as arrays");
+        return false;
+    }
+
+    struct hyperdex_ds_set* set;
+    enum hyperdex_ds_returncode error;
+    set = hyperdex_ds_allocate_set(m_arena);
+
+    if (!set)
+    {
+        this->callback_error_out_of_memory();
+        return false;
+    }
+
+    v8::Local<v8::Array> arr = v8::Local<v8::Array>::New(_value.As<v8::Array>());
+
+    for (size_t i = 0; i < arr->Length(); ++i)
+    {
+        v8::Local<v8::Value> entry = arr->Get(i);
+
+        if (!this->convert_elem(entry, set,
+                (elem_string_fptr) hyperdex_ds_set_insert_string,
+                (elem_int_fptr) hyperdex_ds_set_insert_int,
+                (elem_float_fptr) hyperdex_ds_set_insert_float))
+        {
+            return false;
+        }
+    }
+
+    if (hyperdex_ds_set_finalize(set, &error, value, value_sz, datatype) < 0)
+    {
+        this->callback_error_out_of_memory();
+        return false;
+    }
+
+    return true;
+}
+
+bool
+Operation :: convert_map(v8::Handle<v8::Value>& _value,
+                         const char** value, size_t* value_sz,
+                         hyperdatatype* datatype)
+{
+    if (!_value->IsArray())
+    {
+        this->callback_error_message("maps must be specified as arrays");
+        return false;
+    }
+
+    struct hyperdex_ds_map* map;
+    enum hyperdex_ds_returncode error;
+    map = hyperdex_ds_allocate_map(m_arena);
+
+    if (!map)
+    {
+        this->callback_error_out_of_memory();
+        return false;
+    }
+
+    v8::Local<v8::Array> arr = v8::Local<v8::Array>::New(_value.As<v8::Array>());
+
+    for (size_t i = 0; i < arr->Length(); ++i)
+    {
+        v8::Local<v8::Value> _pair = arr->Get(i);
+
+        if (!_pair->IsArray())
+        {
+            this->callback_error_message("map pairs must be specified as arrays");
+            return false;
+        }
+
+        v8::Local<v8::Array> pair = _pair.As<v8::Array>();
+
+        if (pair->Length() != 2)
+        {
+            this->callback_error_message("map pairs must be of length 2");
+            return false;
+        }
+
+        v8::Local<v8::Value> key = pair->Get(0);
+        v8::Local<v8::Value> val = pair->Get(1);
+
+        if (!this->convert_elem(key, map,
+                (elem_string_fptr) hyperdex_ds_map_insert_key_string,
+                (elem_int_fptr) hyperdex_ds_map_insert_key_int,
+                (elem_float_fptr) hyperdex_ds_map_insert_key_float) ||
+            !this->convert_elem(val, map,
+                (elem_string_fptr) hyperdex_ds_map_insert_val_string,
+                (elem_int_fptr) hyperdex_ds_map_insert_val_int,
+                (elem_float_fptr) hyperdex_ds_map_insert_val_float))
+        {
+            return false;
+        }
+    }
+
+    if (hyperdex_ds_map_finalize(map, &error, value, value_sz, datatype) < 0)
+    {
+        this->callback_error_out_of_memory();
+        return false;
+    }
+
+    return true;
+}
+
+bool
 Operation :: convert_cstring(v8::Handle<v8::Value>& _cstring,
                              const char** cstring)
 {
@@ -538,21 +1091,55 @@ Operation :: convert_type(v8::Handle<v8::Value>& _value,
                           const char** value, size_t* value_sz,
                           hyperdatatype* datatype)
 {
-    // XXX support other types
-    hyperdex_ds_returncode error;
+    if (_value.IsEmpty())
+    {
+        this->callback_error_message("cannot convert undefined to HyperDex type");
+        return false;
+    }
+
+    if (_value->IsObject() &&
+        _value->ToObject()->GetConstructor()->StrictEquals(HyperDexClient::type_hint))
+    {
+        TypeHint* hint = node::ObjectWrap::Unwrap<TypeHint>(_value.As<v8::Object>());
+        assert(hint);
+        Operation::type_converter conv = hint->get_converter();
+        v8::Local<v8::Value> inner = v8::Local<v8::Value>::New(hint->value());
+        return (this->*conv)(inner, value, value_sz, datatype);
+    }
+
+    if (_value->IsNumber())
+    {
+        double _num = _value.As<v8::Number>()->Value();
+        int64_t num = _num;
+        hyperdex_ds_returncode error;
+
+        if (hyperdex_ds_copy_int(m_arena, num, &error, value, value_sz) < 0)
+        {
+            this->callback_error_out_of_memory();
+            return false;
+        }
+
+        *datatype = HYPERDATATYPE_INT64;
+        return true;
+    }
 
     if (node::Buffer::HasInstance(_value->ToObject()))
     {
         size_t sz = node::Buffer::Length(_value->ToObject());
         char* data = node::Buffer::Data(_value->ToObject());
+        hyperdex_ds_returncode error;
 
         if (hyperdex_ds_copy_string(m_arena, data, sz, &error, value, value_sz) < 0)
         {
             this->callback_error_out_of_memory();
             return false;
         }
+
+        *datatype = HYPERDATATYPE_STRING;
+        return true;
     }
-    else
+
+    if (_value->IsString())
     {
         v8::String::Utf8Value s(_value);
 
@@ -562,15 +1149,20 @@ Operation :: convert_type(v8::Handle<v8::Value>& _value,
             return false;
         }
 
+        hyperdex_ds_returncode error;
+
         if (hyperdex_ds_copy_string(m_arena, *s, s.length(), &error, value, value_sz) < 0)
         {
             this->callback_error_out_of_memory();
             return false;
         }
+
+        *datatype = HYPERDATATYPE_STRING;
+        return true;
     }
 
-    *datatype = HYPERDATATYPE_STRING;
-    return true;
+    this->callback_error_message("cannot convert to HyperDex type");
+    return false;
 }
 
 bool
@@ -890,9 +1482,7 @@ Operation :: build_set_string(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("set"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
@@ -929,9 +1519,7 @@ Operation :: build_set_int(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("set"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
@@ -968,9 +1556,7 @@ Operation :: build_set_float(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("set"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
@@ -1021,9 +1607,7 @@ Operation :: build_map_string_string(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("map"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
@@ -1072,9 +1656,7 @@ Operation :: build_map_string_int(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("map"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
@@ -1123,9 +1705,7 @@ Operation :: build_map_string_float(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("map"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
@@ -1174,9 +1754,7 @@ Operation :: build_map_int_string(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("map"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
@@ -1218,9 +1796,7 @@ Operation :: build_map_int_int(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("map"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
@@ -1262,9 +1838,7 @@ Operation :: build_map_int_float(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("map"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
@@ -1313,9 +1887,7 @@ Operation :: build_map_float_string(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("map"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
@@ -1357,9 +1929,7 @@ Operation :: build_map_float_int(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("map"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
@@ -1401,9 +1971,7 @@ Operation :: build_map_float_float(const char* value, size_t value_sz,
         ++idx;
     }
 
-    v8::Local<v8::Object> obj(v8::Object::New());
-    obj->Set(v8::String::New("map"), arr);
-    retval = obj;
+    retval = arr;
     return true;
 }
 
