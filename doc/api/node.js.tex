@@ -4,7 +4,7 @@
 \section{Client Library}
 \label{sec:api:node:client}
 
-HyperDex provides Node bindings under the module \code{HyperDex::Client}.  This
+HyperDex provides Node bindings under the module \code{hyperdex-client}.  This
 library wraps the HyperDex C Client library and enables use of native Javascript
 data types.
 
@@ -13,9 +13,9 @@ This module was re-introduced in HyperDex 1.2.0.
 \subsection{Building the HyperDex Node.js Binding}
 \label{sec:api:node:building}
 
-The HyperDex Node.js Binding must be built and installed after HyperDex is
-built.  After installing HyperDex, you can build the Node.js bindings from
-either source or git checkout with:
+The HyperDex Node.js Binding must be built and installed after HyperDex is built
+and installed.  After installing HyperDex, you can build the Node.js bindings
+from either source or git checkout with:
 
 \begin{consolecode}
 % cd bindings/node.js
@@ -88,21 +88,66 @@ exhaustive.
 
 \paragraph{Strings}
 
-The HyperDex client recognizes Nodes's strings and buffers and automatically
-converts them to HyperDex strings.  For example, the following two calls
-have the same effect:
+The HyperDex client recognizes Javascript strings and buffers and automatically
+converts them to HyperDex strings.  For example, the following two calls have
+the same effect:
 
 \begin{javascriptcode}
 c.put("kv", "somekey", {v: "somevalue"}, function (success, err) {});
 c.put("kv", "somekey", {v: new Buffer("somevalue")}, function (success, err) {});
 \end{javascriptcode}
 
-\paragraph{Other Types}
+\paragraph{Integers}
 
-At the current point in time, other data types are not supported within Node.js.
-This is primarily because Javascript doesn't support the majority of HyperDex
-types without third party libraries.  We are looking for feedback from the
-Node.js communtiy about the best way to support all HyperDex types.
+The HyperDex client recognizes Javascript numbers and can convert them to
+HyperDex integers.  For example:
+
+\begin{javascriptcode}
+c.put("kv", "somekey", {v: c.asInt(42)}, function (success, err) {});
+\end{javascriptcode}
+
+\paragraph{Floats}
+
+The HyperDex client recognizes Javascript numbers and can convert them to
+HyperDex floats.  For example:
+
+\begin{javascriptcode}
+c.put("kv", "somekey", {v: c.asFloat(3.1415)}, function (success, err) {});
+\end{javascriptcode}
+
+\paragraph{Lists}
+
+The HyperDex client permits users to construct HyperDex lists from Javascript.
+For example:
+
+\begin{javascriptcode}
+c.put("kv", "somekey", {v: c.asList(['a', 'b', 'c'])}, function (success, err) {});
+c.put("kv", "somekey", {v: c.asList([1, 2, 3])}, function (success, err) {});
+c.put("kv", "somekey", {v: c.asList([1.0, 0.5, 0.25])}, function (success, err) {});
+\end{javascriptcode}
+
+\paragraph{Sets}
+
+The HyperDex client permits users to construct HyperDex sets from Javascript.
+For example:
+
+\begin{javascriptcode}
+c.put("kv", "somekey", {v: c.asSet(['a', 'b', 'c'])}, function (success, err) {});
+c.put("kv", "somekey", {v: c.asSet([1, 2, 3])}, function (success, err) {});
+c.put("kv", "somekey", {v: c.asSet([1.0, 0.5, 0.25])}, function (success, err) {});
+\end{javascriptcode}
+
+\paragraph{Maps}
+
+The HyperDex client permits users to construct HyperDex maps from Javascript.
+For example:
+
+\begin{javascriptcode}
+c.put("kv", "somekey", {v1: c.asMap([["k", "v"]])}, function(success, err) {});
+c.put("kv", "somekey", {v2: c.asMap([[1, 2]])}, function(success, err) {});
+c.put("kv", "somekey", {v3: c.asMap([[3.14, 0.125]])}, function(success, err) {});
+c.put("kv", "somekey", {v4: c.asMap([["a", 1]])}, function(success, err) {});
+\end{javascriptcode}
 
 \subsection{Attributes}
 \label{sec:api:node:attributes}

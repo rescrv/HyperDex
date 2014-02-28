@@ -235,7 +235,7 @@ def parameters_script_style(arg):
 
 def doc_parameter_list(form, args, fragments, label_maker):
     if not args:
-        return 'None'
+        return 'Nothing'
     block = '\\begin{itemize}[noitemsep]\n'
     for arg in args:
         label = label_maker(arg)

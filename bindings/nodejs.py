@@ -34,23 +34,6 @@ import bindings
 import bindings.c
 import bindings.nodejs
 
-DOCS_IN = {(bindings.AsyncCall, bindings.SpaceName): 'The name of the space as a string or buffer.'
-          ,(bindings.AsyncCall, bindings.Key): 'The key for the operation as a Node type'
-          ,(bindings.AsyncCall, bindings.Attributes): 'An object specifying attributes '
-           'to modify and their respective values.'
-          ,(bindings.AsyncCall, bindings.MapAttributes): 'An object specifying map '
-           'attributes to modify and their respective key/values.'
-          ,(bindings.AsyncCall, bindings.Predicates): 'An object of predicates '
-           'to check against.'
-          ,(bindings.Iterator, bindings.SpaceName): 'The name of the space as string or buffer.'
-          ,(bindings.Iterator, bindings.SortBy): 'The attribute to sort by.'
-          ,(bindings.Iterator, bindings.Limit): 'The number of results to return.'
-          ,(bindings.Iterator, bindings.MaxMin): 'Maximize or minimize '
-          '(e.g., "max" or "min").'
-          ,(bindings.Iterator, bindings.Predicates): 'An object of predicates '
-           'to check against.'
-          }
-
 def generate_worker_declarations(xs, lib):
     calls = set([])
     for x in xs:
@@ -128,10 +111,34 @@ def generate_prototype(x):
 
 def generate_api_func(x):
     assert x.form in (bindings.AsyncCall, bindings.Iterator)
-    func = 'Client.%s(' % x.name
+    func = '%s(' % x.name
     padd = ' ' * 16
     func += ', '.join([str(arg).lower()[17:-2] for arg in x.args_in])
+    if x.args_out == (bindings.Status,):
+        func += ', function (success, err) {}'
+    elif x.form == bindings.AsyncCall and x.args_out == (bindings.Status, bindings.Attributes):
+        func += ', function (obj, done, err) {}'
+    elif x.form == bindings.Iterator and x.args_out == (bindings.Status, bindings.Attributes):
+        func += ', function (obj, err) {}'
+    elif x.args_out == (bindings.Status, bindings.Description):
+        func += ', function (desc, err) {}'
+    elif x.args_out == (bindings.Status, bindings.Count):
+        func += ', function (count, err) {}'
+    else:
+        print x.args_out
+        assert False
     func += ')\n'
+    if len(func) > 85:
+        funcx, funcy = func.split('(', 1)
+        funcz = ''
+        for x in funcy.split(', '):
+            if funcz.count('(') + 1 == funcz.count(')'):
+                if funcz:
+                    funcz += ',\n' + ' ' * 8
+            elif funcz:
+                funcz += ', '
+            funcz += x
+        func = funcx + '(\n' + ' ' * 8 + funcz
     return func
 
 def generate_api_block(x, lib):

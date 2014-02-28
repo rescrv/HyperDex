@@ -35,7 +35,7 @@
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.get(spacename, key)
+get(spacename, key, function (obj, done, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -57,7 +57,7 @@ Client.get(spacename, key)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.put(spacename, key, attributes)
+put(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -81,7 +81,7 @@ Client.put(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_put(spacename, key, predicates, attributes)
+cond_put(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -107,7 +107,7 @@ Client.cond_put(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.put_if_not_exist(spacename, key, attributes)
+put_if_not_exist(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -131,7 +131,7 @@ Client.put_if_not_exist(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.del(spacename, key)
+del(spacename, key, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -153,7 +153,7 @@ Client.del(spacename, key)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_del(spacename, key, predicates)
+cond_del(spacename, key, predicates, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -177,7 +177,7 @@ Client.cond_del(spacename, key, predicates)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.atomic_add(spacename, key, attributes)
+atomic_add(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -201,7 +201,7 @@ Client.atomic_add(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_atomic_add(spacename, key, predicates, attributes)
+cond_atomic_add(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -227,7 +227,7 @@ Client.cond_atomic_add(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.atomic_sub(spacename, key, attributes)
+atomic_sub(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -251,7 +251,7 @@ Client.atomic_sub(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_atomic_sub(spacename, key, predicates, attributes)
+cond_atomic_sub(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -277,7 +277,7 @@ Client.cond_atomic_sub(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.atomic_mul(spacename, key, attributes)
+atomic_mul(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -301,7 +301,7 @@ Client.atomic_mul(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_atomic_mul(spacename, key, predicates, attributes)
+cond_atomic_mul(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -327,7 +327,7 @@ Client.cond_atomic_mul(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.atomic_div(spacename, key, attributes)
+atomic_div(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -351,7 +351,7 @@ Client.atomic_div(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_atomic_div(spacename, key, predicates, attributes)
+cond_atomic_div(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -377,7 +377,7 @@ Client.cond_atomic_div(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.atomic_mod(spacename, key, attributes)
+atomic_mod(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -401,7 +401,7 @@ Client.atomic_mod(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_atomic_mod(spacename, key, predicates, attributes)
+cond_atomic_mod(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -427,7 +427,7 @@ Client.cond_atomic_mod(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.atomic_and(spacename, key, attributes)
+atomic_and(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -451,7 +451,7 @@ Client.atomic_and(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_atomic_and(spacename, key, predicates, attributes)
+cond_atomic_and(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -477,7 +477,7 @@ Client.cond_atomic_and(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.atomic_or(spacename, key, attributes)
+atomic_or(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -501,7 +501,7 @@ Client.atomic_or(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_atomic_or(spacename, key, predicates, attributes)
+cond_atomic_or(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -527,7 +527,7 @@ Client.cond_atomic_or(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.atomic_xor(spacename, key, attributes)
+atomic_xor(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -551,7 +551,7 @@ Client.atomic_xor(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_atomic_xor(spacename, key, predicates, attributes)
+cond_atomic_xor(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -577,7 +577,7 @@ Client.cond_atomic_xor(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.string_prepend(spacename, key, attributes)
+string_prepend(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -601,7 +601,8 @@ Client.string_prepend(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_string_prepend(spacename, key, predicates, attributes)
+cond_string_prepend(
+        spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -627,7 +628,7 @@ Client.cond_string_prepend(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.string_append(spacename, key, attributes)
+string_append(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -651,7 +652,8 @@ Client.string_append(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_string_append(spacename, key, predicates, attributes)
+cond_string_append(
+        spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -677,7 +679,7 @@ Client.cond_string_append(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.list_lpush(spacename, key, attributes)
+list_lpush(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -701,7 +703,7 @@ Client.list_lpush(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_list_lpush(spacename, key, predicates, attributes)
+cond_list_lpush(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -727,7 +729,7 @@ Client.cond_list_lpush(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.list_rpush(spacename, key, attributes)
+list_rpush(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -751,7 +753,7 @@ Client.list_rpush(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_list_rpush(spacename, key, predicates, attributes)
+cond_list_rpush(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -777,7 +779,7 @@ Client.cond_list_rpush(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.set_add(spacename, key, attributes)
+set_add(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -801,7 +803,7 @@ Client.set_add(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_set_add(spacename, key, predicates, attributes)
+cond_set_add(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -827,7 +829,7 @@ Client.cond_set_add(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.set_remove(spacename, key, attributes)
+set_remove(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -851,7 +853,7 @@ Client.set_remove(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_set_remove(spacename, key, predicates, attributes)
+cond_set_remove(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -877,7 +879,7 @@ Client.cond_set_remove(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.set_intersect(spacename, key, attributes)
+set_intersect(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -901,7 +903,8 @@ Client.set_intersect(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_set_intersect(spacename, key, predicates, attributes)
+cond_set_intersect(
+        spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -927,7 +930,7 @@ Client.cond_set_intersect(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.set_union(spacename, key, attributes)
+set_union(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -951,7 +954,7 @@ Client.set_union(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_set_union(spacename, key, predicates, attributes)
+cond_set_union(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -977,7 +980,7 @@ Client.cond_set_union(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_add(spacename, key, mapattributes)
+map_add(spacename, key, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1001,7 +1004,7 @@ Client.map_add(spacename, key, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_add(spacename, key, predicates, mapattributes)
+cond_map_add(spacename, key, predicates, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1027,7 +1030,7 @@ Client.cond_map_add(spacename, key, predicates, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_remove(spacename, key, attributes)
+map_remove(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1051,7 +1054,7 @@ Client.map_remove(spacename, key, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_remove(spacename, key, predicates, attributes)
+cond_map_remove(spacename, key, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1077,7 +1080,7 @@ Client.cond_map_remove(spacename, key, predicates, attributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_atomic_add(spacename, key, mapattributes)
+map_atomic_add(spacename, key, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1101,7 +1104,8 @@ Client.map_atomic_add(spacename, key, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_atomic_add(spacename, key, predicates, mapattributes)
+cond_map_atomic_add(
+        spacename, key, predicates, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1127,7 +1131,7 @@ Client.cond_map_atomic_add(spacename, key, predicates, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_atomic_sub(spacename, key, mapattributes)
+map_atomic_sub(spacename, key, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1151,7 +1155,8 @@ Client.map_atomic_sub(spacename, key, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_atomic_sub(spacename, key, predicates, mapattributes)
+cond_map_atomic_sub(
+        spacename, key, predicates, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1177,7 +1182,7 @@ Client.cond_map_atomic_sub(spacename, key, predicates, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_atomic_mul(spacename, key, mapattributes)
+map_atomic_mul(spacename, key, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1201,7 +1206,8 @@ Client.map_atomic_mul(spacename, key, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_atomic_mul(spacename, key, predicates, mapattributes)
+cond_map_atomic_mul(
+        spacename, key, predicates, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1227,7 +1233,7 @@ Client.cond_map_atomic_mul(spacename, key, predicates, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_atomic_div(spacename, key, mapattributes)
+map_atomic_div(spacename, key, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1251,7 +1257,8 @@ Client.map_atomic_div(spacename, key, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_atomic_div(spacename, key, predicates, mapattributes)
+cond_map_atomic_div(
+        spacename, key, predicates, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1277,7 +1284,7 @@ Client.cond_map_atomic_div(spacename, key, predicates, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_atomic_mod(spacename, key, mapattributes)
+map_atomic_mod(spacename, key, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1301,7 +1308,8 @@ Client.map_atomic_mod(spacename, key, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_atomic_mod(spacename, key, predicates, mapattributes)
+cond_map_atomic_mod(
+        spacename, key, predicates, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1327,7 +1335,7 @@ Client.cond_map_atomic_mod(spacename, key, predicates, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_atomic_and(spacename, key, mapattributes)
+map_atomic_and(spacename, key, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1351,7 +1359,8 @@ Client.map_atomic_and(spacename, key, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_atomic_and(spacename, key, predicates, mapattributes)
+cond_map_atomic_and(
+        spacename, key, predicates, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1377,7 +1386,7 @@ Client.cond_map_atomic_and(spacename, key, predicates, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_atomic_or(spacename, key, mapattributes)
+map_atomic_or(spacename, key, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1401,7 +1410,8 @@ Client.map_atomic_or(spacename, key, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_atomic_or(spacename, key, predicates, mapattributes)
+cond_map_atomic_or(
+        spacename, key, predicates, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1427,7 +1437,7 @@ Client.cond_map_atomic_or(spacename, key, predicates, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_atomic_xor(spacename, key, mapattributes)
+map_atomic_xor(spacename, key, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1451,7 +1461,8 @@ Client.map_atomic_xor(spacename, key, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_atomic_xor(spacename, key, predicates, mapattributes)
+cond_map_atomic_xor(
+        spacename, key, predicates, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1477,7 +1488,7 @@ Client.cond_map_atomic_xor(spacename, key, predicates, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_string_prepend(spacename, key, mapattributes)
+map_string_prepend(spacename, key, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1501,7 +1512,8 @@ Client.map_string_prepend(spacename, key, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_string_prepend(spacename, key, predicates, mapattributes)
+cond_map_string_prepend(
+        spacename, key, predicates, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1527,7 +1539,7 @@ Client.cond_map_string_prepend(spacename, key, predicates, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.map_string_append(spacename, key, mapattributes)
+map_string_append(spacename, key, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1551,7 +1563,8 @@ Client.map_string_append(spacename, key, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.cond_map_string_append(spacename, key, predicates, mapattributes)
+cond_map_string_append(
+        spacename, key, predicates, mapattributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1577,7 +1590,7 @@ Client.cond_map_string_append(spacename, key, predicates, mapattributes)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.search(spacename, predicates)
+search(spacename, predicates, function (obj, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1599,7 +1612,7 @@ Client.search(spacename, predicates)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.search_describe(spacename, predicates)
+search_describe(spacename, predicates, function (desc, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1621,7 +1634,7 @@ Client.search_describe(spacename, predicates)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.sorted_search(spacename, predicates, sortby, limit, maxmin)
+sorted_search(spacename, predicates, sortby, limit, maxmin, function (obj, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1649,7 +1662,7 @@ Client.sorted_search(spacename, predicates, sortby, limit, maxmin)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.group_del(spacename, predicates)
+group_del(spacename, predicates, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1671,7 +1684,7 @@ Client.group_del(spacename, predicates)
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-Client.count(spacename, predicates)
+count(spacename, predicates, function (count, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]

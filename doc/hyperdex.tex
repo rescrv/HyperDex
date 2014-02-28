@@ -88,6 +88,7 @@
 %XXX \input{\topdir/api/python}
 \input{\topdir/api/ruby}
 
+\ifx \HCode\Undef
 \backmatter
 
 % Index
@@ -100,5 +101,6 @@
 \addcontentsline{toc}{chapter}{References}
 \bibliographystyle{plain}
 \bibliography{hyperdex}
+\fi
 
 \end{document}
