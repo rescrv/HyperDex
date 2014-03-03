@@ -211,6 +211,7 @@ hyperdex_daemon_SOURCES += common/attribute_check.cc
 hyperdex_daemon_SOURCES += common/configuration.cc
 hyperdex_daemon_SOURCES += common/coordinator_link.cc
 hyperdex_daemon_SOURCES += common/coordinator_returncode.cc
+hyperdex_daemon_SOURCES += common/datatype_document.cc
 hyperdex_daemon_SOURCES += common/datatype_float.cc
 hyperdex_daemon_SOURCES += common/datatype_int64.cc
 hyperdex_daemon_SOURCES += common/datatype_list.cc
@@ -267,6 +268,7 @@ hyperdex_daemon_LDADD += $(E_LIBS)
 hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(REPLICANT_LIBS)
+hyperdex_daemon_LDADD += -ljson
 hyperdex_daemon_LDADD += -lpopt -lglog -lpthread
 man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-daemon$(EXEEXT)
@@ -366,6 +368,7 @@ libhyperdex_client_la_SOURCES += common/attribute.cc
 libhyperdex_client_la_SOURCES += common/attribute_check.cc
 libhyperdex_client_la_SOURCES += common/configuration.cc
 libhyperdex_client_la_SOURCES += common/coordinator_link.cc
+libhyperdex_client_la_SOURCES += common/datatype_document.cc
 libhyperdex_client_la_SOURCES += common/datatype_float.cc
 libhyperdex_client_la_SOURCES += common/datatype_int64.cc
 libhyperdex_client_la_SOURCES += common/datatype_list.cc
@@ -407,6 +410,7 @@ libhyperdex_client_la_LIBADD =
 libhyperdex_client_la_LIBADD += $(E_LIBS)
 libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(REPLICANT_LIBS)
+libhyperdex_client_la_LIBADD += -ljson
 
 client/keyop_info.cc: client/keyop_info.gperf client/keyop_info.h
 	$(gperf_verbose)gperf -m 100 $(abs_top_srcdir)/client/keyop_info.gperf --output-file=$(abs_top_builddir)/client/keyop_info.cc
@@ -452,6 +456,7 @@ libhyperdex_admin_la_SOURCES =
 libhyperdex_admin_la_SOURCES += common/attribute.cc
 libhyperdex_admin_la_SOURCES += common/configuration.cc
 libhyperdex_admin_la_SOURCES += common/coordinator_link.cc
+libhyperdex_admin_la_SOURCES += common/datatype_document.cc
 libhyperdex_admin_la_SOURCES += common/datatype_float.cc
 libhyperdex_admin_la_SOURCES += common/datatype_int64.cc
 libhyperdex_admin_la_SOURCES += common/datatype_list.cc
@@ -495,6 +500,7 @@ libhyperdex_admin_la_LIBADD =
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
 libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
+libhyperdex_admin_la_LIBADD += -ljson
 
 ################################################################################
 ################################### Bindings ###################################

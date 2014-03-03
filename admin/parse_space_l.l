@@ -107,6 +107,7 @@ struct hyperdex_admin_space_keyword hyperdex_admin_space_keywords[] = {
     {INT64, "int"},
     {INT64, "int64"},
     {FLOAT, "float"},
+    {DOCUMENT, "document"},
     {LIST, "list"},
     {SET, "set"},
     {MAP, "map"},

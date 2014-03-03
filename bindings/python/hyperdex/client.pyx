@@ -52,6 +52,7 @@ cdef extern from "hyperdex.h":
         HYPERDATATYPE_STRING             = 9217
         HYPERDATATYPE_INT64              = 9218
         HYPERDATATYPE_FLOAT              = 9219
+        HYPERDATATYPE_DOCUMENT           = 9223
         HYPERDATATYPE_LIST_GENERIC       = 9280
         HYPERDATATYPE_LIST_STRING        = 9281
         HYPERDATATYPE_LIST_INT64         = 9282
@@ -456,6 +457,7 @@ cdef hyperdex_python_client_convert_type(hyperdex_ds_arena* arena, x,
                                          char** value,
                                          size_t* value_sz,
                                          hyperdatatype* datatype):
+    cdef hyperdatatype _datatype
     if isinstance(x, bytes):
         return hyperdex_python_client_convert_string(arena, x, value, value_sz, datatype)
     elif isinstance(x, long):
@@ -470,6 +472,9 @@ cdef hyperdex_python_client_convert_type(hyperdex_ds_arena* arena, x,
         return hyperdex_python_client_convert_set(arena, x, value, value_sz, datatype)
     elif isinstance(x, dict):
         return hyperdex_python_client_convert_map(arena, x, value, value_sz, datatype)
+    elif isinstance(x, Document):
+        datatype[0] = HYPERDATATYPE_DOCUMENT
+        return hyperdex_python_client_convert_string(arena, x.doc(), value, value_sz, &_datatype)
     else:
         raise TypeError("Cannot convert object to a HyperDex type")
 
@@ -759,6 +764,8 @@ cdef hyperdex_python_client_build_attributes(hyperdex_client_attribute* attrs, s
             val = hyperdex_python_client_build_int(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_FLOAT:
             val = hyperdex_python_client_build_float(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_DOCUMENT:
+            val = Document(hyperdex_python_client_build_string(attrs[i].value, attrs[i].value_sz))
         elif attrs[i].datatype == HYPERDATATYPE_LIST_STRING:
             val = hyperdex_python_client_build_list_string(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_LIST_INT64:
@@ -844,6 +851,23 @@ cdef hyperdex_python_client_iterator_encode_status_attributes(Iterator it):
         return False
     else:
         raise HyperDexClientException(it.status, hyperdex_client_error_message(it.client.client))
+
+
+cdef class Document:
+
+    cdef bytes _doc
+
+    def __init__(self, bytes doc):
+        self._doc = doc
+
+    def doc(self):
+        return self._doc
+
+    def __str__(self):
+        return 'Document(%s)' % self._doc
+
+    def __repr__(self):
+        return 'Document(%r)' % self._doc
 
 
 cdef class Predicate:
