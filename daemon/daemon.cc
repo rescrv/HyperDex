@@ -226,7 +226,9 @@ daemon :: run(bool daemonize,
         return EXIT_FAILURE;
     }
 
-    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
+    sigdelset(&ss, SIGPROF);
+
+    if (pthread_sigmask(SIG_SETMASK, &ss, NULL) < 0)
     {
         PLOG(ERROR) << "could not block signals";
         return EXIT_FAILURE;
