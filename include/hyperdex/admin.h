@@ -1,4 +1,4 @@
-/* Copyright (c) 2013, Cornell University
+/* Copyright (c) 2013-2014, Cornell University
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -15,15 +15,14 @@
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef hyperdex_admin_h_
@@ -55,25 +54,25 @@ struct hyperdex_admin_perf_counter
 /* hyperdex_admin_returncode occupies [8704, 8832) */
 enum hyperdex_admin_returncode
 {
-    HYPERDEX_ADMIN_SUCCESS      = 8704,
+    HYPERDEX_ADMIN_SUCCESS     = 8704,
 
     /* Error conditions */
-    HYPERDEX_ADMIN_NOMEM        = 8768,
-    HYPERDEX_ADMIN_NONEPENDING  = 8769,
-    HYPERDEX_ADMIN_POLLFAILED   = 8770,
-    HYPERDEX_ADMIN_TIMEOUT      = 8771,
-    HYPERDEX_ADMIN_INTERRUPTED  = 8772,
-    HYPERDEX_ADMIN_SERVERERROR  = 8773,
-    HYPERDEX_ADMIN_COORDFAIL    = 8774,
-    HYPERDEX_ADMIN_BADSPACE     = 8775,
-    HYPERDEX_ADMIN_DUPLICATE    = 8776,
-    HYPERDEX_ADMIN_NOTFOUND     = 8777,
-    HYPERDEX_ADMIN_LOCALERROR   = 8778,
+    HYPERDEX_ADMIN_NOMEM       = 8768,
+    HYPERDEX_ADMIN_NONEPENDING = 8769,
+    HYPERDEX_ADMIN_POLLFAILED  = 8770,
+    HYPERDEX_ADMIN_TIMEOUT     = 8771,
+    HYPERDEX_ADMIN_INTERRUPTED = 8772,
+    HYPERDEX_ADMIN_SERVERERROR = 8773,
+    HYPERDEX_ADMIN_COORDFAIL   = 8774,
+    HYPERDEX_ADMIN_BADSPACE    = 8775,
+    HYPERDEX_ADMIN_DUPLICATE   = 8776,
+    HYPERDEX_ADMIN_NOTFOUND    = 8777,
+    HYPERDEX_ADMIN_LOCALERROR  = 8778,
 
     /* This should never happen.  It indicates a bug */
-    HYPERDEX_ADMIN_INTERNAL     = 8829,
-    HYPERDEX_ADMIN_EXCEPTION    = 8830,
-    HYPERDEX_ADMIN_GARBAGE      = 8831
+    HYPERDEX_ADMIN_INTERNAL    = 8829,
+    HYPERDEX_ADMIN_EXCEPTION   = 8830,
+    HYPERDEX_ADMIN_GARBAGE     = 8831
 };
 
 struct hyperdex_admin*
@@ -86,9 +85,9 @@ int64_t
 hyperdex_admin_dump_config(struct hyperdex_admin* admin,
                            enum hyperdex_admin_returncode* status,
                            const char** config);
-
 int64_t
-hyperdex_admin_read_only(struct hyperdex_admin* admin, int ro,
+hyperdex_admin_read_only(struct hyperdex_admin* admin,
+                         int ro,
                          enum hyperdex_admin_returncode* status);
 
 int64_t
@@ -96,8 +95,10 @@ hyperdex_admin_wait_until_stable(struct hyperdex_admin* admin,
                                  enum hyperdex_admin_returncode* status);
 
 int64_t
-hyperdex_admin_fault_tolerance(struct hyperdex_admin* admin, const char* space,
-                               uint64_t ft, enum hyperdex_admin_returncode* status);
+hyperdex_admin_fault_tolerance(struct hyperdex_admin* admin,
+                               const char* space,
+                               uint64_t ft,
+                               enum hyperdex_admin_returncode* status);
 
 int
 hyperdex_admin_validate_space(struct hyperdex_admin* admin,
@@ -111,7 +112,7 @@ hyperdex_admin_add_space(struct hyperdex_admin* admin,
 
 int64_t
 hyperdex_admin_rm_space(struct hyperdex_admin* admin,
-                        const char* name,
+                        const char* space,
                         enum hyperdex_admin_returncode* status);
 
 int64_t
@@ -121,7 +122,8 @@ hyperdex_admin_list_spaces(struct hyperdex_admin* admin,
 
 int64_t
 hyperdex_admin_server_register(struct hyperdex_admin* admin,
-                               uint64_t token, const char* address,
+                               uint64_t token,
+                               const char* address,
                                enum hyperdex_admin_returncode* status);
 
 int64_t
@@ -146,7 +148,7 @@ hyperdex_admin_server_kill(struct hyperdex_admin* admin,
 
 int64_t
 hyperdex_admin_backup(struct hyperdex_admin* admin,
-                      const char* name,
+                      const char* backup,
                       enum hyperdex_admin_returncode* status,
                       const char** backups);
 

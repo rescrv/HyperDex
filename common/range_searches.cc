@@ -59,6 +59,7 @@ range_search(const attribute_check& check, range* r)
             r->has_end = true;
             r->invalid = false;
             return true;
+        case HYPERPREDICATE_LESS_THAN:
         case HYPERPREDICATE_LESS_EQUAL:
             r->attr = check.attr;
             r->type = check.datatype;
@@ -68,6 +69,7 @@ range_search(const attribute_check& check, range* r)
             r->invalid = false;
             return true;
         case HYPERPREDICATE_GREATER_EQUAL:
+        case HYPERPREDICATE_GREATER_THAN:
             r->attr = check.attr;
             r->type = check.datatype;
             r->start = check.value;

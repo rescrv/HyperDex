@@ -31,10 +31,12 @@
 
 /* Ruby */
 #include <ruby.h>
+#include <intern.h>
+#include <st.h>
 
 /* HyperDex */
-#include <hyperdex/client.h>
-#include <hyperdex/datastructures.h>
+#include "hyperdex/client.h"
+#include "hyperdex/datastructures.h"
 
 extern VALUE mod_hyperdex;
 static VALUE mod_hyperdex_client;
@@ -47,6 +49,8 @@ static VALUE class_predicate;
 static VALUE class_equals;
 static VALUE class_lessequal;
 static VALUE class_greaterequal;
+static VALUE class_lessthan;
+static VALUE class_greaterthan;
 static VALUE class_range;
 static VALUE class_regex;
 static VALUE class_lengthequals;
@@ -1556,6 +1560,26 @@ hyperdex_ruby_client_predicate_greaterequal_init(VALUE self, VALUE v)
 }
 
 static VALUE
+hyperdex_ruby_client_predicate_lessthan_init(VALUE self, VALUE v)
+{
+    struct hyperdex_ruby_client_predicate* pred = NULL;
+    Data_Get_Struct(self, struct hyperdex_ruby_client_predicate, pred);
+    pred->checks[0].v = v;
+    pred->checks[0].predicate = HYPERPREDICATE_LESS_THAN;
+    return self;
+}
+
+static VALUE
+hyperdex_ruby_client_predicate_greaterthan_init(VALUE self, VALUE v)
+{
+    struct hyperdex_ruby_client_predicate* pred = NULL;
+    Data_Get_Struct(self, struct hyperdex_ruby_client_predicate, pred);
+    pred->checks[0].v = v;
+    pred->checks[0].predicate = HYPERPREDICATE_GREATER_THAN;
+    return self;
+}
+
+static VALUE
 hyperdex_ruby_client_predicate_range_init(VALUE self, VALUE lower, VALUE upper)
 {
     struct hyperdex_ruby_client_predicate* pred = NULL;
@@ -1676,6 +1700,16 @@ Init_hyperdex_client()
     class_greaterequal = rb_define_class_under(mod_hyperdex_client, "GreaterEqual", class_predicate);
     rb_define_alloc_func(class_greaterequal , hyperdex_ruby_client_predicate_alloc1);
     rb_define_method(class_greaterequal , "initialize", hyperdex_ruby_client_predicate_greaterequal_init, 1);
+
+    /* create the LessThan class */
+    class_lessthan = rb_define_class_under(mod_hyperdex_client, "LessThan", class_predicate);
+    rb_define_alloc_func(class_lessthan , hyperdex_ruby_client_predicate_alloc1);
+    rb_define_method(class_lessthan , "initialize", hyperdex_ruby_client_predicate_lessthan_init, 1);
+
+    /* create the GreaterThan class */
+    class_greaterthan = rb_define_class_under(mod_hyperdex_client, "GreaterThan", class_predicate);
+    rb_define_alloc_func(class_greaterthan , hyperdex_ruby_client_predicate_alloc1);
+    rb_define_method(class_greaterthan , "initialize", hyperdex_ruby_client_predicate_greaterthan_init, 1);
 
     /* create the Range class */
     class_range = rb_define_class_under(mod_hyperdex_client, "Range", class_predicate);

@@ -28,9 +28,6 @@
 #ifndef hyperdex_daemon_replication_manager_key_state_h_
 #define hyperdex_daemon_replication_manager_key_state_h_
 
-// STL
-#include <tr1/memory>
-
 // HyperDex
 #include "daemon/datalayer.h"
 #include "daemon/replication_manager.h"

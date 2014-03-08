@@ -30,10 +30,12 @@
 
 // STL
 #include <map>
-#include <tr1/memory>
 
 // po6
 #include <po6/net/location.h>
+
+// e
+#include <e/compat.h>
 
 // Replicant
 #include <replicant_state_machine.h>
@@ -135,7 +137,7 @@ class coordinator
                       const char** data, size_t* data_sz);
 
     private:
-        typedef std::tr1::shared_ptr<space> space_ptr;
+        typedef e::compat::shared_ptr<space> space_ptr;
         typedef std::map<std::string, space_ptr > space_map_t;
 
     // utilities

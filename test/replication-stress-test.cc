@@ -32,12 +32,12 @@
 
 // STL
 #include <map>
-#include <tr1/memory>
 
 // po6
 #include <po6/error.h>
 
 // e
+#include <e/compat.h>
 #include <e/endian.h>
 #include <e/guard.h>
 #include <e/slice.h>
@@ -54,7 +54,7 @@ const char* _space = "replication";
 static bool _quiet = false;
 static int _testno = 0;
 static hyperdex::Client* _cl = NULL;
-static std::map<int64_t, std::tr1::shared_ptr<hyperdex_client_returncode> > _incompleteops;
+static std::map<int64_t, e::compat::shared_ptr<hyperdex_client_returncode> > _incompleteops;
 
 static void
 wipe();
@@ -173,7 +173,7 @@ put(uint64_t A, uint64_t B, uint64_t C)
     attrs[1].value = buf + 2 * sizeof(uint64_t);
     attrs[1].value_sz = sizeof(uint64_t);
     attrs[1].datatype = HYPERDATATYPE_INT64;
-    std::tr1::shared_ptr<hyperdex_client_returncode> status(new hyperdex_client_returncode());
+    e::compat::shared_ptr<hyperdex_client_returncode> status(new hyperdex_client_returncode());
     int64_t id = _cl->put(_space, buf, sizeof(uint64_t), attrs, 2, status.get());
 
     if (id < 0)
@@ -181,7 +181,7 @@ put(uint64_t A, uint64_t B, uint64_t C)
         FAIL("put encountered error " << *status);
     }
 
-    std::pair<std::map<int64_t, std::tr1::shared_ptr<hyperdex_client_returncode> >::iterator, bool> res;
+    std::pair<std::map<int64_t, e::compat::shared_ptr<hyperdex_client_returncode> >::iterator, bool> res;
     res = _incompleteops.insert(std::make_pair(id, status));
 
     if (res.second != true)
@@ -195,7 +195,7 @@ del(uint64_t A)
 {
     char buf[sizeof(uint64_t)];
     e::pack64le(A, buf);
-    std::tr1::shared_ptr<hyperdex_client_returncode> status(new hyperdex_client_returncode());
+    e::compat::shared_ptr<hyperdex_client_returncode> status(new hyperdex_client_returncode());
     int64_t id = _cl->del(_space, buf, sizeof(uint64_t), status.get());
 
     if (id < 0)
@@ -203,7 +203,7 @@ del(uint64_t A)
         FAIL("del encountered error " << status);
     }
 
-    std::pair<std::map<int64_t, std::tr1::shared_ptr<hyperdex_client_returncode> >::iterator, bool> res;
+    std::pair<std::map<int64_t, e::compat::shared_ptr<hyperdex_client_returncode> >::iterator, bool> res;
     res = _incompleteops.insert(std::make_pair(id, status));
 
     if (res.second != true)
@@ -226,7 +226,7 @@ flush()
         }
         else
         {
-            std::map<int64_t, std::tr1::shared_ptr<hyperdex_client_returncode> >::iterator incomplete;
+            std::map<int64_t, e::compat::shared_ptr<hyperdex_client_returncode> >::iterator incomplete;
             incomplete = _incompleteops.find(id);
 
             if (incomplete == _incompleteops.end())

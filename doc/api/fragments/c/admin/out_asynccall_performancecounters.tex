@@ -1,0 +1,10 @@
+A struct where the admin library can store returned performance counters.
+Memory regions returned via the struct will be valid until the next call into
+the admin library and are managed by the library.  They should not be freed by
+the user.
+
+Only one performance counter may be enabled at a time.  Consecutive calls to
+\code{enable\_perf\_counters} will return the same ID as the previous call, and
+will return performance counters via the previously-used struct.  To change the
+structure used for returning performance counters, first disable the performance
+counters and then re-enable them.

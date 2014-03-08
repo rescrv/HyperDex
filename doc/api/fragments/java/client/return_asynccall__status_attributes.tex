@@ -1,0 +1,12 @@
+This function returns an object indicating the success or failure of the
+operation.  Valid values to be returned are:
+
+\begin{itemize}[noitemsep]
+\item The returned object, represented as a map from attributes' names to Java
+    objects.
+\item \code{False} if any provided predicates failed.
+\item \code{null} if the operation requires an existing value and none exists
+\end{itemize}
+
+On error, this function will raise a \code{HyperDexClientException} describing
+the error.

@@ -1,0 +1,4 @@
+A list of servers that were backed up.  The list is a C-string with lines of the
+form \code{"<token> <IP address> <path>"}.  The C-string is valid until the next
+call into the admin library, and will automatically be freed by the library.  It
+should not be changed or freed by the library user.

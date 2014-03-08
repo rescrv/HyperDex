@@ -33,7 +33,6 @@
 #include <set>
 #include <sstream>
 #include <string>
-#include <tr1/memory>
 #include <vector>
 
 // LevelDB

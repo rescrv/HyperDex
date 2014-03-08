@@ -224,7 +224,7 @@ pending_sorted_search :: handle_message(client* cl,
     }
 
     sorted_search_comparator ssc(m_maximize, m_sort_by_idx, m_sort_by_di);
-    std::tr1::shared_ptr<e::buffer> backing(msg.release());
+    e::compat::shared_ptr<e::buffer> backing(msg.release());
 
     for (uint64_t i = 0; i < num_results; ++i)
     {
@@ -266,7 +266,7 @@ pending_sorted_search :: handle_message(client* cl,
 
 pending_sorted_search :: item :: item(const e::slice& _key,
                                       const std::vector<e::slice>& _value,
-                                      std::tr1::shared_ptr<e::buffer> _backing)
+                                      e::compat::shared_ptr<e::buffer> _backing)
     : key(_key)
     , value(_value)
     , backing(_backing)

@@ -80,6 +80,7 @@ yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, const char* ms
 %token STRING
 %token INT64
 %token FLOAT
+%token DOCUMENT
 %token LIST
 %token SET
 %token MAP
@@ -147,6 +148,7 @@ option : TOLERATE NUMBER FAILURES { hyperspace_set_fault_tolerance(space, $2); }
 type : STRING                        { $$ = HYPERDATATYPE_STRING; }
      | INT64                         { $$ = HYPERDATATYPE_INT64; }
      | FLOAT                         { $$ = HYPERDATATYPE_FLOAT; }
+     | DOCUMENT                      { $$ = HYPERDATATYPE_DOCUMENT; }
      | LIST '(' STRING ')'           { $$ = HYPERDATATYPE_LIST_STRING; }
      | LIST '(' INT64 ')'            { $$ = HYPERDATATYPE_LIST_INT64; }
      | LIST '(' FLOAT ')'            { $$ = HYPERDATATYPE_LIST_FLOAT; }

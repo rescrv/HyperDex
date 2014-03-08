@@ -1,0 +1,4 @@
+The status of the operation.  The client library will fill in this variable
+before returning this operation's request id from \code{hyperdex\_client\_loop}.
+The pointer must remain valid until the operation completes, and the pointer
+should not be aliased to the status for any other outstanding operation.

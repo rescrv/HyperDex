@@ -79,8 +79,7 @@ install:
 | tarball="http://hyperdex.org/src/test-hyperdex-{version}.tar.gz"
 | configure=""
 | summary="Check a HyperDex install"
-| debian build-requires="python, hyperdex-daemon, hyperdex-coordinator, python-hyperdex-client, java-hyperdex-client"
-| fedora build-requires="python hyperdex-daemon hyperdex-coordinator python-hyperdex-client java-hyperdex-client"
+| build-requires="python, hyperdex-daemon, hyperdex-coordinator, python-hyperdex-client, java-hyperdex-client, ruby-hyperdex"
 | requires=""
 + {bindir}/test-hyperdex
 '''{{summary}}'''

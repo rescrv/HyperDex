@@ -30,6 +30,7 @@
 
 // HyperDex
 #include "common/datatypes.h"
+#include "common/datatype_document.h"
 #include "common/datatype_float.h"
 #include "common/datatype_int64.h"
 #include "common/datatype_list.h"
@@ -42,6 +43,7 @@ using hyperdex::datatype_info;
 static hyperdex::datatype_string d_string;
 static hyperdex::datatype_int64 d_int64;
 static hyperdex::datatype_float d_float;
+static hyperdex::datatype_document d_document;
 static hyperdex::datatype_list d_list_string(&d_string);
 static hyperdex::datatype_list d_list_int64(&d_int64);
 static hyperdex::datatype_list d_list_float(&d_float);
@@ -69,6 +71,8 @@ datatype_info :: lookup(hyperdatatype datatype)
             return &d_int64;
         case HYPERDATATYPE_FLOAT:
             return &d_float;
+        case HYPERDATATYPE_DOCUMENT:
+            return &d_document;
         case HYPERDATATYPE_LIST_STRING:
             return &d_list_string;
         case HYPERDATATYPE_LIST_INT64:

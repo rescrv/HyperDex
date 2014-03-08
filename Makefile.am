@@ -55,6 +55,7 @@ bin_PROGRAMS =
 noinst_PROGRAMS =
 check_PROGRAMS =
 
+hyperdexexec_SCRIPTS =
 hyperdexexec_PROGRAMS =
 hyperdexexec_LTLIBRARIES =
 
@@ -210,6 +211,7 @@ hyperdex_daemon_SOURCES += common/attribute_check.cc
 hyperdex_daemon_SOURCES += common/configuration.cc
 hyperdex_daemon_SOURCES += common/coordinator_link.cc
 hyperdex_daemon_SOURCES += common/coordinator_returncode.cc
+hyperdex_daemon_SOURCES += common/datatype_document.cc
 hyperdex_daemon_SOURCES += common/datatype_float.cc
 hyperdex_daemon_SOURCES += common/datatype_int64.cc
 hyperdex_daemon_SOURCES += common/datatype_list.cc
@@ -266,6 +268,7 @@ hyperdex_daemon_LDADD += $(E_LIBS)
 hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(REPLICANT_LIBS)
+hyperdex_daemon_LDADD += -ljson
 hyperdex_daemon_LDADD += -lpopt -lglog -lpthread
 man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-daemon$(EXEEXT)
@@ -365,6 +368,7 @@ libhyperdex_client_la_SOURCES += common/attribute.cc
 libhyperdex_client_la_SOURCES += common/attribute_check.cc
 libhyperdex_client_la_SOURCES += common/configuration.cc
 libhyperdex_client_la_SOURCES += common/coordinator_link.cc
+libhyperdex_client_la_SOURCES += common/datatype_document.cc
 libhyperdex_client_la_SOURCES += common/datatype_float.cc
 libhyperdex_client_la_SOURCES += common/datatype_int64.cc
 libhyperdex_client_la_SOURCES += common/datatype_list.cc
@@ -406,6 +410,7 @@ libhyperdex_client_la_LIBADD =
 libhyperdex_client_la_LIBADD += $(E_LIBS)
 libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(REPLICANT_LIBS)
+libhyperdex_client_la_LIBADD += -ljson
 
 client/keyop_info.cc: client/keyop_info.gperf client/keyop_info.h
 	$(gperf_verbose)gperf -m 100 $(abs_top_srcdir)/client/keyop_info.gperf --output-file=$(abs_top_builddir)/client/keyop_info.cc
@@ -451,6 +456,7 @@ libhyperdex_admin_la_SOURCES =
 libhyperdex_admin_la_SOURCES += common/attribute.cc
 libhyperdex_admin_la_SOURCES += common/configuration.cc
 libhyperdex_admin_la_SOURCES += common/coordinator_link.cc
+libhyperdex_admin_la_SOURCES += common/datatype_document.cc
 libhyperdex_admin_la_SOURCES += common/datatype_float.cc
 libhyperdex_admin_la_SOURCES += common/datatype_int64.cc
 libhyperdex_admin_la_SOURCES += common/datatype_list.cc
@@ -494,6 +500,7 @@ libhyperdex_admin_la_LIBADD =
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
 libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
+libhyperdex_admin_la_LIBADD += -ljson
 
 ################################################################################
 ################################### Bindings ###################################
@@ -508,9 +515,7 @@ if ENABLE_ADMIN
 noinst_PROGRAMS += bindings/c/admin_testcompile
 endif
 
-EXTRA_DIST += bindings/c/gen_client_header.py
-EXTRA_DIST += bindings/c/gen_doc.py
-EXTRA_DIST += bindings/c/gen_wrappers.py
+EXTRA_DIST += bindings/c.py
 
 bindings_c_client_testcompile_SOURCES = bindings/c/client-testcompile.c
 bindings_c_client_testcompile_LDADD = libhyperdex-client.la
@@ -564,17 +569,20 @@ CLEANFILES += $(hyperdex_ycsb_jarfile)
 CLEANFILES += bindings/java/org/hyperdex/client/*.class
 CLEANFILES += test/java/*.class
 
-EXTRA_DIST += bindings/java/gen_java.py
+EXTRA_DIST += bindings/java.py
 EXTRA_DIST += bindings/java/org/hyperdex/client/ByteString.java
+EXTRA_DIST += bindings/java/org_hyperdex_client_Client.definitions.c
 EXTRA_DIST += bindings/java/org/hyperdex/client/Client.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Deferred.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/GreaterEqual.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/GreaterThan.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/HyperDexClientException.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Iterator.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LengthEquals.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LengthGreaterEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LengthLessEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LessEqual.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/LessThan.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Operation.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Predicate.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Range.java
@@ -586,15 +594,15 @@ EXTRA_DIST += test/java/.exists
 noinst_HEADERS += bindings/java/org_hyperdex_client_Client.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Deferred.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_GreaterEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_GreaterThan.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Iterator.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_LengthEquals.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_LengthGreaterEqual.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_LengthLessEqual.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_LessEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_LessThan.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Range.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Regex.h
-
-EXTRA_DIST += bindings/java/org_hyperdex_client_Client.definitions.c
 
 libhyperdex_client_java_la_SOURCES =
 libhyperdex_client_java_la_SOURCES += bindings/java/org_hyperdex_client_Client.c
@@ -617,6 +625,15 @@ $(hyperdex_ycsb_jarfile): ${JAVA_SRC_PKG}/ycsb/HyperDex.java $(hyperdex_client_j
 	javac -cp $(abs_top_builddir)/$(hyperdex_client_jarfile):$(CLASSPATH) -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/ycsb/*.java
 	cd ${JAVA_BUILD_BASE} && $(JAR) cvf $(JARFLAGS) ${abs_top_builddir}/${hyperdex_ycsb_jarfile} org/hyperdex/ycsb/*.class
 
+#################################### node.js ###################################
+
+EXTRA_DIST += bindings/nodejs.py
+EXTRA_DIST += bindings/node.js/binding.gyp
+EXTRA_DIST += bindings/node.js/client.cc
+EXTRA_DIST += bindings/node.js/client.declarations.cc
+EXTRA_DIST += bindings/node.js/client.definitions.cc
+EXTRA_DIST += bindings/node.js/client.prototypes.cc
+
 #################################### Python ####################################
 
 if ENABLE_PYTHON_BINDINGS
@@ -633,7 +650,7 @@ CLEANFILES += bindings/python/hyperdex/admin.so
 CLEANFILES += bindings/python/hyperdex/client.so
 CLEANFILES += bindings/python/hyperdex/*.pyc
 
-EXTRA_DIST += bindings/python/gen_python.py
+EXTRA_DIST += bindings/python.py
 EXTRA_DIST += bindings/python/hyperdex/__init__.py
 EXTRA_DIST += bindings/python/hyperdex/client.pyx.in
 
@@ -683,22 +700,20 @@ if ENABLE_RUBY_BINDINGS
 rubyexec_LTLIBRARIES += bindings/ruby/hyperdex.la
 endif
 
-EXTRA_DIST += bindings/ruby/gen_doc.py
-EXTRA_DIST += bindings/ruby/gen_ruby.py
+EXTRA_DIST += bindings/ruby.py
 EXTRA_DIST += bindings/ruby/definitions.c
 EXTRA_DIST += bindings/ruby/prototypes.c
 
 bindings_ruby_hyperdex_la_SOURCES = bindings/ruby/hyperdex.c
 bindings_ruby_hyperdex_la_CPPFLAGS =
 bindings_ruby_hyperdex_la_CPPFLAGS += -I$(RUBY_EXT_INC)
+bindings_ruby_hyperdex_la_CPPFLAGS += -I$(RUBY_EXT_INC)/ruby
 bindings_ruby_hyperdex_la_CPPFLAGS += -I$(RUBY_EXT_ARCHINC)
-bindings_ruby_hyperdex_la_CPPFLAGS += -I$(RUBY_EXT_CPPFLAGS)
+bindings_ruby_hyperdex_la_CPPFLAGS += -I$(RUBY_EXT_ARCHINC)/ruby
+bindings_ruby_hyperdex_la_CPPFLAGS += $(RUBY_EXT_CPPFLAGS)
 bindings_ruby_hyperdex_la_CPPFLAGS += $(AM_CPPFLAGS)
 bindings_ruby_hyperdex_la_CPPFLAGS += $(CPPFLAGS)
 bindings_ruby_hyperdex_la_CFLAGS =
-bindings_ruby_hyperdex_la_CFLAGS += -I$(RUBY_EXT_INC)
-bindings_ruby_hyperdex_la_CFLAGS += -I$(RUBY_EXT_ARCHINC)
-bindings_ruby_hyperdex_la_CFLAGS += -I$(RUBY_EXT_CPPFLAGS)
 bindings_ruby_hyperdex_la_CFLAGS += $(AM_CFLAGS)
 bindings_ruby_hyperdex_la_CFLAGS += $(CFLAGS)
 bindings_ruby_hyperdex_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS) $(LDFLAGS)
@@ -997,6 +1012,7 @@ hyperdexexec_PROGRAMS += hyperdex-wait-until-stable
 hyperdexexec_PROGRAMS += hyperdex-backup
 hyperdexexec_PROGRAMS += hyperdex-backup-manager
 hyperdexexec_PROGRAMS += hyperdex-raw-backup
+hyperdexexec_SCRIPTS += hyperdex-noc
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
 dist_man_MANS += man/hyperdex-list-spaces.1
@@ -1181,6 +1197,34 @@ man/hyperdex-raw-backup.1: man/hyperdex-raw-backup.1.h2m tools/raw-backup.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-raw-backup$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-raw-backup$(EXEEXT)
 
+# hyperdex-noc
+EXTRA_DIST += hyperdex-noc
+
+################################################################################
+################################# Documentation ################################
+################################################################################
+
+EXTRA_DIST += noc/css/bootstrap.css
+EXTRA_DIST += noc/css/bootstrap.min.css
+EXTRA_DIST += noc/css/bootstrap-responsive.css
+EXTRA_DIST += noc/css/bootstrap-responsive.min.css
+EXTRA_DIST += noc/css/style.css
+EXTRA_DIST += noc/img/glyphicons-halflings.png
+EXTRA_DIST += noc/img/glyphicons-halflings-white.png
+EXTRA_DIST += noc/img/hyperdex.png
+EXTRA_DIST += noc/index.html
+EXTRA_DIST += noc/js/noc.js
+EXTRA_DIST += noc/lib/angular/angular.js
+EXTRA_DIST += noc/lib/angular/angular.min.js
+EXTRA_DIST += noc/lib/angular/angular-resource.js
+EXTRA_DIST += noc/lib/angular/angular-resource.min.js
+EXTRA_DIST += noc/lib/angular/ui-bootstrap.js
+EXTRA_DIST += noc/lib/angular/ui-bootstrap.min.js
+EXTRA_DIST += noc/lib/angular/version.txt
+EXTRA_DIST += noc/partials/default_chart.html
+EXTRA_DIST += noc/partials/edit_chart.html
+EXTRA_DIST += noc/partials/servers.html
+
 ################################################################################
 ################################# Documentation ################################
 ################################################################################
@@ -1213,7 +1257,7 @@ if ENABLE_MAINTAINER_TOOLS
 noinst_PROGRAMS += maint/lib-check
 endif
 
-EXTRA_DIST += bindings/generator.py
+EXTRA_DIST += bindings/__init__.py
 EXTRA_DIST += maint/generate-bindings-tests.py
 EXTRA_DIST += maint/generate-doc-shell-stubs.py
 EXTRA_DIST += maint/generate-replication-shell-stubs.py
@@ -1224,12 +1268,11 @@ maint_lib_check_SOURCES = maint/lib-check.c
 maint_lib_check_LDADD = -ldl
 
 maintainer-generate:
-	python bindings/c/gen_client_header.py
-	python bindings/c/gen_doc.py
-	python bindings/c/gen_wrappers.py
-	python bindings/java/gen_java.py
-	python bindings/ruby/gen_ruby.py
-	python bindings/ruby/gen_doc.py
+	python bindings/c.py
+	python bindings/java.py
+	python bindings/nodejs.py
+	python bindings/python.py
+	python bindings/ruby.py
 	python maint/generate-replication-shell-stubs.py
 	python maint/generate-search-shell-stubs.py
 	python maint/generate-doc-shell-stubs.py

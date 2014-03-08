@@ -1,1 +1,8 @@
-XXX
+Asynchronously delete all objects that match the specified \code{checks}.
+
+\paragraph{Behavior:}
+\begin{itemize}[noitemsep]
+\item This operation is roughly equivalent to a client manually deleting every
+    object returned from a search, but saves HyperDex from sending to the client
+    objects that are soon to be deleted.
+\end{itemize}

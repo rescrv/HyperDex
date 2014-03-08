@@ -30,7 +30,6 @@
 
 // STL
 #include <list>
-#include <tr1/memory>
 
 // po6
 #include <po6/threads/mutex.h>

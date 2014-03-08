@@ -6,6 +6,8 @@ import org.hyperdex.client.HyperDexClientException;
 import org.hyperdex.client.Iterator;
 import org.hyperdex.client.LessEqual;
 import org.hyperdex.client.GreaterEqual;
+import org.hyperdex.client.LessThan;
+import org.hyperdex.client.GreaterThan;
 import org.hyperdex.client.Range;
 import org.hyperdex.client.Regex;
 import org.hyperdex.client.LengthEquals;

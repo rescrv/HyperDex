@@ -28,6 +28,9 @@
 #ifndef hyperdex_client_pending_sorted_search_h_
 #define hyperdex_client_pending_sorted_search_h_
 
+// e
+#include <e/compat.h>
+
 // HyperDex
 #include "namespace.h"
 #include "common/datatypes.h"
@@ -97,7 +100,7 @@ class pending_sorted_search :: item
         item();
         item(const e::slice& key,
              const std::vector<e::slice>& value,
-             std::tr1::shared_ptr<e::buffer> backing);
+             e::compat::shared_ptr<e::buffer> backing);
         item(const item&);
         ~item() throw ();
 
@@ -107,7 +110,7 @@ class pending_sorted_search :: item
     public:
         e::slice key;
         std::vector<e::slice> value;
-        std::tr1::shared_ptr<e::buffer> backing;
+        e::compat::shared_ptr<e::buffer> backing;
 
     public:
         friend class sorted_search_comparator;

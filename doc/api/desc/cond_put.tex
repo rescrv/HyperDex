@@ -1,13 +1,10 @@
-Conditionally write the specified attributes to the object in space "space" under key "key".
+Conditionally store or update an object by key.  Existing values will be
+overwritten with the values specified by \code{attrs}.  Values not specified by
+\code{attrs} will be preserved.
 
-The operation will modify the object if and only if all \texttt{checks} are true
-for the latest version of the object.  This test is atomic with the write.  If
-the object does not exist, the checks will fail.
-
-The attributes specified by \texttt{attrs} will be overwritten with their
-respective values.  Any attributes not specified by \texttt{attrs} will be
-preserved.
-
-\input{\topdir/api/shards/chain-rtt}
-
-\input{\topdir/api/shards/linearizable}
+%%% Generated below here
+\paragraph{Behavior:}
+\begin{itemize}[noitemsep]
+\input{\topdir/api/fragments/fail_if_not_found}
+\input{\topdir/api/fragments/conditional}
+\end{itemize}

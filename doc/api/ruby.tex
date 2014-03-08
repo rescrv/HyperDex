@@ -163,7 +163,6 @@ The HyperDex client recognizes Ruby hashes and automatically converts them to
 HyperDex maps.  For example:
 
 \begin{rubycode}
-require 'set'
 c.put(:kv, "somekey", {:v1 => {"k" => "v"}})
 c.put(:kv, "somekey", {:v2 => {1 => 2}})
 c.put(:kv, "somekey", {:v3 => {3.14 => 0.125}})
@@ -258,21 +257,21 @@ invalid attribute "v": attribute has the wrong type
 \label{sec:api:ruby:ops}
 
 \input{\topdir/api/ruby.client}
+\pagebreak
 
 \subsection{Working with Signals}
 \label{sec:api:ruby:signals}
 
-Your application must mask all signals prior to making any calls into the
-Ruby bindings.  The Ruby bindings will unmask the signals during blocking
-operations and raise a \code{HyperDexClientException} with status
-\code{'HYPERDEX\_CLIENT\_INTERRUPTED'} should any signals be received.
+The HyperDex client library is signal-safe.  Should a signal interrupt the
+client during a blocking operation, it will raise a
+\code{HyperDexClientException} with status \code{HYPERDEX\_CLIENT\_INTERRUPTED}.
 
 \subsection{Working with Threads}
 \label{sec:api:ruby:threads}
 
 The Ruby module is fully reentrant.  Instances of
 \code{HyperDex::Client::Client} and their associated state may be accessed from
-multiple threads, provided that the application employes its own synchronization
+multiple threads, provided that the application employs its own synchronization
 that provides mutual exclusion.
 
 Put simply, a multi-threaded application should protect each \code{Client}

@@ -159,33 +159,31 @@ A HyperDex client is encapsulated within the incomplete \code{struct
 hyperdex\_client} type.  This type is created by the HyperDex client library,
 and should only be freed using the provided method.
 
-\funcsep
 \begin{ccode}
 struct hyperdex_client*
 hyperdex_client_create(const char* coordinator, uint16_t port);
 \end{ccode}
-\funcdesc Create a new client instance.  This call allocates and initializes
+Create a new client instance.  This call allocates and initializes
 local structures.  If allocation or initialization fail, the call will return
 NULL and set \code{errno} appropriately.  This call does not establish the
 connection to the coordinator; that will be established and maintained
 automatically by other calls made with this client instance.
 
-\noindent\textbf{Parameters:}
+\textbf{Parameters:}
 \begin{description}[labelindent=\widthof{{\code{coordinator}}},leftmargin=*,noitemsep,nolistsep,align=right]
 \item[\code{coordinator}] A C-string containing IP address or hostname of the
     coordinator.
 \item[\code{port}] The port number for the coordinator.
 \end{description}
 
-\funcsep
 \begin{ccode}
 void
 hyperdex_client_destroy(struct hyperdex_client* client);
 \end{ccode}
-\funcdesc Destroy a previously instantiated client, and release all associated
+Destroy a previously instantiated client, and release all associated
 resources.  This call always succeeds.
 
-\noindent\textbf{Parameters:}
+\textbf{Parameters:}
 \begin{description}[labelindent=\widthof{{\code{client}}},leftmargin=*,noitemsep,nolistsep,align=right]
 \item[\code{client}] A previously created client instance.
 \end{description}
@@ -574,17 +572,16 @@ via \code{hyperdex\_ds\_arena\_destroy}.
 \begin{ccode}
 struct hyperdex_ds_arena* hyperdex_ds_arena_create();
 \end{ccode}
-\funcdesc Create a new arena for alocating memory.  On success, this function
+Create a new arena for alocating memory.  On success, this function
 returns a non-null pointer for the new arena.  On failure, the function returns
 \code{NULL}, indicating that memory allocation failed.  It is the caller's
 responsibility to pass this function to \code{hyperdex\_ds\_arena\_destroy} when
 finished.
 
-\funcsep
 \begin{ccode}
 void hyperdex_ds_arena_destroy(struct hyperdex_ds_arena* arena);
 \end{ccode}
-\funcdesc Free all memory associated with \code{arena}.  This function always
+Free all memory associated with \code{arena}.  This function always
 succeeds.
 
 \paragraph{serialize string}
@@ -598,7 +595,7 @@ int hyperdex_ds_copy_string(struct hyperdex_ds_arena* arena, const char* str,
                             size_t str_sz, enum hyperdex_ds_returncode* status,
                             const char** value, size_t* value_sz);
 \end{ccode}
-\funcdesc  Copy the string \code{str}/\code{str\_sz} into memory allocated via
+Copy the string \code{str}/\code{str\_sz} into memory allocated via
 \code{arena} and return the copy via \code{value} and \code{value\_sz}.  This
 function will fail and return -1 if there is insufficient memory available for
 copying the string.  All pointers returned by this function remain valid until
@@ -610,17 +607,16 @@ copy.
 \begin{ccode}
 void hyperdex_ds_pack_int(int64_t num, char* value);
 \end{ccode}
-\funcdesc Packs \code{num} into the bytes pointed to by \code{buf}.  This
+Packs \code{num} into the bytes pointed to by \code{buf}.  This
 function always succeeds.  It is the caller's responsibility to ensure that
 \code{buf} points to at least \unit{8}{\byte}.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_copy_int(struct hyperdex_ds_arena* arena, int64_t num,
                          enum hyperdex_ds_returncode* status,
                          const char** value, size_t* value_sz);
 \end{ccode}
-\funcdesc Encode \code{num} into memory allocated via \code{arena} and return
+Encode \code{num} into memory allocated via \code{arena} and return
 the value via \code{value} and \code{value\_sz}.  This function will fail and
 return -1 if there is insufficient memory available for encoding the nubmer.
 All pointers returned by this function remain valid until \code{arena} is
@@ -631,17 +627,16 @@ destroyed.  The client should not attempt to free the returned copy.
 \begin{ccode}
 void hyperdex_ds_pack_float(double num, char* value);
 \end{ccode}
-\funcdesc Pack \code{num} into the bytes pointed to by \code{buf}.  This
+Pack \code{num} into the bytes pointed to by \code{buf}.  This
 function always succeeds.  It is the caller's responsibility to ensure that
 \code{buf} points to at least \unit{8}{\byte}.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_copy_float(struct hyperdex_ds_arena* arena, double num,
                            enum hyperdex_ds_returncode* status,
                            const char** value, size_t* value_sz);
 \end{ccode}
-\funcdesc Encode \code{num} into memory allocated via \code{arena} and return
+Encode \code{num} into memory allocated via \code{arena} and return
 the value via \code{value} and \code{value\_sz}.  This function will fail and
 return -1 if there is insufficient memory available for encoding the nubmer.
 All pointers returned by this function remain valid until \code{arena} is
@@ -657,43 +652,39 @@ subsequent calls that push elements of a different type will fail.
 \begin{ccode}
 struct hyperdex_ds_list* hyperdex_ds_allocate_list(struct hyperdex_ds_arena* arena);
 \end{ccode}
-\funcdesc Create a new dynamic list.  This function will fail and return
+Create a new dynamic list.  This function will fail and return
 \code{NULL} should memory allocation fail.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_list_insert_string(struct hyperdex_ds_list* list,
                                    const char* str, size_t str_sz,
                                    enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Append the string \code{str}/\code{str\_sz} to \code{list}.  This
+Append the string \code{str}/\code{str\_sz} to \code{list}.  This
 function will fail and return -1 if memory allocation fails, or the list is not
 a list of strings.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_list_insert_int(struct hyperdex_ds_list* list, int64_t num,
                                 enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Append the integer \code{num} to \code{list}.  This function will fail
+Append the integer \code{num} to \code{list}.  This function will fail
 and return -1 if memory allocation fails, or the list is not a list of integers.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_list_insert_float(struct hyperdex_ds_list* list, double num,
                                   enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Append the float \code{num} to \code{list}.  This function will fail
+Append the float \code{num} to \code{list}.  This function will fail
 and return -1 if memory allocation fails or the list is not a list of floats.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_list_finalize(struct hyperdex_ds_list*,
                               enum hyperdex_ds_returncode* status,
                               const char** value, size_t* value_sz,
                               enum hyperdatatype* datatype);
 \end{ccode}
-\funcdesc Finalize the list by writing its elements into a bytestring.  This
+Finalize the list by writing its elements into a bytestring.  This
 function returns the bytestring and the list type.  It will fail and return -1
 if memory allocation fails.
 
@@ -707,44 +698,40 @@ subsequent calls that insert elements of different types will fail.
 \begin{ccode}
 struct hyperdex_ds_set* hyperdex_ds_allocate_set(struct hyperdex_ds_arena* arena);
 \end{ccode}
-\funcdesc Create a new dynamic set.  This function will fail and return
+Create a new dynamic set.  This function will fail and return
 \code{NULL} should memory allocation fail.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_set_insert_string(struct hyperdex_ds_set* set,
                                   const char* str, size_t str_sz,
                                   enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Insert the string \code{str}/\code{str\_sz} into \code{set}.  This
+Insert the string \code{str}/\code{str\_sz} into \code{set}.  This
 function will fail and return -1 if memory allocation fails, or the set is not a
 set of strings.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_set_insert_int(struct hyperdex_ds_set* set, int64_t num,
                                enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Insert the integer \code{num} into \code{set}.  This function will
+Insert the integer \code{num} into \code{set}.  This function will
 fail and return -1 if memory allocation fails, or the set is not a set of
 integers.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_set_insert_float(struct hyperdex_ds_set* set, double num,
                                  enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Insert the float \code{num} into \code{set}.  This function will fail
+Insert the float \code{num} into \code{set}.  This function will fail
 and return -1 if memory allocation fails, or the set is not a set of floats.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_set_finalize(struct hyperdex_ds_set*,
                              enum hyperdex_ds_returncode* status,
                              const char** value, size_t* value_sz,
                              enum hyperdatatype* datatype);
 \end{ccode}
-\funcdesc Finalize the set by writing its elements into a bytestring.  This
+Finalize the set by writing its elements into a bytestring.  This
 function returns the bytestring and the set type.  It will fail and return -1 if
 memory allocation fails.
 
@@ -763,79 +750,72 @@ key-value pairs directly (which would require a quadratic number of calls).
 \begin{ccode}
 struct hyperdex_ds_map* hyperdex_ds_allocate_map(struct hyperdex_ds_arena* arena);
 \end{ccode}
-\funcdesc Create a new dynamic map.  This function will fail and return
+Create a new dynamic map.  This function will fail and return
 \code{NULL} should memory allocation fail.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_map_insert_key_string(struct hyperdex_ds_map* map,
                                       const char* str, size_t str_sz,
                                       enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Set the key of the next pair to be inserted into \code{map} to the
+Set the key of the next pair to be inserted into \code{map} to the
 string specified by \code{str} and \code{str\_sz}.  This function will fail and
 return -1 if memory allocation fails, or the map does not use strings for keys.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_map_insert_val_string(struct hyperdex_ds_map* map,
                                       const char* str, size_t str_sz,
                                       enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Set the value of the next pair to be inserted into \code{map} to the
+Set the value of the next pair to be inserted into \code{map} to the
 string specified by \code{str} and \code{str\_sz}, and insert the pair.  This
 function will fail and return -1 if memory allocation fails, or the map does not
 use strings for values.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_map_insert_key_int(struct hyperdex_ds_map* map,
                                    int64_t num,
                                    enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Set the key of the next pair to be inserted into \code{map} to the
+Set the key of the next pair to be inserted into \code{map} to the
 integer specified by \code{num}.  This function will fail and return -1 if
 memory allocation fails, or the map does not nuse integers for keys.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_map_insert_val_int(struct hyperdex_ds_map* map,
                                    int64_t num,
                                    enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Set the value of the next pair to be inserted into \code{map} to the
+Set the value of the next pair to be inserted into \code{map} to the
 integer specified by \code{num}, and insert the pair.  This function will fail
 and return -1 if memory allocation fails, or the map does not use integers for
 values.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_map_insert_key_float(struct hyperdex_ds_map* map,
                                      double num,
                                      enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Set the key of the next pair to be inserted into \code{map} to the
+Set the key of the next pair to be inserted into \code{map} to the
 float specified by \code{num}.  This function will fail and return -1 if memory
 allocation fails, or the map does not use floats for keys.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_map_insert_val_float(struct hyperdex_ds_map* map,
                                      double num,
                                      enum hyperdex_ds_returncode* status);
 \end{ccode}
-\funcdesc Set the value of the next pair to be inserted into \code{map} to the
+Set the value of the next pair to be inserted into \code{map} to the
 float specified by \code{num}.  This function will fail and return -1 if memory
 allocation fails, or the map does not use floats for values.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_map_finalize(struct hyperdex_ds_map*,
                              enum hyperdex_ds_returncode* status,
                              const char** value, size_t* value_sz,
                              enum hyperdatatype* datatype);
 \end{ccode}
-\funcdesc Finalize the map by writing its key/value-pairs  into a bytestring.
+Finalize the map by writing its key/value-pairs  into a bytestring.
 This function returns the bytestring and the map type.  It will fail and return
 -1 if memory allocation fails, or an uneven number of key/value calls were made.
 
@@ -869,7 +849,7 @@ void hyperdex_ds_iterator_init(struct hyperdex_ds_iterator* iter,
                                const char* value,
                                size_t value_sz);
 \end{ccode}
-\funcdesc Initialize an iterator for the given data type/value.  This function
+Initialize an iterator for the given data type/value.  This function
 always succeeds.
 
 \paragraph{deserialize string}
@@ -881,7 +861,7 @@ No deserialization is necessary for string data types.
 \begin{ccode}
 int hyperdex_ds_unpack_int(const char* buf, size_t buf_sz, int64_t* num);
 \end{ccode}
-\funcdesc Unpack \code{num} from \code{buf}/\code{buf\_sz}.  This function will
+Unpack \code{num} from \code{buf}/\code{buf\_sz}.  This function will
 fail and return -1 if \code{buf\_sz} is not exactly \unit{8}{\byte}.
 
 \paragraph{deserialize float}
@@ -889,7 +869,7 @@ fail and return -1 if \code{buf\_sz} is not exactly \unit{8}{\byte}.
 \begin{ccode}
 int hyperdex_ds_unpack_float(const char* buf, size_t buf_sz, double* num);
 \end{ccode}
-\funcdesc Unpack \code{num} from \code{buf}/\code{buf\_sz}.  This function will
+Unpack \code{num} from \code{buf}/\code{buf\_sz}.  This function will
 fail and return -1 if \code{buf\_sz} is not exactly \unit{8}{\byte}.
 
 \paragraph{deserialize lists}
@@ -898,24 +878,22 @@ fail and return -1 if \code{buf\_sz} is not exactly \unit{8}{\byte}.
 int hyperdex_ds_iterate_list_string_next(struct hyperdex_ds_iterator* iter,
                                          const char** str, size_t* str_sz);
 \end{ccode}
-\funcdesc Return the next string element in the list.  This function will return
+Return the next string element in the list.  This function will return
 1 if an element is returned, 0 if there are no elements to return, and -1 if the
 list of strings is malformed.  The falue stored in \code{*str} is a pointer into
 the list of strings and should not be free'd by the application.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_list_int_next(struct hyperdex_ds_iterator* iter, int64_t* num);
 \end{ccode}
-\funcdesc Return the next integer element in the list.  This function will
+Return the next integer element in the list.  This function will
 return 1 if an element is returned, 0 if there are no elements to return, and -1
 if the list of integers is malformed.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_list_float_next(struct hyperdex_ds_iterator* iter, double* num);
 \end{ccode}
-\funcdesc Return the next float element in the list.  This function will return
+Return the next float element in the list.  This function will return
 1 if an element is returned, 0 if there are no elements to return, and -1 if the
 list of floats is malformed.
 
@@ -925,24 +903,22 @@ list of floats is malformed.
 int hyperdex_ds_iterate_set_string_next(struct hyperdex_ds_iterator* iter,
                                         const char** str, size_t* str_sz);
 \end{ccode}
-\funcdesc Return the next string element in the set.  This function will return
+Return the next string element in the set.  This function will return
 1 if an element is returned, 0 if there are no elements to return, and -1 if the
 set of strings is malformed.  The value stored in \code{*str} is a pointer into
 the set of strings and should not be free'd by the application.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_set_int_next(struct hyperdex_ds_iterator* iter, int64_t* num);
 \end{ccode}
-\funcdesc Return the next integer element in the set.  This function will return
+Return the next integer element in the set.  This function will return
 1 if an element is returned, 0 if there are no elements to return, and -1 if the
 set of ints is malformed.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_set_float_next(struct hyperdex_ds_iterator* iter, double* num);
 \end{ccode}
-\funcdesc Return the next float element in the set.  This function will return 1
+Return the next float element in the set.  This function will return 1
 if an element is returned, 0 if there are no elements to return, and -1 if the
 set of ints is malformed.
 
@@ -953,89 +929,81 @@ int hyperdex_ds_iterate_map_string_string_next(struct hyperdex_ds_iterator* iter
                                                const char** key, size_t* key_sz,
                                                const char** val, size_t* val_sz);
 \end{ccode}
-\funcdesc Return the next pair of (string, string) in the map.  This function
+Return the next pair of (string, string) in the map.  This function
 will return 1 if an element is returned, 0 if there are no elements to return,
 and -1 if the map is malformed.  The values stored in \code{*key} and
 \code{*val} are pointers into the map and should not be free'd by the
 application.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_map_string_int_next(struct hyperdex_ds_iterator* iter,
                                             const char** key, size_t* key_sz,
                                             int64_t* val);
 \end{ccode}
-\funcdesc Return the next pair of (string, int) in the map.  This function will
+Return the next pair of (string, int) in the map.  This function will
 return 1 if an element is returned, 0 if there are no elements to return, and -1
 if the map is malformed.  The value stored in \code{*key} is a pointer into the
 map and should not be free'd by the application.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_map_string_float_next(struct hyperdex_ds_iterator* iter,
                                               const char** key, size_t* key_sz,
                                               double* val);
 \end{ccode}
-\funcdesc Return the next pair of (string, float) in the map.  This function
+Return the next pair of (string, float) in the map.  This function
 will return 1 if an element is returned, 0 if there are no elements to return,
 and -1 if the map is malformed.  The value stored in \code{*key} is a pointer
 into the map and should not be free'd by the application.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_map_int_string_next(struct hyperdex_ds_iterator* iter,
                                             int64_t* key,
                                             const char** val, size_t* val_sz);
 \end{ccode}
-\funcdesc Return the next pair of (int, string) in the map.  This function will
+Return the next pair of (int, string) in the map.  This function will
 return 1 if an element is returned, 0 if there are no elements to return, and -1
 if the map is malformed.  The value stored in \code{*val} is a pointer into the
 map and should not be free'd by the application.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_map_int_int_next(struct hyperdex_ds_iterator* iter,
                                          int64_t* key, int64_t* val);
 \end{ccode}
-\funcdesc Return the next pair of (int, int) in the map.  This function will
+Return the next pair of (int, int) in the map.  This function will
 return 1 if an element is returned, 0 if there are no elements to return, and -1
 if the map is malformed.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_map_int_float_next(struct hyperdex_ds_iterator* iter,
                                            int64_t* key, double* val);
 \end{ccode}
-\funcdesc Return the next pair of (int, float) in the map.  This function will
+Return the next pair of (int, float) in the map.  This function will
 return 1 if an element is returned, 0 if there are no elements to return, and -1
 if the map is malformed.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_map_float_string_next(struct hyperdex_ds_iterator* iter,
                                               double* key,
                                               const char** val, size_t* val_sz);
 \end{ccode}
-\funcdesc Return the next pair of (float, string) in the map.  This function
+Return the next pair of (float, string) in the map.  This function
 will return 1 if an element is returned, 0 if there are no elements to return,
 and -1 if the map is malformed.  The value stored in \code{*val} is a pointer
 into the map and should not be free'd by the application.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_map_float_int_next(struct hyperdex_ds_iterator* iter,
                                            double* key, int64_t* val);
 \end{ccode}
-\funcdesc Return the next pair of (float, int) in the map.  This function will
+Return the next pair of (float, int) in the map.  This function will
 return 1 if an element is returned, 0 if there are no elements to return, and -1
 if the map is malformed.
 
-\funcsep
 \begin{ccode}
 int hyperdex_ds_iterate_map_float_float_next(struct hyperdex_ds_iterator* iter,
                                              double* key, double* val);
 \end{ccode}
-\funcdesc Return the next pair of (float, float) in the map.  This function will
+Return the next pair of (float, float) in the map.  This function will
 return 1 if an element is returned, 0 if there are no elements to return, and -1
 if the map is malformed.
 
@@ -1045,34 +1013,31 @@ if the map is malformed.
 The data structures API provides utility functions for allocating structures
 from the arena, obviating the need to free them individually.
 
-\funcsep
 \begin{ccode}
 struct hyperdex_client_attribute*
 hyperdex_ds_allocate_attribute(struct hyperdex_ds_arena* arena, size_t sz);
 \end{ccode}
-\funcdesc Allocate an array of \code{struct hyperdex\_client\_attribute}.  On
+Allocate an array of \code{struct hyperdex\_client\_attribute}.  On
 success, this function returns a non-null pointer containing \code{sz} elements.
 On failure, the function returns \code{NULL}, indicating that memory allocation
 failed.  The memory will remain valid until the arena is destroyed and should
 not be free'd independently by the application.
 
-\funcsep
 \begin{ccode}
 struct hyperdex_client_attribute_check*
 hyperdex_ds_allocate_attribute_check(struct hyperdex_ds_arena* arena, size_t sz);
 \end{ccode}
-\funcdesc Allocate an array of \code{struct hyperdex\_client\_attribute\_check}.
+Allocate an array of \code{struct hyperdex\_client\_attribute\_check}.
 On success, this function returns a non-null pointer containing \code{sz}
 elements.  On failure, the function returns \code{NULL}, indicating that memory
 allocation failed.  The memory will remain valid until the arena is destroyed
 and should not be free'd independently by the application.
 
-\funcsep
 \begin{ccode}
 struct hyperdex_client_map_attribute*
 hyperdex_ds_allocate_map_attribute(struct hyperdex_ds_arena* arena, size_t sz);
 \end{ccode}
-\funcdesc Allocate an array of \code{struct hyperdex\_client\_map\_attribute}.
+Allocate an array of \code{struct hyperdex\_client\_map\_attribute}.
 On success, this function returns a non-null pointer containing \code{sz}
 elements.  On failure, the function returns \code{NULL}, indicating that memory
 allocation failed.  The memory will remain valid until the arena is destroyed
@@ -1262,7 +1227,7 @@ are anticipated by the client library.
     type of the affected attributes.
 \item[\code{HYPERDEX\_CLIENT\_NOMEM}] The library failed to allocate memory.
 \item[\code{HYPERDEX\_CLIENT\_INTERRUPTED}] The HyperDex library was interrupted
-    by a signal.  Read more about signals in Section~\ref{XXX}.
+    by a signal.  Read more about signals in Section~\ref{sec:api:c:client:signals}.
 \item[\code{HYPERDEX\_CLIENT\_CLUSTER\_JUMP}] The client library started
     receiving configurations for a different HyperDex cluster.  This can happen
     if a new coordinator is restarted on the same address that the client
@@ -1316,16 +1281,14 @@ non-connectivity with the coordinator.
 \label{sec:api:c:client:ops}
 
 \input{\topdir/api/c.client}
+\pagebreak
 
 \subsection{Working with Signals}
 \label{sec:api:c:client:signals}
 
-The HyperDex client library provides a simple mechanism to cleanly integrate
-with applications that work with signals.
-
-Your application must mask all signals prior to making any calls into the
-library.  The library will unmask the signals during blocking operations and
-return \code{HYPERDEX\_CLIENT\_INTERRUPTED} should any signals be received.
+The HyperDex client library is signal-safe.  Should a signal interrupt the
+client during a blocking operation, it will return
+\code{HYPERDEX\_CLIENT\_INTERRUPTED}.
 
 \subsection{Working with Threads}
 \label{sec:api:c:client:threads}
@@ -1337,3 +1300,11 @@ provides mutual exclusion.
 
 Put simply, a multi-threaded application should protect each \code{struct
 hyperdex\_client} instance with a mutex or lock to ensure correct operation.
+
+\section{Admin Library}
+\label{sec:api:c:admin}
+
+\subsection{Operations}
+\label{sec:api:c:admin:ops}
+
+\input{\topdir/api/c.admin}

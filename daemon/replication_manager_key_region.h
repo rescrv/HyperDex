@@ -28,9 +28,6 @@
 #ifndef hyperdex_daemon_replication_manager_key_region_h_
 #define hyperdex_daemon_replication_manager_key_region_h_
 
-// STL
-#include <tr1/unordered_map>
-
 // HyperDex
 #include "common/ids.h"
 #include "cityhash/city.h"
@@ -53,13 +50,10 @@ class hyperdex::replication_manager::key_region
         e::slice key;
 
     private:
-        friend class std::tr1::hash<key_region>;
+        friend class e::compat::hash<key_region>;
 };
 
-namespace std
-{
-namespace tr1
-{
+BEGIN_E_COMPAT_NAMESPACE
 
 template <>
 struct hash<hyperdex::replication_manager::key_region>
@@ -68,11 +62,10 @@ struct hash<hyperdex::replication_manager::key_region>
     {
         return CityHash64WithSeed(reinterpret_cast<const char*>(kr.key.data()),
                                   kr.key.size(),
-                                  std::tr1::hash<uint64_t>()(kr.region.get()));
+                                  e::compat::hash<uint64_t>()(kr.region.get()));
     }
 };
 
-} // namespace tr1
-} // namespace std
+END_E_COMPAT_NAMESPACE
 
 #endif // hyperdex_daemon_replication_manager_key_region_h_

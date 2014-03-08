@@ -28,15 +28,15 @@
 #ifndef hyperdex_daemon_daemon_h_
 #define hyperdex_daemon_daemon_h_
 
-// STL
-#include <tr1/memory>
-
 // po6
 #include <po6/net/hostname.h>
 #include <po6/net/ipaddr.h>
 #include <po6/net/location.h>
 #include <po6/pathname.h>
 #include <po6/threads/thread.h>
+
+// e
+#include <e/compat.h>
 
 // Replicant
 #include <replicant.h>
@@ -112,7 +112,7 @@ class daemon
     private:
         server_id m_us;
         po6::net::location m_bind_to;
-        std::vector<std::tr1::shared_ptr<po6::threads::thread> > m_threads;
+        std::vector<e::compat::shared_ptr<po6::threads::thread> > m_threads;
         coordinator_link_wrapper m_coord;
         std::string m_data_dir;
         datalayer m_data;

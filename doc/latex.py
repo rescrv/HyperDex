@@ -215,9 +215,9 @@ def build(name):
     iters = 0
     deps = set([])
     while need_tex or need_xtx or need_idx:
-        if iters > 16:
-            logging.error("error, iterated 16 times; you'd think tex would converge by now; bailing")
-            return -1
+        if iters > 4:
+            logging.error("error, iterated 4 times; you'd think tex would converge by now; bailing")
+            return 0
         if need_tex or (need_xtx and not os.path.exists(name + '.aux')):
             env = os.environ.copy()
             env['max_print_line'] = '4096'

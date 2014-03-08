@@ -44,7 +44,6 @@
 
 // STL
 #include <map>
-#include <tr1/memory>
 #include <vector>
 
 // po6
@@ -54,6 +53,7 @@
 #include <po6/threads/thread.h>
 
 // e
+#include <e/compat.h>
 #include <e/guard.h>
 
 // HyperDex
@@ -190,11 +190,11 @@ main(int argc, const char* argv[])
     barrier.reset(new po6::threads::barrier(threads + 1));
     po6::threads::thread writer(writer_thread);
     writer.start();
-    std::vector<std::tr1::shared_ptr<po6::threads::thread> > readers;
+    std::vector<e::compat::shared_ptr<po6::threads::thread> > readers;
 
     for (int64_t i = 0; i < threads; ++i)
     {
-        std::tr1::shared_ptr<po6::threads::thread> tptr(new po6::threads::thread(reader_thread));
+        e::compat::shared_ptr<po6::threads::thread> tptr(new po6::threads::thread(reader_thread));
         readers.push_back(tptr);
         tptr->start();
     }

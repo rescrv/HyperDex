@@ -1,0 +1,16 @@
+This function returns via the provided callback.  In the normal case, the first
+argument will indicate success or failure of the operation with one of the
+following values:
+
+\begin{itemize}[noitemsep]
+\item A Javascript representation of the stored object.
+\item \code{null} if the operation is a retrieval operation and no object was
+    found.
+\end{itemize}
+
+The second argument is a true/false value indicating whether the operation is
+complete.  The callback will be called repeatedly until all objects are
+returned or encounter errors.
+
+If the operation encounters any error, the error argument will be provided and
+will specify the error, in which case the first argument is undefined.
