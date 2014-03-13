@@ -73,7 +73,9 @@ class hyperdex::replication_manager::key_state
         bool put_from_funcs(const schema& sc,
                             const region_id& reg_id, uint64_t seq_id,
                             const std::vector<funcall>& funcs,
-                            const server_id& client, uint64_t nonce);
+                            const server_id& client, uint64_t nonce,
+                            bool is_migration_object,
+                            uint64_t mos_id, uint64_t seq_no);
         void insert_deferred(uint64_t version, e::intrusive_ptr<pending> op);
         bool persist_to_datalayer(replication_manager* rm, const region_id& ri,
                                   const region_id& reg_id, uint64_t seq_id,

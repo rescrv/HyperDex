@@ -37,6 +37,32 @@ migration :: migration()
 {
 }
 
+migration :: ~migration() throw ()
+{
+}
+
+migration&
+migration :: operator = (const migration& rhs)
+{
+    id = rhs.id;
+    space_from = rhs.space_from;
+    space_to = rhs.space_to;
+}
+
+bool migration :: operator < (const migration& rhs) const
+{
+    if (id < rhs.id) { return true; }
+    else if (id > rhs.id) { return false; }
+
+    if (space_from < rhs.space_from) { return true; }
+    else if (space_from > rhs.space_from) { return false; }
+
+    if (space_to < rhs.space_to) { return true; }
+    else if (space_to > rhs.space_to) { return false; }
+
+    return false;
+}
+
 migration :: migration(migration_id  _id,
                        space_id _space_from,
                        space_id _space_to)

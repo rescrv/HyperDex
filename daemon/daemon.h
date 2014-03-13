@@ -75,6 +75,9 @@ class daemon
         void loop(size_t thread);
         void process_req_get(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_atomic(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_resp_atomic(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_req_migration(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_resp_migration(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_search_start(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_search_next(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_search_stop(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
@@ -127,6 +130,7 @@ class daemon
         // counters
         performance_counter m_perf_req_get;
         performance_counter m_perf_req_atomic;
+        performance_counter m_perf_req_migration;
         performance_counter m_perf_req_search_start;
         performance_counter m_perf_req_search_next;
         performance_counter m_perf_req_search_stop;
@@ -146,6 +150,8 @@ class daemon
         performance_counter m_perf_xfer_ack;
         performance_counter m_perf_backup;
         performance_counter m_perf_perf_counters;
+        performance_counter m_perf_resp_atomic;
+        performance_counter m_perf_resp_migration;
         // iostat-like stats
         std::string m_block_stat_path;
         // historical data

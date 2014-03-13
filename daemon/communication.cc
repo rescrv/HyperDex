@@ -301,6 +301,7 @@ communication :: send(const virtual_server_id& vto,
                       network_msgtype msg_type,
                       std::auto_ptr<e::buffer> msg)
 {
+    LOG(INFO) << "SEND2 ->" << vto << " " << msg_type << " " << msg->hex();
     assert(msg->size() >= HYPERDEX_HEADER_SIZE_SV);
 
     uint8_t mt = static_cast<uint8_t>(msg_type);
@@ -312,6 +313,7 @@ communication :: send(const virtual_server_id& vto,
     {
         return false;
     }
+    LOG(INFO) << "sending:" << mt << " " << flags << " " << m_daemon->m_config.version() << " " << vto.get();
 
 #ifdef HD_LOG_ALL_MESSAGES
     LOG(INFO) << "SEND ->" << vto << " " << msg_type << " " << msg->hex();
@@ -454,18 +456,25 @@ communication :: recv(server_id* from,
         *from = server_id(id);
         *vto = virtual_server_id(vidt);
 
+        LOG(INFO) << "receiving " << *msg_type;
+
+        LOG(INFO) << "RECV ->" << vidt << " " << *msg_type << " " << (*msg)->hex();
+
         if ((flags & 0x1))
         {
+            LOG(INFO) << "BP6";
             *up = *up >> vidf;
             *vfrom = virtual_server_id(vidf);
         }
         else
         {
+            LOG(INFO) << "BP5";
             *vfrom = virtual_server_id();
         }
 
         if (up->error())
         {
+            LOG(INFO) << "BP4";
             LOG(WARNING) << "dropping message that has a malformed header; here's some hex: " << (*msg)->hex();
             continue;
         }
@@ -477,12 +486,16 @@ communication :: recv(server_id* from,
         // If this is a virtual-virtual message
         if ((flags & 0x1))
         {
+            LOG(INFO) << "BP3";
             from_valid = *from == m_daemon->m_config.get_server_id(virtual_server_id(vidf));
         }
 
         // No matter what, wait for the config the sender saw
         if (version > m_daemon->m_config.version())
         {
+            LOG(INFO) << mt << " " << flags << " " << version << " " << vidt;
+            LOG(INFO) << version << " " << m_daemon->m_config.version();
+            LOG(INFO) << "BP2";
             early_message em(version, id, *msg);
             m_early_messages.push(em);
             continue;
@@ -490,6 +503,7 @@ communication :: recv(server_id* from,
 
         if ((flags & 0x2) && version < m_daemon->m_config.version())
         {
+            LOG(INFO) << "BP1";
             continue;
         }
 
@@ -500,6 +514,8 @@ communication :: recv(server_id* from,
 #endif
             return true;
         }
+
+        LOG(INFO) << "we are done!";
 
         // Shove the message back at the client so it fails with a reconfigure.
         if (!(flags & 0x1))

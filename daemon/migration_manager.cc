@@ -39,12 +39,14 @@
 #include "daemon/daemon.h"
 #include "daemon/datalayer_iterator.h"
 #include "daemon/migration_manager.h"
+#include "daemon/migration_manager_pending.h"
 #include "daemon/migration_out_state.h"
 #include "daemon/leveldb.h"
 
 using hyperdex::reconfigure_returncode;
 using hyperdex::migration_manager;
 using hyperdex::migration_id;
+using hyperdex::region_id;
 
 migration_manager :: migration_manager(daemon* d)
     : m_daemon(d)
@@ -57,6 +59,7 @@ migration_manager :: migration_manager(daemon* d)
     , m_shutdown(true)
     , m_need_pause(false)
     , m_paused(false)
+    , m_next_out_state_id(1)
 {
 }
 
@@ -104,6 +107,7 @@ migration_manager :: reconfigure(const configuration&,
                                  const configuration& new_config,
                                  const server_id& sid)
 {
+    LOG(INFO) << "reconfiguring migration_manager";
     {
         po6::threads::mutex::hold hold(&m_block_kickstarter);
         assert(m_need_pause);
@@ -116,28 +120,257 @@ migration_manager :: reconfigure(const configuration&,
 
     std::vector<migration> migrations_out;
     new_config.migrations_out(sid, &migrations_out);
+    std::sort(migrations_out.begin(), migrations_out.end());
+    setup_migration_state(migrations_out, &m_migrations_out);
+
+    // std::vector<region_id> regions;
+    // new_config.mapped_regions(sid, &regions);
+
+    // std::vector<hyperdex::migration>::iterator m_iter;
+    // for (m_iter = migrations_out.begin(); m_iter != migrations_out.end(); m_iter++) {
+    //     std::vector<hyperdex::region_id>::iterator r_iter;
+    //     for (r_iter = regions.begin(); r_iter != regions.end(); r_iter++) {
+    //         region_id rid = (*r_iter);
+    //         if (new_config.space_of(rid) == (*m_iter).space_from) {
+    //             e::intrusive_ptr<migration_out_state> ptr(new migration_out_state((*m_iter).space_to, rid));
+    //             m_migrations_out.push_back(ptr);
+    //         }
+    //     }
+    // }
+}
+
+void
+migration_manager :: setup_migration_state(const std::vector<hyperdex::migration> migrations,
+                      std::vector<e::intrusive_ptr<migration_out_state> >* migration_states)
+{
+    std::vector<e::intrusive_ptr<migration_out_state> > tmp;
+    // In reality, tmp probably will store way more elements than
+    // migrations, since one migration will likely correspond to
+    // many migration out states.
+    tmp.reserve(migrations.size());
+    size_t m_idx = 0;
+    size_t ms_idx = 0;
 
     std::vector<region_id> regions;
-    new_config.mapped_regions(sid, &regions);
+    m_daemon->m_config.mapped_regions(m_daemon->m_us, &regions);
 
-    std::vector<hyperdex::migration>::iterator m_iter;
-    for (m_iter = migrations_out.begin(); m_iter != migrations_out.end(); m_iter++) {
-        migration_out_state* new_state = NULL;
+    leveldb_snapshot_ptr snapshot_ptr = m_daemon->m_data.make_snapshot();
+
+    while (m_idx < migrations.size() && ms_idx < migration_states->size())
+    {
+        if (migrations[m_idx].id == (*migration_states)[ms_idx]->mid)
+        {
+            tmp.push_back((*migration_states)[ms_idx]);
+            ++m_idx;
+            ++ms_idx;
+        }
+        else if (migrations[m_idx].id < (*migration_states)[ms_idx]->mid)
+        {
+            LOG(INFO) << "initiating migration out state " << migrations[m_idx];
+
+            std::vector<hyperdex::region_id>::iterator r_iter;
+            for (r_iter = regions.begin(); r_iter != regions.end(); r_iter++) {
+                region_id rid = (*r_iter);
+                if (m_daemon->m_config.space_of(rid) == migrations[m_idx].space_from) {
+                    datalayer::returncode err;
+                    std::auto_ptr<datalayer::iterator> iter;
+                    iter.reset(m_daemon->m_data.make_region_iterator(snapshot_ptr, rid, &err));
+                    if (err != datalayer::SUCCESS) {
+                        LOG(ERROR) << "failed to create region iterator";
+                        continue;  // TODO: should we continue?
+                    }
+                    e::intrusive_ptr<migration_out_state> ptr(
+                        new migration_out_state(migrations[m_idx].id,
+                                                migrations[m_idx].space_to,
+                                                m_next_out_state_id++,
+                                                rid,
+                                                iter));
+                    tmp.push_back(ptr);
+                }
+            }
+            ++m_idx;
+        }
+        else if (migrations[m_idx].id > (*migration_states)[ms_idx]->mid)
+        {
+            LOG(INFO) << "ending migration out state " << (*migration_states)[ms_idx]->mid;
+            ++ms_idx;
+        }
+    }
+
+    while (m_idx < migrations.size())
+    {
+        LOG(INFO) << "initiating migration out state " << migrations[m_idx];
+
         std::vector<hyperdex::region_id>::iterator r_iter;
         for (r_iter = regions.begin(); r_iter != regions.end(); r_iter++) {
             region_id rid = (*r_iter);
-            if (new_config.space_of(rid) == (*m_iter).space_from) {
-                if (new_state == NULL) {
-                    new_state = new migration_out_state();
+            if (m_daemon->m_config.space_of(rid) == migrations[m_idx].space_from) {
+                datalayer::returncode err;
+                std::auto_ptr<datalayer::iterator> iter;
+                iter.reset(m_daemon->m_data.make_region_iterator(snapshot_ptr, rid, &err));
+                if (err != datalayer::SUCCESS) {
+                    LOG(ERROR) << "failed to create region iterator";
+                    continue;  // TODO: should we continue?
                 }
-                new_state->region_iters.push_back(new std::pair<space_id, region_id>((*m_iter).space_to, rid));
+                e::intrusive_ptr<migration_out_state> ptr(
+                    new migration_out_state(migrations[m_idx].id,
+                                            migrations[m_idx].space_to,
+                                            m_next_out_state_id++,
+                                            rid,
+                                            iter));
+                tmp.push_back(ptr);
             }
         }
-        if (new_state != NULL) {
-            e::intrusive_ptr<migration_out_state> ptr(new_state);
-            m_migrations_out.push_back(ptr);
+        ++m_idx;
+    }
+    
+    while (ms_idx < migration_states->size())
+    {
+        LOG(INFO) << "ending migration out state" << (*migration_states)[ms_idx]->mid;
+        ++ms_idx;
+    }
+
+    tmp.swap(*migration_states);
+}
+
+void
+migration_manager :: migrate_more_state(migration_out_state* mos)
+{
+    assert(mos->iter.get());
+
+    while (mos->window.size() < mos->window_sz && mos->iter->valid())
+    {
+        e::intrusive_ptr<pending> op(new pending());
+        op->rid = mos->rid;
+        op->seq_no = mos->next_seq_no;
+        ++mos->next_seq_no;
+
+        // TODO: can an object has no value?
+        if (m_daemon->m_data.get_from_iterator(mos->rid, mos->iter.get(), &op->key, &op->value, &op->version, &op->vref) != datalayer::SUCCESS)
+        {
+            LOG(ERROR) << "error unpacking value during migration";
+            break;
+        }
+
+        mos->window.push_back(op);
+        send_object(mos, op.get());
+        mos->iter->next();
+    }
+
+    // TODO: Take a look at the corresponding method in state_transfer_manager.
+    // You might need to inform the coordinator about the completion of the
+    // migration.
+}
+
+void
+migration_manager :: retransmit(migration_out_state* mos)
+{
+    for (std::list<e::intrusive_ptr<pending> >::iterator it = mos->window.begin();
+            it != mos->window.end(); ++it)
+    {
+        send_object(mos, it->get());
+    }
+}
+
+void
+migration_manager :: send_object(migration_out_state* mos, pending* op)
+{
+    virtual_server_id to = m_daemon->m_config.point_leader(mos->sid, op->key);
+
+    const schema* sc = m_daemon->m_config.get_schema(op->rid);
+    std::vector<funcall> funcs;
+    std::vector<attribute_check> checks;
+    funcs.reserve(op->value.size());
+
+    for (size_t j = 0; j < op->value.size(); ++j)
+    {
+        uint16_t attrnum = j;
+
+        hyperdatatype datatype = sc->attrs[attrnum + 1].type;
+
+        funcall o;
+        o.attr = attrnum + 1;
+        o.name = FUNC_SET;
+        o.arg1 = op->value[j];
+        o.arg1_datatype = datatype;
+        funcs.push_back(o);
+    }
+
+    size_t sz = HYPERDEX_HEADER_SIZE_SV
+              + pack_size(op->key)
+              + sizeof(uint8_t)
+              + pack_size(checks)
+              + pack_size(funcs)
+              + sizeof(uint64_t) // mos_id
+              + sizeof(uint64_t); // seq_no
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    uint8_t flags = (0 | 0 | 128);
+    msg->pack_at(HYPERDEX_HEADER_SIZE_SV)
+        << op->key << flags << checks << funcs << mos->id << op->seq_no;
+    m_daemon->m_comm.send(to, REQ_MIGRATION, msg);
+    // TODO: do we need this here? m_daemon->m_comm.wake_one();
+}
+
+void
+migration_manager :: migration_ack(const server_id& from,
+                                   const virtual_server_id& to,
+                                   uint64_t mos_id,
+                                   uint64_t seq_no,
+                                   uint16_t result)
+{
+    migration_out_state* mos = get_mos(mos_id);
+
+    if (!mos)
+    {
+        LOG(INFO) << "dropping RESP_MIGRATION for " << mos_id << " which we don't know about";
+        return;
+    }
+
+    po6::threads::mutex::hold hold(&mos->mtx);
+
+    // TODO: do we need to check if the ACK comes from the right server?
+    // The state transfer manager does that.
+
+    std::list<e::intrusive_ptr<pending> >::iterator it;
+
+    for (it = mos->window.begin(); it != mos->window.end(); ++it)
+    {
+        if ((*it)->seq_no == seq_no)
+        {
+            break;
         }
     }
+
+    if (it != mos->window.end())
+    {
+        (*it)->acked = true;
+
+        if (mos->window_sz < 1024)
+        {
+            ++mos->window_sz;
+        }
+    }
+
+    while (!mos->window.empty() && (*mos->window.begin())->acked)
+    {
+        mos->window.pop_front();
+    }
+
+    migrate_more_state(mos);
+}
+
+migration_manager::migration_out_state*
+migration_manager :: get_mos(uint64_t out_state_id)
+{
+    for (size_t i = 0; i < m_migrations_out.size(); ++i)
+    {
+        if (m_migrations_out[i]->id == out_state_id)
+        {
+            return m_migrations_out[i].get();
+        }
+    }
+
+    return NULL;
 }
 
 void
@@ -186,8 +419,6 @@ migration_manager :: kickstarter()
 
         size_t idx = 0;
 
-        leveldb_snapshot_ptr snapshot_ptr = m_daemon->m_data.make_snapshot();
-
         while (true)
         {
             po6::threads::mutex::hold hold(&m_block_kickstarter);
@@ -198,74 +429,13 @@ migration_manager :: kickstarter()
             }
 
             po6::threads::mutex::hold hold2(&m_migrations_out[idx]->mtx);
-
-            // send data
-            migration_out_state* mos = m_migrations_out[idx].get();
-            for (size_t i; i < mos->region_iters.size(); i++) {
-                space_id sid = mos->region_iters[i]->first;
-                region_id rid = mos->region_iters[i]->second;
-                datalayer::returncode err;
-                datalayer::iterator* iter = m_daemon->m_data.make_region_iterator(snapshot_ptr, rid, &err);
-                if (err != datalayer::SUCCESS) {
-                    LOG(ERROR) << "failed to create region iterator";
-                    break;
-                }
-
-                if (iter->valid())
-                {
-                    e::slice key;
-                    std::vector<e::slice> val;
-                    uint64_t ver;
-                    datalayer::reference tmp;
-                    m_daemon->m_data.get_from_iterator(rid, iter, &key, &val, &ver, &tmp);
-                    virtual_server_id to = m_daemon->m_config.point_leader(sid, key);
-
-                    const schema* sc = m_daemon->m_config.get_schema(rid);
-                    std::vector<funcall> funcs;
-                    std::vector<attribute_check> checks;
-                    funcs.reserve(val.size());
-
-                    for (size_t i = 0; i < val.size(); ++i)
-                    {
-                        uint16_t attrnum = i;
-
-                        hyperdatatype datatype = sc->attrs[attrnum + 1].type;
-
-                        funcall o;
-                        o.attr = attrnum + 1;
-                        o.name = FUNC_SET;
-                        o.arg1 = val[i];
-                        o.arg1_datatype = datatype;
-                        funcs.push_back(o);
-                    }
-
-                    size_t HEADER_SIZE = BUSYBEE_HEADER_SIZE
-                              + sizeof(uint8_t) /*mt*/ \
-                              + sizeof(uint8_t) /*flags*/ \
-                              + sizeof(uint64_t) /*version*/ \
-                              + sizeof(uint64_t); /*vidt*/
-
-                    size_t sz = HEADER_SIZE
-                              + sizeof(uint64_t) /*nonce*/
-                              + sizeof(uint8_t)
-                              + pack_size(key)
-                              + pack_size(checks)
-                              + pack_size(funcs);
-                    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-                    uint8_t flags = (0 | 0 | 128);
-                    uint64_t nonce = 0; // TODO: what should it be?
-                    msg->pack_at(HEADER_SIZE)
-                        << nonce << key << flags << checks << funcs;
-                    m_daemon->m_comm.send(to, REQ_ATOMIC, msg);
-                    iter->next();
-                }
-            }
-
+            retransmit(m_migrations_out[idx].get());
+            migrate_more_state(m_migrations_out[idx].get());
             ++idx;
         }
     }
 
-    LOG(INFO) << "state transfer thread shutting down";
+    LOG(INFO) << "migration thread shutting down";
 }
 
 void

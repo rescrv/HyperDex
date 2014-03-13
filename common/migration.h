@@ -41,6 +41,11 @@ class migration
         migration(migration_id id,
                   space_id space_from,
                   space_id space_to);
+        ~migration() throw ();
+
+    public:
+        migration& operator = (const migration&);
+        bool operator < (const migration&) const;
 
     public:
         migration_id id;

@@ -226,20 +226,56 @@ replication_manager :: debug_dump()
     unpause();
 }
 
+// OK, so basically, you create a new class, something called "response", which
+// contains some state that specifies 1) whether the receiver is a client or a server,
+// 2) extra state if the receiver is a server, i.e. state that identify the corresponding
+// migration state for the object in question.  When receiving a req_atomic or a
+// migration_atomic, you generate such an object, then you call client_atomic with
+// this response object.  Then, client_atomic saves it into the key state.  Then,
+// when chain_ack is received, the point leader will look into the key state and
+// call some method on this response class, that would generate an appropriate response
+// that the point leader can send.
+
 void
 replication_manager :: client_atomic(const server_id& from,
-                                     const virtual_server_id& to,
-                                     uint64_t nonce,
-                                     bool erase,
-                                     bool fail_if_not_found,
-                                     bool fail_if_found,
-                                     const e::slice& key,
-                                     const std::vector<attribute_check>& checks,
-                                     const std::vector<funcall>& funcs)
+                                      const virtual_server_id& to,
+                                      uint64_t nonce,
+                                      bool erase,
+                                      bool fail_if_not_found,
+                                      bool fail_if_found,
+                                      const e::slice& key,
+                                      const std::vector<attribute_check>& checks,
+                                      const std::vector<funcall>& funcs)
 {
+    request_atomic(from, to, nonce, erase, fail_if_not_found, fail_if_found,
+                  key, checks, funcs, false, 0, 0);
+}
+
+void
+replication_manager :: request_atomic(const server_id& from,
+                                      const virtual_server_id& to,
+                                      uint64_t nonce,
+                                      bool erase,
+                                      bool fail_if_not_found,
+                                      bool fail_if_found,
+                                      const e::slice& key,
+                                      const std::vector<attribute_check>& checks,
+                                      const std::vector<funcall>& funcs,
+                                      bool is_migration_object,
+                                      uint64_t mos_id,
+                                      uint64_t seq_no)
+{
+    #define respond(ret) \
+        if (is_migration_object) { respond_for_migration(to, from, mos_id, seq_no, ret); } \
+        else { respond_to_client(to, from, nonce, ret); }
+
+    if (is_migration_object) {
+        LOG(INFO) << "preparing to send a migration object";
+    };
+
     if (m_daemon->m_config.read_only())
     {
-        respond_to_client(to, from, nonce, NET_READONLY);
+        respond(NET_READONLY)
         return;
     }
 
@@ -253,7 +289,7 @@ replication_manager :: client_atomic(const server_id& from,
     {
         LOG(ERROR) << "dropping nonce=" << nonce << " from client=" << from
                    << " because the key, checks, or funcs don't validate";
-        respond_to_client(to, from, nonce, NET_BADDIMSPEC);
+        respond(NET_BADDIMSPEC);
         return;
     }
 
@@ -261,7 +297,7 @@ replication_manager :: client_atomic(const server_id& from,
     {
         LOG(ERROR) << "dropping nonce=" << nonce << " from client=" << from
                    << " because it doesn't map to " << ri;
-        respond_to_client(to, from, nonce, NET_NOTUS);
+        respond(NET_NOTUS);
         return;
     }
 
@@ -271,7 +307,7 @@ replication_manager :: client_atomic(const server_id& from,
 
     if (!ks->check_against_latest_version(sc, erase, fail_if_not_found, fail_if_found, checks, &nrc))
     {
-        respond_to_client(to, from, nonce, nrc);
+        respond(nrc);
         return;
     }
 
@@ -285,9 +321,10 @@ replication_manager :: client_atomic(const server_id& from,
     }
     else
     {
-        if (!ks->put_from_funcs(sc, ri, seq_id, funcs, from, nonce))
+        if (!ks->put_from_funcs(sc, ri, seq_id, funcs, from, nonce,
+                                is_migration_object, mos_id, seq_id))
         {
-            respond_to_client(to, from, nonce, NET_OVERFLOW);
+            respond(NET_OVERFLOW);
             return;
         }
     }
@@ -530,16 +567,26 @@ replication_manager :: chain_ack(const virtual_server_id& from,
 
     if (op->client != server_id())
     {
-        respond_to_client(to, op->client, op->nonce, NET_SUCCESS);
+        if (op->is_migration_object) {
+            respond_for_migration(to, op->client, op->mos_id, op->seq_no, NET_SUCCESS);
+        } else {
+            respond_to_client(to, op->client, op->nonce, NET_SUCCESS);
+        }
+    }
+    else
+    {
+        LOG(INFO) << "Oh well I'm not replying RESP_ATOMIC";
     }
 
     if (is_head && m_daemon->m_config.version() == op->recv_config_version)
     {
+        LOG(INFO) << "Sending ack to head";
         send_ack(to, op->recv, false, reg_id, seq_id, version, key);
     }
 
     if (op->reg_id == ri)
     {
+        LOG(INFO) << "In the same region";
         bool x;
         x = m_idcol.collect(ri, op->seq_id);
         assert(x);
@@ -840,13 +887,45 @@ replication_manager :: respond_to_client(const virtual_server_id& us,
                                          uint64_t nonce,
                                          network_returncode ret)
 {
-    size_t sz = HYPERDEX_HEADER_SIZE_VC
-              + sizeof(uint64_t)
-              + sizeof(uint16_t);
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    uint16_t result = static_cast<uint16_t>(ret);
-    msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << result;
-    m_daemon->m_comm.send_client(us, client, RESP_ATOMIC, msg);
+    if (m_daemon->m_config.exists(client)) {
+        size_t sz = HYPERDEX_HEADER_SIZE_VV
+                  + sizeof(uint64_t)
+                  + sizeof(uint16_t);
+        std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+        uint16_t result = static_cast<uint16_t>(ret);
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << nonce << result;
+        m_daemon->m_comm.send(us, client, RESP_ATOMIC, msg);
+    } else {
+        size_t sz = HYPERDEX_HEADER_SIZE_VC
+                  + sizeof(uint64_t)
+                  + sizeof(uint16_t);
+        std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+        uint16_t result = static_cast<uint16_t>(ret);
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << result;
+        m_daemon->m_comm.send_client(us, client, RESP_ATOMIC, msg);
+    }
+}
+
+void
+replication_manager :: respond_for_migration(const virtual_server_id& us,
+                                             const server_id& client,
+                                             uint64_t mos_id,
+                                             uint64_t seq_no,
+                                             network_returncode ret)
+{
+    LOG(INFO) << "sending response for a migration object";
+    if (m_daemon->m_config.exists(client)) {
+        size_t sz = HYPERDEX_HEADER_SIZE_VV
+                  + sizeof(uint64_t)
+                  + sizeof(uint64_t)
+                  + sizeof(uint16_t);
+        std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+        uint16_t result = static_cast<uint16_t>(ret);
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << mos_id << seq_no << result;
+        m_daemon->m_comm.send(us, client, RESP_MIGRATION, msg);
+    } else {
+        LOG(ERROR) << "migration has to originate from a server";
+    }
 }
 
 bool

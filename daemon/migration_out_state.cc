@@ -28,12 +28,35 @@
 // HyperDex
 #include "daemon/datalayer_iterator.h"
 #include "daemon/migration_out_state.h"
+#include "daemon/migration_manager_pending.h"
 
 using hyperdex::migration_manager;
 
 migration_manager :: migration_out_state :: migration_out_state()
     : mtx()
-    , region_iters()
+    , id(1)
+    , next_seq_no(1)
+    , window()
+    , window_sz(1)
+    , iter()
+    , mid()
+    , sid()
+    , rid()
+    , m_ref(0)
+{
+}
+
+migration_manager :: migration_out_state :: migration_out_state(migration_id _mid,
+        space_id _sid, uint64_t _id, region_id _rid, std::auto_ptr<datalayer::iterator> _iter)
+    : mtx()
+    , id(_id)
+    , next_seq_no(1)
+    , window()
+    , window_sz(1)
+    , iter(_iter)
+    , mid(_mid)
+    , sid(_sid)
+    , rid(_rid)
     , m_ref(0)
 {
 }

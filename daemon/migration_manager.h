@@ -43,7 +43,6 @@
 #include "namespace.h"
 #include "common/configuration.h"
 #include "daemon/reconfigure_returncode.h"
-#include "daemon/datalayer.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 class daemon;
@@ -62,6 +61,12 @@ class migration_manager
         void reconfigure(const configuration& old_config,
                          const configuration& new_config,
                          const server_id&);
+
+        void migration_ack(const server_id& from,
+                           const virtual_server_id& to,
+                           uint64_t mos_id,
+                           uint64_t seq_no,
+                           uint16_t result);
 
     // public:
     //     void handshake_syn(const virtual_server_id& from,
@@ -91,11 +96,19 @@ class migration_manager
     //                   uint64_t seq_no);
 
     private:
+        class pending;
         class migration_out_state;
 
     private:
+        void setup_migration_state(const std::vector<hyperdex::migration> migrations,
+                                   std::vector<e::intrusive_ptr<migration_out_state> >* migration_states);
+        void migrate_more_state(migration_out_state* mos);
+        void retransmit(migration_out_state* mos);
+        void send_object(migration_out_state* mos, pending* op);
         void kickstarter();
         void shutdown();
+
+        migration_out_state* get_mos(uint64_t out_state_id);
 
     private:
         migration_manager(const migration_manager&);
@@ -112,6 +125,7 @@ class migration_manager
         bool m_shutdown;
         bool m_need_pause;
         bool m_paused;
+        uint64_t m_next_out_state_id;
 };
 
 END_HYPERDEX_NAMESPACE
