@@ -147,4 +147,6 @@ def explore_space(space):
     space = space.encode('utf-8')
     results = hyperclient.getall(space)
     print results
-    return render_template('explorespace.html', space = space)
+    return render_template('explorespace.html',
+        results=results, 
+        space = space)

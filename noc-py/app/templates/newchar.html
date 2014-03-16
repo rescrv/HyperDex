@@ -57,45 +57,46 @@ POSSIBILITY OF SUCH DAMAGE. -->
 	{{ form.hidden_tag() }}
 	<div class="form-group">
 		<div class = "col-sm-3">Attribute Type:</div>
-<br>
-<br>
+				<br>
+				<br>
 		<div class = "col-sm-3">
 			{{ form.attributetype(class="form-control")}}
 		</div>
 
-	<br>
-	<br>
-	<br>
+				<br>
+				<br>
+				<br>
 		<div class = "col-sm-3">
 	   		{{ form.attributename(placeholder="Attribute Name", class="form-control")}}
 	    </div>
-
-	<br>
-	<br>
-	<br>
-			<div class = "col-sm-3">Subspace:</div>
-
-	<br>
+				<br>
+				<br>
+				<br>
 		<div class = "col-sm-3">
-	   		<center>{{ form.attributesub(class="form-control")}}</center>
+			Subspace:
+		</div>
+				<br>
+		<div class = "col-sm-3">
+	   		<center>
+	   			{{ form.attributesub(class="form-control")}}
+	   		</center>
 	    </div>
-
-	<br>
-	<br>
-	<br>
-
+				<br>
+				<br>
+				<br>
 		<div class = "col-sm-3">
-<br>
-  <center><input class="btn btn-default" type=submit value=Add Attribute></center>
-  <br>
-                <center>
-                      <a class="btn btn-default" href="{{ url_for('create_space')}}">
-                        Create Space
-                      </a>
-                </center>
-</div>
-</form>
-
+				<br>
+ 			<center>
+ 				<input class="btn btn-default" type=submit value=Add Attribute>
+ 			</center>
+  				<br>
+            <center>
+                  <a class="btn btn-default" href="{{ url_for('create_space')}}">
+                    Create Space
+                  </a>
+            </center>
+		</div>
+	</form>
 </div>
 
 {% endblock %}
