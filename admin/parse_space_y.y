@@ -88,8 +88,6 @@ yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, const char* ms
 %type <type> type
 %type <attr> attribute
 %type <ret> attribute_list
-%type <str> pindex
-%type <str> sindex
 
 %union
 {
@@ -106,7 +104,7 @@ yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, const char* ms
 
 %%
 
-space : SPACE name key ATTRIBUTES attribute_list pindices subspaces options
+space : SPACE name key ATTRIBUTES attribute_list subspaces options
       | SPACE name key options
 
 name : IDENTIFIER { hyperspace_set_name(space, $1); free($1); }
@@ -119,25 +117,13 @@ attribute_list : attribute                    { hyperspace_add_attribute(space, 
 attribute : IDENTIFIER      { $$.name = $1; $$.type = HYPERDATATYPE_STRING; }
           | type IDENTIFIER { $$.name = $2; $$.type = $1; }
 
-pindices :
-         | PINDEX pindex
-
-pindex : IDENTIFIER            { hyperspace_primary_index(space, $1); free($1); }
-       | pindex ',' IDENTIFIER { hyperspace_primary_index(space, $3); free($3); }
-
 subspaces :
           | subspaces subspace
 
-subspace : SUBSPACE sattrs sindices
+subspace : SUBSPACE sattrs
 
 sattrs : IDENTIFIER            { hyperspace_add_subspace(space); hyperspace_add_subspace_attribute(space, $1); free($1); }
        | sattrs ',' IDENTIFIER { hyperspace_add_subspace_attribute(space, $3); free($3); }
-
-sindices :
-         | SINDEX sindex
-
-sindex : IDENTIFIER            { hyperspace_add_secondary_index(space, $1); free($1); }
-       | sindex ',' IDENTIFIER { hyperspace_add_secondary_index(space, $3); free($3); }
 
 options :                { }
         | options option { }

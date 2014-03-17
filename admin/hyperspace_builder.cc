@@ -69,12 +69,10 @@ class hypersubspace
 
     public:
         std::vector<const char*> attrs;
-        std::vector<const char*> sindices;
 };
 
 hypersubspace :: hypersubspace()
     : attrs()
-    , sindices()
 {
 }
 
@@ -106,7 +104,6 @@ class hyperspace
         const char* name;
         attribute key;
         std::vector<attribute> attributes;
-        std::vector<const char*> pindices;
         std::vector<hypersubspace> subspaces;
         uint64_t fault_tolerance;
         uint64_t partitions;
@@ -123,7 +120,6 @@ hyperspace :: hyperspace()
     , name(NULL)
     , key()
     , attributes()
-    , pindices()
     , subspaces()
     , fault_tolerance(2)
     , partitions(256)
@@ -388,37 +384,6 @@ hyperspace_add_attribute(hyperspace* space,
 }
 
 HYPERDEX_API enum hyperspace_returncode
-hyperspace_primary_index(hyperspace* space, const char* attr)
-{
-    if (strcmp(space->key.name, attr) == 0)
-    {
-        snprintf(space->buffer, BUFFER_SIZE, "cannot create primary index on \"%s\" because it is the key", attr);
-        space->buffer[BUFFER_SIZE - 1] = '\0';
-        space->error = space->buffer;
-        return HYPERSPACE_IS_KEY;
-    }
-
-    if (!space->has_attr(attr))
-    {
-        snprintf(space->buffer, BUFFER_SIZE, "cannot create primary index on \"%s\" because there is no attribute by that name", attr);
-        space->buffer[BUFFER_SIZE - 1] = '\0';
-        space->error = space->buffer;
-        return HYPERSPACE_UNKNOWN_ATTR;
-    }
-
-    if (!datatype_info::lookup(space->attr_type(attr))->indexable())
-    {
-        snprintf(space->buffer, BUFFER_SIZE, "cannot create primary index on \"%s\" because the type is not indexable", attr);
-        space->buffer[BUFFER_SIZE - 1] = '\0';
-        space->error = space->buffer;
-        return HYPERSPACE_UNINDEXABLE;
-    }
-
-    space->pindices.push_back(space->internalize(attr));
-    return HYPERSPACE_SUCCESS;
-}
-
-HYPERDEX_API enum hyperspace_returncode
 hyperspace_add_subspace(hyperspace* space)
 {
     space->subspaces.push_back(hypersubspace());
@@ -464,48 +429,6 @@ hyperspace_add_subspace_attribute(hyperspace* space, const char* attr)
     }
 
     space->subspaces.back().attrs.push_back(space->internalize(attr));
-    return HYPERSPACE_SUCCESS;
-}
-
-HYPERDEX_API enum hyperspace_returncode
-hyperspace_add_secondary_index(hyperspace* space, const char* attr)
-{
-    if (space->subspaces.empty())
-    {
-        snprintf(space->buffer, BUFFER_SIZE, "cannot add attribute to subspace, because there is no subspace");
-        space->buffer[BUFFER_SIZE - 1] = '\0';
-        space->error = space->buffer;
-        return HYPERSPACE_NO_SUBSPACE;
-    }
-
-    if (strcmp(space->key.name, attr) == 0)
-    {
-        snprintf(space->buffer, BUFFER_SIZE, "cannot create secondary index on \"%s\" because it is the key", attr);
-        space->buffer[BUFFER_SIZE - 1] = '\0';
-        space->error = space->buffer;
-        return HYPERSPACE_IS_KEY;
-    }
-
-    if (!space->has_attr(attr))
-    {
-        snprintf(space->buffer, BUFFER_SIZE, "cannot create secondary index on \"%s\" because there is no attribute by that name", attr);
-        space->buffer[BUFFER_SIZE - 1] = '\0';
-        space->error = space->buffer;
-        return HYPERSPACE_UNKNOWN_ATTR;
-    }
-
-    for (size_t i = 0; i < space->subspaces.back().sindices.size(); ++i)
-    {
-        if (strcmp(space->subspaces.back().sindices[i], attr) == 0)
-        {
-            snprintf(space->buffer, BUFFER_SIZE, "cannot create secondary index on \"%s\" because it is already indexed", attr);
-            space->buffer[BUFFER_SIZE - 1] = '\0';
-            space->error = space->buffer;
-            return HYPERSPACE_DUPLICATE;
-        }
-    }
-
-    space->subspaces.back().sindices.push_back(space->internalize(attr));
     return HYPERSPACE_SUCCESS;
 }
 
@@ -570,13 +493,6 @@ hyperdex :: space_to_space(hyperspace* in, hyperdex::space* out)
     sp.subspaces.push_back(subspace());
     sp.subspaces.back().attrs.push_back(0);
 
-    for (size_t i = 0; i < in->pindices.size(); ++i)
-    {
-        uint16_t attr = sc.lookup_attr(in->pindices[i]);
-        assert(attr < sc.attrs_sz);
-        sp.subspaces.back().indices.push_back(attr);
-    }
-
     for (size_t i = 0; i < in->subspaces.size(); ++i)
     {
         if (in->subspaces[i].attrs.empty())
@@ -591,13 +507,6 @@ hyperdex :: space_to_space(hyperspace* in, hyperdex::space* out)
             uint16_t attr = sc.lookup_attr(in->subspaces[i].attrs[j]);
             assert(attr < sc.attrs_sz);
             sp.subspaces.back().attrs.push_back(attr);
-        }
-
-        for (size_t j = 0; j < in->subspaces[i].sindices.size(); ++j)
-        {
-            uint16_t attr = sc.lookup_attr(in->subspaces[i].sindices[j]);
-            assert(attr < sc.attrs_sz);
-            sp.subspaces.back().indices.push_back(attr);
         }
     }
 

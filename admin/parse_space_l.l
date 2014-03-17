@@ -100,8 +100,6 @@ struct hyperdex_admin_space_keyword hyperdex_admin_space_keywords[] = {
     {CREATE, "create"},
     {PARTITIONS, "partitions"},
     {PARTITIONS, "partition"},
-    {PINDEX, "primary_index"},
-    {SINDEX, "secondary_index"},
     {SUBSPACE, "subspace"},
     {STRING, "string"},
     {INT64, "int"},
