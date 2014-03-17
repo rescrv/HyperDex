@@ -335,6 +335,21 @@ daemon :: run(bool daemonize,
         return EXIT_FAILURE;
     }
 
+    uint64_t checkpoint = 0;
+    uint64_t checkpoint_stable = 0;
+    uint64_t checkpoint_gc = 0;
+
+    if (!m_coord.initialize_checkpoints(&checkpoint, &checkpoint_stable, &checkpoint_gc))
+    {
+        LOG(ERROR) << "could not initialize our session with the coordinator; shutting down";
+        return EXIT_FAILURE;
+    }
+
+    LOG(INFO) << "starting checkpoint process with"
+              << " checkpoint=" << checkpoint
+              << " checkpoint_stable=" << checkpoint_stable
+              << " checkpoint_gc=" << checkpoint_gc;
+
     determine_block_stat_path(data);
     m_comm.setup(bind_to, threads);
     m_repl.setup();
@@ -353,9 +368,6 @@ daemon :: run(bool daemonize,
     alarm(ALARM_INTERVAL);
     bool cluster_jump = false;
     bool requested_exit = false;
-    uint64_t checkpoint = 0;
-    uint64_t checkpoint_stable = 0;
-    uint64_t checkpoint_gc = 0;
 
     while (__sync_fetch_and_add(&s_interrupts, 0) < 2 &&
            !m_coord.should_exit())

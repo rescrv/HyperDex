@@ -157,6 +157,7 @@ coordinator :: coordinator()
     , m_checkpoint_gc_through(0)
     , m_checkpoint_stable_barrier()
     , m_latest_config()
+    , m_response()
 {
     assert(m_config_ack_through == m_config_ack_barrier.min_version());
     assert(m_config_stable_through == m_config_stable_barrier.min_version());
@@ -825,6 +826,19 @@ coordinator :: checkpoint_stable(replicant_state_machine_context* ctx,
     m_checkpoint_stable_barrier.pass(number, sid);
     check_checkpoint_stable_condition(ctx);
     generate_response(ctx, COORD_SUCCESS);
+}
+
+void
+coordinator :: checkpoints(replicant_state_machine_context* ctx)
+{
+    const size_t sz = sizeof(uint16_t) + 3 * sizeof(uint64_t);
+    m_response.reset(e::buffer::create(sz));
+    uint8_t* ptr = m_response->data();
+    ptr = e::pack16be(COORD_SUCCESS, ptr);
+    ptr = e::pack64be(m_checkpoint, ptr);
+    ptr = e::pack64be(m_checkpoint_stable_through, ptr);
+    ptr = e::pack64be(m_checkpoint_gc_through, ptr);
+    replicant_state_machine_set_response(ctx, reinterpret_cast<const char*>(m_response->data()), sz);
 }
 
 void

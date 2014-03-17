@@ -434,6 +434,15 @@ hyperdex_coordinator_checkpoint_stable(struct replicant_state_machine_context* c
 }
 
 void
+hyperdex_coordinator_checkpoints(struct replicant_state_machine_context* ctx,
+                                 void* obj, const char*, size_t)
+{
+    PROTECT_UNINITIALIZED;
+    coordinator* c = static_cast<coordinator*>(obj);
+    c->checkpoints(ctx);
+}
+
+void
 hyperdex_coordinator_alarm(struct replicant_state_machine_context* ctx,
                            void* obj, const char*, size_t)
 {

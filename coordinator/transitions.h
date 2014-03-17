@@ -80,6 +80,7 @@ TRANSITION(transfer_go_live);
 TRANSITION(transfer_complete);
 
 TRANSITION(checkpoint_stable);
+TRANSITION(checkpoints);
 
 TRANSITION(alarm);
 

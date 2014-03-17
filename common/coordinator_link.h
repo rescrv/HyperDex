@@ -79,6 +79,7 @@ class coordinator_link
         int64_t wait(const char* cond, uint64_t state,
                      replicant_returncode* status);
         int64_t loop(int timeout, replicant_returncode* status);
+        void enqueue_response(int64_t id) { m_pending_ids.push_back(id); }
         uint64_t queued_responses() { return m_pending_ids.size(); }
         e::error error() { return m_repl.last_error(); }
 

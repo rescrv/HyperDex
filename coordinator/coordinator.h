@@ -120,6 +120,7 @@ class coordinator
                                const server_id& sid,
                                uint64_t config,
                                uint64_t number);
+        void checkpoints(replicant_state_machine_context* ctx);
 
     // alarm
     public:
@@ -217,6 +218,7 @@ class coordinator
         server_barrier m_checkpoint_stable_barrier;
         // cached config
         std::auto_ptr<e::buffer> m_latest_config;
+        std::auto_ptr<e::buffer> m_response;
 
     private:
         coordinator(const coordinator&);
