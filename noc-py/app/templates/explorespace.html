@@ -29,13 +29,22 @@ POSSIBILITY OF SUCH DAMAGE. -->
 {% block content %}
 
 <div class="container">
+    <h1>Explore {{space}}</h1>
+        <table class="table table-hover">
+            <thead>
+                {% for key in keys %}
+                <th>{{key}}</th>
+                {% endfor %}
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                {{row|safe}}
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>    
 
-<h1>Explore {{space}}</h1>
-
-{% for result in results %}
-{{result}}
-<br>
-{% endfor %}
 
 </div>
 

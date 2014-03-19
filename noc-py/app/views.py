@@ -146,7 +146,20 @@ def create_space():
 def explore_space(space):
     space = space.encode('utf-8')
     results = hyperclient.getall(space)
-    print results
+    try:
+        keys = results[1].keys()
+        keys.sort()
+        rows = []
+        for result in results:
+            row = ''
+            for key in keys:
+                row = row + "<td>" + str(result[key]) + "</td>"
+            rows.append(''.join(row))
+    except IndexError:
+        keys = ['None']
+        rows = ['']
+
     return render_template('explorespace.html',
-        results=results, 
+        keys=keys,
+        rows=rows, 
         space = space)

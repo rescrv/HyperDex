@@ -4,6 +4,14 @@
 		"selected_items":
 		[
 			[
+				"get",
+				"gettextsearch"
+			],
+			[
+				"delete",
+				"delete_doctype"
+			],
+			[
 				"check",
 				"checknodestatus"
 			],
@@ -67,6 +75,22 @@
 	},
 	"buffers":
 	[
+		{
+			"file": "app/views.py",
+			"settings":
+			{
+				"buffer_size": 5590,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "app/templates/explorespace.html",
+			"settings":
+			{
+				"buffer_size": 2020,
+				"line_ending": "Unix"
+			}
+		}
 	],
 	"build_system": "",
 	"command_palette":
@@ -92,25 +116,52 @@
 	},
 	"file_history":
 	[
-		"/home/pierre/NOC Project/HyperDex/noc-py/app/templates/noc.html",
-		"/home/pierre/NOC Project/HyperDex/noc-py/run.py",
-		"/home/pierre/NOC Project/HyperDex/noc-py/app/views.py",
-		"/home/pierre/NOC Project/HyperDex/noc-py/config.py",
-		"/home/pierre/NOC Project/HyperDex/noc-py/app/forms.py",
-		"/home/pierre/NOC Project/HyperDex/noc-py/app/hyperdexfunc.py",
-		"/home/pierre/NOC Project/HyperDex/noc-py/app/templates/base.html",
-		"/home/pierre/NOC Project/HyperDex/noc-py/app/hyperdex-func.py",
-		"/home/pierre/NOC Project/HyperDex/noc-py/app/__init__.py",
-		"/home/pierre/NOC Project/HyperDex/noc-py/app/templates/index.html",
-		"/home/pierre/NOC Project/HyperDex/noc-py/app/templates/admin.html",
-		"/home/pierre/c4/app/templates/base.html",
-		"/home/pierre/c4/app/templates/index.html",
-		"/home/pierre/c4/app/templates/strats.html",
-		"/home/pierre/c4/app/hyperdexetc",
-		"/home/pierre/c4/config.py",
-		"/home/pierre/c4/run.py",
-		"/home/pierre/c4/app/forms.py",
-		"/home/pierre/c4/app/__init__.py",
+		"/home/pierre/autodd/48/xmls/11705.11706.propectus Southgate.pdf.xml",
+		"/home/pierre/C4/app/views.py",
+		"/home/pierre/C4/app/templates/deals.html",
+		"/home/pierre/C4/app/templates/index.html",
+		"/home/pierre/C4/app/templates/base.html",
+		"/home/pierre/C4/app/hyperadmin.py",
+		"/home/pierre/C4/app/forms.py",
+		"/home/pierre/C4/app/templates/data.html",
+		"/home/pierre/C4/app/templates/charrules.html",
+		"/home/pierre/C4/app/static/jquery.js",
+		"/home/pierre/C4/app/templates/programs.html",
+		"/home/pierre/C4/app/hyperclient.py",
+		"/home/pierre/C4/app/templates/documents.html",
+		"/home/pierre/C4/app/templates/newchar.html",
+		"/home/pierre/C4/app/templates/docpage.html",
+		"/home/pierre/C4/app/templates/rules.html",
+		"/home/pierre/C4/run.py",
+		"/home/pierre/C4/app/pdftohd.py",
+		"/home/pierre/C4/app/templates/dealrules.html",
+		"/home/pierre/Documents/autodd/11705s/xmls/OCR-Brunswick at Attleboro 11705.pdf.xml",
+		"/home/pierre/C4/app/templates/upload.html",
+		"/home/pierre/C4/app/templates/dealdocs.html",
+		"/home/pierre/Documents/autodd/11705s/xmls/OCR-Ken Mar 11705.pdf.xml",
+		"/home/pierre/Documents/autodd/11705s/xmls/OCR-Windermere 11705.pdf.xml",
+		"/home/pierre/Documents/autodd/GNMA 176/xmls/Hickory Creek Pro.pdf.xml",
+		"/home/pierre/C4/app/deskpdftohd.py",
+		"/home/pierre/C4/app/c4fun.py",
+		"/home/pierre/C4/app/multidump.py",
+		"/home/pierre/C4/app/hypfuncs.py",
+		"/home/pierre/C4/app/templates/ocr.html",
+		"/home/pierre/C4/app/templates/duediligence.html",
+		"/home/pierre/C4/config.py",
+		"/home/pierre/C4/app/__init__.py",
+		"/home/pierre/test/upload/app.py",
+		"/home/pierre/test/upload/templates/index.html",
+		"/home/pierre/test/upload/index.html",
+		"/home/pierre/test/upload/__init__.py",
+		"/home/pierre/C4/app/static/css/bootstrap.css",
+		"/home/pierre/C4/app/templates/tables.html",
+		"/home/pierre/C4/app/static/css/bootstrap-theme.css",
+		"/home/pierre/C4/app/static/css/bootstrap-theme.min.css",
+		"/home/pierre/C4/app/templates/admin.html",
+		"/home/pierre/C4/app/hyperdexetc.py",
+		"/home/pierre/hello.sh",
+		"/home/pierre/C4/app/templates/strats.html",
+		"/home/pierre/C4/app/hyperdexetc",
 		"/home/pierre/Documents/autodd/hyperspace.py",
 		"/home/pierre/Documents/autodd/cotuple.py",
 		"/home/pierre/Documents/autodd/11706s/xmls/OCR-clayton oaks 11706.pdf.xml",
@@ -118,7 +169,6 @@
 		"/home/pierre/Documents/autodd/11705er.py",
 		"/home/pierre/Documents/autodd/11706s/OCR-clayton oaks 11706.pdf",
 		"/home/pierre/Documents/autodd/ocred/xmls/OCR-Brentwood Senior 11705.pdf.xml",
-		"/home/pierre/Documents/autodd/11705s/xmls/OCR-Brunswick at Attleboro 11705.pdf.xml",
 		"/home/pierre/Documents/autodd/ocred/xmls/OCR-Lebanon Village 11705.pdf.xml",
 		"/home/pierre/Documents/autodd/ocred/xmls/OCR-Central Nursing 11705.pdf.xml",
 		"/home/pierre/Documents/autodd/ocred/xmls/OCR-Ithica Heights 11705.pdf.xml",
@@ -148,11 +198,78 @@
 	},
 	"find_state":
 	{
-		"case_sensitive": true,
+		"case_sensitive": false,
 		"find_history":
 		[
-			"hyperdexetc",
+			"-md-",
+			"\n<",
+			"-md-",
+			"print",
+			"session",
+			"doctype+",
+			"doctype +",
+			"print",
+			"newspace",
+			"attribute",
+			".encode('utf-8')",
+			"encode('utf-8')",
+			"abs",
+			".data",
+			" = form.",
+			"abs",
+			".encode('utf-8')",
+			"TExt",
+			"rel",
+			"abs",
+			"delete_doctype",
+			"spaces/at",
+			"newdeal",
+			"dealname",
+			"dealrul",
+			"getlett",
+			"deal",
+			"dealname",
+			"Dcoum",
+			"textline",
+			"print",
+			"textbox",
+			"textline",
+			"filenames",
+			"file",
+			"displaydoc",
+			"page",
+			"textline",
+			"figure",
+			"<page",
+			"}}\n",
+			"pdfdata",
+			"hyperadmin",
+			"check",
+			"hyperadmin",
+			"forms",
+			"hyperadmin",
 			"admin",
+			"print",
+			"cache",
+			"'content': page",
+			"encode",
+			"deal",
+			"session['dealname']",
+			"replace",
+			"subprocess",
+			"PDFPa",
+			"PDFRe",
+			"pdfname",
+			"xmlname",
+			"hyperdex",
+			"docprocess",
+			"print",
+			"files",
+			"uploaded_file",
+			"time",
+			".navbar",
+			"padding-top",
+			"brand",
 			"index",
 			"lo",
 			"print",
@@ -196,7 +313,19 @@
 		"regex": false,
 		"replace_history":
 		[
-			"hyperdexfunc",
+			"-sm-",
+			"rule",
+			"",
+			",",
+			":",
+			"rel",
+			"",
+			"Float",
+			"abs",
+			"rel",
+			"'pdfdata'",
+			"dealname",
+			"pdfname",
 			"text",
 			"textline",
 			"textbox",
@@ -217,13 +346,64 @@
 	"groups":
 	[
 		{
+			"selected": 1,
 			"sheets":
 			[
-			]
-		},
-		{
-			"sheets":
-			[
+				{
+					"buffer": 0,
+					"file": "app/views.py",
+					"settings":
+					{
+						"buffer_size": 5590,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4286,
+								4286
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1890.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "app/templates/explorespace.html",
+					"settings":
+					{
+						"buffer_size": 2020,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1914,
+								1914
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/HTML/HTML.tmLanguage",
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 255.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				}
 			]
 		}
 	],
@@ -244,18 +424,11 @@
 				0,
 				1,
 				1
-			],
-			[
-				1,
-				0,
-				2,
-				1
 			]
 		],
 		"cols":
 		[
 			0.0,
-			0.5,
 			1.0
 		],
 		"rows":
@@ -271,7 +444,7 @@
 	},
 	"replace":
 	{
-		"height": 62.0
+		"height": 73.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -298,6 +471,6 @@
 	"show_open_files": false,
 	"show_tabs": true,
 	"side_bar_visible": true,
-	"side_bar_width": 213.0,
+	"side_bar_width": 183.0,
 	"status_bar_visible": true
 }
