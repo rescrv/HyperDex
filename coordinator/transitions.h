@@ -80,6 +80,8 @@ TRANSITION(space_rm);
 TRANSITION(transfer_go_live);
 TRANSITION(transfer_complete);
 
+TRANSITION(migration_complete);
+
 TRANSITION(checkpoint_stable);
 
 TRANSITION(alarm);

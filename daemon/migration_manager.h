@@ -64,7 +64,7 @@ class migration_manager
 
         void migration_ack(const server_id& from,
                            const virtual_server_id& to,
-                           uint64_t mos_id,
+                           region_id rid,
                            uint64_t seq_no,
                            uint16_t result);
 
@@ -108,7 +108,7 @@ class migration_manager
         void kickstarter();
         void shutdown();
 
-        migration_out_state* get_mos(uint64_t out_state_id);
+        migration_out_state* get_mos(region_id rid);
 
     private:
         migration_manager(const migration_manager&);
@@ -125,7 +125,6 @@ class migration_manager
         bool m_shutdown;
         bool m_need_pause;
         bool m_paused;
-        uint64_t m_next_out_state_id;
 };
 
 END_HYPERDEX_NAMESPACE

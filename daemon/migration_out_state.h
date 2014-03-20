@@ -51,14 +51,12 @@ class migration_manager::migration_out_state
         migration_out_state();
         migration_out_state(migration_id mid,
                             space_id sid,
-                            uint64_t out_state_id,
                             region_id rid,
                             std::auto_ptr<datalayer::iterator> iter);
         ~migration_out_state() throw ();
 
     public:
         po6::threads::mutex mtx;
-        uint64_t id;
         uint64_t next_seq_no;
         migration_id mid;
         space_id sid;

@@ -34,6 +34,7 @@ migration :: migration()
     : id()
     , space_from()
     , space_to()
+    , outstanding_regions()
 {
 }
 
@@ -47,6 +48,7 @@ migration :: operator = (const migration& rhs)
     id = rhs.id;
     space_from = rhs.space_from;
     space_to = rhs.space_to;
+    outstanding_regions = rhs.outstanding_regions;
 }
 
 bool migration :: operator < (const migration& rhs) const
@@ -83,7 +85,7 @@ hyperdex :: operator << (std::ostream& lhs, const migration& rhs)
 e::buffer::packer
 hyperdex :: operator << (e::buffer::packer pa, const migration& m)
 {
-    pa = pa << m.space_from << m.space_to;
+    pa = pa << m.space_from << m.space_to << m.outstanding_regions;
     return pa;
 }
 
@@ -91,14 +93,16 @@ e::unpacker
 hyperdex :: operator >> (e::unpacker up, migration& m)
 {
     space_id s_space_from, s_space_to;
-    up >> s_space_from >> s_space_to;
+    std::vector<region_id> outstanding_regions;
+    up >> s_space_from >> s_space_to >> outstanding_regions;
     m.space_from = s_space_from;
     m.space_to = s_space_to;
+    m.outstanding_regions = outstanding_regions;
     return up;
 }
 
 size_t
-hyperdex :: pack_size(const migration&)
+hyperdex :: pack_size(const migration& m)
 {
-    return 2 * sizeof(uint64_t);
+    return 2 * sizeof(uint64_t) + m.outstanding_regions.size() * sizeof(uint64_t);
 }

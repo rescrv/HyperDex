@@ -62,7 +62,7 @@ replication_manager :: pending :: pending(std::auto_ptr<e::buffer> _backing,
     , prev_region()
     , next_region()
     , is_migration_object()
-    , mos_id(0)
+    , rid(region_id())
     , seq_no(0)
     , m_ref(0)
 {
@@ -86,6 +86,6 @@ replication_manager :: pending :: debug_dump()
     LOG(INFO) << "  this_new: " << this_new_region;
     LOG(INFO) << "  next: " << next_region;
     LOG(INFO) << "  is_migration_object: " << is_migration_object;
-    LOG(INFO) << "  mos_id: " << mos_id;
+    LOG(INFO) << "  rid: " << rid;
     LOG(INFO) << "  seq_no: " << seq_no;
 }

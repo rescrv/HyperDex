@@ -101,7 +101,7 @@ class replication_manager
                             const std::vector<attribute_check>& checks,
                             const std::vector<funcall>& funcs,
                             bool is_migration_object,
-                            uint64_t mos_id,
+                            region_id rid,
                             uint64_t seq_no);
         // These are called in response to messages from other hosts.
         void chain_op(const virtual_server_id& from,
@@ -179,7 +179,7 @@ class replication_manager
                                network_returncode ret);
         void respond_for_migration(const virtual_server_id& us,
                                    const server_id& client,
-                                   uint64_t mos_id,
+                                   region_id rid,
                                    uint64_t seq_no,
                                    network_returncode ret);
         // check stability

@@ -51,6 +51,9 @@ class migration
         migration_id id;
         space_id space_from;
         space_id space_to;
+        // This is only used at the coordinator to keep track
+        // of which regions have not been migrated.
+        std::vector<region_id> outstanding_regions;
 };
 
 std::ostream&

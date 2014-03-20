@@ -34,7 +34,6 @@ using hyperdex::migration_manager;
 
 migration_manager :: migration_out_state :: migration_out_state()
     : mtx()
-    , id(1)
     , next_seq_no(1)
     , window()
     , window_sz(1)
@@ -47,9 +46,8 @@ migration_manager :: migration_out_state :: migration_out_state()
 }
 
 migration_manager :: migration_out_state :: migration_out_state(migration_id _mid,
-        space_id _sid, uint64_t _id, region_id _rid, std::auto_ptr<datalayer::iterator> _iter)
+        space_id _sid, region_id _rid, std::auto_ptr<datalayer::iterator> _iter)
     : mtx()
-    , id(_id)
     , next_seq_no(1)
     , window()
     , window_sz(1)

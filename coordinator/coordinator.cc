@@ -761,6 +761,33 @@ coordinator :: transfer_complete(replicant_state_machine_context* ctx,
 }
 
 void
+coordinator :: migration_complete(replicant_state_machine_context* ctx,
+                                  uint64_t version,
+                                  const migration_id& mid,
+                                  const region_id& rid)
+{
+    for (size_t m = 0; m < m_migrations.size(); m++)
+    {
+        if (m_migrations[m].id == mid)
+        {
+            for (size_t r; r < m_migrations[m].outstanding_regions.size(); r++)
+            {
+                if (m_migrations[m].outstanding_regions[r] == rid)
+                {
+                    m_migrations[m].outstanding_regions.erase(m_migrations[m].outstanding_regions.begin() + r);
+                    if (m_migrations[m].outstanding_regions.size() == 0) {
+                        del_migration(m_migrations[m].id);
+                    }
+                    // TODO: do I need to call converge_intent?
+                    generate_next_configuration(ctx);  // TODO: is this an expensive operation?
+                    return generate_response(ctx, COORD_SUCCESS);
+                }
+            }
+        }
+    }
+}
+
+void
 coordinator :: config_get(replicant_state_machine_context* ctx)
 {
     assert(m_cluster != 0 && m_version != 0);
@@ -1665,18 +1692,22 @@ coordinator :: new_migration(replicant_state_machine_context* ctx,
 
     space_id space_to_id = it->second->id;
 
-    m_migrations.push_back(migration(migration_id(m_counter++),
-                           space_from_id, space_to_id));
+    migration mgt(migration_id(m_counter++), space_from_id, space_to_id);
+    m_migrations.push_back(mgt);
+
+    space_ptr s = m_spaces[std::string(space_from)];
+    regions_in_space(s, &mgt.outstanding_regions);
+
     generate_next_configuration(ctx);
 }
 
 migration*
-coordinator :: get_migration(space_id space_from,
-                             space_id space_to)
+coordinator :: get_migration(migration_id mid)
 {
     for (size_t i = 0; i < m_migrations.size(); ++i)
     {
-        if (m_migrations[i].space_from == space_from && m_migrations[i].space_to == space_to)
+        
+        if (m_migrations[i].id == mid)
         {
             return &m_migrations[i];
         }
@@ -1686,12 +1717,11 @@ coordinator :: get_migration(space_id space_from,
 }
 
 void
-coordinator :: del_migration(space_id space_from,
-                             space_id space_to)
+coordinator :: del_migration(migration_id mid)
 {
     for (size_t i = 0; i < m_migrations.size(); ++i)
     {
-        if (m_migrations[i].space_from == space_from && m_migrations[i].space_to == space_to)
+        if (m_migrations[i].id == mid)
         {
             for (size_t j = i + 1; j < m_migrations.size(); ++j)
             {

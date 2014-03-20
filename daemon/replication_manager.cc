@@ -248,7 +248,7 @@ replication_manager :: client_atomic(const server_id& from,
                                       const std::vector<funcall>& funcs)
 {
     request_atomic(from, to, nonce, erase, fail_if_not_found, fail_if_found,
-                  key, checks, funcs, false, 0, 0);
+                   key, checks, funcs, false, region_id(), 0);
 }
 
 void
@@ -262,11 +262,11 @@ replication_manager :: request_atomic(const server_id& from,
                                       const std::vector<attribute_check>& checks,
                                       const std::vector<funcall>& funcs,
                                       bool is_migration_object,
-                                      uint64_t mos_id,
+                                      region_id rid,
                                       uint64_t seq_no)
 {
     #define respond(ret) \
-        if (is_migration_object) { respond_for_migration(to, from, mos_id, seq_no, ret); } \
+        if (is_migration_object) { respond_for_migration(to, from, rid, seq_no, ret); } \
         else { respond_to_client(to, from, nonce, ret); }
 
     if (is_migration_object) {
@@ -322,7 +322,7 @@ replication_manager :: request_atomic(const server_id& from,
     else
     {
         if (!ks->put_from_funcs(sc, ri, seq_id, funcs, from, nonce,
-                                is_migration_object, mos_id, seq_id))
+                                is_migration_object, rid, seq_id))
         {
             respond(NET_OVERFLOW);
             return;
@@ -568,7 +568,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     if (op->client != server_id())
     {
         if (op->is_migration_object) {
-            respond_for_migration(to, op->client, op->mos_id, op->seq_no, NET_SUCCESS);
+            respond_for_migration(to, op->client, op->rid, op->seq_no, NET_SUCCESS);
         } else {
             respond_to_client(to, op->client, op->nonce, NET_SUCCESS);
         }
@@ -909,7 +909,7 @@ replication_manager :: respond_to_client(const virtual_server_id& us,
 void
 replication_manager :: respond_for_migration(const virtual_server_id& us,
                                              const server_id& client,
-                                             uint64_t mos_id,
+                                             region_id rid,
                                              uint64_t seq_no,
                                              network_returncode ret)
 {
@@ -921,7 +921,7 @@ replication_manager :: respond_for_migration(const virtual_server_id& us,
                   + sizeof(uint16_t);
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
         uint16_t result = static_cast<uint16_t>(ret);
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << mos_id << seq_no << result;
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << rid << seq_no << result;
         m_daemon->m_comm.send(us, client, RESP_MIGRATION, msg);
     } else {
         LOG(ERROR) << "migration has to originate from a server";

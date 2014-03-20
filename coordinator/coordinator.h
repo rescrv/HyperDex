@@ -68,14 +68,6 @@ class coordinator
         void read_only(replicant_state_machine_context* ctx, bool ro);
         void fault_tolerance(replicant_state_machine_context* ctx,
                              const char* space, uint64_t consistency);
-        // migrations
-        void new_migration(replicant_state_machine_context* ctx,
-                                 const char* space_from,
-                                 const char* space_to);
-        migration* get_migration(space_id space_from,
-                                 space_id space_to);
-        void del_migration(space_id space_from,
-                           space_id space_to);
 
     // server management
     public:
@@ -111,6 +103,16 @@ class coordinator
         void transfer_complete(replicant_state_machine_context* ctx,
                                uint64_t version,
                                const transfer_id& xid);
+
+    // migrations management
+    public:
+        void migration_complete(replicant_state_machine_context* ctx,
+                                uint64_t version,
+                                const migration_id& mid,
+                                const region_id& rid);
+        void new_migration(replicant_state_machine_context* ctx,
+                           const char* space_from,
+                           const char* space_to);
 
     // config management
     public:
@@ -182,6 +184,9 @@ class coordinator
         transfer* get_transfer(const region_id& rid);
         transfer* get_transfer(const transfer_id& xid);
         void del_transfer(const transfer_id& xid);
+        // migrations
+        migration* get_migration(migration_id mid);
+        void del_migration(migration_id mid);
         // configuration
         void check_ack_condition(replicant_state_machine_context* ctx);
         void check_stable_condition(replicant_state_machine_context* ctx);

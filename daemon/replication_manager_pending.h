@@ -74,7 +74,7 @@ class hyperdex::replication_manager::pending
 
         // Migration-related stuff
         bool is_migration_object;
-        uint64_t mos_id;
+        region_id rid;
         uint64_t seq_no;
 
     private:

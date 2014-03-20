@@ -59,7 +59,6 @@ migration_manager :: migration_manager(daemon* d)
     , m_shutdown(true)
     , m_need_pause(false)
     , m_paused(false)
-    , m_next_out_state_id(1)
 {
 }
 
@@ -121,6 +120,7 @@ migration_manager :: reconfigure(const configuration&,
     std::vector<migration> migrations_out;
     new_config.migrations_out(sid, &migrations_out);
     std::sort(migrations_out.begin(), migrations_out.end());
+    LOG(INFO) << "We are getting " << migrations_out.size() << " migration objects.";
     setup_migration_state(migrations_out, &m_migrations_out);
 
     // std::vector<region_id> regions;
@@ -182,7 +182,6 @@ migration_manager :: setup_migration_state(const std::vector<hyperdex::migration
                     e::intrusive_ptr<migration_out_state> ptr(
                         new migration_out_state(migrations[m_idx].id,
                                                 migrations[m_idx].space_to,
-                                                m_next_out_state_id++,
                                                 rid,
                                                 iter));
                     tmp.push_back(ptr);
@@ -215,7 +214,6 @@ migration_manager :: setup_migration_state(const std::vector<hyperdex::migration
                 e::intrusive_ptr<migration_out_state> ptr(
                     new migration_out_state(migrations[m_idx].id,
                                             migrations[m_idx].space_to,
-                                            m_next_out_state_id++,
                                             rid,
                                             iter));
                 tmp.push_back(ptr);
@@ -226,7 +224,7 @@ migration_manager :: setup_migration_state(const std::vector<hyperdex::migration
     
     while (ms_idx < migration_states->size())
     {
-        LOG(INFO) << "ending migration out state" << (*migration_states)[ms_idx]->mid;
+        // LOG(INFO) << "ending migration out state" << (*migration_states)[ms_idx]->mid;
         ++ms_idx;
     }
 
@@ -257,9 +255,9 @@ migration_manager :: migrate_more_state(migration_out_state* mos)
         mos->iter->next();
     }
 
-    // TODO: Take a look at the corresponding method in state_transfer_manager.
-    // You might need to inform the coordinator about the completion of the
-    // migration.
+    if (mos->window.empty()) {
+        m_daemon->m_coord.migration_complete(mos->mid, mos->rid);
+    }
 }
 
 void
@@ -282,16 +280,14 @@ migration_manager :: send_object(migration_out_state* mos, pending* op)
     std::vector<attribute_check> checks;
     funcs.reserve(op->value.size());
 
-    for (size_t j = 0; j < op->value.size(); ++j)
+    for (size_t j = 1; j <= op->value.size(); ++j)
     {
-        uint16_t attrnum = j;
-
-        hyperdatatype datatype = sc->attrs[attrnum + 1].type;
+        hyperdatatype datatype = sc->attrs[j].type;
 
         funcall o;
-        o.attr = attrnum + 1;
+        o.attr = j;
         o.name = FUNC_SET;
-        o.arg1 = op->value[j];
+        o.arg1 = op->value[j - 1];
         o.arg1_datatype = datatype;
         funcs.push_back(o);
     }
@@ -301,12 +297,12 @@ migration_manager :: send_object(migration_out_state* mos, pending* op)
               + sizeof(uint8_t)
               + pack_size(checks)
               + pack_size(funcs)
-              + sizeof(uint64_t) // mos_id
+              + sizeof(region_id)
               + sizeof(uint64_t); // seq_no
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     uint8_t flags = (0 | 0 | 128);
     msg->pack_at(HYPERDEX_HEADER_SIZE_SV)
-        << op->key << flags << checks << funcs << mos->id << op->seq_no;
+        << op->key << flags << checks << funcs << mos->rid << op->seq_no;
     m_daemon->m_comm.send(to, REQ_MIGRATION, msg);
     // TODO: do we need this here? m_daemon->m_comm.wake_one();
 }
@@ -314,15 +310,15 @@ migration_manager :: send_object(migration_out_state* mos, pending* op)
 void
 migration_manager :: migration_ack(const server_id& from,
                                    const virtual_server_id& to,
-                                   uint64_t mos_id,
+                                   region_id rid,
                                    uint64_t seq_no,
                                    uint16_t result)
 {
-    migration_out_state* mos = get_mos(mos_id);
+    migration_out_state* mos = get_mos(rid);
 
     if (!mos)
     {
-        LOG(INFO) << "dropping RESP_MIGRATION for " << mos_id << " which we don't know about";
+        LOG(INFO) << "dropping RESP_MIGRATION for " << rid << " which we don't know about";
         return;
     }
 
@@ -360,11 +356,11 @@ migration_manager :: migration_ack(const server_id& from,
 }
 
 migration_manager::migration_out_state*
-migration_manager :: get_mos(uint64_t out_state_id)
+migration_manager :: get_mos(region_id rid)
 {
     for (size_t i = 0; i < m_migrations_out.size(); ++i)
     {
-        if (m_migrations_out[i]->id == out_state_id)
+        if (m_migrations_out[i]->rid == rid)
         {
             return m_migrations_out[i].get();
         }

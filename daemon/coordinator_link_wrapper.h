@@ -69,6 +69,8 @@ class coordinator_link_wrapper
     public:
         void transfer_go_live(const transfer_id& id);
         void transfer_complete(const transfer_id& id);
+        void migration_complete(const migration_id& mid,
+                                const region_id& rid);
         void report_tcp_disconnect(const server_id& id);
         void config_ack(uint64_t version);
         void config_stable(uint64_t version);

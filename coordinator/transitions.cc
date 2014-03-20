@@ -448,6 +448,22 @@ hyperdex_coordinator_transfer_complete(struct replicant_state_machine_context* c
 }
 
 void
+hyperdex_coordinator_migration_complete(struct replicant_state_machine_context* ctx,
+                                        void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    migration_id mid;
+    region_id rid;
+    uint64_t version;
+    e::unpacker up(data, data_sz);
+    up = up >> mid >> rid >> version;
+    CHECK_UNPACK(migration_complete);
+    c->migration_complete(ctx, version, mid, rid);
+}
+
+void
 hyperdex_coordinator_checkpoint_stable(struct replicant_state_machine_context* ctx,
                                        void* obj, const char* data, size_t data_sz)
 {

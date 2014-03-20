@@ -281,7 +281,7 @@ replication_manager :: key_state :: put_from_funcs(const schema& sc,
                                                    const std::vector<funcall>& funcs,
                                                    const server_id& client, uint64_t nonce,
                                                    bool is_migration_object,
-                                                   uint64_t mos_id,
+                                                   region_id rid,
                                                    uint64_t seq_no)
 {
     bool has_old_value = false;
@@ -307,7 +307,7 @@ replication_manager :: key_state :: put_from_funcs(const schema& sc,
                      0, virtual_server_id());
 
     op->is_migration_object = is_migration_object;
-    op->mos_id = mos_id;
+    op->rid = rid;
     op->seq_no = seq_no;
 
     if (funcs_passed == funcs.size())

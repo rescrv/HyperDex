@@ -776,9 +776,9 @@ void daemon :: process_req_migration(server_id from,
     e::slice key;
     std::vector<attribute_check> checks;
     std::vector<funcall> funcs;
-    uint64_t mos_id;
+    region_id rid;
     uint64_t seq_no;
-    up = up >> key >> flags >> checks >> funcs >> mos_id >> seq_no;
+    up = up >> key >> flags >> checks >> funcs >> rid >> seq_no;
 
     if (up.error())
     {
@@ -789,7 +789,7 @@ void daemon :: process_req_migration(server_id from,
     bool erase = !(flags & 128);
     bool fail_if_not_found = flags & 1;
     bool fail_if_found = flags & 2;
-    m_repl.request_atomic(from, vto, 0, erase, fail_if_not_found, fail_if_found, key, checks, funcs, true, mos_id, seq_no);
+    m_repl.request_atomic(from, vto, 0, erase, fail_if_not_found, fail_if_found, key, checks, funcs, true, rid, seq_no);
 }
 
 void daemon :: process_resp_migration(server_id from,
@@ -798,11 +798,11 @@ void daemon :: process_resp_migration(server_id from,
                                       std::auto_ptr<e::buffer> msg,
                                       e::unpacker up)
 {
-    uint64_t mos_id;
+    region_id rid;
     uint64_t seq_no;
     uint16_t result;
-    up = up >> mos_id >> seq_no >> result;
-    m_mm.migration_ack(from, vto, mos_id, seq_no, result);
+    up = up >> rid >> seq_no >> result;
+    m_mm.migration_ack(from, vto, rid, seq_no, result);
 }
 
 void
