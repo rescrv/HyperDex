@@ -92,8 +92,10 @@ datatype_int64 :: apply(const e::slice& old_value,
     for (size_t i = 0; i < funcs_sz; ++i)
     {
         const funcall* func = funcs + i;
-        int64_t arg;
-        e::unpack64le(func->arg1.data(), &arg);
+        int64_t arg = 0;
+        if (func->arg1.size() == sizeof(int64_t)) {
+            e::unpack64le(func->arg1.data(), &arg);
+        }
 
         switch (func->name)
         {
