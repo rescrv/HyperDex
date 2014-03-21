@@ -117,11 +117,12 @@ migration_manager :: reconfigure(const configuration&,
         }
     }
 
-    std::vector<migration> migrations_out;
-    new_config.migrations_out(sid, &migrations_out);
-    std::sort(migrations_out.begin(), migrations_out.end());
-    LOG(INFO) << "We are getting " << migrations_out.size() << " migration objects.";
-    setup_migration_state(migrations_out, &m_migrations_out);
+    std::vector<migration> migrations;
+    new_config.migrations_out(sid, &migrations);
+    std::sort(migrations.begin(), migrations.end());
+    LOG(INFO) << "We are getting " << migrations.size() << " migration objects.";
+    setup_migration_state(migrations, &m_migrations_out);
+    LOG(INFO) << "and " << m_migrations_out.size() << " migration_out objects.";
 
     // std::vector<region_id> regions;
     // new_config.mapped_regions(sid, &regions);
@@ -161,7 +162,9 @@ migration_manager :: setup_migration_state(const std::vector<hyperdex::migration
         if (migrations[m_idx].id == (*migration_states)[ms_idx]->mid)
         {
             tmp.push_back((*migration_states)[ms_idx]);
-            ++m_idx;
+            // TODO: commenting out the following line seems to fix the
+            // bug, but check the correctness of this method again.
+            // ++m_idx;
             ++ms_idx;
         }
         else if (migrations[m_idx].id < (*migration_states)[ms_idx]->mid)

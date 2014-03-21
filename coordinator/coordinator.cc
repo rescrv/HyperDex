@@ -770,7 +770,7 @@ coordinator :: migration_complete(replicant_state_machine_context* ctx,
     {
         if (m_migrations[m].id == mid)
         {
-            for (size_t r; r < m_migrations[m].outstanding_regions.size(); r++)
+            for (size_t r = 0; r < m_migrations[m].outstanding_regions.size(); r++)
             {
                 if (m_migrations[m].outstanding_regions[r] == rid)
                 {
@@ -1693,10 +1693,11 @@ coordinator :: new_migration(replicant_state_machine_context* ctx,
     space_id space_to_id = it->second->id;
 
     migration mgt(migration_id(m_counter++), space_from_id, space_to_id);
-    m_migrations.push_back(mgt);
 
     space_ptr s = m_spaces[std::string(space_from)];
     regions_in_space(s, &mgt.outstanding_regions);
+
+    m_migrations.push_back(mgt);
 
     generate_next_configuration(ctx);
 }
