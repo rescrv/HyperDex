@@ -475,10 +475,8 @@ configuration :: point_leader(const char* sname, const e::slice& key) const
 virtual_server_id
 configuration :: point_leader(const space_id& sid, const e::slice& key) const
 {
-    std::cout << "m_spaces.size() = " << m_spaces.size() << std::endl;
     for (size_t s = 0; s < m_spaces.size(); ++s)
     {
-        std::cout << "sid = " << sid << " m_spaces[s].id " << m_spaces[s].id << std::endl;
         if (sid != m_spaces[s].id)
         {
             continue;
@@ -487,7 +485,6 @@ configuration :: point_leader(const space_id& sid, const e::slice& key) const
         uint64_t h;
         hash(m_spaces[s].sc, key, &h);
 
-        std::cout << "m_spaces[s].subspaces[0].regions.size() = " << m_spaces[s].subspaces[0].regions.size() << std::endl;
         for (size_t pl = 0; pl < m_spaces[s].subspaces[0].regions.size(); ++pl)
         {
             if (m_spaces[s].subspaces[0].regions[pl].lower_coord[0] <= h &&
@@ -495,7 +492,6 @@ configuration :: point_leader(const space_id& sid, const e::slice& key) const
             {
                 if (m_spaces[s].subspaces[0].regions[pl].replicas.empty())
                 {
-                    std::cout << "BAD BP1" << std::endl;
                     return virtual_server_id();
                 }
 
@@ -503,11 +499,9 @@ configuration :: point_leader(const space_id& sid, const e::slice& key) const
             }
         }
 
-        std::cout << "BAD BP2" << std::endl;
         abort();
     }
 
-    std::cout << "BAD BP3" << std::endl;
     return virtual_server_id();
 }
 
@@ -673,35 +667,6 @@ configuration :: transfers_out_regions(const server_id& si, std::vector<region_i
 
 void configuration :: migrations_out(const server_id& sid, std::vector<migration>* migrations) const
 {
-    // int counter = 0;
-    // for (size_t m = 0; m < m_migrations.size(); ++m)
-    // {
-    //     const migration& mi(m_migrations[m]);
-    //     for (size_t w = 0; w < m_spaces.size(); ++w)
-    //     {
-    //         const space& s(m_spaces[w]);
-    //         if (s.id == mi.space_from) {
-    //             for (size_t x = 0; x < s.subspaces.size(); ++x)
-    //             {
-    //                 const subspace& ss(s.subspaces[x]);
-    //                 for (size_t y = 0; y < ss.regions.size(); ++y)
-    //                 {
-    //                     const region& r(ss.regions[y]);
-    //                     for (size_t z = 0; z < r.replicas.size(); ++z)
-    //                     {
-    //                         const replica& rr(r.replicas[z]);
-    //                         if (rr.si == sid)
-    //                         {
-    //                             counter++;
-    //                             migrations->push_back(mi);
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-    // std::cout << "added migrations for: " << counter << " times" << std::endl;
     for (size_t m = 0; m < m_migrations.size(); ++m) {
         migrations->push_back(m_migrations[m]);
     }

@@ -269,10 +269,6 @@ replication_manager :: request_atomic(const server_id& from,
         if (is_migration_object) { respond_for_migration(to, from, rid, seq_no, ret); } \
         else { respond_to_client(to, from, nonce, ret); }
 
-    if (is_migration_object) {
-        LOG(INFO) << "preparing to send a migration object";
-    };
-
     if (m_daemon->m_config.read_only())
     {
         respond(NET_READONLY)
