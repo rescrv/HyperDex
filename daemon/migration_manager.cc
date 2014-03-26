@@ -120,24 +120,7 @@ migration_manager :: reconfigure(const configuration&,
     std::vector<migration> migrations;
     new_config.migrations_out(sid, &migrations);
     std::sort(migrations.begin(), migrations.end());
-    LOG(INFO) << "We are getting " << migrations.size() << " migration objects.";
     setup_migration_state(migrations, &m_migrations_out);
-    LOG(INFO) << "and " << m_migrations_out.size() << " migration_out objects.";
-
-    // std::vector<region_id> regions;
-    // new_config.mapped_regions(sid, &regions);
-
-    // std::vector<hyperdex::migration>::iterator m_iter;
-    // for (m_iter = migrations_out.begin(); m_iter != migrations_out.end(); m_iter++) {
-    //     std::vector<hyperdex::region_id>::iterator r_iter;
-    //     for (r_iter = regions.begin(); r_iter != regions.end(); r_iter++) {
-    //         region_id rid = (*r_iter);
-    //         if (new_config.space_of(rid) == (*m_iter).space_from) {
-    //             e::intrusive_ptr<migration_out_state> ptr(new migration_out_state((*m_iter).space_to, rid));
-    //             m_migrations_out.push_back(ptr);
-    //         }
-    //     }
-    // }
 }
 
 void

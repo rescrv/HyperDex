@@ -238,14 +238,14 @@ replication_manager :: debug_dump()
 
 void
 replication_manager :: client_atomic(const server_id& from,
-                                      const virtual_server_id& to,
-                                      uint64_t nonce,
-                                      bool erase,
-                                      bool fail_if_not_found,
-                                      bool fail_if_found,
-                                      const e::slice& key,
-                                      const std::vector<attribute_check>& checks,
-                                      const std::vector<funcall>& funcs)
+                                     const virtual_server_id& to,
+                                     uint64_t nonce,
+                                     bool erase,
+                                     bool fail_if_not_found,
+                                     bool fail_if_found,
+                                     const e::slice& key,
+                                     const std::vector<attribute_check>& checks,
+                                     const std::vector<funcall>& funcs)
 {
     request_atomic(from, to, nonce, erase, fail_if_not_found, fail_if_found,
                    key, checks, funcs, false, region_id(), 0);

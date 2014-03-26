@@ -68,33 +68,6 @@ class migration_manager
                            uint64_t seq_no,
                            uint16_t result);
 
-    // public:
-    //     void handshake_syn(const virtual_server_id& from,
-    //                        const migration_id& xid);
-    //     void handshake_synack(const server_id& from,
-    //                           const virtual_server_id& to,
-    //                           const migration_id& xid,
-    //                           uint64_t timestamp);
-    //     void handshake_ack(const virtual_server_id& from,
-    //                        const migration_id& xid,
-    //                        bool wipe);
-    //     void handshake_wiped(const server_id& from,
-    //                          const virtual_server_id& to,
-    //                          const migration_id& xid);
-    //     void report_wiped(const migration_id& xid);
-    //     void xfer_op(const virtual_server_id& from,
-    //                  const migration_id& xid,
-    //                  uint64_t seq_no,
-    //                  bool has_value,
-    //                  uint64_t version,
-    //                  std::auto_ptr<e::buffer> msg,
-    //                  const e::slice& key,
-    //                  const std::vector<e::slice>& value);
-    //     void xfer_ack(const server_id& from,
-    //                   const virtual_server_id& to,
-    //                   const migration_id& xid,
-    //                   uint64_t seq_no);
-
     private:
         class pending;
         class migration_out_state;
