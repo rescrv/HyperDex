@@ -278,6 +278,12 @@ migration_manager :: send_object(migration_out_state* mos, pending* op)
     virtual_server_id to = m_daemon->m_config.point_leader(mos->sid, op->key);
 
     const schema* sc = m_daemon->m_config.get_schema(op->rid);
+    if (sc == NULL) {
+        // TODO: this happens occationally.  Not sure why.  Possibly because the
+        // related space has been destroyed?
+        LOG(INFO) << "trying to send an object whose region no longer exists.";
+        return;
+    }
     std::vector<funcall> funcs;
     std::vector<attribute_check> checks;
     funcs.reserve(op->value.size());
