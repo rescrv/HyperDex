@@ -281,7 +281,7 @@ read_and_verify_data(const char *space_name, uint64_t num_objects)
     armnod_generator_destroy(digit_gen);
 }
 
-static uint64_t num_objects = 1000;
+static uint64_t num_objects = 100000;
 
 static void
 test0()
@@ -295,8 +295,8 @@ test0()
         FAIL("migration failure: " << status);
     }
 
-    std::cout << "Sleeping for 5 seconds for the migration to complete...\n";
-    usleep(5 * 1000 * 1000);
+    std::cout << "Sleeping for 10 seconds for the migration to complete...\n";
+    usleep(10 * 1000 * 1000);
 
     read_and_verify_data(_space_to_name, num_objects);
 

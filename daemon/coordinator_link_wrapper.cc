@@ -386,7 +386,7 @@ coordinator_link_wrapper :: migration_complete(const migration_id& mid,
     e::intrusive_ptr<coord_rpc> rpc = new coord_rpc();
     rpc->msg << "migration complete id=" << mid << " " << rid;
     make_rpc("migration_complete", buf, 3 * sizeof(uint64_t), rpc);
-    LOG(INFO) << "requesting that " << mid << " " << rid << " complete";
+    // LOG(INFO) << "requesting that " << mid << " " << rid << " complete";
 }
 
 void

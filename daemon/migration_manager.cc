@@ -227,7 +227,6 @@ migration_manager :: setup_migration_state(const std::vector<hyperdex::migration
     
     while (ms_idx < migration_states->size())
     {
-        // LOG(INFO) << "ending migration out state" << (*migration_states)[ms_idx]->mid;
         ++ms_idx;
     }
 
@@ -321,7 +320,10 @@ migration_manager :: migration_ack(const server_id& from,
 
     if (!mos)
     {
-        LOG(INFO) << "dropping RESP_MIGRATION for " << rid << " which we don't know about";
+        // TODO: it seems that sometimes we receive ACK for regions
+        // that have already been completely migrated.  Why is that?
+        // Does that indicate a bug?
+        // LOG(INFO) << "dropping RESP_MIGRATION for " << rid << " which we don't know about.";
         return;
     }
 

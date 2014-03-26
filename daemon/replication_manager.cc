@@ -569,20 +569,14 @@ replication_manager :: chain_ack(const virtual_server_id& from,
             respond_to_client(to, op->client, op->nonce, NET_SUCCESS);
         }
     }
-    else
-    {
-        LOG(INFO) << "Oh well I'm not replying RESP_ATOMIC";
-    }
 
     if (is_head && m_daemon->m_config.version() == op->recv_config_version)
     {
-        LOG(INFO) << "Sending ack to head";
         send_ack(to, op->recv, false, reg_id, seq_id, version, key);
     }
 
     if (op->reg_id == ri)
     {
-        LOG(INFO) << "In the same region";
         bool x;
         x = m_idcol.collect(ri, op->seq_id);
         assert(x);
@@ -909,7 +903,6 @@ replication_manager :: respond_for_migration(const virtual_server_id& us,
                                              uint64_t seq_no,
                                              network_returncode ret)
 {
-    LOG(INFO) << "sending response for a migration object";
     if (m_daemon->m_config.exists(client)) {
         size_t sz = HYPERDEX_HEADER_SIZE_VV
                   + sizeof(uint64_t)
