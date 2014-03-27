@@ -978,12 +978,16 @@ datalayer :: get_from_iterator(const region_id& ri,
                                uint64_t* version,
                                reference* ref)
 {
-    const schema& sc(*m_daemon->m_config.get_schema(ri));
+    const schema *sc = m_daemon->m_config.get_schema(ri);
+    if (sc == NULL) {
+        return INVALID_REGION;
+    }
+
     std::vector<char> scratch;
 
     // create the encoded key
     leveldb::Slice lkey;
-    encode_key(ri, sc.attrs[0].type, iter->key(), &scratch, &lkey);
+    encode_key(ri, sc->attrs[0].type, iter->key(), &scratch, &lkey);
 
     // perform the read
     leveldb::ReadOptions opts;

@@ -71,7 +71,8 @@ class datalayer
             BAD_ENCODING,
             CORRUPTION,
             IO_ERROR,
-            LEVELDB_ERROR
+            LEVELDB_ERROR,
+            INVALID_REGION
         };
         class reference;
         class iterator;

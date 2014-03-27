@@ -229,9 +229,13 @@ migration_manager :: migrate_more_state(migration_out_state* mos)
         ++mos->next_seq_no;
 
         // TODO: can an object has no value?
-        if (m_daemon->m_data.get_from_iterator(mos->rid, mos->iter.get(), &op->key, &op->value, &op->version, &op->vref) != datalayer::SUCCESS)
+        datalayer::returncode rc = m_daemon->m_data.get_from_iterator(mos->rid, mos->iter.get(), &op->key, &op->value, &op->version, &op->vref);
+        if (rc != datalayer::SUCCESS)
         {
-            LOG(ERROR) << "error unpacking value during migration";
+            if (rc == datalayer::INVALID_REGION)
+                LOG(INFO) << "trying to send an object whose region no longer exists.";
+            else
+                LOG(ERROR) << "error unpacking value during migration";
             break;
         }
 
