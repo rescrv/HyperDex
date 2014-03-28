@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -9,7 +9,7 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Replicant nor the names of its contributors may be
+//     * Neither the name of HyperDex nor the names of its contributors may be
 //       used to endorse or promote products derived from this software without
 //       specific prior written permission.
 //
@@ -53,16 +53,15 @@ main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
+    if (ap.args_sz() != 2)
+    {
+        std::cerr << "invalid arguments: expecting exactly two space names\n" << std::endl;
+        ap.usage();
+        return EXIT_FAILURE;
+    }
+
     try
     {
-        if (ap.args_sz() != 2) {
-            std::cerr << "invalid arguments: expecting exactly two space names\n" << std::endl;
-            ap.usage();
-            return EXIT_FAILURE;
-        }
-
-
-
         hyperdex::Admin h(conn.host(), conn.port());
         hyperdex_admin_returncode rrc;
 
@@ -91,7 +90,6 @@ main(int argc, const char* argv[])
             return EXIT_FAILURE;
         }
 
-        std::cout << "migration in process..." << std::endl;
         return EXIT_SUCCESS;
     }
     catch (std::exception& e)
