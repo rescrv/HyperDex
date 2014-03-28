@@ -222,6 +222,37 @@ int64_t hyperdex_admin_list_spaces(struct hyperdex_admin* admin,
 \input{\topdir/api/fragments/c/admin/out_asynccall_spacelist}
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%% migrate_data %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{migrate\_data}}
+\label{api:c:migrate_data}
+\index{migrate\_data!C API}
+\input{\topdir/api/desc/migrate_data}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_admin_migrate_data(struct hyperdex_admin* admin,
+        const char* space_from,
+        const char* space_to,
+        enum hyperdex_admin_returncode* status);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_admin* admin}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_structadmin}
+\item \code{const char* space\_from}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_spacefrom}
+\item \code{const char* space\_to}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_spaceto}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_admin\_returncode* status}\\
+\input{\topdir/api/fragments/c/admin/out_asynccall_adminstatus}
+\end{itemize}
+
 %%%%%%%%%%%%%%%%%%%% server_register %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{server\_register}}

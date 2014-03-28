@@ -70,6 +70,10 @@ class SpaceDescription(object):
     args = (('const char*', 'description'),)
 class SpaceList(object):
     args = (('const char*', 'spaces'),)
+class SpaceFrom(object):
+    args = (('const char*', 'space_from'),)
+class SpaceTo(object):
+    args = (('const char*', 'space_to'),)
 class Token(object):
     args = (('uint64_t', 'token'),)
 class Address(object):
@@ -167,6 +171,7 @@ Admin = [
     Method('add_space', AsyncCall, (SpaceDescription,), (AdminStatus,)),
     Method('rm_space', AsyncCall, (SpaceName,), (AdminStatus,)),
     Method('list_spaces', AsyncCall, (), (AdminStatus, SpaceList)),
+    Method('migrate_data', AsyncCall, (SpaceFrom, SpaceTo), (AdminStatus,)),
     Method('server_register', AsyncCall, (Token, Address), (AdminStatus,)),
     Method('server_online', AsyncCall, (Token,), (AdminStatus,)),
     Method('server_offline', AsyncCall, (Token,), (AdminStatus,)),
