@@ -200,27 +200,23 @@ hyperdex_coordinator_migrate_data(struct replicant_state_machine_context* ctx,
     PROTECT_UNINITIALIZED;
     FILE* log = replicant_state_machine_log_stream(ctx);
     coordinator* c = static_cast<coordinator*>(obj);
+    e::slice space_from;
+    e::slice space_to;
+    e::unpacker up(data, data_sz);
+    up = up >> space_from >> space_to;
+    CHECK_UNPACK(migrate_data);
 
-    char* pos = const_cast<char*>(data);
+    if (space_from.empty() || space_to.empty() ||
+        space_from.data()[space_from.size() - 1] != '\0' ||
+        space_to.data()[space_to.size() - 1] != '\0')
+    {
+        fprintf(log, "received malformed \"migrate_data\" message\n"); \
+        return generate_response(ctx, hyperdex::COORD_MALFORMED); \
+    }
 
-    uint64_t space_from_sz;
-    e::unpacker up_one(pos, sizeof(uint64_t));
-    up_one >> space_from_sz;
-    pos += sizeof(uint64_t);
-    char space_from[space_from_sz + 1];
-    memcpy(space_from, pos, space_from_sz);
-    pos += space_from_sz;
-    space_from[space_from_sz] = '\0';
-
-    uint64_t space_to_sz;
-    e::unpacker up_two(pos, sizeof(uint64_t));
-    up_two >> space_to_sz;
-    pos += sizeof(uint64_t);
-    char space_to[space_to_sz + 1];
-    memcpy(space_to, pos, space_to_sz);
-    space_to[space_to_sz] = '\0';
-
-    c->new_migration(ctx, space_from, space_to);
+    c->new_migration(ctx,
+                     reinterpret_cast<const char*>(space_from.data()),
+                     reinterpret_cast<const char*>(space_to.data()));
 }
 
 void

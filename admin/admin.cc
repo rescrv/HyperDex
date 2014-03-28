@@ -205,22 +205,20 @@ admin :: migrate_data(const char* space_from, const char* space_to,
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "migrate");
-    uint64_t space_from_sz = strlen(space_from);
-    uint64_t space_to_sz = strlen(space_to);
+    uint32_t space_from_sz = strlen(space_from) + 1;
+    uint32_t space_to_sz = strlen(space_to) + 1;
     
     // Pack
-    size_t total_sz = sizeof(uint64_t) * 2 + space_from_sz + space_to_sz;
-    char buf[total_sz];
-    char* pos = buf;
-    e::pack64be(space_from_sz, pos);
-    pos += sizeof(uint64_t);
+    size_t total_sz = sizeof(uint32_t) * 2 + space_from_sz + space_to_sz;
+    std::vector<char> buf(total_sz);
+    char* pos = &buf[0];
+    pos = e::pack64be(space_from_sz, pos);
     memcpy(pos, space_from, space_from_sz);
     pos += space_from_sz;
-    e::pack64be(space_to_sz, pos);
-    pos += sizeof(uint64_t);
+    pos = e::pack64be(space_to_sz, pos);
     memcpy(pos, space_to, space_to_sz);
 
-    int64_t cid = m_coord.rpc("migrate", buf, total_sz,
+    int64_t cid = m_coord.rpc("migrate", &buf[0], total_sz,
                               &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
