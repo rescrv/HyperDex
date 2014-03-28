@@ -50,9 +50,6 @@ enum network_msgtype
     RESP_SEARCH_ITEM    = 35,
     RESP_SEARCH_DONE    = 36,
 
-    REQ_MIGRATION = 37,
-    RESP_MIGRATION = 38,
-
     REQ_SORTED_SEARCH   = 40,
     RESP_SORTED_SEARCH  = 41,
 
@@ -69,6 +66,9 @@ enum network_msgtype
     CHAIN_SUBSPACE  = 65,
     CHAIN_ACK       = 66,
     CHAIN_GC        = 67,
+
+    REQ_MIGRATION = 78,
+    RESP_MIGRATION = 79,
 
     XFER_OP  = 80,
     XFER_ACK = 81,
