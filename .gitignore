@@ -61,6 +61,7 @@
 /hyperdex-initiate-transfer
 /hyperdex-kill
 /hyperdex-list-spaces
+/hyperdex-migrate-data
 /hyperdex-perf-counters
 /hyperdex-raw-backup
 /hyperdex-rm-space
@@ -89,4 +90,3 @@
 /test/search-stress-test
 /test/simple-consistency-stress-test
 /ylwrap
-hyperdex-migrate-data
