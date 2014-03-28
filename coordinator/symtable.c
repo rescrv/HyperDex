@@ -56,11 +56,13 @@ struct replicant_state_machine HYPERDEX_API rsm = {
      {"space_rm", hyperdex_coordinator_space_rm},
      {"transfer_go_live", hyperdex_coordinator_transfer_go_live},
      {"transfer_complete", hyperdex_coordinator_transfer_complete},
+     {"migration_complete", hyperdex_coordinator_migration_complete},
      {"checkpoint_stable", hyperdex_coordinator_checkpoint_stable},
      {"alarm", hyperdex_coordinator_alarm},
      {"read_only", hyperdex_coordinator_read_only},
      {"fault_tolerance", hyperdex_coordinator_fault_tolerance},
      {"checkpoints", hyperdex_coordinator_checkpoints},
+     {"migrate", hyperdex_coordinator_migrate_data},
      {"debug_dump", hyperdex_coordinator_debug_dump},
      {"init", hyperdex_coordinator_init},
      {NULL, NULL}}

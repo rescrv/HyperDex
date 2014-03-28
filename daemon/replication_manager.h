@@ -90,6 +90,18 @@ class replication_manager
                            const e::slice& key,
                            const std::vector<attribute_check>& checks,
                            const std::vector<funcall>& funcs);
+        void request_atomic(const server_id& from,
+                            const virtual_server_id& to,
+                            uint64_t nonce,
+                            bool erase,
+                            bool fail_if_not_found,
+                            bool fail_if_found,
+                            const e::slice& key,
+                            const std::vector<attribute_check>& checks,
+                            const std::vector<funcall>& funcs,
+                            bool is_migration_object,
+                            region_id rid,
+                            uint64_t seq_no);
         // These are called in response to messages from other hosts.
         void chain_op(const virtual_server_id& from,
                       const virtual_server_id& to,
@@ -164,6 +176,11 @@ class replication_manager
                                const server_id& client,
                                uint64_t nonce,
                                network_returncode ret);
+        void respond_for_migration(const virtual_server_id& us,
+                                   const server_id& client,
+                                   region_id rid,
+                                   uint64_t seq_no,
+                                   network_returncode ret);
         // check stability
         bool is_check_needed();
         void check_is_needed();

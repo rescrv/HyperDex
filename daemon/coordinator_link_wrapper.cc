@@ -453,9 +453,24 @@ coordinator_link_wrapper :: transfer_complete(const transfer_id& id)
     e::pack64be(id.get(), buf);
     e::pack64be(version, buf + sizeof(uint64_t));
     e::intrusive_ptr<coord_rpc> rpc = new coord_rpc();
-    rpc->msg << "transver complete id=" << id;
+    rpc->msg << "transfer complete id=" << id;
     make_rpc("transfer_complete", buf, 2 * sizeof(uint64_t), rpc);
     LOG(INFO) << "requesting that " << id << " complete";
+}
+
+void
+coordinator_link_wrapper :: migration_complete(const migration_id& mid,
+                                               const region_id& rid)
+{
+    uint64_t version = m_daemon->m_config.version();
+    char buf[3 * sizeof(uint64_t)];
+    e::pack64be(mid.get(), buf);
+    e::pack64be(rid.get(), buf + sizeof(uint64_t));
+    e::pack64be(version, buf + 2 * sizeof(uint64_t));
+    e::intrusive_ptr<coord_rpc> rpc = new coord_rpc();
+    rpc->msg << "migration complete id=" << mid << " " << rid;
+    make_rpc("migration_complete", buf, 3 * sizeof(uint64_t), rpc);
+    // LOG(INFO) << "requesting that " << mid << " " << rid << " complete";
 }
 
 void

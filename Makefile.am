@@ -139,6 +139,7 @@ noinst_HEADERS += common/schema.h
 noinst_HEADERS += common/serialization.h
 noinst_HEADERS += common/server.h
 noinst_HEADERS += common/transfer.h
+noinst_HEADERS += common/migration.h
 noinst_HEADERS += tools/common.h
 noinst_HEADERS += osx/ieee754.h
 
@@ -202,6 +203,9 @@ noinst_HEADERS += daemon/state_transfer_manager.h
 noinst_HEADERS += daemon/state_transfer_manager_pending.h
 noinst_HEADERS += daemon/state_transfer_manager_transfer_in_state.h
 noinst_HEADERS += daemon/state_transfer_manager_transfer_out_state.h
+noinst_HEADERS += daemon/migration_manager.h
+noinst_HEADERS += daemon/migration_manager_pending.h
+noinst_HEADERS += daemon/migration_out_state.h
 
 EXTRA_DIST += man/hyperdex-daemon.1.md
 EXTRA_DIST += man/hyperdex-daemon.1.h2m
@@ -234,6 +238,7 @@ hyperdex_daemon_SOURCES += common/schema.cc
 hyperdex_daemon_SOURCES += common/serialization.cc
 hyperdex_daemon_SOURCES += common/server.cc
 hyperdex_daemon_SOURCES += common/transfer.cc
+hyperdex_daemon_SOURCES += common/migration.cc
 hyperdex_daemon_SOURCES += cityhash/city.cc
 hyperdex_daemon_SOURCES += daemon/communication.cc
 hyperdex_daemon_SOURCES += daemon/coordinator_link_wrapper.cc
@@ -262,6 +267,9 @@ hyperdex_daemon_SOURCES += daemon/state_transfer_manager.cc
 hyperdex_daemon_SOURCES += daemon/state_transfer_manager_pending.cc
 hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_in_state.cc
 hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_out_state.cc
+hyperdex_daemon_SOURCES += daemon/migration_manager.cc
+hyperdex_daemon_SOURCES += daemon/migration_manager_pending.cc
+hyperdex_daemon_SOURCES += daemon/migration_out_state.cc
 hyperdex_daemon_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
 hyperdex_daemon_LDADD =
 hyperdex_daemon_LDADD += $(E_LIBS)
@@ -311,6 +319,7 @@ libhyperdex_coordinator_la_SOURCES += common/schema.cc
 libhyperdex_coordinator_la_SOURCES += common/serialization.cc
 libhyperdex_coordinator_la_SOURCES += common/server.cc
 libhyperdex_coordinator_la_SOURCES += common/transfer.cc
+libhyperdex_coordinator_la_SOURCES += common/migration.cc
 libhyperdex_coordinator_la_SOURCES += coordinator/coordinator.cc
 libhyperdex_coordinator_la_SOURCES += coordinator/replica_sets.cc
 libhyperdex_coordinator_la_SOURCES += coordinator/server_barrier.cc
@@ -391,6 +400,7 @@ libhyperdex_client_la_SOURCES += common/schema.cc
 libhyperdex_client_la_SOURCES += common/server.cc
 libhyperdex_client_la_SOURCES += common/serialization.cc
 libhyperdex_client_la_SOURCES += common/transfer.cc
+libhyperdex_client_la_SOURCES += common/migration.cc
 libhyperdex_client_la_SOURCES += cityhash/city.cc
 libhyperdex_client_la_SOURCES += client/c.cc
 libhyperdex_client_la_SOURCES += client/client.cc
@@ -478,6 +488,7 @@ libhyperdex_admin_la_SOURCES += common/schema.cc
 libhyperdex_admin_la_SOURCES += common/serialization.cc
 libhyperdex_admin_la_SOURCES += common/server.cc
 libhyperdex_admin_la_SOURCES += common/transfer.cc
+libhyperdex_admin_la_SOURCES += common/migration.cc
 libhyperdex_admin_la_SOURCES += cityhash/city.cc
 libhyperdex_admin_la_SOURCES += admin/admin.cc
 libhyperdex_admin_la_SOURCES += admin/backup_state_machine.cc
@@ -1012,6 +1023,7 @@ hyperdexexec_PROGRAMS += hyperdex-wait-until-stable
 hyperdexexec_PROGRAMS += hyperdex-backup
 hyperdexexec_PROGRAMS += hyperdex-backup-manager
 hyperdexexec_PROGRAMS += hyperdex-raw-backup
+hyperdexexec_PROGRAMS += hyperdex-migrate-data
 hyperdexexec_SCRIPTS += hyperdex-noc
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
@@ -1030,6 +1042,7 @@ dist_man_MANS += man/hyperdex-wait-until-stable.1
 dist_man_MANS += man/hyperdex-backup.1
 dist_man_MANS += man/hyperdex-backup-manager.1
 dist_man_MANS += man/hyperdex-raw-backup.1
+dist_man_MANS += man/hyperdex-migrate-data.1
 endif
 
 # hyperdex
@@ -1197,13 +1210,17 @@ man/hyperdex-raw-backup.1: man/hyperdex-raw-backup.1.h2m tools/raw-backup.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-raw-backup$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-raw-backup$(EXEEXT)
 
+# hyperdex-migrate-data
+EXTRA_DIST += man/hyperdex-migrate-data.1.md
+EXTRA_DIST += man/hyperdex-migrate-data.1.h2m
+hyperdex_migrate_data_SOURCES = tools/migrate-data.cc
+hyperdex_migrate_data_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-migrate-data.1: man/hyperdex-migrate-data.1.h2m tools/migrate-data.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-migrate-data$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-migrate-data$(EXEEXT)
+
 # hyperdex-noc
 EXTRA_DIST += hyperdex-noc
-
-################################################################################
-################################# Documentation ################################
-################################################################################
-
 EXTRA_DIST += noc/css/bootstrap.css
 EXTRA_DIST += noc/css/bootstrap.min.css
 EXTRA_DIST += noc/css/bootstrap-responsive.css

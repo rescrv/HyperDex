@@ -46,6 +46,7 @@
 #include "common/ids.h"
 #include "common/server.h"
 #include "common/transfer.h"
+#include "common/migration.h"
 #include "coordinator/offline_server.h"
 #include "coordinator/region_intent.h"
 #include "coordinator/replica_sets.h"
@@ -104,6 +105,16 @@ class coordinator
         void transfer_complete(replicant_state_machine_context* ctx,
                                uint64_t version,
                                const transfer_id& xid);
+
+    // migrations management
+    public:
+        void migration_complete(replicant_state_machine_context* ctx,
+                                uint64_t version,
+                                const migration_id& mid,
+                                const region_id& rid);
+        void new_migration(replicant_state_machine_context* ctx,
+                           const char* space_from,
+                           const char* space_to);
 
     // config management
     public:
@@ -176,6 +187,9 @@ class coordinator
         transfer* get_transfer(const region_id& rid);
         transfer* get_transfer(const transfer_id& xid);
         void del_transfer(const transfer_id& xid);
+        // migrations
+        migration* get_migration(migration_id mid);
+        void del_migration(migration_id mid);
         // configuration
         void check_ack_condition(replicant_state_machine_context* ctx);
         void check_stable_condition(replicant_state_machine_context* ctx);
@@ -206,6 +220,8 @@ class coordinator
         std::vector<offline_server> m_offline;
         // transfers
         std::vector<transfer> m_transfers;
+        // migrations
+        std::vector<migration> m_migrations;
         // barriers
         uint64_t m_config_ack_through;
         server_barrier m_config_ack_barrier;

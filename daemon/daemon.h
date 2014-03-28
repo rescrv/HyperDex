@@ -51,6 +51,7 @@
 #include "daemon/replication_manager.h"
 #include "daemon/search_manager.h"
 #include "daemon/state_transfer_manager.h"
+#include "daemon/migration_manager.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -74,6 +75,8 @@ class daemon
         void loop(size_t thread);
         void process_req_get(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_atomic(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_req_migration(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_resp_migration(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_search_start(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_search_next(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_search_stop(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
@@ -108,6 +111,7 @@ class daemon
         friend class replication_manager;
         friend class search_manager;
         friend class state_transfer_manager;
+        friend class migration_manager;
 
     private:
         server_id m_us;
@@ -119,11 +123,13 @@ class daemon
         communication m_comm;
         replication_manager m_repl;
         state_transfer_manager m_stm;
+        migration_manager m_mm;
         search_manager m_sm;
         configuration m_config;
         // counters
         performance_counter m_perf_req_get;
         performance_counter m_perf_req_atomic;
+        performance_counter m_perf_req_migration;
         performance_counter m_perf_req_search_start;
         performance_counter m_perf_req_search_next;
         performance_counter m_perf_req_search_stop;
@@ -143,6 +149,7 @@ class daemon
         performance_counter m_perf_xfer_ack;
         performance_counter m_perf_backup;
         performance_counter m_perf_perf_counters;
+        performance_counter m_perf_resp_migration;
         // iostat-like stats
         std::string m_block_stat_path;
         // historical data

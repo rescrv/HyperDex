@@ -57,6 +57,7 @@ class datalayer::iterator
 
     protected:
         friend class e::intrusive_ptr<iterator>;
+        friend class std::auto_ptr<iterator>;
         virtual ~iterator() throw ();
         void inc() { ++m_ref; }
         void dec() { --m_ref; if (m_ref == 0) delete this; }
@@ -64,6 +65,7 @@ class datalayer::iterator
 
     private:
         leveldb_snapshot_ptr m_snap;
+
 };
 
 class datalayer::replay_iterator

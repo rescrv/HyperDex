@@ -54,6 +54,7 @@ using hyperdex::region;
 using hyperdex::region_intent;
 using hyperdex::server;
 using hyperdex::transfer;
+using hyperdex::migration;
 
 // ASSUME:  I'm assuming only one server ever changes state at a time for a
 //          given transition.  If you violate this assumption, fixup
@@ -763,6 +764,33 @@ coordinator :: transfer_complete(replicant_state_machine_context* ctx,
     converge_intent(ctx, reg);
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
+}
+
+void
+coordinator :: migration_complete(replicant_state_machine_context* ctx,
+                                  uint64_t version,
+                                  const migration_id& mid,
+                                  const region_id& rid)
+{
+    for (size_t m = 0; m < m_migrations.size(); m++)
+    {
+        if (m_migrations[m].id == mid)
+        {
+            for (size_t r = 0; r < m_migrations[m].outstanding_regions.size(); r++)
+            {
+                if (m_migrations[m].outstanding_regions[r] == rid)
+                {
+                    m_migrations[m].outstanding_regions.erase(m_migrations[m].outstanding_regions.begin() + r);
+                    if (m_migrations[m].outstanding_regions.size() == 0) {
+                        del_migration(m_migrations[m].id);
+                    }
+                    // TODO: do I need to call converge_intent?
+                    generate_next_configuration(ctx);  // TODO: is this an expensive operation?
+                    return generate_response(ctx, COORD_SUCCESS);
+                }
+            }
+        }
+    }
 }
 
 void
@@ -1657,6 +1685,75 @@ coordinator :: del_transfer(const transfer_id& xid)
 }
 
 void
+coordinator :: new_migration(replicant_state_machine_context* ctx,
+                             const char* space_from,
+                             const char* space_to)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+
+    // Make sure the spaces exist
+    space_map_t::iterator it;
+    it = m_spaces.find(std::string(space_from));
+    if (it == m_spaces.end())
+    {
+        fprintf(log, "could not migrate from space \"%s\" because it doesn't exist\n", space_from);
+        return generate_response(ctx, COORD_NOT_FOUND);
+    }
+
+    space_id space_from_id = it->second->id;
+
+    it = m_spaces.find(std::string(space_to));
+    if (it == m_spaces.end())
+    {
+        fprintf(log, "could not migrate to space \"%s\" because it doesn't exist\n", space_to);
+        return generate_response(ctx, COORD_NOT_FOUND);
+    }
+
+    space_id space_to_id = it->second->id;
+
+    migration mgt(migration_id(m_counter++), space_from_id, space_to_id);
+
+    space_ptr s = m_spaces[std::string(space_from)];
+    regions_in_space(s, &mgt.outstanding_regions);
+
+    m_migrations.push_back(mgt);
+
+    generate_next_configuration(ctx);
+}
+
+migration*
+coordinator :: get_migration(migration_id mid)
+{
+    for (size_t i = 0; i < m_migrations.size(); ++i)
+    {
+        
+        if (m_migrations[i].id == mid)
+        {
+            return &m_migrations[i];
+        }
+    }
+
+    return NULL;
+}
+
+void
+coordinator :: del_migration(migration_id mid)
+{
+    for (size_t i = 0; i < m_migrations.size(); ++i)
+    {
+        if (m_migrations[i].id == mid)
+        {
+            for (size_t j = i + 1; j < m_migrations.size(); ++j)
+            {
+                m_migrations[j - 1] = m_migrations[j];
+            }
+            m_migrations.pop_back();
+            break;
+        }
+    }
+}
+
+void
 coordinator :: check_ack_condition(replicant_state_machine_context* ctx)
 {
     if (m_config_ack_through < m_config_ack_barrier.min_version())
@@ -1731,12 +1828,18 @@ coordinator :: generate_cached_configuration(replicant_state_machine_context*)
         sz += pack_size(m_transfers[i]);
     }
 
+    for (size_t i = 0; i < m_migrations.size(); ++i)
+    {
+        sz += pack_size(m_migrations[i]);
+    }
+
     std::auto_ptr<e::buffer> new_config(e::buffer::create(sz));
     e::buffer::packer pa = new_config->pack_at(0);
     pa = pa << m_cluster << m_version << m_flags
             << uint64_t(m_servers.size())
             << uint64_t(m_spaces.size())
-            << uint64_t(m_transfers.size());
+            << uint64_t(m_transfers.size())
+            << uint64_t(m_migrations.size());
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
@@ -1752,6 +1855,11 @@ coordinator :: generate_cached_configuration(replicant_state_machine_context*)
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
         pa = pa << m_transfers[i];
+    }
+
+    for (size_t i = 0; i < m_migrations.size(); ++i)
+    {
+        pa = pa << m_migrations[i];
     }
 
     m_latest_config = new_config;

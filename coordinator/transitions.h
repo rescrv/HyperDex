@@ -59,6 +59,7 @@ TRANSITION(init);
 
 TRANSITION(read_only);
 TRANSITION(fault_tolerance);
+TRANSITION(migrate_data);
 
 TRANSITION(config_get);
 TRANSITION(config_ack);
@@ -78,6 +79,8 @@ TRANSITION(space_rm);
 
 TRANSITION(transfer_go_live);
 TRANSITION(transfer_complete);
+
+TRANSITION(migration_complete);
 
 TRANSITION(checkpoint_stable);
 TRANSITION(checkpoints);

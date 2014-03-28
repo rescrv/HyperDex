@@ -45,6 +45,7 @@ using hyperdex::schema;
 using hyperdex::server;
 using hyperdex::server_id;
 using hyperdex::subspace;
+using hyperdex::space_id;
 using hyperdex::subspace_id;
 using hyperdex::virtual_server_id;
 
@@ -66,6 +67,7 @@ configuration :: configuration()
     , m_point_leaders_by_virtual()
     , m_spaces()
     , m_transfers()
+    , m_migrations()
 {
     refill_cache();
 }
@@ -88,6 +90,7 @@ configuration :: configuration(const configuration& other)
     , m_point_leaders_by_virtual(other.m_point_leaders_by_virtual)
     , m_spaces(other.m_spaces)
     , m_transfers(other.m_transfers)
+    , m_migrations(other.m_migrations)
 {
     refill_cache();
 }
@@ -282,6 +285,21 @@ configuration :: get_virtual(const region_id& ri, const server_id& si) const
     return virtual_server_id();
 }
 
+space_id
+configuration :: space_of(const region_id& ri) const
+{
+    subspace_id ssid = subspace_of(ri);
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        {
+            if (m_spaces[s].subspaces[ss].id == ssid) {
+                return m_spaces[s].id;
+            }
+        }
+    }
+}
+
 subspace_id
 configuration :: subspace_of(const region_id& ri) const
 {
@@ -427,6 +445,39 @@ configuration :: point_leader(const char* sname, const e::slice& key) const
     for (size_t s = 0; s < m_spaces.size(); ++s)
     {
         if (strcmp(sname, m_spaces[s].name) != 0)
+        {
+            continue;
+        }
+
+        uint64_t h;
+        hash(m_spaces[s].sc, key, &h);
+
+        for (size_t pl = 0; pl < m_spaces[s].subspaces[0].regions.size(); ++pl)
+        {
+            if (m_spaces[s].subspaces[0].regions[pl].lower_coord[0] <= h &&
+                h <= m_spaces[s].subspaces[0].regions[pl].upper_coord[0])
+            {
+                if (m_spaces[s].subspaces[0].regions[pl].replicas.empty())
+                {
+                    return virtual_server_id();
+                }
+
+                return m_spaces[s].subspaces[0].regions[pl].replicas[0].vsi;
+            }
+        }
+
+        abort();
+    }
+
+    return virtual_server_id();
+}
+
+virtual_server_id
+configuration :: point_leader(const space_id& sid, const e::slice& key) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        if (sid != m_spaces[s].id)
         {
             continue;
         }
@@ -611,6 +662,13 @@ configuration :: transfers_out_regions(const server_id& si, std::vector<region_i
         {
             transfers->push_back(m_transfers[i].rid);
         }
+    }
+}
+
+void configuration :: migrations_out(const server_id& sid, std::vector<migration>* migrations) const
+{
+    for (size_t m = 0; m < m_migrations.size(); ++m) {
+        migrations->push_back(m_migrations[m]);
     }
 }
 
@@ -876,6 +934,11 @@ configuration :: dump() const
         out << m_transfers[i] << std::endl;
     }
 
+    for (size_t i = 0; i < m_migrations.size(); ++i)
+    {
+        out << m_migrations[i] << std::endl;
+    }
+
     return out.str();
 }
 
@@ -917,6 +980,7 @@ configuration :: operator = (const configuration& rhs)
     m_point_leaders_by_virtual = rhs.m_point_leaders_by_virtual;
     m_spaces = rhs.m_spaces;
     m_transfers = rhs.m_transfers;
+    m_migrations = rhs.m_migrations;
     refill_cache();
     return *this;
 }
@@ -1022,9 +1086,11 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
     uint64_t num_servers;
     uint64_t num_spaces;
     uint64_t num_transfers;
+    uint64_t num_migrations;
     up = up >> c.m_cluster >> c.m_version >> c.m_flags
             >> num_servers >> num_spaces
-            >> num_transfers;
+            >> num_transfers >> num_migrations;
+
     c.m_servers.clear();
     c.m_servers.reserve(num_servers);
 
@@ -1053,6 +1119,16 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
         transfer xfer;
         up = up >> xfer;
         c.m_transfers.push_back(xfer);
+    }
+
+    c.m_migrations.clear();
+    c.m_migrations.reserve(num_migrations);
+
+    for (size_t i = 0; !up.error() && i < num_migrations; ++i)
+    {
+        migration m;
+        up = up >> m;
+        c.m_migrations.push_back(m);
     }
 
     c.refill_cache();

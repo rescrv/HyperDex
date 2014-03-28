@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,68 +25,38 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_network_msgtype_h_
-#define hyperdex_common_network_msgtype_h_
+#ifndef hyperdex_daemon_migration_manager_pending_h_
+#define hyperdex_daemon_migration_manager_pending_h_
 
-// C++
-#include <iostream>
+// hyperdex
+#include "daemon/datalayer.h"
+#include "daemon/migration_manager.h"
 
-// HyperDex
-#include "namespace.h"
-
-BEGIN_HYPERDEX_NAMESPACE
-
-enum network_msgtype
+class hyperdex::migration_manager::pending
 {
-    REQ_GET         = 8,
-    RESP_GET        = 9,
+    public:
+        pending();
+        ~pending() throw ();
 
-    REQ_ATOMIC      = 16,
-    RESP_ATOMIC     = 17,
+    public:
+        uint64_t seq_no;
+        region_id rid;
+        uint64_t version;
+        e::slice key;
+        std::vector<e::slice> value;
+        bool acked;
+        std::auto_ptr<e::buffer> msg;
+        datalayer::reference vref;
 
-    REQ_SEARCH_START    = 32,
-    REQ_SEARCH_NEXT     = 33,
-    REQ_SEARCH_STOP     = 34,
-    RESP_SEARCH_ITEM    = 35,
-    RESP_SEARCH_DONE    = 36,
+    private:
+        friend class e::intrusive_ptr<pending>;
 
-    REQ_MIGRATION = 37,
-    RESP_MIGRATION = 38,
+    private:
+        void inc() { ++m_ref; }
+        void dec() { --m_ref; if (m_ref == 0) delete this; }
 
-    REQ_SORTED_SEARCH   = 40,
-    RESP_SORTED_SEARCH  = 41,
-
-    REQ_GROUP_DEL   = 48,
-    RESP_GROUP_DEL  = 49,
-
-    REQ_COUNT       = 50,
-    RESP_COUNT      = 51,
-
-    REQ_SEARCH_DESCRIBE  = 52,
-    RESP_SEARCH_DESCRIBE = 53,
-
-    CHAIN_OP        = 64,
-    CHAIN_SUBSPACE  = 65,
-    CHAIN_ACK       = 66,
-    CHAIN_GC        = 67,
-
-    XFER_OP  = 80,
-    XFER_ACK = 81,
-    XFER_HS  = 82, // handshake syn
-    XFER_HSA = 83, // handshake syn-ack
-    XFER_HA  = 84, // handshake ack
-    XFER_HW  = 85, // wiped
-
-    BACKUP = 126,
-    PERF_COUNTERS = 127,
-
-    CONFIGMISMATCH  = 254,
-    PACKET_NOP      = 255
+    private:
+        size_t m_ref;
 };
 
-std::ostream&
-operator << (std::ostream& lhs, const network_msgtype& rhs);
-
-END_HYPERDEX_NAMESPACE
-
-#endif // hyperdex_common_network_msgtype_h_
+#endif // hyperdex_daemon_migration_manager_pending_h_

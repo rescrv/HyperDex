@@ -109,10 +109,12 @@ daemon :: daemon()
     , m_comm(this)
     , m_repl(this)
     , m_stm(this)
+    , m_mm(this)
     , m_sm(this)
     , m_config()
     , m_perf_req_get()
     , m_perf_req_atomic()
+    , m_perf_req_migration()
     , m_perf_req_search_start()
     , m_perf_req_search_next()
     , m_perf_req_search_stop()
@@ -132,6 +134,7 @@ daemon :: daemon()
     , m_perf_xfer_ack()
     , m_perf_backup()
     , m_perf_perf_counters()
+    , m_perf_resp_migration()
     , m_block_stat_path()
     , m_stat_collector(make_thread_wrapper(&daemon::collect_stats, this))
     , m_protect_stats()
@@ -354,6 +357,7 @@ daemon :: run(bool daemonize,
     m_comm.setup(bind_to, threads);
     m_repl.setup();
     m_stm.setup();
+    m_mm.setup();
     m_sm.setup();
 
     for (size_t i = 0; i < threads; ++i)
@@ -457,6 +461,7 @@ daemon :: run(bool daemonize,
                   << "; pausing all activity while we reconfigure";
         m_sm.pause();
         m_stm.pause();
+        m_mm.pause();
         m_repl.pause();
         m_data.pause();
         m_comm.pause();
@@ -464,12 +469,14 @@ daemon :: run(bool daemonize,
         m_data.reconfigure(old_config, new_config, m_us);
         m_repl.reconfigure(old_config, new_config, m_us);
         m_stm.reconfigure(old_config, new_config, m_us);
+        m_mm.reconfigure(old_config, new_config, m_us);
         m_sm.reconfigure(old_config, new_config, m_us);
         m_config = new_config;
         m_comm.unpause();
         m_data.unpause();
         m_repl.unpause();
         m_stm.unpause();
+        m_mm.unpause();
         m_sm.unpause();
         LOG(INFO) << "reconfiguration complete; resuming normal operation";
 
@@ -507,6 +514,7 @@ daemon :: run(bool daemonize,
 
     m_sm.teardown();
     m_stm.teardown();
+    m_mm.teardown();
     m_repl.teardown();
     m_comm.teardown();
     m_data.teardown();
@@ -573,6 +581,14 @@ daemon :: loop(size_t thread)
             case REQ_ATOMIC:
                 process_req_atomic(from, vfrom, vto, msg, up);
                 m_perf_req_atomic.tap();
+                break;
+            case REQ_MIGRATION:
+                process_req_migration(from, vfrom, vto, msg, up);
+                m_perf_req_migration.tap();
+                break;
+            case RESP_MIGRATION:
+                process_resp_migration(from, vfrom, vto, msg, up);
+                m_perf_resp_migration.tap();
                 break;
             case REQ_SEARCH_START:
                 process_req_search_start(from, vfrom, vto, msg, up);
@@ -645,6 +661,7 @@ daemon :: loop(size_t thread)
             case BACKUP:
                 process_backup(from, vfrom, vto, msg, up);
                 m_perf_backup.tap();
+                break;
             case PERF_COUNTERS:
                 process_perf_counters(from, vfrom, vto, msg, up);
                 m_perf_perf_counters.tap();
@@ -741,6 +758,45 @@ daemon :: process_req_atomic(server_id from,
     bool fail_if_not_found = flags & 1;
     bool fail_if_found = flags & 2;
     m_repl.client_atomic(from, vto, nonce, erase, fail_if_not_found, fail_if_found, key, checks, funcs);
+}
+
+void daemon :: process_req_migration(server_id from,
+                                     virtual_server_id vfrom,
+                                     virtual_server_id vto,
+                                     std::auto_ptr<e::buffer> msg,
+                                     e::unpacker up)
+{
+    uint8_t flags;
+    e::slice key;
+    std::vector<attribute_check> checks;
+    std::vector<funcall> funcs;
+    region_id rid;
+    uint64_t seq_no;
+    up = up >> key >> flags >> checks >> funcs >> rid >> seq_no;
+
+    if (up.error())
+    {
+        LOG(WARNING) << "unpack of REQ_MIGRATION failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    bool erase = !(flags & 128);
+    bool fail_if_not_found = flags & 1;
+    bool fail_if_found = flags & 2;
+    m_repl.request_atomic(from, vto, 0, erase, fail_if_not_found, fail_if_found, key, checks, funcs, true, rid, seq_no);
+}
+
+void daemon :: process_resp_migration(server_id from,
+                                      virtual_server_id vfrom,
+                                      virtual_server_id vto,
+                                      std::auto_ptr<e::buffer> msg,
+                                      e::unpacker up)
+{
+    region_id rid;
+    uint64_t seq_no;
+    uint16_t result;
+    up = up >> rid >> seq_no >> result;
+    m_mm.migration_ack(from, vto, rid, seq_no, result);
 }
 
 void

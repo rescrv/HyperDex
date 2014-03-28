@@ -194,6 +194,36 @@ hyperdex_coordinator_fault_tolerance(struct replicant_state_machine_context* ctx
 }
 
 void
+hyperdex_coordinator_migrate_data(struct replicant_state_machine_context* ctx,
+                                  void *obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+
+    char* pos = const_cast<char*>(data);
+
+    uint64_t space_from_sz;
+    e::unpacker up_one(pos, sizeof(uint64_t));
+    up_one >> space_from_sz;
+    pos += sizeof(uint64_t);
+    char space_from[space_from_sz + 1];
+    memcpy(space_from, pos, space_from_sz);
+    pos += space_from_sz;
+    space_from[space_from_sz] = '\0';
+
+    uint64_t space_to_sz;
+    e::unpacker up_two(pos, sizeof(uint64_t));
+    up_two >> space_to_sz;
+    pos += sizeof(uint64_t);
+    char space_to[space_to_sz + 1];
+    memcpy(space_to, pos, space_to_sz);
+    space_to[space_to_sz] = '\0';
+
+    c->new_migration(ctx, space_from, space_to);
+}
+
+void
 hyperdex_coordinator_config_get(struct replicant_state_machine_context* ctx,
                                 void* obj, const char*, size_t)
 {
@@ -415,6 +445,22 @@ hyperdex_coordinator_transfer_complete(struct replicant_state_machine_context* c
     up = up >> xid >> version;
     CHECK_UNPACK(transfer_complete);
     c->transfer_complete(ctx, version, xid);
+}
+
+void
+hyperdex_coordinator_migration_complete(struct replicant_state_machine_context* ctx,
+                                        void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    migration_id mid;
+    region_id rid;
+    uint64_t version;
+    e::unpacker up(data, data_sz);
+    up = up >> mid >> rid >> version;
+    CHECK_UNPACK(migration_complete);
+    c->migration_complete(ctx, version, mid, rid);
 }
 
 void

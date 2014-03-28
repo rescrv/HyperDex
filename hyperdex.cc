@@ -45,6 +45,7 @@ main(int argc, const char* argv[])
     cmds.push_back(e::subcommand("rm-space",              "Remove an existing HyperDex space"));
     cmds.push_back(e::subcommand("list-spaces",           "List the names of all spaces"));
     cmds.push_back(e::subcommand("validate-space",        "Validate a HyperDex space description"));
+    cmds.push_back(e::subcommand("migrate-data",          "Migrate data from one space to another"));
     cmds.push_back(e::subcommand("server-register",       "Manually register a new HyperDex server"));
     cmds.push_back(e::subcommand("server-offline",        "Manually take a daemon offline"));
     cmds.push_back(e::subcommand("server-online",         "Manually bring a daemon online"));

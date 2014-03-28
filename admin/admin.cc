@@ -193,6 +193,48 @@ admin :: fault_tolerance(const char* space, uint64_t ft,
     }
 }
 
+int64_t
+admin :: migrate_data(const char* space_from, const char* space_to,
+                      enum hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "migrate");
+    uint64_t space_from_sz = strlen(space_from);
+    uint64_t space_to_sz = strlen(space_to);
+    
+    // Pack
+    size_t total_sz = sizeof(uint64_t) * 2 + space_from_sz + space_to_sz;
+    char buf[total_sz];
+    char* pos = buf;
+    e::pack64be(space_from_sz, pos);
+    pos += sizeof(uint64_t);
+    memcpy(pos, space_from, space_from_sz);
+    pos += space_from_sz;
+    e::pack64be(space_to_sz, pos);
+    pos += sizeof(uint64_t);
+    memcpy(pos, space_to, space_to_sz);
+
+    int64_t cid = m_coord.rpc("migrate", buf, total_sz,
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
 int
 admin :: validate_space(const char* description,
                         hyperdex_admin_returncode* status)

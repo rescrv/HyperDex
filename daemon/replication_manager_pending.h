@@ -72,6 +72,11 @@ class hyperdex::replication_manager::pending
         region_id prev_region;
         region_id next_region;
 
+        // Migration-related stuff
+        bool is_migration_object;
+        region_id rid;
+        uint64_t seq_no;
+
     private:
         friend class e::intrusive_ptr<pending>;
         void inc() { ++m_ref; }
