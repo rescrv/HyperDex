@@ -70,6 +70,10 @@ class admin
                           enum hyperdex_admin_returncode* status);
         int64_t rm_space(const char* name,
                          enum hyperdex_admin_returncode* status);
+        int64_t add_index(const char* space, const char* attr,
+                          enum hyperdex_admin_returncode* status);
+        int64_t rm_index(uint64_t idxid,
+                         enum hyperdex_admin_returncode* status);
         int64_t list_spaces(enum hyperdex_admin_returncode* status,
                             const char** spaces);
         // manage servers

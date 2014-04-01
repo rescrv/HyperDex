@@ -29,7 +29,7 @@
 #include <cstdlib>
 
 // HyperDex
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/datatype_document.h"
 #include "common/datatype_float.h"
 #include "common/datatype_int64.h"

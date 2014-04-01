@@ -41,24 +41,18 @@ class index_container : public index_info
         virtual ~index_container() throw ();
 
     public:
-        virtual bool encoding_fixed();
-        virtual size_t encoded_size(const e::slice& decoded);
-        virtual char* encode(const e::slice& decoded, char* encoded);
-        virtual size_t decoded_size(const e::slice& encoded);
-        virtual char* decode(const e::slice& encoded, char* decoded);
-
-    public:
-        virtual void index_changes(const region_id& ri,
-                                   uint16_t attr,
-                                   index_info* key_ii,
+        virtual void index_changes(const index* idx,
+                                   const region_id& ri,
+                                   index_encoding* key_ie,
                                    const e::slice& key,
                                    const e::slice* old_value,
                                    const e::slice* new_value,
                                    leveldb::WriteBatch* updates);
         virtual datalayer::index_iterator* iterator_from_check(leveldb_snapshot_ptr snap,
                                                                const region_id& ri,
+                                                               const index_id& ii,
                                                                const attribute_check& c,
-                                                               index_info* key_ii);
+                                                               index_encoding* key_ie);
 
     private:
         virtual void extract_elements(const e::slice& container,

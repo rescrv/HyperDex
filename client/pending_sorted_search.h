@@ -33,7 +33,7 @@
 
 // HyperDex
 #include "namespace.h"
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "client/pending_aggregation.h"
 
 BEGIN_HYPERDEX_NAMESPACE

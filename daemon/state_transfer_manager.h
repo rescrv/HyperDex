@@ -42,6 +42,7 @@
 // HyperDex
 #include "namespace.h"
 #include "common/configuration.h"
+#include "daemon/background_thread.h"
 #include "daemon/reconfigure_returncode.h"
 
 BEGIN_HYPERDEX_NAMESPACE
@@ -94,6 +95,7 @@ class state_transfer_manager
         class pending;
         class transfer_in_state;
         class transfer_out_state;
+        class background_thread;
 
     private:
         // get the appropriate state
@@ -112,8 +114,6 @@ class state_transfer_manager
         void send_handshake_wiped(const transfer& xfer);
         void send_object(const transfer& xfer, pending* op);
         void send_ack(const transfer& xfer, uint64_t seq_id);
-        void kickstarter();
-        void shutdown();
 
     private:
         state_transfer_manager(const state_transfer_manager&);
@@ -123,14 +123,7 @@ class state_transfer_manager
         daemon* m_daemon;
         std::vector<e::intrusive_ptr<transfer_in_state> > m_transfers_in;
         std::vector<e::intrusive_ptr<transfer_out_state> > m_transfers_out;
-        po6::threads::thread m_kickstarter;
-        po6::threads::mutex m_block_kickstarter;
-        po6::threads::cond m_wakeup_kickstarter;
-        po6::threads::cond m_wakeup_reconfigurer;
-        bool m_need_kickstart;
-        bool m_shutdown;
-        bool m_need_pause;
-        bool m_paused;
+        const std::auto_ptr<background_thread> m_background_thread;
 };
 
 END_HYPERDEX_NAMESPACE

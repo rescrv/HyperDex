@@ -41,7 +41,7 @@
 #include <hyperdex/hyperspace_builder.h>
 #include "visibility.h"
 #include "common/attribute.h"
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/hyperspace.h"
 #include "common/schema.h"
 #include "admin/hyperspace_builder_internal.h"
@@ -64,21 +64,12 @@ namespace
 class hypersubspace
 {
     public:
-        hypersubspace();
-        ~hypersubspace() throw ();
+        hypersubspace() : attrs() {}
+        ~hypersubspace() throw () {}
 
     public:
         std::vector<const char*> attrs;
 };
-
-hypersubspace :: hypersubspace()
-    : attrs()
-{
-}
-
-hypersubspace :: ~hypersubspace() throw ()
-{
-}
 
 }
 
@@ -105,6 +96,7 @@ class hyperspace
         attribute key;
         std::vector<attribute> attributes;
         std::vector<hypersubspace> subspaces;
+        std::vector<const char*> indices;
         uint64_t fault_tolerance;
         uint64_t partitions;
 
@@ -121,6 +113,7 @@ hyperspace :: hyperspace()
     , key()
     , attributes()
     , subspaces()
+    , indices()
     , fault_tolerance(2)
     , partitions(256)
 {
@@ -433,6 +426,37 @@ hyperspace_add_subspace_attribute(hyperspace* space, const char* attr)
 }
 
 HYPERDEX_API enum hyperspace_returncode
+hyperspace_add_index(hyperspace* space, const char* attr)
+{
+    if (strcmp(space->key.name, attr) == 0)
+    {
+        snprintf(space->buffer, BUFFER_SIZE, "cannot create index on \"%s\" because it is the key", attr);
+        space->buffer[BUFFER_SIZE - 1] = '\0';
+        space->error = space->buffer;
+        return HYPERSPACE_IS_KEY;
+    }
+
+    if (!space->has_attr(attr))
+    {
+        snprintf(space->buffer, BUFFER_SIZE, "cannot create index on \"%s\" because there is no attribute by that name", attr);
+        space->buffer[BUFFER_SIZE - 1] = '\0';
+        space->error = space->buffer;
+        return HYPERSPACE_UNKNOWN_ATTR;
+    }
+
+    if (!datatype_info::lookup(space->attr_type(attr))->indexable())
+    {
+        snprintf(space->buffer, BUFFER_SIZE, "cannot create index on \"%s\" because the type is not indexable", attr);
+        space->buffer[BUFFER_SIZE - 1] = '\0';
+        space->error = space->buffer;
+        return HYPERSPACE_UNINDEXABLE;
+    }
+
+    space->indices.push_back(space->internalize(attr));
+    return HYPERSPACE_SUCCESS;
+}
+
+HYPERDEX_API enum hyperspace_returncode
 hyperspace_set_fault_tolerance(hyperspace* space, uint64_t num)
 {
     space->fault_tolerance = num;
@@ -520,6 +544,14 @@ hyperdex :: space_to_space(hyperspace* in, hyperdex::space* out)
     for (size_t i = 0; i < sp.subspaces.size(); ++i)
     {
         partition(sp.subspaces[i].attrs.size(), in->partitions, &sp.subspaces[i].regions);
+    }
+
+    for (size_t i = 0; i < in->indices.size(); ++i)
+    {
+        uint16_t attr = sc.lookup_attr(in->indices[i]);
+        assert(attr < sc.attrs_sz);
+        index idx(index::NORMAL, index_id(), attr, e::slice());
+        sp.indices.push_back(idx);
     }
 
     *out = sp;

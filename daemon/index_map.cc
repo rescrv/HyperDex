@@ -46,6 +46,14 @@ index_map :: ~index_map() throw ()
 {
 }
 
+hyperdatatype
+index_map :: datatype()
+{
+    return CREATE_CONTAINER2(HYPERDATATYPE_MAP_GENERIC,
+                             m_key_datatype,
+                             m_val_datatype);
+}
+
 void
 index_map :: extract_elements(const e::slice& map,
                               std::vector<e::slice>* elems)

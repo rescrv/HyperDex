@@ -80,6 +80,10 @@ class BackupList(object):
     args = (('const char*', 'backups'),)
 class PerformanceCounters(object):
     args = (('struct hyperdex_admin_perf_counter', 'pc'),)
+class AttributeName(object):
+    args = (('const char*', 'attribute'),)
+class IndexID(object):
+    args = (('uint64_t', 'idxid'),)
 
 class Method(object):
 
@@ -167,6 +171,8 @@ Admin = [
     Method('add_space', AsyncCall, (SpaceDescription,), (AdminStatus,)),
     Method('rm_space', AsyncCall, (SpaceName,), (AdminStatus,)),
     Method('list_spaces', AsyncCall, (), (AdminStatus, SpaceList)),
+    Method('add_index', AsyncCall, (SpaceName, AttributeName), (AdminStatus,)),
+    Method('rm_index', AsyncCall, (IndexID,), (AdminStatus,)),
     Method('server_register', AsyncCall, (Token, Address), (AdminStatus,)),
     Method('server_online', AsyncCall, (Token,), (AdminStatus,)),
     Method('server_offline', AsyncCall, (Token,), (AdminStatus,)),

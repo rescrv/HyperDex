@@ -91,6 +91,8 @@ class leveldb_release_ptr
         { m_db = d; m_resource.reset(new wrapper(d, t)); }
 
     public:
+        T* operator * () const throw () { return get(); }
+        T* operator -> () const throw () { return get(); }
         leveldb_release_ptr& operator = (const leveldb_release_ptr& rhs)
         {
             if (this != &rhs)
@@ -108,7 +110,10 @@ class leveldb_release_ptr
             wrapper(leveldb_db_ptr d, T* t) : db(d), ptr(t) {}
             ~wrapper() throw ()
             {
-                (*db.*leveldb_dtor<T>::get_func())(ptr);
+                if (ptr)
+                {
+                    (*db.*leveldb_dtor<T>::get_func())(ptr);
+                }
             }
 
             leveldb_db_ptr db;

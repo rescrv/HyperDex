@@ -88,6 +88,9 @@ enum hyperspace_returncode
 hyperspace_add_subspace_attribute(struct hyperspace* space, const char* attr);
 
 enum hyperspace_returncode
+hyperspace_add_index(struct hyperspace* space, const char* attr);
+
+enum hyperspace_returncode
 hyperspace_set_fault_tolerance(struct hyperspace* space, uint64_t num);
 
 enum hyperspace_returncode

@@ -50,7 +50,7 @@
 #include "namespace.h"
 #include "common/attribute_check.h"
 #include "common/configuration.h"
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/ids.h"
 #include "common/schema.h"
 #include "daemon/leveldb.h"
@@ -79,8 +79,7 @@ class datalayer
         class region_iterator;
         class search_iterator;
         class index_iterator;
-        class sorted_iterator;
-        class unsorted_iterator;
+        class range_index_iterator;
         class intersect_iterator;
         typedef leveldb_snapshot_ptr snapshot;
 
@@ -159,9 +158,6 @@ class datalayer
         // leveldb provides no failure mechanism for this, neither do we
         snapshot make_snapshot();
         // create iterators from snapshots
-        iterator* make_region_iterator(snapshot snap,
-                                       const region_id& ri,
-                                       returncode* error);
         iterator* make_search_iterator(snapshot snap,
                                        const region_id& ri,
                                        const std::vector<attribute_check>& checks,
@@ -177,46 +173,47 @@ class datalayer
                                      reference* ref);
         // checkpointing
         returncode create_checkpoint(const region_timestamp& rt);
-        void set_checkpoint_lower_gc(uint64_t checkpoint_gc);
+        void set_checkpoint_gc(uint64_t checkpoint_gc);
         void largest_checkpoint_for(const region_id& ri, uint64_t* checkpoint);
+        bool region_will_be_wiped(region_id rid);
         void request_wipe(const transfer_id& xid,
                           const region_id& ri);
+        void inhibit_wiping();
+        void permit_wiping();
         replay_iterator* replay_region_from_checkpoint(const region_id& ri,
                                                        uint64_t checkpoint, bool* wipe);
+        // indexing
+        void create_index_marker(const region_id& ri, const index_id& ii);
+        bool has_index_marker(const region_id& ri, const index_id& ii);
         // used on startup
         bool only_key_is_hyperdex_key();
 
     private:
+        class index_state;
+        class checkpointer_thread;
+        class indexer_thread;
+        class wiper_thread;
+        class wiper_indexer_mediator;
         datalayer(const datalayer&);
         datalayer& operator = (const datalayer&);
 
     private:
-        void checkpointer();
-        void wiper();
-        void wipe_checkpoints(const region_id& rid);
-        bool wipe_some_indices(const region_id& rid);
-        bool wipe_some_objects(const region_id& rid);
-        bool wipe_some_common(uint8_t c, const region_id& rid);
-        void shutdown();
+        void find_indices(const region_id& rid,
+                          std::vector<const index*>* indices);
+        void find_indices(const region_id& rid, uint16_t attr,
+                          std::vector<const index*>* indices);
+
         returncode handle_error(leveldb::Status st);
         void collect_lower_checkpoints(uint64_t checkpoint_gc);
 
     private:
         daemon* m_daemon;
         leveldb_db_ptr m_db;
-        po6::threads::thread m_checkpointer;
-        po6::threads::thread m_wiper;
-        po6::threads::mutex m_protect;
-        po6::threads::cond m_wakeup_checkpointer;
-        po6::threads::cond m_wakeup_wiper;
-        po6::threads::cond m_wakeup_reconfigurer;
-        bool m_shutdown;
-        bool m_need_pause;
-        bool m_checkpointer_paused;
-        bool m_wiper_paused;
-        uint64_t m_checkpoint_gc;
-        typedef std::list<std::pair<transfer_id, region_id> > wipe_list_t;
-        wipe_list_t m_wiping;
+        std::vector<index_state> m_indices;
+        const std::auto_ptr<checkpointer_thread> m_checkpointer;
+        const std::auto_ptr<wiper_indexer_mediator> m_mediator;
+        const std::auto_ptr<indexer_thread> m_indexer;
+        const std::auto_ptr<wiper_thread> m_wiper;
 };
 
 class datalayer::reference

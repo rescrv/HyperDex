@@ -1,5 +1,4 @@
-
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2011-2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -36,10 +35,12 @@
 #include "common/configuration.h"
 #include "common/configuration_flags.h"
 #include "common/hash.h"
+#include "common/index.h"
 #include "common/range_searches.h"
 #include "common/serialization.h"
 
 using hyperdex::configuration;
+using hyperdex::index;
 using hyperdex::region_id;
 using hyperdex::schema;
 using hyperdex::server;
@@ -527,6 +528,80 @@ configuration :: mapped_regions(const server_id& si, std::vector<region_id>* ser
     }
 }
 
+const hyperdex::index*
+configuration :: get_index(const index_id& ii) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t i = 0; i < m_spaces[s].indices.size(); ++i)
+        {
+            if (m_spaces[s].indices[i].id == ii)
+            {
+                return &m_spaces[s].indices[i];
+            }
+        }
+    }
+
+    return NULL;
+}
+
+void
+configuration :: all_indices(const server_id& si, std::vector<std::pair<region_id, index_id> >* indices) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        {
+            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
+            {
+                bool found = false;
+
+                for (size_t R = 0; !found && R < m_spaces[s].subspaces[ss].regions[r].replicas.size(); ++R)
+                {
+                    if (m_spaces[s].subspaces[ss].regions[r].replicas[R].si == si)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                for (size_t i = 0; !found && i < m_transfers.size(); ++i)
+                {
+                    if (m_transfers[i].dst == si &&
+                        m_transfers[i].rid == m_spaces[s].subspaces[ss].regions[r].id)
+                    {
+                        found = true;
+                    }
+                }
+
+                if (found)
+                {
+                    for (size_t i = 0; i < m_spaces[s].indices.size(); ++i)
+                    {
+                        indices->push_back(std::make_pair(m_spaces[s].subspaces[ss].regions[r].id,
+                                                          m_spaces[s].indices[i].id));
+                    }
+                }
+            }
+        }
+    }
+}
+
+bool
+configuration :: is_server_involved_in_transfer(const server_id& si, const region_id& ri) const
+{
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        if (m_transfers[i].rid == ri &&
+            (m_transfers[i].src == si || m_transfers[i].dst == si))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool
 configuration :: is_server_blocked_by_live_transfer(const server_id& si, const region_id& id) const
 {
@@ -830,14 +905,6 @@ configuration :: dump() const
             }
 
             out << "\n";
-            out << "    indices";
-
-            for (size_t i = 0; i < ss.indices.size(); ++i)
-            {
-                out << " " << s.sc.attrs[ss.indices[i]].name;
-            }
-
-            out << "\n";
 
             for (size_t y = 0; y < ss.regions.size(); ++y)
             {
@@ -868,6 +935,19 @@ configuration :: dump() const
 
                 out << "]" << std::endl;
             }
+        }
+
+        for (size_t x = 0; x < s.indices.size(); ++x)
+        {
+            const index& idx(s.indices[x]);
+            out << "  index " << idx.id.get() << " attribute " << idx.attr;
+
+            if (idx.type == index::DOCUMENT)
+            {
+                out << " " << std::string(idx.extra.c_str(), idx.extra.size());
+            }
+
+            out << "\n";
         }
     }
 

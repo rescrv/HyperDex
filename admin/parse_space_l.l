@@ -101,6 +101,7 @@ struct hyperdex_admin_space_keyword hyperdex_admin_space_keywords[] = {
     {PARTITIONS, "partitions"},
     {PARTITIONS, "partition"},
     {SUBSPACE, "subspace"},
+    {INDEX, "index"},
     {STRING, "string"},
     {INT64, "int"},
     {INT64, "int64"},

@@ -111,6 +111,9 @@ daemon :: daemon()
     , m_stm(this)
     , m_sm(this)
     , m_config()
+    , m_protect_pause()
+    , m_can_pause(&m_protect_pause)
+    , m_paused(false)
     , m_perf_req_get()
     , m_perf_req_atomic()
     , m_perf_req_search_start()
@@ -423,7 +426,7 @@ daemon :: run(bool daemonize,
             checkpoint_gc < m_coord.checkpoint_gc())
         {
             checkpoint_gc = m_coord.checkpoint_gc();
-            m_data.set_checkpoint_lower_gc(checkpoint_gc);
+            m_data.set_checkpoint_gc(checkpoint_gc);
         }
 
         if (!m_coord.maintain_link())
@@ -455,22 +458,14 @@ daemon :: run(bool daemonize,
 
         LOG(INFO) << "moving to configuration version=" << new_config.version()
                   << "; pausing all activity while we reconfigure";
-        m_sm.pause();
-        m_stm.pause();
-        m_repl.pause();
-        m_data.pause();
-        m_comm.pause();
+        this->pause();
         m_comm.reconfigure(old_config, new_config, m_us);
         m_data.reconfigure(old_config, new_config, m_us);
         m_repl.reconfigure(old_config, new_config, m_us);
         m_stm.reconfigure(old_config, new_config, m_us);
         m_sm.reconfigure(old_config, new_config, m_us);
         m_config = new_config;
-        m_comm.unpause();
-        m_data.unpause();
-        m_repl.unpause();
-        m_stm.unpause();
-        m_sm.unpause();
+        this->unpause();
         LOG(INFO) << "reconfiguration complete; resuming normal operation";
 
         // let the coordinator know we've moved to this config
@@ -512,6 +507,38 @@ daemon :: run(bool daemonize,
     m_data.teardown();
     LOG(INFO) << "hyperdex-daemon will now terminate";
     return EXIT_SUCCESS;
+}
+
+void
+daemon :: pause()
+{
+    po6::threads::mutex::hold hold(&m_protect_pause);
+
+    while (m_paused)
+    {
+        m_can_pause.wait();
+    }
+
+    m_paused = true;
+    m_sm.pause();
+    m_stm.pause();
+    m_repl.pause();
+    m_data.pause();
+    m_comm.pause();
+}
+
+void
+daemon :: unpause()
+{
+    po6::threads::mutex::hold hold(&m_protect_pause);
+    m_comm.unpause();
+    m_data.unpause();
+    m_repl.unpause();
+    m_stm.unpause();
+    m_sm.unpause();
+    assert(m_paused);
+    m_paused = false;
+    m_can_pause.signal();
 }
 
 void

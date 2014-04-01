@@ -38,6 +38,12 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
+size_t
+object_prefix_sz(region_id ri);
+
+char*
+encode_object_prefix(region_id ri, char* ptr);
+
 void
 encode_object_region(const region_id& ri,
                      std::vector<char>* scratch,
@@ -97,8 +103,8 @@ decode_checkpoint(const e::slice& in,
 
 void
 create_index_changes(const schema& sc,
-                     const subspace& sub,
                      const region_id& ri,
+                     const std::vector<const index*>& indices,
                      const e::slice& key,
                      const std::vector<e::slice>* old_value,
                      const std::vector<e::slice>* new_value,

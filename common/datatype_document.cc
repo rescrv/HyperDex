@@ -87,8 +87,8 @@ datatype_document :: check_args(const funcall& func)
 
 uint8_t*
 datatype_document :: apply(const e::slice& old_value,
-                        const funcall* funcs, size_t funcs_sz,
-                        uint8_t* writeto)
+                           const funcall* funcs, size_t funcs_sz,
+                           uint8_t* writeto)
 {
     e::slice new_value = old_value;
 

@@ -30,7 +30,7 @@
 
 // HyperDex
 #include "common/attribute_check.h"
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/serialization.h"
 
 using hyperdex::attribute_check;

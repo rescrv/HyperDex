@@ -31,7 +31,7 @@
 #include <algorithm>
 
 // HyperDex
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/range_searches.h"
 
 using hyperdex::attribute_check;
@@ -40,8 +40,10 @@ using hyperdex::range;
 
 // the caller of this function is safe to assume that only checks with
 //  * HYPERPREDICATE_EQUAL
+//  * HYPERPREDICATE_LESS_THAN
 //  * HYPERPREDICATE_LESS_EQUAL
 //  * HYPERPREDICATE_GREATER_EQUAL
+//  * HYPERPREDICATE_GREATER_THAN
 // will be used to construct the returned ranges.  If you break this assumption,
 // you will need to look at the way indices are picked in the data layer and the
 // way ranges are picked for hyperspace hashing.

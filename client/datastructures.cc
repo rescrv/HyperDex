@@ -44,7 +44,7 @@
 
 // HyperDex
 #include <hyperdex/datastructures.h>
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/macros.h"
 #include "visibility.h"
 

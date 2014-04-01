@@ -47,17 +47,25 @@
 #include <hyperleveldb/filter_policy.h>
 
 // e
+#include <e/atomic.h>
 #include <e/endian.h>
+#include <e/tuple_compare.h>
+#include <e/varint.h>
 
 // HyperDex
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/macros.h"
 #include "common/range_searches.h"
 #include "common/serialization.h"
+#include "daemon/background_thread.h"
 #include "daemon/daemon.h"
 #include "daemon/datalayer.h"
+#include "daemon/datalayer_checkpointer_thread.h"
 #include "daemon/datalayer_encodings.h"
+#include "daemon/datalayer_index_state.h"
+#include "daemon/datalayer_indexer_thread.h"
 #include "daemon/datalayer_iterator.h"
+#include "daemon/datalayer_wiper_thread.h"
 
 #define STRLENOF(x)	(sizeof(x)-1)
 
@@ -70,25 +78,19 @@ using hyperdex::reconfigure_returncode;
 datalayer :: datalayer(daemon* d)
     : m_daemon(d)
     , m_db()
-    , m_checkpointer(make_thread_wrapper(&datalayer::checkpointer, this))
-    , m_wiper(make_thread_wrapper(&datalayer::wiper, this))
-    , m_protect()
-    , m_wakeup_checkpointer(&m_protect)
-    , m_wakeup_wiper(&m_protect)
-    , m_wakeup_reconfigurer(&m_protect)
-    , m_shutdown(true)
-    , m_need_pause(false)
-    , m_checkpointer_paused(false)
-    , m_wiper_paused(false)
-    , m_checkpoint_gc(0)
-    , m_wiping()
+    , m_indices()
+    , m_checkpointer(new checkpointer_thread(d))
+    , m_mediator(new wiper_indexer_mediator())
+    , m_indexer(new indexer_thread(d, m_mediator.get()))
+    , m_wiper(new wiper_thread(d, m_mediator.get()))
 {
-    po6::threads::mutex::hold hold(&m_protect);
 }
 
 datalayer :: ~datalayer() throw ()
 {
-    shutdown();
+    m_checkpointer->shutdown();
+    m_indexer->shutdown();
+    m_wiper->shutdown();
 }
 
 bool
@@ -204,13 +206,9 @@ datalayer :: initialize(const po6::pathname& path,
         return false;
     }
 
-    {
-        po6::threads::mutex::hold hold(&m_protect);
-        m_checkpointer.start();
-        m_wiper.start();
-        m_shutdown = false;
-    }
-
+    m_checkpointer->start();
+    m_indexer->start();
+    m_wiper->start();
     *saved = !first_time;
     return true;
 }
@@ -218,7 +216,9 @@ datalayer :: initialize(const po6::pathname& path,
 void
 datalayer :: teardown()
 {
-    shutdown();
+    m_checkpointer->shutdown();
+    m_indexer->shutdown();
+    m_wiper->shutdown();
 }
 
 bool
@@ -250,35 +250,94 @@ datalayer :: save_state(const server_id& us,
 void
 datalayer :: pause()
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    assert(!m_need_pause);
-    m_need_pause = true;
+    m_checkpointer->initiate_pause();
+    m_indexer->initiate_pause();
+    m_wiper->initiate_pause();
 }
 
 void
 datalayer :: unpause()
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    assert(m_need_pause);
-    m_wakeup_checkpointer.broadcast();
-    m_wakeup_wiper.broadcast();
-    m_need_pause = false;
+    m_checkpointer->unpause();
+    m_indexer->unpause();
+    m_wiper->unpause();
 }
 
 void
 datalayer :: reconfigure(const configuration&,
-                         const configuration&,
+                         const configuration& config,
                          const server_id&)
 {
-    {
-        po6::threads::mutex::hold hold(&m_protect);
-        assert(m_need_pause);
+    m_checkpointer->wait_until_paused();
+    m_indexer->wait_until_paused();
+    m_wiper->wait_until_paused();
 
-        while (!m_checkpointer_paused || !m_wiper_paused)
+    // indices that must exist
+    std::vector<std::pair<region_id, index_id> > indices;
+    config.all_indices(m_daemon->m_us, &indices);
+    std::sort(indices.begin(), indices.end());
+    std::vector<std::pair<region_id, index_id> >::iterator it;
+    it = std::unique(indices.begin(), indices.end());
+    indices.resize(it - indices.begin());
+
+    // iterate and create indices where necessary
+    std::vector<index_state> next_indices;
+    size_t old_idx = 0;
+    size_t new_idx = 0;
+
+    while (new_idx < indices.size())
+    {
+        int cmp = 1;
+
+        if (old_idx < m_indices.size())
         {
-            m_wakeup_reconfigurer.wait();
+            cmp = e::tuple_compare(m_indices[old_idx].ri, m_indices[old_idx].ii,
+                                   indices[new_idx].first, indices[old_idx].second);
+        }
+
+        if (cmp == 0)
+        {
+            // Case B
+            next_indices.push_back(m_indices[old_idx]);
+            ++old_idx;
+            ++new_idx;
+        }
+        else if (cmp < 0)
+        {
+            // Case A
+            ++old_idx;
+        }
+        else if (cmp > 0)
+        {
+            next_indices.push_back(index_state(indices[new_idx].first,
+                                               indices[new_idx].second));
+            ++new_idx;
+            region_id ri(indices[new_idx].first);
+            index_id ii(indices[new_idx].second);
+            char buf[sizeof(uint8_t) + 2 * VARINT_64_MAX_SIZE];
+            char* ptr = buf;
+            ptr = e::pack8be('I', ptr);
+            ptr = e::packvarint64(ri.get(), ptr);
+            ptr = e::packvarint64(ii.get(), ptr);
+            leveldb::ReadOptions ro;
+            leveldb::Slice key(buf, ptr - buf);
+            std::string val;
+            leveldb::Status st = m_db->Get(ro, key, &val);
+
+            if (st.ok())
+            {
+                next_indices.back().set_usable();
+            }
+            else if (!st.IsNotFound())
+            {
+                handle_error(st);
+            }
         }
     }
+
+    m_indices.swap(next_indices);
+    m_indexer->kick();
+    m_wiper->kick();
 }
 
 bool
@@ -362,8 +421,9 @@ datalayer :: del(const region_id& ri,
     updates.Delete(lkey);
 
     // delete the index entries
-    const subspace& sub(*m_daemon->m_config.get_subspace(ri));
-    create_index_changes(sc, sub, ri, key, &old_value, NULL, &updates);
+    std::vector<const index*> indices;
+    find_indices(ri, &indices);
+    create_index_changes(sc, ri, indices, key, &old_value, NULL, &updates);
 
     // Mark acked as part of this batch write
     if (seq_id != 0)
@@ -420,8 +480,9 @@ datalayer :: put(const region_id& ri,
     updates.Put(lkey, lval);
 
     // put the index entries
-    const subspace& sub(*m_daemon->m_config.get_subspace(ri));
-    create_index_changes(sc, sub, ri, key, NULL, &new_value, &updates);
+    std::vector<const index*> indices;
+    find_indices(ri, &indices);
+    create_index_changes(sc, ri, indices, key, NULL, &new_value, &updates);
 
     // Mark acked as part of this batch write
     if (seq_id != 0)
@@ -475,8 +536,9 @@ datalayer :: overput(const region_id& ri,
     updates.Put(lkey, lval);
 
     // put the index entries
-    const subspace& sub(*m_daemon->m_config.get_subspace(ri));
-    create_index_changes(sc, sub, ri, key, &old_value, &new_value, &updates);
+    std::vector<const index*> indices;
+    find_indices(ri, &indices);
+    create_index_changes(sc, ri, indices, key, &old_value, &new_value, &updates);
 
     // Mark acked as part of this batch write
     if (seq_id != 0)
@@ -783,28 +845,6 @@ datalayer :: make_snapshot()
 }
 
 datalayer::iterator*
-datalayer :: make_region_iterator(snapshot snap,
-                                  const region_id& ri,
-                                  returncode* error)
-{
-    *error = datalayer::SUCCESS;
-    const size_t backing_sz = sizeof(uint8_t) + sizeof(uint64_t);
-    char backing[backing_sz];
-    char* ptr = backing;
-    ptr = e::pack8be('o', ptr);
-    ptr = e::pack64be(ri.get(), ptr);
-
-    leveldb::ReadOptions opts;
-    opts.fill_cache = true;
-    opts.verify_checksums = true;
-    opts.snapshot = snap.get();
-    leveldb_iterator_ptr iter;
-    iter.reset(snap, m_db->NewIterator(opts));
-    const schema& sc(*m_daemon->m_config.get_schema(ri));
-    return new region_iterator(iter, ri, index_info::lookup(sc.attrs[0].type));
-}
-
-datalayer::iterator*
 datalayer :: make_search_iterator(snapshot snap,
                                   const region_id& ri,
                                   const std::vector<attribute_check>& checks,
@@ -816,8 +856,8 @@ datalayer :: make_search_iterator(snapshot snap,
     // pull a set of range queries from checks
     std::vector<range> ranges;
     range_searches(checks, &ranges);
-    index_info* ki = index_info::lookup(sc.attrs[0].type);
-    const subspace& sub(*m_daemon->m_config.get_subspace(ri));
+    index_encoding* key_ie = index_encoding::lookup(sc.attrs[0].type);
+    index_info* key_ii = index_info::lookup(sc.attrs[0].type);
 
     // for each range query, construct an iterator
     for (size_t i = 0; i < ranges.size(); ++i)
@@ -830,50 +870,61 @@ datalayer :: make_search_iterator(snapshot snap,
 
         assert(ranges[i].attr < sc.attrs_sz);
         assert(ranges[i].type == sc.attrs[ranges[i].attr].type);
+        std::vector<const index*> indices;
+        find_indices(ri, ranges[i].attr, &indices);
 
-        if (ostr) *ostr << " considering attr " << ranges[i].attr << " Range("
-                        << ranges[i].start.hex() << ", " << ranges[i].end.hex() << ") " << ranges[i].type << " "
-                        << (ranges[i].has_start ? "[" : "<") << "-" << (ranges[i].has_end ? "]" : ">")
-                        << " " << (ranges[i].invalid ? "invalid" : "valid") << "\n";
-
-        if (!sub.indexed(ranges[i].attr))
+        for (size_t j = 0; j < indices.size(); ++j)
         {
-            continue;
-        }
+            assert(indices[j]->attr == ranges[i].attr);
+            const index* idx = indices[j];
+            index_info* ii = index_info::lookup(ranges[i].type);
 
-        index_info* ii = index_info::lookup(ranges[i].type);
+            if (!ii)
+            {
+                continue;
+            }
 
-        if (ii)
-        {
-            e::intrusive_ptr<index_iterator> it = ii->iterator_from_range(snap, ri, ranges[i], ki);
+            e::intrusive_ptr<index_iterator> it = ii->iterator_from_range(snap, ri, idx->id, ranges[i], key_ie);
 
             if (it)
             {
                 iterators.push_back(it);
+
+                if (ostr) *ostr << " considering attr " << ranges[i].attr << " Range("
+                                << ranges[i].start.hex() << ", " << ranges[i].end.hex() << ") " << ranges[i].type << " "
+                                << (ranges[i].has_start ? "[" : "<") << "-" << (ranges[i].has_end ? "]" : ">")
+                                << " " << (ranges[i].invalid ? "invalid" : "valid") << "\n";
             }
         }
     }
 
-    // for everything that is not a range query, construct an iterator
+    // For each index
     for (size_t i = 0; i < checks.size(); ++i)
     {
+        // if this check is covered by range queries, or is not complete
         if (checks[i].predicate == HYPERPREDICATE_EQUALS ||
+            checks[i].predicate == HYPERPREDICATE_LESS_THAN ||
             checks[i].predicate == HYPERPREDICATE_LESS_EQUAL ||
-            checks[i].predicate == HYPERPREDICATE_GREATER_EQUAL)
+            checks[i].predicate == HYPERPREDICATE_GREATER_EQUAL ||
+            checks[i].predicate == HYPERPREDICATE_GREATER_THAN)
         {
             continue;
         }
 
-        if (!sub.indexed(checks[i].attr))
-        {
-            continue;
-        }
+        std::vector<const index*> indices;
+        find_indices(ri, checks[i].attr, &indices);
 
-        index_info* ii = index_info::lookup(sc.attrs[checks[i].attr].type);
-
-        if (ii)
+        for (size_t j = 0; j < indices.size(); ++j)
         {
-            e::intrusive_ptr<index_iterator> it = ii->iterator_from_check(snap, ri, checks[i], ki);
+            const index* idx = indices[j];
+            index_info* ii = index_info::lookup(sc.attrs[checks[i].attr].type);
+
+            if (!ii)
+            {
+                continue;
+            }
+
+            e::intrusive_ptr<index_iterator> it = ii->iterator_from_check(snap, ri, idx->id, checks[i], key_ie);
 
             if (it)
             {
@@ -884,13 +935,7 @@ datalayer :: make_search_iterator(snapshot snap,
 
     // figure out the cost of accessing all objects
     e::intrusive_ptr<index_iterator> full_scan;
-    range scan;
-    scan.attr = 0;
-    scan.type = sc.attrs[0].type;
-    scan.has_start = false;
-    scan.has_end = false;
-    scan.invalid = false;
-    full_scan = ki->iterator_from_range(snap, ri, scan, ki);
+    full_scan = key_ii->iterator_for_keys(snap, ri);
     if (ostr) *ostr << " accessing all objects has cost " << full_scan->cost(m_db.get()) << "\n";
 
     // figure out the cost of each iterator
@@ -1016,17 +1061,16 @@ datalayer :: get_from_iterator(const region_id& ri,
 datalayer::returncode
 datalayer :: create_checkpoint(const region_timestamp& rt)
 {
-    po6::threads::mutex::hold hold(&m_protect);
+    m_wiper->inhibit_wiping();
+    e::guard g = e::makeobjguard(*m_wiper, &wiper_thread::permit_wiping);
+    g.use_variable();
 
-    for (wipe_list_t::iterator it = m_wiping.begin(); it != m_wiping.end(); ++it)
+    if (m_wiper->region_will_be_wiped(rt.rid))
     {
-        if (it->second == rt.rid)
-        {
-            return SUCCESS;
-        }
+        return SUCCESS;
     }
 
-    char cbacking[CHECKPOINT_BUF_SIZE + 1024];
+    char cbacking[CHECKPOINT_BUF_SIZE];
     encode_checkpoint(rt.rid, rt.checkpoint, cbacking);
     leveldb::WriteOptions opts;
     opts.sync = false;
@@ -1043,25 +1087,22 @@ datalayer :: create_checkpoint(const region_timestamp& rt)
 }
 
 void
-datalayer :: set_checkpoint_lower_gc(uint64_t checkpoint_gc)
+datalayer :: set_checkpoint_gc(uint64_t checkpoint_gc)
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    m_checkpoint_gc = std::max(checkpoint_gc, m_checkpoint_gc);
-    m_wakeup_checkpointer.signal();
+    m_checkpointer->set_checkpoint_gc(checkpoint_gc);
 }
 
 void
 datalayer :: largest_checkpoint_for(const region_id& ri, uint64_t* checkpoint)
 {
-    po6::threads::mutex::hold hold(&m_protect);
+    m_wiper->inhibit_wiping();
+    e::guard g = e::makeobjguard(*m_wiper, &wiper_thread::permit_wiping);
+    g.use_variable();
 
-    for (wipe_list_t::iterator it = m_wiping.begin(); it != m_wiping.end(); ++it)
+    if (m_wiper->region_will_be_wiped(ri))
     {
-        if (it->second == ri)
-        {
-            *checkpoint = 0;
-            return;
-        }
+        *checkpoint = 0;
+        return;
     }
 
     leveldb::ReadOptions opts;
@@ -1094,13 +1135,29 @@ datalayer :: largest_checkpoint_for(const region_id& ri, uint64_t* checkpoint)
     }
 }
 
+bool
+datalayer :: region_will_be_wiped(region_id rid)
+{
+    return m_wiper->region_will_be_wiped(rid);
+}
+
 void
 datalayer :: request_wipe(const transfer_id& xid,
                           const region_id& ri)
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    m_wiping.push_back(std::make_pair(xid, ri));
-    m_wakeup_wiper.broadcast();
+    m_wiper->request_wipe(xid, ri);
+}
+
+void
+datalayer :: inhibit_wiping()
+{
+    m_wiper->inhibit_wiping();
+}
+
+void
+datalayer :: permit_wiping()
+{
+    m_wiper->permit_wiping();
 }
 
 datalayer::replay_iterator*
@@ -1108,7 +1165,13 @@ datalayer :: replay_region_from_checkpoint(const region_id& ri,
                                            uint64_t checkpoint,
                                            bool* wipe)
 {
-    po6::threads::mutex::hold hold(&m_protect);
+    m_wiper->inhibit_wiping();
+    e::guard g1 = e::makeobjguard(*m_wiper, &wiper_thread::permit_wiping);
+    g1.use_variable();
+    m_checkpointer->inhibit_gc();
+    e::guard g2 = e::makeobjguard(*m_checkpointer, &checkpointer_thread::permit_gc);
+    g2.use_variable();
+
     leveldb::ReadOptions opts;
     opts.verify_checksums = true;
     std::auto_ptr<leveldb::Iterator> it;
@@ -1138,15 +1201,7 @@ datalayer :: replay_region_from_checkpoint(const region_id& ri,
         it->Next();
     }
 
-    for (wipe_list_t::iterator w = m_wiping.begin(); w != m_wiping.end(); ++w)
-    {
-        if (w->second == ri)
-        {
-            local_timestamp = "all";
-            break;
-        }
-    }
-
+    assert(!m_wiper->region_will_be_wiped(ri));
     *wipe = local_timestamp == "all";
     leveldb::ReplayIterator* iter;
     leveldb::Status st = m_db->GetReplayIterator(local_timestamp, &iter);
@@ -1159,58 +1214,47 @@ datalayer :: replay_region_from_checkpoint(const region_id& ri,
 
     leveldb_replay_iterator_ptr ptr(m_db, iter);
     const schema& sc(*m_daemon->m_config.get_schema(ri));
-    return new replay_iterator(ri, ptr, index_info::lookup(sc.attrs[0].type));
+    return new replay_iterator(ri, ptr, index_encoding::lookup(sc.attrs[0].type));
 }
 
 void
-datalayer :: collect_lower_checkpoints(uint64_t checkpoint_gc)
+datalayer :: create_index_marker(const region_id& ri, const index_id& ii)
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    leveldb::ReadOptions opts;
-    opts.verify_checksums = true;
-    std::auto_ptr<leveldb::Iterator> it;
-    it.reset(m_db->NewIterator(opts));
-    it->Seek(leveldb::Slice("c", 1));
-    std::string lower_bound_timestamp("now");
+    char buf[sizeof(uint8_t) + 2 * VARINT_64_MAX_SIZE];
+    char* ptr = buf;
+    ptr = e::pack8be('I', ptr);
+    ptr = e::packvarint64(ri.get(), ptr);
+    ptr = e::packvarint64(ii.get(), ptr);
+    leveldb::Slice key(buf, ptr - buf);
+    leveldb::Slice val;
+    leveldb::Status st = m_db->Put(leveldb::WriteOptions(), key, val);
 
-    while (it->Valid())
+    if (!st.ok())
     {
-        region_timestamp rt;
-        e::slice key(it->key().data(), it->key().size());
-        returncode rc = decode_checkpoint(key, &rt.rid, &rt.checkpoint);
+        LOG(ERROR) << "LevelDB corruption: could not put";
+        abort();
+    }
+}
 
-        if (rc != datalayer::SUCCESS)
-        {
-            break;
-        }
+bool
+datalayer :: has_index_marker(const region_id& ri, const index_id& ii)
+{
+    char buf[sizeof(uint8_t) + 2 * VARINT_64_MAX_SIZE];
+    char* ptr = buf;
+    ptr = e::pack8be('I', ptr);
+    ptr = e::packvarint64(ri.get(), ptr);
+    ptr = e::packvarint64(ii.get(), ptr);
+    leveldb::Slice key(buf, ptr - buf);
+    std::string val;
+    leveldb::Status st = m_db->Get(leveldb::ReadOptions(), key, &val);
 
-        rt.local_timestamp = std::string(it->value().data(), it->value().size());
-
-        if (rt.checkpoint >= checkpoint_gc &&
-            m_db->ValidateTimestamp(rt.local_timestamp))
-        {
-            if (m_db->CompareTimestamps(rt.local_timestamp, lower_bound_timestamp) < 0)
-            {
-                lower_bound_timestamp = rt.local_timestamp;
-            }
-
-            it->Next();
-            continue;
-        }
-
-        leveldb::WriteOptions wopts;
-        wopts.sync = false;
-        leveldb::Status st = m_db->Delete(wopts, it->key());
-
-        if (!st.ok())
-        {
-            break;
-        }
-
-        it->Next();
+    if (!st.ok() && !st.IsNotFound())
+    {
+        LOG(ERROR) << "LevelDB corruption: could not get";
+        abort();
     }
 
-    m_db->AllowGarbageCollectBeforeTimestamp(lower_bound_timestamp);
+    return st.ok();
 }
 
 bool
@@ -1239,209 +1283,45 @@ datalayer :: only_key_is_hyperdex_key()
 }
 
 void
-datalayer :: checkpointer()
+datalayer :: find_indices(const region_id& rid, std::vector<const index*>* indices)
 {
-    LOG(INFO) << "checkpoint thread started";
-    sigset_t ss;
+    std::vector<index_state>::iterator it;
+    it = std::lower_bound(m_indices.begin(), m_indices.end(), rid);
 
-    if (sigfillset(&ss) < 0)
+    for (; it < m_indices.end() && it->ri == rid; ++it)
     {
-        PLOG(ERROR) << "sigfillset";
-        return;
-    }
-
-    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
-    {
-        PLOG(ERROR) << "could not block signals";
-        return;
-    }
-
-    bool need_checkpoint_gc = false;
-    uint64_t checkpoint_gc = 0;
-
-    while (true)
-    {
+        if (!it->is_usable())
         {
-            po6::threads::mutex::hold hold(&m_protect);
-
-            while ((checkpoint_gc >= m_checkpoint_gc && !m_shutdown) ||
-                   m_need_pause)
-            {
-                m_checkpointer_paused = true;
-
-                if (m_need_pause)
-                {
-                    m_wakeup_reconfigurer.signal();
-                }
-
-                m_wakeup_checkpointer.wait();
-                m_checkpointer_paused = false;
-            }
-
-            if (m_shutdown)
-            {
-                break;
-            }
-
-            need_checkpoint_gc = checkpoint_gc < m_checkpoint_gc;
-            checkpoint_gc = m_checkpoint_gc;
+            continue;
         }
 
-        if (need_checkpoint_gc)
-        {
-            collect_lower_checkpoints(checkpoint_gc);
-        }
+        const index* idx = m_daemon->m_config.get_index(it->ii);
+        assert(idx);
+        indices->push_back(idx);
     }
-
-    LOG(INFO) << "checkpoint thread shutting down";
 }
 
 void
-datalayer :: wiper()
+datalayer :: find_indices(const region_id& rid, uint16_t attr,
+                          std::vector<const index*>* indices)
 {
-    LOG(INFO) << "wiping thread started";
-    sigset_t ss;
+    std::vector<index_state>::iterator it;
+    it = std::lower_bound(m_indices.begin(), m_indices.end(), rid);
 
-    if (sigfillset(&ss) < 0)
+    for (; it < m_indices.end() && it->ri == rid; ++it)
     {
-        PLOG(ERROR) << "sigfillset";
-        return;
-    }
-
-    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
-    {
-        PLOG(ERROR) << "could not block signals";
-        return;
-    }
-
-    while (true)
-    {
-        transfer_id xid;
-        region_id rid;
-
+        if (!it->is_usable())
         {
-            po6::threads::mutex::hold hold(&m_protect);
-
-            while ((m_wiping.empty() && !m_shutdown) || m_need_pause)
-            {
-                m_wiper_paused = true;
-
-                if (m_need_pause)
-                {
-                    m_wakeup_reconfigurer.signal();
-                }
-
-                m_wakeup_wiper.wait();
-                m_wiper_paused = false;
-            }
-
-            if (m_shutdown)
-            {
-                break;
-            }
-
-            if (!m_wiping.empty())
-            {
-                xid = m_wiping.front().first;
-                rid = m_wiping.front().second;
-            }
+            continue;
         }
 
-        assert(rid != region_id());
-        wipe_checkpoints(rid);
+        const index* idx = m_daemon->m_config.get_index(it->ii);
+        assert(idx);
 
-        if (wipe_some_indices(rid) &&
-            wipe_some_objects(rid))
+        if (idx->attr == attr)
         {
-            m_daemon->m_stm.report_wiped(xid);
-            po6::threads::mutex::hold hold(&m_protect);
-            m_wiping.pop_front();
+            indices->push_back(idx);
         }
-    }
-
-    LOG(INFO) << "wiping thread shutting down";
-}
-
-void
-datalayer :: wipe_checkpoints(const region_id& ri)
-{
-    po6::threads::mutex::hold hold(&m_protect);
-    std::auto_ptr<leveldb::Iterator> it;
-    it.reset(m_db->NewIterator(leveldb::ReadOptions()));
-    char cbacking[CHECKPOINT_BUF_SIZE];
-    encode_checkpoint(ri, 0, cbacking);
-    it->Seek(leveldb::Slice(cbacking, CHECKPOINT_BUF_SIZE));
-
-    while (it->Valid())
-    {
-        region_timestamp rt;
-        e::slice key(it->key().data(), it->key().size());
-        returncode rc = decode_checkpoint(key, &rt.rid, &rt.checkpoint);
-
-        if (rc != datalayer::SUCCESS || rt.rid != ri)
-        {
-            break;
-        }
-
-        m_db->Delete(leveldb::WriteOptions(), it->key());
-        it->Next();
-    }
-}
-
-bool
-datalayer :: wipe_some_indices(const region_id& ri)
-{
-    return wipe_some_common('i', ri);
-}
-
-bool
-datalayer :: wipe_some_objects(const region_id& ri)
-{
-    return wipe_some_common('o', ri);
-}
-
-bool
-datalayer :: wipe_some_common(uint8_t c, const region_id& ri)
-{
-    std::auto_ptr<leveldb::Iterator> it;
-    it.reset(m_db->NewIterator(leveldb::ReadOptions()));
-    char backing[sizeof(uint8_t) + sizeof(uint64_t)];
-    e::pack8be(c, backing);
-    e::pack64be(ri.get(), backing + sizeof(uint8_t));
-    leveldb::Slice prefix(backing, sizeof(uint8_t) + sizeof(uint64_t));
-    it->Seek(prefix);
-
-    for (uint64_t i = 0; i < 65536 && it->Valid(); ++i)
-    {
-        if (!it->key().starts_with(prefix))
-        {
-            return true;
-        }
-
-        m_db->Delete(leveldb::WriteOptions(), it->key());
-        it->Next();
-    }
-
-    return false;
-}
-
-void
-datalayer :: shutdown()
-{
-    bool is_shutdown;
-
-    {
-        po6::threads::mutex::hold hold(&m_protect);
-        m_wakeup_checkpointer.broadcast();
-        m_wakeup_wiper.broadcast();
-        is_shutdown = m_shutdown;
-        m_shutdown = true;
-    }
-
-    if (!is_shutdown)
-    {
-        m_checkpointer.join();
-        m_wiper.join();
     }
 }
 

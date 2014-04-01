@@ -72,8 +72,7 @@ yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, const char* ms
 %token CREATE
 %token PARTITIONS
 %token SUBSPACE
-%token PINDEX
-%token SINDEX
+%token INDEX
 
 %token <str> IDENTIFIER
 %token <num> NUMBER
@@ -104,7 +103,7 @@ yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, const char* ms
 
 %%
 
-space : SPACE name key ATTRIBUTES attribute_list subspaces options
+space : SPACE name key ATTRIBUTES attribute_list subspaces indices options
       | SPACE name key options
 
 name : IDENTIFIER { hyperspace_set_name(space, $1); free($1); }
@@ -124,6 +123,11 @@ subspace : SUBSPACE sattrs
 
 sattrs : IDENTIFIER            { hyperspace_add_subspace(space); hyperspace_add_subspace_attribute(space, $1); free($1); }
        | sattrs ',' IDENTIFIER { hyperspace_add_subspace_attribute(space, $3); free($3); }
+
+indices :
+        | indices index
+
+index : INDEX IDENTIFIER { hyperspace_add_index(space, $2); free($2); }
 
 options :                { }
         | options option { }

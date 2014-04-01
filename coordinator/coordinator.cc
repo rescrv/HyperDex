@@ -614,6 +614,12 @@ coordinator :: space_add(replicant_state_machine_context* ctx, const space& _s)
         }
     }
 
+    for (size_t i = 0; i < s->indices.size(); ++i)
+    {
+        s->indices[i].id = index_id(m_counter);
+        ++m_counter;
+    }
+
     m_spaces.insert(std::make_pair(std::string(s->name), s));
     fprintf(log, "successfully added space \"%s\" with space(%" PRIu64 ")\n", s->name, s->id.get());
     initial_space_layout(ctx, s.get());
@@ -672,6 +678,128 @@ coordinator :: space_rm(replicant_state_machine_context* ctx, const char* name)
         generate_next_configuration(ctx);
         return generate_response(ctx, COORD_SUCCESS);
     }
+}
+
+void
+coordinator :: index_add(replicant_state_machine_context* ctx,
+                         const char* space, const char* what)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    space_map_t::iterator it;
+    it = m_spaces.find(std::string(space));
+
+    if (it == m_spaces.end())
+    {
+        fprintf(log, "could not create index on \"%s\" on space \"%s\" because the space doesn't exist\n", what, space);
+        return generate_response(ctx, COORD_NOT_FOUND);
+    }
+
+    hyperdex::space* sp = it->second.get();
+
+    // split the attr into "attr" and "dotpath" components
+    const size_t what_sz = strlen(what);
+    std::string attr;
+    std::string dotpath;
+    index::index_t type;
+    const char* ptr = strchr(what, '.');
+
+    if (ptr)
+    {
+        type = index::DOCUMENT;
+        attr.assign(what, ptr - what);
+        dotpath.assign(ptr + 1, what_sz - (ptr - what) - 1);
+    }
+    else
+    {
+        type = index::NORMAL;
+        attr.assign(what, what_sz);
+        dotpath.assign("", 0);
+    }
+
+    uint16_t attr_num = sp->sc.lookup_attr(attr.c_str());
+
+    if (attr_num >= sp->sc.attrs_sz)
+    {
+        fprintf(log, "could not create index on \"%s\" on space \"%s\" because the attribute doesn't exist\n", what, space);
+        return generate_response(ctx, COORD_NOT_FOUND);
+    }
+
+    if (type == index::NORMAL &&
+        sp->sc.attrs[attr_num].type == HYPERDATATYPE_DOCUMENT)
+    {
+        fprintf(log, "could not create index on \"%s\" on space \"%s\" because "
+                     "it is a document and no dotted path was provided\n", what, space);
+        return generate_response(ctx, COORD_NO_CAN_DO);
+    }
+
+    if (type == index::DOCUMENT &&
+        sp->sc.attrs[attr_num].type != HYPERDATATYPE_DOCUMENT)
+    {
+        fprintf(log, "could not create index on \"%s\" on space \"%s\" because "
+                     "it is a not document and a dotted path was provided\n", what, space);
+        return generate_response(ctx, COORD_NO_CAN_DO);
+    }
+
+    for (size_t i = 0; i < sp->indices.size(); ++i)
+    {
+        if (sp->indices[i].type == type &&
+            sp->indices[i].attr == attr_num &&
+            sp->indices[i].extra == e::slice(dotpath))
+        {
+            fprintf(log, "did not create index on \"%s\" on space \"%s\" because it is already indexed\n", what, space);
+            return generate_response(ctx, COORD_DUPLICATE);
+        }
+    }
+
+    fprintf(log, "creating index on \"%s\" on space \"%s\"\n", what, space);
+    index_id id(m_counter);
+    ++m_counter;
+    sp->indices.push_back(index(type, id, attr_num, e::slice(dotpath)));
+    generate_next_configuration(ctx);
+    return generate_response(ctx, COORD_SUCCESS);
+}
+
+void
+coordinator :: index_rm(replicant_state_machine_context* ctx, index_id ii)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    std::tr1::shared_ptr<space> s;
+    index* idx;
+
+    for (space_map_t::iterator it = m_spaces.begin();
+            it != m_spaces.end(); ++it)
+    {
+        if (find_id(ii, it->second->indices, &idx))
+        {
+            s = it->second;
+            break;
+        }
+    }
+
+    if (!s.get() || !idx)
+    {
+        fprintf(log, "could not remove index %lu because it doesn't exist\n", ii.get());
+        return generate_response(ctx, COORD_NOT_FOUND);
+    }
+
+    for (std::vector<subspace>::iterator it = s->subspaces.begin();
+            it != s->subspaces.end(); ++it)
+    {
+        for (size_t a = 0; a < it->attrs.size(); ++a)
+        {
+            if (it->attrs[a] == idx->attr)
+            {
+                fprintf(log, "could not remove index %lu because it's in use by subspace \"%lu\"\n",
+                             ii.get(), it->id.get());
+                return generate_response(ctx, COORD_NO_CAN_DO);
+            }
+        }
+    }
+
+    remove_id(ii, &s->indices);
+    fprintf(log, "removed index %lu from space \"%s\"\n", ii.get(), s->name);
+    generate_next_configuration(ctx);
+    return generate_response(ctx, COORD_SUCCESS);
 }
 
 void

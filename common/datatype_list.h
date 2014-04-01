@@ -30,7 +30,7 @@
 
 // HyperDex
 #include "namespace.h"
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/datatype_string.h"
 #include "common/datatype_int64.h"
 #include "common/datatype_float.h"

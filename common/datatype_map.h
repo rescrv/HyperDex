@@ -36,7 +36,7 @@
 
 // HyperDex
 #include "namespace.h"
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 

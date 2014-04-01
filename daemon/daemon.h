@@ -71,6 +71,12 @@ class daemon
                 unsigned threads);
 
     private:
+        // Pause and unpause all activity, e.g. for reconfiguration or
+        // installing new indices.  If called from a background thread, the
+        // thread must remain offline for entire time between pause/unpause.
+        void pause();
+        void unpause();
+        // process messages from the network threads
         void loop(size_t thread);
         void process_req_get(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_atomic(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
@@ -121,6 +127,10 @@ class daemon
         state_transfer_manager m_stm;
         search_manager m_sm;
         configuration m_config;
+        // pause management
+        po6::threads::mutex m_protect_pause;
+        po6::threads::cond m_can_pause;
+        bool m_paused;
         // counters
         performance_counter m_perf_req_get;
         performance_counter m_perf_req_atomic;

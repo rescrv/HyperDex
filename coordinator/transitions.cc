@@ -388,6 +388,48 @@ hyperdex_coordinator_space_rm(struct replicant_state_machine_context* ctx,
 }
 
 void
+hyperdex_coordinator_index_add(struct replicant_state_machine_context* ctx,
+                               void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    const char* space = data;
+    size_t space_sz = strnlen(data, data_sz);
+
+    if (data_sz == 0 || data[data_sz - 1] != '\0' || space_sz + 2 >= data_sz)
+    {
+        fprintf(log, "received malformed \"add_index\" message\n");
+        return generate_response(ctx, COORD_MALFORMED);
+    }
+
+    const char* attr = data + space_sz + 1;
+    size_t attr_sz = strnlen(attr, data_sz - space_sz - 1);
+
+    if (space_sz + attr_sz + 2 != data_sz)
+    {
+        fprintf(log, "received malformed \"add_index\" message\n");
+        return generate_response(ctx, COORD_MALFORMED);
+    }
+
+    c->index_add(ctx, space, attr);
+}
+
+void
+hyperdex_coordinator_index_rm(struct replicant_state_machine_context* ctx,
+                              void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    index_id ii;
+    e::unpacker up(data, data_sz);
+    up = up >> ii;
+    CHECK_UNPACK(index_rm);
+    c->index_rm(ctx, ii);
+}
+
+void
 hyperdex_coordinator_transfer_go_live(struct replicant_state_machine_context* ctx,
                                       void* obj, const char* data, size_t data_sz)
 {

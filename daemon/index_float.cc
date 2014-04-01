@@ -29,14 +29,16 @@
 #include <e/endian.h>
 
 // HyperDex
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/ordered_encoding.h"
 #include "daemon/datalayer_encodings.h"
 #include "daemon/index_float.h"
 
 using hyperdex::index_float;
+using hyperdex::index_encoding_float;
 
 index_float :: index_float()
+    : index_primitive(index_encoding::lookup(HYPERDATATYPE_FLOAT))
 {
 }
 
@@ -44,20 +46,34 @@ index_float :: ~index_float() throw ()
 {
 }
 
+hyperdatatype
+index_float :: datatype()
+{
+    return HYPERDATATYPE_FLOAT;
+}
+
+index_encoding_float :: index_encoding_float()
+{
+}
+
+index_encoding_float :: ~index_encoding_float() throw ()
+{
+}
+
 bool
-index_float :: encoding_fixed()
+index_encoding_float :: encoding_fixed()
 {
     return true;
 }
 
 size_t
-index_float :: encoded_size(const e::slice&)
+index_encoding_float :: encoded_size(const e::slice&)
 {
     return 2 * sizeof(double);
 }
 
 char*
-index_float :: encode(const e::slice& decoded, char* encoded)
+index_encoding_float :: encode(const e::slice& decoded, char* encoded)
 {
     datatype_info* di = datatype_info::lookup(HYPERDATATYPE_FLOAT);
     double number = 0;
@@ -74,13 +90,13 @@ index_float :: encode(const e::slice& decoded, char* encoded)
 }
 
 size_t
-index_float :: decoded_size(const e::slice&)
+index_encoding_float :: decoded_size(const e::slice&)
 {
     return sizeof(double);
 }
 
 char*
-index_float :: decode(const e::slice& encoded, char* decoded)
+index_encoding_float :: decode(const e::slice& encoded, char* decoded)
 {
     double number = 0;
 

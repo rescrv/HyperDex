@@ -48,39 +48,54 @@ using hyperdex::reconfigure_returncode;
 using hyperdex::state_transfer_manager;
 using hyperdex::transfer_id;
 
+class state_transfer_manager::background_thread : public ::hyperdex::background_thread
+{
+    public:
+        background_thread(state_transfer_manager* stm);
+        ~background_thread() throw ();
+
+    public:
+        virtual const char* thread_name();
+        virtual bool have_work();
+        virtual void copy_work();
+        virtual void do_work();
+
+    public:
+        void kick();
+
+    private:
+        background_thread(const background_thread&);
+        background_thread& operator = (const background_thread&);
+
+    private:
+        state_transfer_manager* m_stm;
+        bool m_need_kickstart;
+};
+
 state_transfer_manager :: state_transfer_manager(daemon* d)
     : m_daemon(d)
     , m_transfers_in()
     , m_transfers_out()
-    , m_kickstarter(make_thread_wrapper(&state_transfer_manager::kickstarter, this))
-    , m_block_kickstarter()
-    , m_wakeup_kickstarter(&m_block_kickstarter)
-    , m_wakeup_reconfigurer(&m_block_kickstarter)
-    , m_need_kickstart(false)
-    , m_shutdown(true)
-    , m_need_pause(false)
-    , m_paused(false)
+    , m_background_thread(new background_thread(this))
 {
 }
 
 state_transfer_manager :: ~state_transfer_manager() throw ()
 {
-    shutdown();
+    m_background_thread->shutdown();
 }
 
 bool
 state_transfer_manager :: setup()
 {
-    po6::threads::mutex::hold hold(&m_block_kickstarter);
-    m_kickstarter.start();
-    m_shutdown = false;
+    m_background_thread->start();
     return true;
 }
 
 void
 state_transfer_manager :: teardown()
 {
-    shutdown();
+    m_background_thread->shutdown();
     m_transfers_in.clear();
     m_transfers_out.clear();
 }
@@ -88,19 +103,14 @@ state_transfer_manager :: teardown()
 void
 state_transfer_manager :: pause()
 {
-    po6::threads::mutex::hold hold(&m_block_kickstarter);
-    assert(!m_need_pause);
-    m_need_pause = true;
+    m_background_thread->initiate_pause();
 }
 
 void
 state_transfer_manager :: unpause()
 {
-    po6::threads::mutex::hold hold(&m_block_kickstarter);
-    assert(m_need_pause);
-    m_wakeup_kickstarter.broadcast();
-    m_need_pause = false;
-    m_need_kickstart = true;
+    m_background_thread->kick();
+    m_background_thread->unpause();
 }
 
 template <class S>
@@ -158,15 +168,7 @@ state_transfer_manager :: reconfigure(const configuration&,
                                       const configuration& new_config,
                                       const server_id&)
 {
-    {
-        po6::threads::mutex::hold hold(&m_block_kickstarter);
-        assert(m_need_pause);
-
-        while (!m_paused)
-        {
-            m_wakeup_reconfigurer.wait();
-        }
-    }
+    m_background_thread->wait_until_paused();
 
     // Setup transfers in
     std::vector<transfer> transfers_in;
@@ -307,10 +309,17 @@ state_transfer_manager :: report_wiped(const transfer_id& xid)
         return;
     }
 
-    po6::threads::mutex::hold hold(&tis->mtx);
-    tis->wiped = true;
-    put_to_disk_and_send_acks(tis);
-    LOG(INFO) << "we've wiped our state for " << xid;
+    m_daemon->m_data.inhibit_wiping();
+
+    if (!m_daemon->m_data.region_will_be_wiped(tis->xfer.rid))
+    {
+        po6::threads::mutex::hold hold(&tis->mtx);
+        tis->wiped = true;
+        put_to_disk_and_send_acks(tis);
+        LOG(INFO) << "we've wiped our state for " << xid;
+    }
+
+    m_daemon->m_data.permit_wiping();
 }
 
 void
@@ -666,85 +675,50 @@ state_transfer_manager :: send_ack(const transfer& xfer, uint64_t seq_no)
     m_daemon->m_comm.send_exact(xfer.vdst, xfer.vsrc, XFER_ACK, msg);
 }
 
-void
-state_transfer_manager :: kickstarter()
+state_transfer_manager :: background_thread :: background_thread(state_transfer_manager* stm)
+    : m_stm(stm)
+    , m_need_kickstart(false)
 {
-    LOG(INFO) << "state transfer thread started";
-    sigset_t ss;
+}
 
-    if (sigfillset(&ss) < 0)
-    {
-        PLOG(ERROR) << "sigfillset";
-        return;
-    }
+state_transfer_manager :: background_thread :: ~background_thread() throw ()
+{
+}
 
-    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
-    {
-        PLOG(ERROR) << "could not block signals";
-        return;
-    }
+const char*
+state_transfer_manager :: background_thread :: thread_name()
+{
+    return "state transfer";
+}
 
-    while (true)
-    {
-        {
-            po6::threads::mutex::hold hold(&m_block_kickstarter);
-
-            while ((!m_need_kickstart && !m_shutdown) || m_need_pause)
-            {
-                m_paused = true;
-
-                if (m_need_pause)
-                {
-                    m_wakeup_reconfigurer.signal();
-                }
-
-                m_wakeup_kickstarter.wait();
-                m_paused = false;
-            }
-
-            if (m_shutdown)
-            {
-                break;
-            }
-
-            m_need_kickstart = false;
-        }
-
-        size_t idx = 0;
-
-        while (true)
-        {
-            po6::threads::mutex::hold hold(&m_block_kickstarter);
-
-            if (idx >= m_transfers_out.size())
-            {
-                break;
-            }
-
-            po6::threads::mutex::hold hold2(&m_transfers_out[idx]->mtx);
-            retransmit(m_transfers_out[idx].get());
-            transfer_more_state(m_transfers_out[idx].get());
-            ++idx;
-        }
-    }
-
-    LOG(INFO) << "state transfer thread shutting down";
+bool
+state_transfer_manager :: background_thread :: have_work()
+{
+    return m_need_kickstart;
 }
 
 void
-state_transfer_manager :: shutdown()
+state_transfer_manager :: background_thread :: copy_work()
 {
-    bool is_shutdown;
+    m_need_kickstart = false;
+}
 
+void
+state_transfer_manager :: background_thread :: do_work()
+{
+    for (size_t idx = 0; idx < m_stm->m_transfers_out.size(); ++idx)
     {
-        po6::threads::mutex::hold hold(&m_block_kickstarter);
-        m_wakeup_kickstarter.broadcast();
-        is_shutdown = m_shutdown;
-        m_shutdown = true;
+        po6::threads::mutex::hold hold2(&m_stm->m_transfers_out[idx]->mtx);
+        m_stm->retransmit(m_stm->m_transfers_out[idx].get());
+        m_stm->transfer_more_state(m_stm->m_transfers_out[idx].get());
+        ++idx;
     }
+}
 
-    if (!is_shutdown)
-    {
-        m_kickstarter.join();
-    }
+void
+state_transfer_manager :: background_thread :: kick()
+{
+    this->lock();
+    m_need_kickstart = true;
+    this->unlock();
 }

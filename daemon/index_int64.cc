@@ -29,14 +29,16 @@
 #include <e/endian.h>
 
 // HyperDex
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/ordered_encoding.h"
 #include "daemon/datalayer_encodings.h"
 #include "daemon/index_int64.h"
 
 using hyperdex::index_int64;
+using hyperdex::index_encoding_int64;
 
 index_int64 :: index_int64()
+    : index_primitive(index_encoding::lookup(HYPERDATATYPE_INT64))
 {
 }
 
@@ -44,32 +46,46 @@ index_int64 :: ~index_int64() throw ()
 {
 }
 
+hyperdatatype
+index_int64 :: datatype()
+{
+    return HYPERDATATYPE_INT64;
+}
+
+index_encoding_int64 :: index_encoding_int64()
+{
+}
+
+index_encoding_int64 :: ~index_encoding_int64() throw ()
+{
+}
+
 bool
-index_int64 :: encoding_fixed()
+index_encoding_int64 :: encoding_fixed()
 {
     return true;
 }
 
 size_t
-index_int64 :: encoded_size(const e::slice&)
+index_encoding_int64 :: encoded_size(const e::slice&)
 {
     return sizeof(int64_t);
 }
 
 char*
-index_int64 :: encode(const e::slice& decoded, char* encoded)
+index_encoding_int64 :: encode(const e::slice& decoded, char* encoded)
 {
     return e::pack64be(datatype_info::lookup(HYPERDATATYPE_INT64)->hash(decoded), encoded);
 }
 
 size_t
-index_int64 :: decoded_size(const e::slice&)
+index_encoding_int64 :: decoded_size(const e::slice&)
 {
     return sizeof(int64_t);
 }
 
 char*
-index_int64 :: decode(const e::slice& encoded, char* decoded)
+index_encoding_int64 :: decode(const e::slice& encoded, char* decoded)
 {
     uint64_t x = 0;
 
