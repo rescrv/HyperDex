@@ -47,6 +47,7 @@
 /doc/man/hyperdex-daemon.1
 /doc/man/hyperdex-simple-consistency-stress-test.1
 /hyperdex
+/hyperdex-add-index
 /hyperdex-add-space
 /hyperdex-admin.pc
 /hyperdex-async-benchmark
@@ -63,6 +64,7 @@
 /hyperdex-list-spaces
 /hyperdex-perf-counters
 /hyperdex-raw-backup
+/hyperdex-rm-index
 /hyperdex-rm-space
 /hyperdex-server-forget
 /hyperdex-server-kill

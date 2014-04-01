@@ -82,16 +82,13 @@ hyperspace_add_attribute(struct hyperspace* space,
                          enum hyperdatatype datatype);
 
 enum hyperspace_returncode
-hyperspace_primary_index(struct hyperspace* space, const char* attr);
-
-enum hyperspace_returncode
 hyperspace_add_subspace(struct hyperspace* space);
 
 enum hyperspace_returncode
 hyperspace_add_subspace_attribute(struct hyperspace* space, const char* attr);
 
 enum hyperspace_returncode
-hyperspace_add_secondary_index(struct hyperspace* space, const char* attr);
+hyperspace_add_index(struct hyperspace* space, const char* attr);
 
 enum hyperspace_returncode
 hyperspace_set_fault_tolerance(struct hyperspace* space, uint64_t num);

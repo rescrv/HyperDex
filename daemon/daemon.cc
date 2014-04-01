@@ -111,6 +111,9 @@ daemon :: daemon()
     , m_stm(this)
     , m_sm(this)
     , m_config()
+    , m_protect_pause()
+    , m_can_pause(&m_protect_pause)
+    , m_paused(false)
     , m_perf_req_get()
     , m_perf_req_atomic()
     , m_perf_req_search_start()
@@ -335,6 +338,21 @@ daemon :: run(bool daemonize,
         return EXIT_FAILURE;
     }
 
+    uint64_t checkpoint = 0;
+    uint64_t checkpoint_stable = 0;
+    uint64_t checkpoint_gc = 0;
+
+    if (!m_coord.initialize_checkpoints(&checkpoint, &checkpoint_stable, &checkpoint_gc))
+    {
+        LOG(ERROR) << "could not initialize our session with the coordinator; shutting down";
+        return EXIT_FAILURE;
+    }
+
+    LOG(INFO) << "starting checkpoint process with"
+              << " checkpoint=" << checkpoint
+              << " checkpoint_stable=" << checkpoint_stable
+              << " checkpoint_gc=" << checkpoint_gc;
+
     determine_block_stat_path(data);
     m_comm.setup(bind_to, threads);
     m_repl.setup();
@@ -353,9 +371,6 @@ daemon :: run(bool daemonize,
     alarm(ALARM_INTERVAL);
     bool cluster_jump = false;
     bool requested_exit = false;
-    uint64_t checkpoint = 0;
-    uint64_t checkpoint_stable = 0;
-    uint64_t checkpoint_gc = 0;
 
     while (__sync_fetch_and_add(&s_interrupts, 0) < 2 &&
            !m_coord.should_exit())
@@ -411,7 +426,7 @@ daemon :: run(bool daemonize,
             checkpoint_gc < m_coord.checkpoint_gc())
         {
             checkpoint_gc = m_coord.checkpoint_gc();
-            m_data.set_checkpoint_lower_gc(checkpoint_gc);
+            m_data.set_checkpoint_gc(checkpoint_gc);
         }
 
         if (!m_coord.maintain_link())
@@ -443,22 +458,14 @@ daemon :: run(bool daemonize,
 
         LOG(INFO) << "moving to configuration version=" << new_config.version()
                   << "; pausing all activity while we reconfigure";
-        m_sm.pause();
-        m_stm.pause();
-        m_repl.pause();
-        m_data.pause();
-        m_comm.pause();
+        this->pause();
         m_comm.reconfigure(old_config, new_config, m_us);
         m_data.reconfigure(old_config, new_config, m_us);
         m_repl.reconfigure(old_config, new_config, m_us);
         m_stm.reconfigure(old_config, new_config, m_us);
         m_sm.reconfigure(old_config, new_config, m_us);
         m_config = new_config;
-        m_comm.unpause();
-        m_data.unpause();
-        m_repl.unpause();
-        m_stm.unpause();
-        m_sm.unpause();
+        this->unpause();
         LOG(INFO) << "reconfiguration complete; resuming normal operation";
 
         // let the coordinator know we've moved to this config
@@ -500,6 +507,38 @@ daemon :: run(bool daemonize,
     m_data.teardown();
     LOG(INFO) << "hyperdex-daemon will now terminate";
     return EXIT_SUCCESS;
+}
+
+void
+daemon :: pause()
+{
+    po6::threads::mutex::hold hold(&m_protect_pause);
+
+    while (m_paused)
+    {
+        m_can_pause.wait();
+    }
+
+    m_paused = true;
+    m_sm.pause();
+    m_stm.pause();
+    m_repl.pause();
+    m_data.pause();
+    m_comm.pause();
+}
+
+void
+daemon :: unpause()
+{
+    po6::threads::mutex::hold hold(&m_protect_pause);
+    m_comm.unpause();
+    m_data.unpause();
+    m_repl.unpause();
+    m_stm.unpause();
+    m_sm.unpause();
+    assert(m_paused);
+    m_paused = false;
+    m_can_pause.signal();
 }
 
 void

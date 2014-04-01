@@ -117,17 +117,18 @@ noinst_HEADERS += common/configuration_flags.h
 noinst_HEADERS += common/coordinator_link.h
 noinst_HEADERS += common/coordinator_returncode.h
 noinst_HEADERS += common/datatype_float.h
+noinst_HEADERS += common/datatype_info.h
 noinst_HEADERS += common/datatype_int64.h
 noinst_HEADERS += common/datatype_list.h
 noinst_HEADERS += common/datatype_map.h
 noinst_HEADERS += common/datatype_set.h
-noinst_HEADERS += common/datatypes.h
 noinst_HEADERS += common/datatype_string.h
 noinst_HEADERS += common/funcall.h
 noinst_HEADERS += common/hash.h
 noinst_HEADERS += common/hyperspace.h
 noinst_HEADERS += common/ordered_encoding.h
 noinst_HEADERS += common/ids.h
+noinst_HEADERS += common/index.h
 noinst_HEADERS += common/macros.h
 noinst_HEADERS += common/mapper.h
 noinst_HEADERS += common/network_msgtype.h
@@ -213,10 +214,10 @@ hyperdex_daemon_SOURCES += common/coordinator_link.cc
 hyperdex_daemon_SOURCES += common/coordinator_returncode.cc
 hyperdex_daemon_SOURCES += common/datatype_document.cc
 hyperdex_daemon_SOURCES += common/datatype_float.cc
+hyperdex_daemon_SOURCES += common/datatype_info.cc
 hyperdex_daemon_SOURCES += common/datatype_int64.cc
 hyperdex_daemon_SOURCES += common/datatype_list.cc
 hyperdex_daemon_SOURCES += common/datatype_map.cc
-hyperdex_daemon_SOURCES += common/datatypes.cc
 hyperdex_daemon_SOURCES += common/datatype_set.cc
 hyperdex_daemon_SOURCES += common/datatype_string.cc
 hyperdex_daemon_SOURCES += common/funcall.cc
@@ -224,6 +225,7 @@ hyperdex_daemon_SOURCES += common/hash.cc
 hyperdex_daemon_SOURCES += common/hyperdex.cc
 hyperdex_daemon_SOURCES += common/hyperspace.cc
 hyperdex_daemon_SOURCES += common/ids.cc
+hyperdex_daemon_SOURCES += common/index.cc
 hyperdex_daemon_SOURCES += common/mapper.cc
 hyperdex_daemon_SOURCES += common/network_msgtype.cc
 hyperdex_daemon_SOURCES += common/ordered_encoding.cc
@@ -235,15 +237,20 @@ hyperdex_daemon_SOURCES += common/serialization.cc
 hyperdex_daemon_SOURCES += common/server.cc
 hyperdex_daemon_SOURCES += common/transfer.cc
 hyperdex_daemon_SOURCES += cityhash/city.cc
+hyperdex_daemon_SOURCES += daemon/background_thread.cc
 hyperdex_daemon_SOURCES += daemon/communication.cc
 hyperdex_daemon_SOURCES += daemon/coordinator_link_wrapper.cc
 hyperdex_daemon_SOURCES += daemon/daemon.cc
 hyperdex_daemon_SOURCES += daemon/datalayer.cc
+hyperdex_daemon_SOURCES += daemon/datalayer_checkpointer_thread.cc
 hyperdex_daemon_SOURCES += daemon/datalayer_encodings.cc
+hyperdex_daemon_SOURCES += daemon/datalayer_indexer_thread.cc
 hyperdex_daemon_SOURCES += daemon/datalayer_iterator.cc
+hyperdex_daemon_SOURCES += daemon/datalayer_wiper_thread.cc
 hyperdex_daemon_SOURCES += daemon/identifier_collector.cc
 hyperdex_daemon_SOURCES += daemon/identifier_generator.cc
 hyperdex_daemon_SOURCES += daemon/index_container.cc
+hyperdex_daemon_SOURCES += daemon/index_document.cc
 hyperdex_daemon_SOURCES += daemon/index_float.cc
 hyperdex_daemon_SOURCES += daemon/index_info.cc
 hyperdex_daemon_SOURCES += daemon/index_int64.cc
@@ -307,6 +314,7 @@ libhyperdex_coordinator_la_SOURCES =
 libhyperdex_coordinator_la_SOURCES += common/attribute.cc
 libhyperdex_coordinator_la_SOURCES += common/hyperspace.cc
 libhyperdex_coordinator_la_SOURCES += common/ids.cc
+libhyperdex_coordinator_la_SOURCES += common/index.cc
 libhyperdex_coordinator_la_SOURCES += common/schema.cc
 libhyperdex_coordinator_la_SOURCES += common/serialization.cc
 libhyperdex_coordinator_la_SOURCES += common/server.cc
@@ -370,10 +378,10 @@ libhyperdex_client_la_SOURCES += common/configuration.cc
 libhyperdex_client_la_SOURCES += common/coordinator_link.cc
 libhyperdex_client_la_SOURCES += common/datatype_document.cc
 libhyperdex_client_la_SOURCES += common/datatype_float.cc
+libhyperdex_client_la_SOURCES += common/datatype_info.cc
 libhyperdex_client_la_SOURCES += common/datatype_int64.cc
 libhyperdex_client_la_SOURCES += common/datatype_list.cc
 libhyperdex_client_la_SOURCES += common/datatype_map.cc
-libhyperdex_client_la_SOURCES += common/datatypes.cc
 libhyperdex_client_la_SOURCES += common/datatype_set.cc
 libhyperdex_client_la_SOURCES += common/datatype_string.cc
 libhyperdex_client_la_SOURCES += common/funcall.cc
@@ -381,6 +389,7 @@ libhyperdex_client_la_SOURCES += common/hash.cc
 libhyperdex_client_la_SOURCES += common/hyperdex.cc
 libhyperdex_client_la_SOURCES += common/hyperspace.cc
 libhyperdex_client_la_SOURCES += common/ids.cc
+libhyperdex_client_la_SOURCES += common/index.cc
 libhyperdex_client_la_SOURCES += common/mapper.cc
 libhyperdex_client_la_SOURCES += common/network_msgtype.cc
 libhyperdex_client_la_SOURCES += common/ordered_encoding.cc
@@ -458,16 +467,17 @@ libhyperdex_admin_la_SOURCES += common/configuration.cc
 libhyperdex_admin_la_SOURCES += common/coordinator_link.cc
 libhyperdex_admin_la_SOURCES += common/datatype_document.cc
 libhyperdex_admin_la_SOURCES += common/datatype_float.cc
+libhyperdex_admin_la_SOURCES += common/datatype_info.cc
 libhyperdex_admin_la_SOURCES += common/datatype_int64.cc
 libhyperdex_admin_la_SOURCES += common/datatype_list.cc
 libhyperdex_admin_la_SOURCES += common/datatype_map.cc
-libhyperdex_admin_la_SOURCES += common/datatypes.cc
 libhyperdex_admin_la_SOURCES += common/datatype_set.cc
 libhyperdex_admin_la_SOURCES += common/datatype_string.cc
 libhyperdex_admin_la_SOURCES += common/hash.cc
 libhyperdex_admin_la_SOURCES += common/hyperdex.cc
 libhyperdex_admin_la_SOURCES += common/hyperspace.cc
 libhyperdex_admin_la_SOURCES += common/ids.cc
+libhyperdex_admin_la_SOURCES += common/index.cc
 libhyperdex_admin_la_SOURCES += common/mapper.cc
 libhyperdex_admin_la_SOURCES += common/network_msgtype.cc
 libhyperdex_admin_la_SOURCES += common/ordered_encoding.cc
@@ -999,6 +1009,8 @@ hyperdexexec_PROGRAMS += hyperdex-add-space
 hyperdexexec_PROGRAMS += hyperdex-rm-space
 hyperdexexec_PROGRAMS += hyperdex-list-spaces
 hyperdexexec_PROGRAMS += hyperdex-validate-space
+hyperdexexec_PROGRAMS += hyperdex-add-index
+hyperdexexec_PROGRAMS += hyperdex-rm-index
 hyperdexexec_PROGRAMS += hyperdex-show-config
 hyperdexexec_PROGRAMS += hyperdex-server-register
 hyperdexexec_PROGRAMS += hyperdex-server-online
@@ -1017,6 +1029,8 @@ dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
 dist_man_MANS += man/hyperdex-list-spaces.1
 dist_man_MANS += man/hyperdex-validate-space.1
+dist_man_MANS += man/hyperdex-add-index.1
+dist_man_MANS += man/hyperdex-rm-index.1
 dist_man_MANS += man/hyperdex-show-config.1
 dist_man_MANS += man/hyperdex-server-register.1
 dist_man_MANS += man/hyperdex-server-online.1
@@ -1079,6 +1093,24 @@ hyperdex_validate_space_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-validate-space.1: man/hyperdex-validate-space.1.h2m tools/validate-space.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-validate-space$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-validate-space$(EXEEXT)
+
+# hyperdex-add-index
+EXTRA_DIST += man/hyperdex-add-index.1.md
+EXTRA_DIST += man/hyperdex-add-index.1.h2m
+hyperdex_add_index_SOURCES = tools/add-index.cc
+hyperdex_add_index_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-add-index.1: man/hyperdex-add-index.1.h2m tools/add-index.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-add-index$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-add-index$(EXEEXT)
+
+# hyperdex-rm-index
+EXTRA_DIST += man/hyperdex-rm-index.1.md
+EXTRA_DIST += man/hyperdex-rm-index.1.h2m
+hyperdex_rm_index_SOURCES = tools/rm-index.cc
+hyperdex_rm_index_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-rm-index.1: man/hyperdex-rm-index.1.h2m tools/rm-index.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-rm-index$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-rm-index$(EXEEXT)
 
 # hyperdex-show-config
 EXTRA_DIST += man/hyperdex-show-config.1.md

@@ -76,10 +76,14 @@ TRANSITION(report_disconnect);
 TRANSITION(space_add);
 TRANSITION(space_rm);
 
+TRANSITION(index_add);
+TRANSITION(index_rm);
+
 TRANSITION(transfer_go_live);
 TRANSITION(transfer_complete);
 
 TRANSITION(checkpoint_stable);
+TRANSITION(checkpoints);
 
 TRANSITION(alarm);
 

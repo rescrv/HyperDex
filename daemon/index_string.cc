@@ -34,8 +34,10 @@
 
 using hyperdex::datalayer;
 using hyperdex::index_string;
+using hyperdex::index_encoding_string;
 
 index_string :: index_string()
+    : index_primitive(index_encoding::lookup(HYPERDATATYPE_STRING))
 {
 }
 
@@ -43,33 +45,47 @@ index_string :: ~index_string() throw ()
 {
 }
 
+hyperdatatype
+index_string :: datatype()
+{
+    return HYPERDATATYPE_STRING;
+}
+
+index_encoding_string :: index_encoding_string()
+{
+}
+
+index_encoding_string :: ~index_encoding_string() throw ()
+{
+}
+
 bool
-index_string :: encoding_fixed()
+index_encoding_string :: encoding_fixed()
 {
     return false;
 }
 
 size_t
-index_string :: encoded_size(const e::slice& decoded)
+index_encoding_string :: encoded_size(const e::slice& decoded)
 {
     return decoded.size();
 }
 
 char*
-index_string :: encode(const e::slice& decoded, char* encoded)
+index_encoding_string :: encode(const e::slice& decoded, char* encoded)
 {
     memmove(encoded, decoded.data(), decoded.size());
     return encoded + decoded.size();
 }
 
 size_t
-index_string :: decoded_size(const e::slice& encoded)
+index_encoding_string :: decoded_size(const e::slice& encoded)
 {
     return encoded.size();
 }
 
 char*
-index_string :: decode(const e::slice& encoded, char* decoded)
+index_encoding_string :: decode(const e::slice& encoded, char* decoded)
 {
     memmove(decoded, encoded.data(), encoded.size());
     return decoded + encoded.size();

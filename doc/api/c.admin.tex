@@ -222,6 +222,65 @@ int64_t hyperdex_admin_list_spaces(struct hyperdex_admin* admin,
 \input{\topdir/api/fragments/c/admin/out_asynccall_spacelist}
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%% add_index %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{add\_index}}
+\label{api:c:add_index}
+\index{add\_index!C API}
+\input{\topdir/api/desc/add_index}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_admin_add_index(struct hyperdex_admin* admin,
+        const char* space,
+        const char* attribute,
+        enum hyperdex_admin_returncode* status);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_admin* admin}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_structadmin}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_spacename}
+\item \code{const char* attribute}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_attributename}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_admin\_returncode* status}\\
+\input{\topdir/api/fragments/c/admin/out_asynccall_adminstatus}
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%% rm_index %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{rm\_index}}
+\label{api:c:rm_index}
+\index{rm\_index!C API}
+\input{\topdir/api/desc/rm_index}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_admin_rm_index(struct hyperdex_admin* admin,
+        uint64_t idxid,
+        enum hyperdex_admin_returncode* status);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_admin* admin}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_structadmin}
+\item \code{uint64\_t idxid}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_indexid}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_admin\_returncode* status}\\
+\input{\topdir/api/fragments/c/admin/out_asynccall_adminstatus}
+\end{itemize}
+
 %%%%%%%%%%%%%%%%%%%% server_register %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{server\_register}}

@@ -30,6 +30,7 @@
 
 // e
 #include <e/endian.h>
+#include <e/varint.h>
 
 // HyperDex
 #include "daemon/datalayer_encodings.h"
@@ -37,12 +38,26 @@
 
 using hyperdex::datalayer;
 
+size_t
+hyperdex :: object_prefix_sz(region_id ri)
+{
+    return e::varint_length(ri.get()) + 1;
+}
+
+char*
+hyperdex :: encode_object_prefix(region_id ri, char* ptr)
+{
+    ptr = e::pack8be('o', ptr);
+    ptr = e::packvarint64(ri.get(), ptr);
+    return ptr;
+}
+
 void
 hyperdex :: encode_object_region(const region_id& ri,
                                  std::vector<char>* scratch,
                                  leveldb::Slice* out)
 {
-    size_t sz = sizeof(uint8_t) + sizeof(uint64_t);
+    size_t sz = object_prefix_sz(ri);
 
     if (scratch->size() < sz)
     {
@@ -51,8 +66,7 @@ hyperdex :: encode_object_region(const region_id& ri,
 
     char* ptr = &scratch->front();
     *out = leveldb::Slice(ptr, sz);
-    ptr = e::pack8be('o', ptr);
-    ptr = e::pack64be(ri.get(), ptr);
+    ptr = encode_object_prefix(ri, ptr);
 }
 
 void
@@ -61,7 +75,7 @@ hyperdex :: encode_key(const region_id& ri,
                        std::vector<char>* scratch,
                        leveldb::Slice* out)
 {
-    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + internal_key.size();
+    size_t sz = object_prefix_sz(ri) + internal_key.size();
 
     if (scratch->size() < sz)
     {
@@ -70,8 +84,7 @@ hyperdex :: encode_key(const region_id& ri,
 
     char* ptr = &scratch->front();
     *out = leveldb::Slice(ptr, sz);
-    ptr = e::pack8be('o', ptr);
-    ptr = e::pack64be(ri.get(), ptr);
+    ptr = encode_object_prefix(ri, ptr);
     memmove(ptr, internal_key.data(), internal_key.size());
 }
 
@@ -82,8 +95,8 @@ hyperdex :: encode_key(const region_id& ri,
                        std::vector<char>* scratch,
                        leveldb::Slice* out)
 {
-    index_info* ii(index_info::lookup(key_type));
-    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + ii->encoded_size(key);
+    index_encoding* ie(index_encoding::lookup(key_type));
+    size_t sz = object_prefix_sz(ri) + ie->encoded_size(key);
 
     if (scratch->size() < sz)
     {
@@ -92,9 +105,8 @@ hyperdex :: encode_key(const region_id& ri,
 
     char* ptr = &scratch->front();
     *out = leveldb::Slice(ptr, sz);
-    ptr = e::pack8be('o', ptr);
-    ptr = e::pack64be(ri.get(), ptr);
-    ii->encode(key, ptr);
+    ptr = encode_object_prefix(ri, ptr);
+    ie->encode(key, ptr);
 }
 
 bool
@@ -102,18 +114,23 @@ hyperdex :: decode_key(const leveldb::Slice& in,
                        region_id* ri,
                        e::slice* internal_key)
 {
-    const size_t prefix_sz = sizeof(uint8_t) + sizeof(uint64_t);
-
-    if (in.size() < prefix_sz ||
-        in.data()[0] != 'o')
+    if (in.size() < 2 || in.data()[0] != 'o')
     {
         return false;
     }
 
     uint64_t r;
-    e::unpack64be(in.data() + sizeof(uint8_t), &r);
+    const char* const end = in.data() + in.size();
+    const char* ptr = in.data() + sizeof(uint8_t);
+    ptr = e::varint64_decode(ptr, end, &r);
+
+    if (!ptr)
+    {
+        return false;
+    }
+
     *ri = region_id(r);
-    *internal_key = e::slice(in.data() + prefix_sz, in.size() - prefix_sz);
+    *internal_key = e::slice(ptr, end - ptr);
     return true;
 }
 
@@ -267,8 +284,8 @@ hyperdex :: decode_checkpoint(const e::slice& in,
 
 void
 hyperdex :: create_index_changes(const schema& sc,
-                                 const subspace& sub,
                                  const region_id& ri,
+                                 const std::vector<const index*>& indices,
                                  const e::slice& key,
                                  const std::vector<e::slice>* old_value,
                                  const std::vector<e::slice>* new_value,
@@ -277,48 +294,29 @@ hyperdex :: create_index_changes(const schema& sc,
     assert(!old_value || !new_value || old_value->size() == new_value->size());
     assert(!old_value || old_value->size() + 1 == sc.attrs_sz);
     assert(!new_value || new_value->size() + 1 == sc.attrs_sz);
-    std::vector<uint16_t> attrs;
+    index_encoding* key_ie = index_encoding::lookup(sc.attrs[0].type);
 
-    for (size_t i = 0; i < sub.attrs.size(); ++i)
+    for (size_t i = 0; i < indices.size(); ++i)
     {
-        uint16_t attr = sub.attrs[i];
-        attrs.push_back(attr);
-    }
+        const index* idx = indices[i];
 
-    for (size_t i = 0; i < sub.indices.size(); ++i)
-    {
-        uint16_t attr = sub.indices[i];
-        attrs.push_back(attr);
-    }
+        assert(idx->attr > 0);
+        assert(idx->attr < sc.attrs_sz);
 
-    for (size_t i = 0; i < attrs.size(); ++i)
-    {
-        uint16_t attr = attrs[i];
-        assert(attr < sc.attrs_sz);
+        index_info* ai = index_info::lookup(sc.attrs[idx->attr].type);
+        assert(ai);
 
-        if (attr == 0)
+        const e::slice* old_attr = NULL;
+        const e::slice* new_attr = NULL;
+        old_attr = old_value ? &(*old_value)[idx->attr - 1] : NULL;
+        new_attr = new_value ? &(*new_value)[idx->attr - 1] : NULL;
+
+        if (!old_attr && !new_attr)
         {
             continue;
         }
 
-        if (!sub.indexed(attr))
-        {
-            continue;
-        }
-
-        index_info* ki = index_info::lookup(sc.attrs[0].type);
-        index_info* ai = index_info::lookup(sc.attrs[attr].type);
-
-        if (!ai)
-        {
-            continue;
-        }
-
-        assert(ki);
-        ai->index_changes(ri, attr, ki, key,
-                          old_value ? &(*old_value)[attr - 1] : NULL,
-                          new_value ? &(*new_value)[attr - 1] : NULL,
-                          updates);
+        ai->index_changes(idx, ri, key_ie, key, old_attr, new_attr, updates);
     }
 }
 

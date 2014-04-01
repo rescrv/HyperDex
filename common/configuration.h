@@ -96,12 +96,14 @@ class configuration
         // mapped regions -- regions mapped for server "us"
         void mapped_regions(const server_id& s, std::vector<region_id>* servers) const;
 
-    // indices
+    // index metadata
     public:
-        const std::vector<uint16_t>& get_indices(const region_id& ri) const;
+        const index* get_index(const index_id& ii) const;
+        void all_indices(const server_id& s, std::vector<std::pair<region_id, index_id> >* indices) const;
 
     // transfers
     public:
+        bool is_server_involved_in_transfer(const server_id& si, const region_id& ri) const;
         bool is_server_blocked_by_live_transfer(const server_id& si, const region_id& ri) const;
         bool is_transfer_live(const transfer_id& tid) const;
         void transfers_in(const server_id& s, std::vector<transfer>* transfers) const;

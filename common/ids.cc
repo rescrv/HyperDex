@@ -50,6 +50,7 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
+CREATE_ID(index)
 CREATE_ID(region)
 CREATE_ID(replica_set)
 CREATE_ID(server)

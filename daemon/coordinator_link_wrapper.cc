@@ -159,7 +159,7 @@ coordinator_link_wrapper :: register_id(server_id us, const po6::net::location& 
     std::auto_ptr<e::buffer> buf(e::buffer::create(sizeof(uint64_t) + pack_size(bind_to)));
     e::buffer::packer pa = buf->pack_at(0);
     pa = pa << us << bind_to;
-    std::auto_ptr<coord_rpc> rpc(new coord_rpc);
+    std::auto_ptr<coord_rpc> rpc(new coord_rpc());
     int64_t rid = m_coord->rpc("server_register",
                                reinterpret_cast<const char*>(buf->data()), buf->size(),
                                &rpc->status,
@@ -223,6 +223,88 @@ coordinator_link_wrapper :: register_id(server_id us, const po6::net::location& 
     else
     {
         LOG(ERROR) << "could not register as " << us << ": coordinator returned invalid message";
+        return false;
+    }
+}
+
+bool
+coordinator_link_wrapper :: initialize_checkpoints(uint64_t* _checkpoint,
+                                                   uint64_t* _checkpoint_stable,
+                                                   uint64_t* _checkpoint_gc)
+{
+    e::intrusive_ptr<coord_rpc> rpc(new coord_rpc());
+    int64_t id = make_rpc_nosync("checkpoints", "", 0, rpc);
+
+    if (id < 0)
+    {
+        e::error err = m_coord->error();
+        LOG(ERROR) << "could not retrieve checkpoints: " << err.msg() << " @ " << err.loc();
+        return false;
+    }
+
+    replicant_returncode lrc = REPLICANT_GARBAGE;
+    std::vector<int64_t> irrelevant_for_now;
+
+    while (true)
+    {
+        int64_t lid = m_coord->loop(-1, &lrc);
+
+        if (lid < 0)
+        {
+            e::error err = m_coord->error();
+            LOG(ERROR) << "could not retrieve checkpoints: " << err.msg() << " @ " << err.loc();
+            return false;
+        }
+
+        if (lid == id)
+        {
+            break;
+        }
+
+        irrelevant_for_now.push_back(lid);
+    }
+
+    for (size_t i = 0; i < irrelevant_for_now.size(); ++i)
+    {
+        m_coord->enqueue_response(irrelevant_for_now[i]);
+    }
+
+    if (rpc->status != REPLICANT_SUCCESS)
+    {
+        e::error err = m_coord->error();
+        LOG(ERROR) << "could not retrieve checkpoints: " << err.msg() << " @ " << err.loc();
+        return false;
+    }
+
+    if (rpc->output_sz >= sizeof(uint16_t) + 3 * sizeof(uint64_t))
+    {
+        uint16_t x;
+        const char* ptr = rpc->output;
+        ptr = e::unpack16be(ptr, &x);
+        ptr = e::unpack64be(ptr, _checkpoint);
+        ptr = e::unpack64be(ptr, _checkpoint_stable);
+        ptr = e::unpack64be(ptr, _checkpoint_gc);
+        coordinator_returncode rc = static_cast<coordinator_returncode>(x);
+
+        switch (rc)
+        {
+            case COORD_SUCCESS:
+                return true;
+            case COORD_UNINITIALIZED:
+                LOG(ERROR) << "could not retrieve checkpoints: coordinator not initialized";
+                return false;
+            case COORD_DUPLICATE:
+            case COORD_MALFORMED:
+            case COORD_NOT_FOUND:
+            case COORD_NO_CAN_DO:
+            default:
+                LOG(ERROR) << "could not retrieve checkpoints: coordinator returned " << rc;
+                return false;
+        }
+    }
+    else
+    {
+        LOG(ERROR) << "could not retrieve checkpoints: coordinator returned invalid message";
         return false;
     }
 }

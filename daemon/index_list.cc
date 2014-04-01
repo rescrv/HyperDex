@@ -35,13 +35,19 @@ using hyperdex::datatype_info;
 using hyperdex::index_info;
 using hyperdex::index_list;
 
-index_list :: index_list(hyperdatatype datatype)
-    : m_datatype(datatype)
+index_list :: index_list(hyperdatatype dt)
+    : m_datatype(dt)
 {
 }
 
 index_list :: ~index_list() throw ()
 {
+}
+
+hyperdatatype
+index_list :: datatype()
+{
+    return CREATE_CONTAINER(HYPERDATATYPE_LIST_GENERIC, m_datatype);
 }
 
 void

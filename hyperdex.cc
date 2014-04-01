@@ -43,6 +43,8 @@ main(int argc, const char* argv[])
     cmds.push_back(e::subcommand("daemon",                "Start a new HyperDex daemon"));
     cmds.push_back(e::subcommand("add-space",             "Create a new HyperDex space"));
     cmds.push_back(e::subcommand("rm-space",              "Remove an existing HyperDex space"));
+    cmds.push_back(e::subcommand("add-index",             "Create a new index on an existing space"));
+    cmds.push_back(e::subcommand("rm-index",              "Remove an existing index"));
     cmds.push_back(e::subcommand("list-spaces",           "List the names of all spaces"));
     cmds.push_back(e::subcommand("validate-space",        "Validate a HyperDex space description"));
     cmds.push_back(e::subcommand("server-register",       "Manually register a new HyperDex server"));

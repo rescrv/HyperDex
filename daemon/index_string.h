@@ -41,6 +41,16 @@ class index_string : public index_primitive
         virtual ~index_string() throw ();
 
     public:
+        virtual hyperdatatype datatype();
+};
+
+class index_encoding_string : public index_encoding
+{
+    public:
+        index_encoding_string();
+        virtual ~index_encoding_string() throw ();
+
+    public:
         virtual bool encoding_fixed();
         virtual size_t encoded_size(const e::slice& decoded);
         virtual char* encode(const e::slice& decoded, char* encoded);

@@ -294,6 +294,69 @@ admin :: rm_space(const char* name,
 }
 
 int64_t
+admin :: add_index(const char* space, const char* attr,
+                   hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    size_t space_sz = strlen(space);
+    size_t attr_sz = strlen(attr);
+    std::vector<char> buf(space_sz + attr_sz + 2);
+    memmove(&buf[0], space, space_sz);
+    memmove(&buf[0] + space_sz + 1, attr, attr_sz);
+    buf[space_sz] = '\0';
+    buf[space_sz + 1 + attr_sz] = '\0';
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "add_index");
+    int64_t cid = m_coord.rpc("index_add", &buf[0], buf.size(),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
+admin :: rm_index(uint64_t idxid,
+                  enum hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    char buf[sizeof(uint64_t)];
+    e::pack64be(idxid, buf);
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "rm_index");
+    int64_t cid = m_coord.rpc("index_rm", buf, sizeof(uint64_t),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
 admin :: list_spaces(hyperdex_admin_returncode* status,
                      const char** spaces)
 {

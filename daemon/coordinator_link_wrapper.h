@@ -57,6 +57,9 @@ class coordinator_link_wrapper
     public:
         void set_coordinator_address(const char* host, uint16_t port);
         bool register_id(server_id us, const po6::net::location& bind_to);
+        bool initialize_checkpoints(uint64_t* checkpoint,
+                                    uint64_t* checkpoint_stable,
+                                    uint64_t* checkpoint_gc);
         bool should_exit();
         bool maintain_link();
         const configuration& config();
@@ -79,6 +82,7 @@ class coordinator_link_wrapper
         class coord_rpc_available;
         class coord_rpc_config_ack;
         class coord_rpc_config_stable;
+        class coord_rpc_checkpoints;
         class coord_rpc_checkpoint;
         class coord_rpc_checkpoint_report_stable;
         class coord_rpc_checkpoint_stable;

@@ -40,7 +40,7 @@
 
 // HyperDex
 #include "common/attribute_check.h"
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/serialization.h"
 #include "daemon/daemon.h"
 #include "daemon/datalayer_iterator.h"

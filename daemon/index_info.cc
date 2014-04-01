@@ -26,7 +26,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
+#include "daemon/index_document.h"
 #include "daemon/index_float.h"
 #include "daemon/index_info.h"
 #include "daemon/index_int64.h"
@@ -36,11 +37,17 @@
 #include "daemon/index_string.h"
 
 using hyperdex::datalayer;
+using hyperdex::index_encoding;
 using hyperdex::index_info;
+
+static hyperdex::index_encoding_string e_string;
+static hyperdex::index_encoding_int64 e_int64;
+static hyperdex::index_encoding_float e_float;
 
 static hyperdex::index_string i_string;
 static hyperdex::index_int64 i_int64;
 static hyperdex::index_float i_float;
+static hyperdex::index_document i_document;
 static hyperdex::index_list i_list_string(HYPERDATATYPE_STRING);
 static hyperdex::index_list i_list_int64(HYPERDATATYPE_INT64);
 static hyperdex::index_list i_list_float(HYPERDATATYPE_FLOAT);
@@ -57,6 +64,54 @@ static hyperdex::index_map i_map_float_string(HYPERDATATYPE_FLOAT, HYPERDATATYPE
 static hyperdex::index_map i_map_float_int64(HYPERDATATYPE_FLOAT, HYPERDATATYPE_INT64);
 static hyperdex::index_map i_map_float_float(HYPERDATATYPE_FLOAT, HYPERDATATYPE_FLOAT);
 
+index_encoding*
+index_encoding :: lookup(hyperdatatype datatype)
+{
+    switch (datatype)
+    {
+        case HYPERDATATYPE_STRING:
+            return &e_string;
+        case HYPERDATATYPE_INT64:
+            return &e_int64;
+        case HYPERDATATYPE_FLOAT:
+            return &e_float;
+        case HYPERDATATYPE_GENERIC:
+        case HYPERDATATYPE_DOCUMENT:
+        case HYPERDATATYPE_LIST_GENERIC:
+        case HYPERDATATYPE_LIST_STRING:
+        case HYPERDATATYPE_LIST_INT64:
+        case HYPERDATATYPE_LIST_FLOAT:
+        case HYPERDATATYPE_SET_GENERIC:
+        case HYPERDATATYPE_SET_STRING:
+        case HYPERDATATYPE_SET_INT64:
+        case HYPERDATATYPE_SET_FLOAT:
+        case HYPERDATATYPE_MAP_GENERIC:
+        case HYPERDATATYPE_MAP_STRING_KEYONLY:
+        case HYPERDATATYPE_MAP_STRING_STRING:
+        case HYPERDATATYPE_MAP_STRING_INT64:
+        case HYPERDATATYPE_MAP_STRING_FLOAT:
+        case HYPERDATATYPE_MAP_INT64_KEYONLY:
+        case HYPERDATATYPE_MAP_INT64_STRING:
+        case HYPERDATATYPE_MAP_INT64_INT64:
+        case HYPERDATATYPE_MAP_INT64_FLOAT:
+        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+        case HYPERDATATYPE_MAP_FLOAT_STRING:
+        case HYPERDATATYPE_MAP_FLOAT_INT64:
+        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
+        case HYPERDATATYPE_GARBAGE:
+        default:
+            abort();
+    }
+}
+
+index_encoding :: index_encoding()
+{
+}
+
+index_encoding :: ~index_encoding() throw ()
+{
+}
+
 index_info*
 index_info :: lookup(hyperdatatype datatype)
 {
@@ -68,6 +123,8 @@ index_info :: lookup(hyperdatatype datatype)
             return &i_int64;
         case HYPERDATATYPE_FLOAT:
             return &i_float;
+        case HYPERDATATYPE_DOCUMENT:
+            return &i_document;
         case HYPERDATATYPE_LIST_STRING:
             return &i_list_string;
         case HYPERDATATYPE_LIST_INT64:
@@ -107,7 +164,7 @@ index_info :: lookup(hyperdatatype datatype)
         case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
         case HYPERDATATYPE_GARBAGE:
         default:
-            return NULL;
+            abort();
     }
 }
 
@@ -120,10 +177,18 @@ index_info :: ~index_info() throw ()
 }
 
 datalayer::index_iterator*
+index_info :: iterator_for_keys(leveldb_snapshot_ptr,
+                                const region_id&)
+{
+    return NULL;
+}
+
+datalayer::index_iterator*
 index_info :: iterator_from_range(leveldb_snapshot_ptr,
                                   const region_id&,
+                                  const index_id&,
                                   const range&,
-                                  index_info*)
+                                  index_encoding*)
 {
     return NULL;
 }
@@ -131,8 +196,9 @@ index_info :: iterator_from_range(leveldb_snapshot_ptr,
 datalayer::index_iterator*
 index_info :: iterator_from_check(leveldb_snapshot_ptr,
                                   const region_id&,
+                                  const index_id&,
                                   const attribute_check&,
-                                  index_info*)
+                                  index_encoding*)
 {
     return NULL;
 }

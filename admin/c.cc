@@ -204,6 +204,29 @@ hyperdex_admin_list_spaces(struct hyperdex_admin* _adm,
 }
 
 HYPERDEX_API int64_t
+hyperdex_admin_add_index(struct hyperdex_admin* _adm,
+                         const char* space,
+                         const char* attribute,
+                         enum hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->add_index(space, attribute, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_rm_index(struct hyperdex_admin* _adm,
+                        uint64_t idxid,
+                        enum hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->rm_index(idxid, status);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_admin_server_register(struct hyperdex_admin* _adm,
                                uint64_t token,
                                const char* address,

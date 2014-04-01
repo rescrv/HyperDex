@@ -40,7 +40,7 @@
 #include <e/time.h>
 
 // HyperDex
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/hash.h"
 #include "common/serialization.h"
 #include "cityhash/city.h"
@@ -1012,7 +1012,6 @@ replication_manager :: background_thread()
                 m_lower_bounds.pop_front();
             }
         }
-
 
         if (need_post_reconfigure)
         {

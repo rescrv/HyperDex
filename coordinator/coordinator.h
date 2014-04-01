@@ -96,6 +96,11 @@ class coordinator
         void space_add(replicant_state_machine_context* ctx, const space& s);
         void space_rm(replicant_state_machine_context* ctx, const char* name);
 
+    // index management
+    public:
+        void index_add(replicant_state_machine_context* ctx, const char* space, const char* attr);
+        void index_rm(replicant_state_machine_context* ctx, index_id ii);
+
     // transfers management
     public:
         void transfer_go_live(replicant_state_machine_context* ctx,
@@ -120,6 +125,7 @@ class coordinator
                                const server_id& sid,
                                uint64_t config,
                                uint64_t number);
+        void checkpoints(replicant_state_machine_context* ctx);
 
     // alarm
     public:
@@ -217,6 +223,7 @@ class coordinator
         server_barrier m_checkpoint_stable_barrier;
         // cached config
         std::auto_ptr<e::buffer> m_latest_config;
+        std::auto_ptr<e::buffer> m_response;
 
     private:
         coordinator(const coordinator&);

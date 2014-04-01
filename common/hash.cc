@@ -28,7 +28,7 @@
 #define __STDC_LIMIT_MACROS
 
 // HyperDex
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/hash.h"
 
 uint64_t

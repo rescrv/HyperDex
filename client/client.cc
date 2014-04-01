@@ -38,7 +38,7 @@
 // HyperDex
 #include "visibility.h"
 #include "common/attribute_check.h"
-#include "common/datatypes.h"
+#include "common/datatype_info.h"
 #include "common/funcall.h"
 #include "common/macros.h"
 #include "common/network_msgtype.h"
@@ -541,11 +541,27 @@ client :: prepare_checks(const char* space, const schema& sc,
 
     for (size_t i = 0; i < chks_sz; ++i)
     {
-        uint16_t attrnum = sc.lookup_attr(chks[i].attr);
+        std::string _attr;
+        const char* attr;
+        const char* dot;
+
+        if ((dot = strchr(chks[i].attr, '.')))
+        {
+            _attr.assign(chks[i].attr, dot);
+            ++dot;
+        }
+        else
+        {
+            _attr.assign(chks[i].attr, strlen(chks[i].attr));
+            dot = NULL;
+        }
+
+        attr = _attr.c_str();
+        uint16_t attrnum = sc.lookup_attr(attr);
 
         if (attrnum >= sc.attrs_sz)
         {
-            ERROR(UNKNOWNATTR) << "\"" << e::strescape(chks[i].attr)
+            ERROR(UNKNOWNATTR) << "\"" << e::strescape(attr)
                                << "\" is not an attribute of space \""
                                << e::strescape(space) << "\"";
             return i;
@@ -569,7 +585,7 @@ client :: prepare_checks(const char* space, const schema& sc,
         if (!validate_attribute_check(sc, c))
         {
             ERROR(WRONGTYPE) << "invalid attribute_check on \""
-                             << e::strescape(chks[i].attr) << "\"";
+                             << e::strescape(attr) << "\"";
             return i;
         }
 
