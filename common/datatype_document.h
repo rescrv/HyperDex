@@ -47,6 +47,20 @@ class datatype_document : public datatype_info
         virtual uint8_t* apply(const e::slice& old_value,
                                const funcall* funcs, size_t funcs_sz,
                                uint8_t* writeto);
+
+    public:
+        virtual bool document();
+        virtual bool document_check(const attribute_check& check,
+                                    const e::slice& value);
+
+    public:
+        bool parse_path(const char* path,
+                        const char* const end,
+                        const e::slice& document,
+                        hyperdatatype hint,
+                        hyperdatatype* type,
+                        std::vector<char>* scratch,
+                        e::slice* value);
 };
 
 END_HYPERDEX_NAMESPACE

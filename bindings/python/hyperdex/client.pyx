@@ -25,6 +25,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+try: import simplejson as json
+except ImportError: import json
+
 from cpython cimport bool
 
 
@@ -857,8 +860,11 @@ cdef class Document:
 
     cdef bytes _doc
 
-    def __init__(self, bytes doc):
-        self._doc = doc
+    def __init__(self, doc):
+        if not isinstance(doc, str) and not isinstance(doc, bytes):
+            self._doc = json.dumps(doc)
+        else:
+            self._doc = doc
 
     def doc(self):
         return self._doc
@@ -867,7 +873,7 @@ cdef class Document:
         return 'Document(%s)' % self._doc
 
     def __repr__(self):
-        return 'Document(%r)' % self._doc
+        return 'Document(%s)' % self._doc
 
 
 cdef class Predicate:
@@ -969,8 +975,6 @@ cdef class Deferred:
             hyperdex_client_destroy_attrs(self.attrs, self.attrs_sz)
             self.attrs = NULL
             self.attrs_sz = 0
-        if self.description:
-            free(self.description)
 
     def _callback(self):
         self.finished = True

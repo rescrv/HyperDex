@@ -138,7 +138,7 @@ datalayer :: replay_iterator :: has_value()
 e::slice
 datalayer :: replay_iterator :: key()
 {
-    const size_t sz = sizeof(uint8_t) + sizeof(uint64_t);
+    const size_t sz = object_prefix_sz(m_ri);
     leveldb::Slice _k = m_iter->key();
     e::slice k = e::slice(_k.data() + sz, _k.size() - sz);
     size_t decoded_sz = m_ie->decoded_size(k);

@@ -34,11 +34,13 @@
 #include <e/varint.h>
 
 // HyperDex
+#include "daemon/datalayer_iterator.h"
 #include "daemon/index_document.h"
 
 using hyperdex::index_document;
 
 index_document :: index_document()
+    : m_di()
 {
 }
 
@@ -61,11 +63,11 @@ index_document :: index_changes(const index* idx,
                                 const e::slice* new_document,
                                 leveldb::WriteBatch* updates)
 {
-    type t;
+    type_t t;
     std::vector<char> scratch_value;
     e::slice value;
     std::vector<char> scratch_entry;
-    leveldb::Slice entry;
+    e::slice entry;
 
     if (old_document && new_document && *old_document == *new_document)
     {
@@ -75,119 +77,221 @@ index_document :: index_changes(const index* idx,
     if (old_document && parse_path(idx, *old_document, &t, &scratch_value, &value))
     {
         index_entry(ri, idx->id, t, key_ie, key, value, &scratch_entry, &entry);
-        updates->Delete(entry);
+        updates->Delete(leveldb::Slice(reinterpret_cast<const char*>(entry.data()), entry.size()));
     }
 
     if (new_document && parse_path(idx, *new_document, &t, &scratch_value, &value))
     {
         index_entry(ri, idx->id, t, key_ie, key, value, &scratch_entry, &entry);
-        updates->Put(entry, leveldb::Slice());
+        updates->Put(leveldb::Slice(reinterpret_cast<const char*>(entry.data()), entry.size()), leveldb::Slice());
     }
+}
+
+hyperdex::datalayer::index_iterator*
+index_document :: iterator_from_check(leveldb_snapshot_ptr snap,
+                                      const region_id& ri,
+                                      const index_id& ii,
+                                      const attribute_check& check,
+                                      index_encoding* key_ie)
+{
+    const char* path = reinterpret_cast<const char*>(check.value.data());
+    size_t path_sz = strnlen(path, check.value.size());
+
+    if (path_sz >= check.value.size())
+    {
+        return NULL;
+    }
+
+    if (check.datatype != HYPERDATATYPE_STRING &&
+        check.datatype != HYPERDATATYPE_INT64 &&
+        check.datatype != HYPERDATATYPE_FLOAT)
+    {
+        return NULL;
+    }
+
+    char scratch_v[sizeof(int64_t) + sizeof(double)];
+    e::slice value(path + path_sz + 1, check.value.size() - path_sz - 1);
+
+    if (check.datatype == HYPERDATATYPE_INT64)
+    {
+        memset(scratch_v, 0, sizeof(int64_t));
+        memmove(scratch_v, value.data(), std::min(value.size(), sizeof(int64_t)));
+        int64_t val_i;
+        e::unpack64le(scratch_v, &val_i);
+        double val_d = val_i;
+        e::pack64le(val_d, scratch_v);
+        value = e::slice(scratch_v, sizeof(double));
+    }
+
+    size_t range_prefix_sz = index_entry_prefix_size(ri, ii);
+    std::vector<char> scratch_a;
+    std::vector<char> scratch_b;
+    e::slice a;
+    e::slice b;
+    e::slice start;
+    e::slice limit;
+    bool has_start;
+    bool has_limit;
+    type_t t = check.datatype == HYPERDATATYPE_STRING ? STRING : NUMBER;
+
+    index_entry(ri, ii, t, value, &scratch_a, &a);
+    index_entry(ri, ii, t, &scratch_b, &b);
+
+    switch (check.predicate)
+    {
+        case HYPERPREDICATE_EQUALS:
+            start = a;
+            limit = a;
+            break;
+        case HYPERPREDICATE_LESS_THAN:
+        case HYPERPREDICATE_LESS_EQUAL:
+            start = b;
+            limit = a;
+            break;
+        case HYPERPREDICATE_GREATER_EQUAL:
+        case HYPERPREDICATE_GREATER_THAN:
+            start = a;
+            limit = b;
+            break;
+        case HYPERPREDICATE_FAIL:
+        case HYPERPREDICATE_CONTAINS_LESS_THAN:
+        case HYPERPREDICATE_REGEX:
+        case HYPERPREDICATE_LENGTH_EQUALS:
+        case HYPERPREDICATE_LENGTH_LESS_EQUAL:
+        case HYPERPREDICATE_LENGTH_GREATER_EQUAL:
+        case HYPERPREDICATE_CONTAINS:
+        default:
+            return NULL;
+    }
+
+    index_encoding* ie;
+
+    switch (t)
+    {
+        case STRING:
+            ie = index_encoding::lookup(HYPERDATATYPE_STRING);
+            break;
+        case NUMBER:
+            ie = index_encoding::lookup(HYPERDATATYPE_FLOAT);
+            break;
+        default:
+            abort();
+    }
+
+    has_start = a.data() == start.data();
+    has_limit = a.data() == limit.data();
+    return new datalayer::range_index_iterator(snap, range_prefix_sz,
+                                               start, limit,
+                                               has_start, has_limit,
+                                               ie, key_ie);
 }
 
 bool
 index_document :: parse_path(const index* idx,
                              const e::slice& document,
-                             type* t,
+                             type_t* t,
                              std::vector<char>* scratch,
                              e::slice* value)
 {
-    json_tokener* tok = json_tokener_new();
-
-    if (!tok)
-    {
-        throw std::bad_alloc();
-    }
-
-    e::guard gtok = e::makeguard(json_tokener_free, tok);
-    gtok.use_variable();
-    const char* data = reinterpret_cast<const char*>(document.data());
-    json_object* obj = json_tokener_parse_ex(tok, data, document.size());
-
-    if (!obj)
-    {
-        return false;
-    }
-
-    e::guard gobj = e::makeguard(json_object_put, obj);
-    gobj.use_variable();
-
-    if (json_tokener_get_error(tok) != json_tokener_success ||
-        tok->char_offset != (ssize_t)document.size())
-    {
-        return false;
-    }
-
     const char* path = reinterpret_cast<const char*>(idx->extra.data());
     const char* const end = path + idx->extra.size();
-    json_object* parent = obj;
+    hyperdatatype type;
 
-    // Iterate until we hit the last nested object.  For example, if the
-    // starting document is {foo: {bar: {baz: 5}}}, we'll break out of this loop
-    // when parent=5 and path="baz"
-    //
-    // If the requested path is not found, we break;
-    while (path < end)
+    if (m_di.parse_path(path, end, document, HYPERDATATYPE_GENERIC, &type, scratch, value))
     {
-        const char* dot = static_cast<const char*>(memchr(path, '.', end - path));
-        dot = dot ? dot : end;
-        std::string key(path, dot);
-        json_object* child;
-
-        if (!json_object_is_type(parent, json_type_object) ||
-            !json_object_object_get_ex(parent, key.c_str(), &child))
+        if (type == HYPERDATATYPE_STRING)
         {
-            return false;
+            *t = STRING;
+            return true;
         }
-
-        parent = child;
-        path = dot + 1;
-    }
-
-    if (json_object_is_type(parent, json_type_double) ||
-        json_object_is_type(parent, json_type_int))
-    {
-        double d = json_object_get_double(parent);
-
-        if (scratch->size() < sizeof(double))
+        else if (type == HYPERDATATYPE_INT64 || type == HYPERDATATYPE_FLOAT)
         {
-            scratch->resize(sizeof(double));
+            *t = NUMBER;
+            return true;
         }
+    }
 
-        e::packdoublele(d, &scratch->front());
-        *t = NUMBER;
-        *value = e::slice(&scratch->front(), sizeof(double));
-        return true;
-    }
-    else if (json_object_is_type(parent, json_type_string))
-    {
-        size_t str_sz = json_object_get_string_len(parent);
-        const char* str = json_object_get_string(parent); 
-        if (scratch->size() < str_sz)
-        {
-            scratch->resize(str_sz);
-        }
+    return false;
+}
 
-        memmove(&scratch->front(), str, str_sz);
-        *t = STRING;
-        *value = e::slice(&scratch->front(), str_sz);
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+size_t
+index_document :: index_entry_prefix_size(const region_id& ri, const index_id& ii)
+{
+    return sizeof(uint8_t)
+         + e::varint_length(ri.get())
+         + e::varint_length(ii.get())
+         + sizeof(uint8_t);
 }
 
 void
 index_document :: index_entry(const region_id& ri,
                               const index_id& ii,
-                              type t,
+                              type_t t,
+                              std::vector<char>* scratch,
+                              e::slice* slice)
+{
+    size_t sz = sizeof(uint8_t)
+              + e::varint_length(ri.get())
+              + e::varint_length(ii.get())
+              + sizeof(uint8_t);
+
+    if (scratch->size() < sz)
+    {
+        scratch->resize(sz);
+    }
+
+    uint8_t t8 = t == STRING ? 's' : 'i';
+    char* ptr = &scratch->front();
+    ptr = e::pack8be('i', ptr);
+    ptr = e::packvarint64(ri.get(), ptr);
+    ptr = e::packvarint64(ii.get(), ptr);
+    ptr = e::pack8be(t8, ptr);
+    assert(ptr == &scratch->front() + sz);
+    *slice = e::slice(&scratch->front(), sz);
+}
+
+void
+index_document :: index_entry(const region_id& ri,
+                              const index_id& ii,
+                              type_t t,
+                              const e::slice& value,
+                              std::vector<char>* scratch,
+                              e::slice* slice)
+{
+    index_encoding* val_ie = t == STRING ? index_encoding::lookup(HYPERDATATYPE_STRING)
+                                         : index_encoding::lookup(HYPERDATATYPE_FLOAT);
+    size_t val_sz = val_ie->encoded_size(value);
+    size_t sz = sizeof(uint8_t)
+              + e::varint_length(ri.get())
+              + e::varint_length(ii.get())
+              + sizeof(uint8_t)
+              + val_sz;
+
+    if (scratch->size() < sz)
+    {
+        scratch->resize(sz);
+    }
+
+    uint8_t t8 = t == STRING ? 's' : 'i';
+    char* ptr = &scratch->front();
+    ptr = e::pack8be('i', ptr);
+    ptr = e::packvarint64(ri.get(), ptr);
+    ptr = e::packvarint64(ii.get(), ptr);
+    ptr = e::pack8be(t8, ptr);
+    ptr = val_ie->encode(value, ptr);
+    assert(ptr == &scratch->front() + sz);
+    *slice = e::slice(&scratch->front(), sz);
+}
+
+void
+index_document :: index_entry(const region_id& ri,
+                              const index_id& ii,
+                              type_t t,
                               index_encoding* key_ie,
                               const e::slice& key,
                               const e::slice& value,
                               std::vector<char>* scratch,
-                              leveldb::Slice* slice)
+                              e::slice* slice)
 {
     index_encoding* val_ie = t == STRING ? index_encoding::lookup(HYPERDATATYPE_STRING)
                                          : index_encoding::lookup(HYPERDATATYPE_FLOAT);
@@ -222,5 +326,5 @@ index_document :: index_entry(const region_id& ri,
     }
 
     assert(ptr == &scratch->front() + sz);
-    *slice = leveldb::Slice(&scratch->front(), sz);
+    *slice = e::slice(&scratch->front(), sz);
 }

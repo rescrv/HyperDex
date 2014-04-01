@@ -755,6 +755,7 @@ coordinator :: index_add(replicant_state_machine_context* ctx,
     index_id id(m_counter);
     ++m_counter;
     sp->indices.push_back(index(type, id, attr_num, e::slice(dotpath)));
+    sp->reestablish_backing();
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
 }

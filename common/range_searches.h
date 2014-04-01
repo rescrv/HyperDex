@@ -39,7 +39,8 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 void
-range_searches(const std::vector<attribute_check>& checks,
+range_searches(const schema& sc,
+               const std::vector<attribute_check>& checks,
                std::vector<range>* ranges);
 
 END_HYPERDEX_NAMESPACE

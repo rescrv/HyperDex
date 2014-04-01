@@ -52,15 +52,15 @@ class attribute_check
 };
 
 bool
-validate_attribute_check(const schema& sc,
-                         const attribute_check& chk);
+validate_attribute_check(hyperdatatype type,
+                         const attribute_check& check);
 
 size_t
 validate_attribute_checks(const schema& sc,
                           const std::vector<hyperdex::attribute_check>& checks);
 
 bool
-passes_attribute_check(const schema& sc,
+passes_attribute_check(hyperdatatype type,
                        const attribute_check& chk,
                        const e::slice& value);
 

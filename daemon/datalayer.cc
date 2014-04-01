@@ -855,7 +855,7 @@ datalayer :: make_search_iterator(snapshot snap,
 
     // pull a set of range queries from checks
     std::vector<range> ranges;
-    range_searches(checks, &ranges);
+    range_searches(sc, checks, &ranges);
     index_encoding* key_ie = index_encoding::lookup(sc.attrs[0].type);
     index_info* key_ii = index_info::lookup(sc.attrs[0].type);
 
@@ -901,16 +901,6 @@ datalayer :: make_search_iterator(snapshot snap,
     // For each index
     for (size_t i = 0; i < checks.size(); ++i)
     {
-        // if this check is covered by range queries, or is not complete
-        if (checks[i].predicate == HYPERPREDICATE_EQUALS ||
-            checks[i].predicate == HYPERPREDICATE_LESS_THAN ||
-            checks[i].predicate == HYPERPREDICATE_LESS_EQUAL ||
-            checks[i].predicate == HYPERPREDICATE_GREATER_EQUAL ||
-            checks[i].predicate == HYPERPREDICATE_GREATER_THAN)
-        {
-            continue;
-        }
-
         std::vector<const index*> indices;
         find_indices(ri, checks[i].attr, &indices);
 

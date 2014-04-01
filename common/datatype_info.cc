@@ -236,3 +236,18 @@ datatype_info :: compare_less()
     // method
     abort();
 }
+
+bool
+datatype_info :: document()
+{
+    return false;
+}
+
+bool
+datatype_info :: document_check(const attribute_check&,
+                                const e::slice&)
+{
+    // if you see an abort here, you overrode "document", but not this
+    // method
+    abort();
+}

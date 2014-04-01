@@ -57,6 +57,7 @@ class space
 
     public:
         bool validate() const;
+        void reestablish_backing();
 
     public:
         space& operator = (const space&);
@@ -74,9 +75,6 @@ class space
         friend e::buffer::packer operator << (e::buffer::packer, const space& s);
         friend e::unpacker operator >> (e::unpacker, space& s);
         friend size_t pack_size(const space&);
-
-    private:
-        void reestablish_backing();
 
     private:
         e::array_ptr<char> m_c_strs;

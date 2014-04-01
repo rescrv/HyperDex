@@ -139,7 +139,8 @@ client :: get(const char* space, const char* _key, size_t _key_sz,
     } \
     std::vector<attribute_check> checks; \
     std::vector<virtual_server_id> servers; \
-    int64_t ret = prepare_searchop(*sc, space, chks, chks_sz, status, &checks, &servers); \
+    arena_t allocate; \
+    int64_t ret = prepare_searchop(*sc, space, chks, chks_sz, &allocate, status, &checks, &servers); \
     if (ret < 0) \
     { \
         return ret; \
@@ -292,9 +293,10 @@ client :: perform_funcall(const hyperdex_client_keyop_info* opinfo,
     std::vector<attribute_check> checks;
     std::vector<funcall> funcs;
     size_t idx = 0;
+    arena_t allocate;
 
     // Prepare the checks
-    idx = prepare_checks(space, *sc, chks, chks_sz, status, &checks);
+    idx = prepare_checks(space, *sc, chks, chks_sz, &allocate, status, &checks);
 
     if (idx < chks_sz)
     {
@@ -302,7 +304,7 @@ client :: perform_funcall(const hyperdex_client_keyop_info* opinfo,
     }
 
     // Prepare the attrs
-    idx = prepare_funcs(space, *sc, opinfo, attrs, attrs_sz, status, &funcs);
+    idx = prepare_funcs(space, *sc, opinfo, attrs, attrs_sz, &allocate, status, &funcs);
 
     if (idx < attrs_sz)
     {
@@ -310,7 +312,7 @@ client :: perform_funcall(const hyperdex_client_keyop_info* opinfo,
     }
 
     // Prepare the mapattrs
-    idx = prepare_funcs(space, *sc, opinfo, mapattrs, mapattrs_sz, status, &funcs);
+    idx = prepare_funcs(space, *sc, opinfo, mapattrs, mapattrs_sz, &allocate, status, &funcs);
 
     if (idx < mapattrs_sz)
     {
@@ -534,6 +536,7 @@ client :: attribute_type(const char* space, const char* name,
 size_t
 client :: prepare_checks(const char* space, const schema& sc,
                          const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                         arena_t* allocate,
                          hyperdex_client_returncode* status,
                          std::vector<attribute_check>* checks)
 {
@@ -582,9 +585,19 @@ client :: prepare_checks(const char* space, const schema& sc,
         c.datatype = datatype;
         c.predicate = chks[i].predicate;
 
-        if (!validate_attribute_check(sc, c))
+        if (dot)
         {
-            ERROR(WRONGTYPE) << "invalid attribute_check on \""
+            size_t dot_sz = strlen(dot) + 1;
+            allocate->push_back(std::string());
+            std::string& s(allocate->back());
+            s.append(dot, dot_sz);
+            s.append(chks[i].value, chks[i].value_sz);
+            c.value = e::slice(s);
+        }
+
+        if (!validate_attribute_check(sc.attrs[attrnum].type, c))
+        {
+            ERROR(WRONGTYPE) << "invalid predicate on \""
                              << e::strescape(attr) << "\"";
             return i;
         }
@@ -599,6 +612,7 @@ size_t
 client :: prepare_funcs(const char* space, const schema& sc,
                         const hyperdex_client_keyop_info* opinfo,
                         const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                        arena_t*,
                         hyperdex_client_returncode* status,
                         std::vector<funcall>* funcs)
 {
@@ -658,6 +672,7 @@ size_t
 client :: prepare_funcs(const char* space, const schema& sc,
                         const hyperdex_client_keyop_info* opinfo,
                         const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                        arena_t*,
                         hyperdex_client_returncode* status,
                         std::vector<funcall>* funcs)
 {
@@ -728,11 +743,12 @@ size_t
 client :: prepare_searchop(const schema& sc,
                            const char* space,
                            const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                           arena_t* allocate,
                            hyperdex_client_returncode* status,
                            std::vector<attribute_check>* checks,
                            std::vector<virtual_server_id>* servers)
 {
-    size_t num_checks = prepare_checks(space, sc, chks, chks_sz, status, checks);
+    size_t num_checks = prepare_checks(space, sc, chks, chks_sz, allocate, status, checks);
 
     if (num_checks != chks_sz)
     {

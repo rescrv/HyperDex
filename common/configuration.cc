@@ -751,7 +751,7 @@ configuration :: lookup_search(const char* space_name,
     }
 
     std::vector<range> ranges;
-    range_searches(chks, &ranges);
+    range_searches(s->sc, chks, &ranges);
 
     for (size_t i = 0; i < ranges.size(); ++i)
     {

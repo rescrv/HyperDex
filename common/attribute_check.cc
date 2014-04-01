@@ -48,14 +48,23 @@ attribute_check :: ~attribute_check() throw ()
 }
 
 bool
-hyperdex :: validate_attribute_check(const schema& sc,
+hyperdex :: validate_attribute_check(hyperdatatype type,
                                      const attribute_check& check)
 {
-    assert(check.attr < sc.attrs_sz);
-    datatype_info* di_attr = datatype_info::lookup(sc.attrs[check.attr].type);
+    datatype_info* di_attr = datatype_info::lookup(type);
     datatype_info* di_check = datatype_info::lookup(check.datatype);
 
-    if (!di_attr || !di_check || !di_check->validate(check.value))
+    if (!di_attr || !di_check)
+    {
+        return false;
+    }
+
+    if (di_attr->document())
+    {
+        return true;
+    }
+
+    if (!di_check->validate(check.value))
     {
         return false;
     }
@@ -100,7 +109,9 @@ hyperdex :: validate_attribute_checks(const schema& sc,
             return i;
         }
 
-        if (!validate_attribute_check(sc, checks[i]))
+        hyperdatatype type = sc.attrs[checks[i].attr].type;
+
+        if (!validate_attribute_check(type, checks[i]))
         {
             return i;
         }
@@ -110,16 +121,24 @@ hyperdex :: validate_attribute_checks(const schema& sc,
 }
 
 bool
-hyperdex :: passes_attribute_check(const schema& sc,
+hyperdex :: passes_attribute_check(hyperdatatype type,
                                    const attribute_check& check,
                                    const e::slice& value)
 {
-    assert(check.attr < sc.attrs_sz);
-    datatype_info* di_attr = datatype_info::lookup(sc.attrs[check.attr].type);
+    datatype_info* di_attr = datatype_info::lookup(type);
     datatype_info* di_check = datatype_info::lookup(check.datatype);
 
-    if (!di_attr || !di_check ||
-        !di_attr->validate(value) ||
+    if (!di_attr || !di_check)
+    {
+        return false;
+    }
+
+    if (di_attr->document())
+    {
+        return di_attr->document_check(check, value);
+    }
+
+    if (!di_attr->validate(value) ||
         !di_check->validate(check.value))
     {
         return false;
@@ -199,13 +218,15 @@ hyperdex :: passes_attribute_checks(const schema& sc,
             return i;
         }
 
+        hyperdatatype type = sc.attrs[checks[i].attr].type;
+
         if (checks[i].attr > 0 &&
-            !passes_attribute_check(sc, checks[i], value[checks[i].attr - 1]))
+            !passes_attribute_check(type, checks[i], value[checks[i].attr - 1]))
         {
             return i;
         }
         else if (checks[i].attr == 0 &&
-                 !passes_attribute_check(sc, checks[i], key))
+                 !passes_attribute_check(type, checks[i], key))
         {
             return i;
         }

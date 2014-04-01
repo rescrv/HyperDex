@@ -34,6 +34,7 @@
 // HyperDex
 #include "namespace.h"
 #include "hyperdex.h"
+#include "common/attribute_check.h"
 #include "common/funcall.h"
 #include "common/ids.h"
 
@@ -77,7 +78,7 @@ class datatype_info
         virtual bool regex(const e::slice& regex,
                            const e::slice& value);
 
-    // override thes if the type can be matched with "contains"
+    // override these if the type can be matched with "contains"
     public:
         virtual bool has_contains();
         virtual hyperdatatype contains_datatype();
@@ -99,6 +100,19 @@ class datatype_info
         virtual int compare(const e::slice& lhs, const e::slice& rhs);
         typedef bool (*compares_less)(const e::slice& lhs, const e::slice& rhs);
         virtual compares_less compare_less();
+
+    // override these if the type can be variable/document-like
+    //
+    // Custom document-like types cannot use the above comparables because they
+    // don't fit our long-held assumptions about different datatypes.
+    // Rather than break those assumptions and chase bugs, introduce a
+    // document_check call that converts the document check into something sane,
+    // possibly a non-document type.  It's easy to create a sample value/check
+    // and pass that to the attribute checks instead.
+    public:
+        virtual bool document();
+        virtual bool document_check(const attribute_check& check,
+                                    const e::slice& value);
 };
 
 END_HYPERDEX_NAMESPACE

@@ -463,6 +463,7 @@ noinst_HEADERS += admin/yieldable.h
 
 libhyperdex_admin_la_SOURCES =
 libhyperdex_admin_la_SOURCES += common/attribute.cc
+libhyperdex_admin_la_SOURCES += common/attribute_check.cc
 libhyperdex_admin_la_SOURCES += common/configuration.cc
 libhyperdex_admin_la_SOURCES += common/coordinator_link.cc
 libhyperdex_admin_la_SOURCES += common/datatype_document.cc

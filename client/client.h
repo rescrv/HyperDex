@@ -116,6 +116,7 @@ class client
         };
         typedef std::map<uint64_t, pending_server_pair> pending_map_t;
         typedef std::list<pending_server_pair> pending_queue_t;
+        typedef std::list<std::string> arena_t;
         friend class pending_get;
         friend class pending_search;
         friend class pending_sorted_search;
@@ -123,21 +124,25 @@ class client
     private:
         size_t prepare_checks(const char* space, const schema& sc,
                               const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                              arena_t* allocate,
                               hyperdex_client_returncode* status,
                               std::vector<attribute_check>* checks);
         size_t prepare_funcs(const char* space, const schema& sc,
                              const hyperdex_client_keyop_info* opinfo,
                              const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                             arena_t* allocate,
                              hyperdex_client_returncode* status,
                              std::vector<funcall>* funcs);
         size_t prepare_funcs(const char* space, const schema& sc,
                              const hyperdex_client_keyop_info* opinfo,
                              const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                             arena_t* allocate,
                              hyperdex_client_returncode* status,
                              std::vector<funcall>* funcs);
         size_t prepare_searchop(const schema& sc,
                                 const char* space,
                                 const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                                arena_t* allocate,
                                 hyperdex_client_returncode* status,
                                 std::vector<attribute_check>* checks,
                                 std::vector<virtual_server_id>* servers);

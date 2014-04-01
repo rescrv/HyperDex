@@ -253,14 +253,14 @@ datalayer :: indexer_thread :: mark_usable(const region_id& ri, const index_id& 
     {
         index_state* is = &m_daemon->m_data.m_indices[i];
 
-        if (is->ri == m_current_region &&
-            is->ii == m_current_index)
+        if (is->ri == ri &&
+            is->ii == ii)
         {
             is->set_usable();
+            LOG(INFO) << "enabling " << ii << " in " << ri;
         }
     }
 
-    LOG(INFO) << "enabling " << ii << " in " << ri;
     return true;
 }
 

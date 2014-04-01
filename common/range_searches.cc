@@ -148,7 +148,8 @@ compress_ranges(const range* range_ptr, const range* range_end, range* r)
 }
 
 void
-hyperdex :: range_searches(const std::vector<attribute_check>& checks,
+hyperdex :: range_searches(const schema& sc,
+                           const std::vector<attribute_check>& checks,
                            std::vector<range>* ranges)
 {
     std::vector<range> raw_ranges;
@@ -156,6 +157,12 @@ hyperdex :: range_searches(const std::vector<attribute_check>& checks,
 
     for (size_t i = 0; i < checks.size(); ++i)
     {
+        if (checks[i].attr >= sc.attrs_sz ||
+            datatype_info::lookup(sc.attrs[checks[i].attr].type)->document())
+        {
+            continue;
+        }
+
         range r;
 
         if (range_search(checks[i], &r))

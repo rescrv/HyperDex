@@ -30,6 +30,7 @@
 
 // HyperDex
 #include "namespace.h"
+#include "common/datatype_document.h"
 #include "daemon/index_info.h"
 
 BEGIN_HYPERDEX_NAMESPACE
@@ -49,22 +50,42 @@ class index_document : public index_info
                                    const e::slice* old_document,
                                    const e::slice* new_document,
                                    leveldb::WriteBatch* updates);
+        virtual datalayer::index_iterator* iterator_from_check(leveldb_snapshot_ptr snap,
+                                                               const region_id& ri,
+                                                               const index_id& ii,
+                                                               const attribute_check& c,
+                                                               index_encoding* key_ie);
 
     private:
-        enum type { STRING, NUMBER };
+        enum type_t { STRING, NUMBER };
         bool parse_path(const index* idx,
                         const e::slice& document,
-                        type* t,
+                        type_t* t,
                         std::vector<char>* scratch,
                         e::slice* value);
+        size_t index_entry_prefix_size(const region_id& ri, const index_id& ii);
         void index_entry(const region_id& ri,
                          const index_id& ii,
-                         type t,
+                         type_t t,
+                         std::vector<char>* scratch,
+                         e::slice* slice);
+        void index_entry(const region_id& ri,
+                         const index_id& ii,
+                         type_t t,
+                         const e::slice& value,
+                         std::vector<char>* scratch,
+                         e::slice* slice);
+        void index_entry(const region_id& ri,
+                         const index_id& ii,
+                         type_t t,
                          index_encoding* key_ie,
                          const e::slice& key,
                          const e::slice& value,
                          std::vector<char>* scratch,
-                         leveldb::Slice* slice);
+                         e::slice* slice);
+
+    private:
+        datatype_document m_di;
 };
 
 END_HYPERDEX_NAMESPACE

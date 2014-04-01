@@ -163,6 +163,8 @@ space :: reestablish_backing()
     }
 
     // Create the two new backings
+    e::array_ptr<char> old_c_strs = m_c_strs;
+    e::array_ptr<attribute> old_attrs = m_attrs;
     m_c_strs = new char[sz];
     m_attrs = new attribute[sc.attrs_sz];
     char* ptr = m_c_strs.get();
