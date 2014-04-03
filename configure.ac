@@ -62,11 +62,25 @@ HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
 AC_CHECK_LIB([rt], [clock_gettime], [needs_lrt=yes], [needs_lrt=no])
+AC_CHECK_LIB([json], [json_object_get_double], [needs_json=yes], [needs_json=no])
+AC_CHECK_LIB([json_c], [json_object_get_double], [needs_json_c=yes], [needs_json_c=no])
 
 if test x"${needs_lrt}" = xyes; then
     AC_SUBST([LRT_CFLAGS], ["-lrt"])
 else
     AC_SUBST([LRT_CFLAGS], [""])
+fi
+
+if test x"${needs_json}" = xyes; then
+    AC_SUBST([JSON_LIBS], ["-ljson"])
+elif test  x"${needs_json_c}" = xyes; then
+    AC_SUBST([JSON_LIBS], ["-ljson-c"])
+else
+    AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the libjson library.
+Please install libjson to continue.
+-------------------------------------------------])
 fi
 
 PKG_CHECK_MODULES([PO6], [libpo6 >= 0.3.1])

@@ -283,7 +283,7 @@ hyperdex_daemon_LDADD += $(E_LIBS)
 hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(REPLICANT_LIBS)
-hyperdex_daemon_LDADD += -ljson
+hyperdex_daemon_LDADD += $(JSON_LIBS)
 hyperdex_daemon_LDADD += -lpopt -lglog -lpthread
 man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-daemon$(EXEEXT)
@@ -427,7 +427,7 @@ libhyperdex_client_la_LIBADD =
 libhyperdex_client_la_LIBADD += $(E_LIBS)
 libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(REPLICANT_LIBS)
-libhyperdex_client_la_LIBADD += -ljson
+libhyperdex_client_la_LIBADD += $(JSON_LIBS)
 
 client/keyop_info.cc: client/keyop_info.gperf client/keyop_info.h
 	$(gperf_verbose)gperf -m 100 $(abs_top_srcdir)/client/keyop_info.gperf --output-file=$(abs_top_builddir)/client/keyop_info.cc
@@ -519,7 +519,7 @@ libhyperdex_admin_la_LIBADD =
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
 libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
-libhyperdex_admin_la_LIBADD += -ljson
+libhyperdex_admin_la_LIBADD += $(JSON_LIBS)
 
 ################################################################################
 ################################### Bindings ###################################
