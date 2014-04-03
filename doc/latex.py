@@ -262,4 +262,7 @@ logging.basicConfig(format='%(message)s', level=logging.INFO)
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         logging.error("program takes just one argument")
-    sys.exit(build(sys.argv[1]))
+    rc = build(sys.argv[1])
+    if rc != 0:
+        os.unlink(sys.argv[1] + '.dvi')
+    sys.exit(rc)
