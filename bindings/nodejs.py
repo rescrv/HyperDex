@@ -65,12 +65,6 @@ def generate_worker_definitions(xs, lib):
         func += '    v8::Local<v8::Object> client_obj = args.This();\n'
         func += '    HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);\n'
         func += '    e::intrusive_ptr<Operation> op(new Operation(client_obj, client));\n'
-        for idx, arg in enumerate(x.args_in):
-            for p, n in arg.args:
-                func += '    ' + p + ' in_' + n + ';\n'
-            args = ', '.join(['&in_' + n for p, n in arg.args])
-            func += '    v8::Local<v8::Value> {0} = args[{1}];\n'.format(arg.__name__.lower(), idx)
-            func += '    if (!op->convert_{0}({0}, {1})) return scope.Close(v8::Undefined());\n'.format(arg.__name__.lower(), args)
         func += '    v8::Local<v8::Function> func = args[{0}].As<v8::Function>();\n'.format(len(x.args_in))
         func += '\n    if (func.IsEmpty() || !func->IsFunction())\n'.format(len(x.args_in))
         func += '    {\n'
@@ -81,6 +75,12 @@ def generate_worker_definitions(xs, lib):
             func += '    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }\n'
         if x.form == bindings.Iterator:
             func += '    if (!op->set_callback(func, 3)) { return scope.Close(v8::Undefined()); }\n'
+        for idx, arg in enumerate(x.args_in):
+            for p, n in arg.args:
+                func += '    ' + p + ' in_' + n + ';\n'
+            args = ', '.join(['&in_' + n for p, n in arg.args])
+            func += '    v8::Local<v8::Value> {0} = args[{1}];\n'.format(arg.__name__.lower(), idx)
+            func += '    if (!op->convert_{0}({0}, {1})) return scope.Close(v8::Undefined());\n'.format(arg.__name__.lower(), args)
         func += '    op->reqid = f(client->client(), {0}, {1});\n\n'.format(', '.join(['in_' + n for p, n in sum([list(a.args) for a in x.args_in], [])]),
                                                                             ', '.join(['&op->' + n for p, n in sum([list(a.args) for a in x.args_out], [])]))
         func += '    if (op->reqid < 0)\n    {\n'

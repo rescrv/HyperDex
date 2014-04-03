@@ -31,6 +31,7 @@
 
 // STL
 #include <map>
+#include <vector>
 
 // e
 #include <e/intrusive_ptr.h>
@@ -58,6 +59,7 @@ class HyperDexClient : public node::ObjectWrap
         static v8::Persistent<v8::Function> ctor;
         static v8::Persistent<v8::Function> global_err;
         static v8::Persistent<v8::Function> type_hint;
+        static v8::Persistent<v8::Function> predicate;
         static void Init(v8::Handle<v8::Object> exports);
         static v8::Handle<v8::Value> New(const v8::Arguments& args);
 
@@ -73,6 +75,17 @@ class HyperDexClient : public node::ObjectWrap
         static v8::Handle<v8::Value> asMap(const v8::Arguments& args);
         static v8::Handle<v8::Value> loop(const v8::Arguments& args);
         static v8::Handle<v8::Value> loop_error(const v8::Arguments& args);
+
+        static v8::Handle<v8::Value> Equals(const v8::Arguments& args);
+        static v8::Handle<v8::Value> LessThan(const v8::Arguments& args);
+        static v8::Handle<v8::Value> LessEqual(const v8::Arguments& args);
+        static v8::Handle<v8::Value> GreaterEqual(const v8::Arguments& args);
+        static v8::Handle<v8::Value> GreaterThan(const v8::Arguments& args);
+        static v8::Handle<v8::Value> Regex(const v8::Arguments& args);
+        static v8::Handle<v8::Value> LengthEquals(const v8::Arguments& args);
+        static v8::Handle<v8::Value> LengthLessEqual(const v8::Arguments& args);
+        static v8::Handle<v8::Value> LengthGreaterEqual(const v8::Arguments& args);
+        static v8::Handle<v8::Value> Contains(const v8::Arguments& args);
 
 #include "client.declarations.cc"
 
@@ -133,7 +146,9 @@ class Operation
                          hyperdatatype* datatype);
         bool convert_type(v8::Handle<v8::Value>& _value,
                           const char** value, size_t* value_sz,
-                          hyperdatatype* datatype);
+                          hyperdatatype* datatype,
+                          bool make_callback_on_error,
+                          bool may_default_to_json);
         bool convert_cstring(v8::Handle<v8::Value>& _cstring,
                              const char** cstring);
 
@@ -144,6 +159,9 @@ class Operation
         bool convert_attributes(v8::Handle<v8::Value>& _attributes,
                                 const hyperdex_client_attribute** attrs,
                                 size_t* attrs_sz);
+        bool convert_document_predicates(const std::string& s,
+                                         v8::Handle<v8::Object>& v,
+                                         std::vector<hyperdex_client_attribute_check>* checks);
         bool convert_predicates(v8::Handle<v8::Value>& _predicates,
                                 const hyperdex_client_attribute_check** checks,
                                 size_t* checks_sz);
@@ -166,6 +184,9 @@ class Operation
         bool build_float(const char* value, size_t value_sz,
                          v8::Local<v8::Value>& retval,
                          v8::Local<v8::Value>& error);
+        bool build_document(const char* value, size_t value_sz,
+                            v8::Local<v8::Value>& retval,
+                            v8::Local<v8::Value>& error);
         bool build_list_string(const char* value, size_t value_sz,
                                v8::Local<v8::Value>& retval,
                                v8::Local<v8::Value>& error);
@@ -282,9 +303,28 @@ class TypeHint : public node::ObjectWrap
         v8::Persistent<v8::Value> m_obj;
 };
 
+class Predicate : public node::ObjectWrap
+{
+    public:
+        static v8::Handle<v8::Value> New(const v8::Arguments& args);
+
+    public:
+        Predicate(hyperpredicate p, v8::Local<v8::Value>& v);
+        ~Predicate() throw ();
+
+    public:
+        v8::Handle<v8::Value> value();
+        hyperpredicate get_pred();
+
+    private:
+        hyperpredicate m_pred;
+        v8::Persistent<v8::Value> m_obj;
+};
+
 v8::Persistent<v8::Function> HyperDexClient::ctor;
 v8::Persistent<v8::Function> HyperDexClient::global_err;
 v8::Persistent<v8::Function> HyperDexClient::type_hint;
+v8::Persistent<v8::Function> HyperDexClient::predicate;
 
 void
 HyperDexClient :: Init(v8::Handle<v8::Object> target)
@@ -301,6 +341,17 @@ HyperDexClient :: Init(v8::Handle<v8::Object> target)
     NODE_SET_PROTOTYPE_METHOD(tpl, "asSet", HyperDexClient::asSet);
     NODE_SET_PROTOTYPE_METHOD(tpl, "asMap", HyperDexClient::asMap);
 
+    NODE_SET_PROTOTYPE_METHOD(tpl, "Equals", HyperDexClient::Equals);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "LessThan", HyperDexClient::LessThan);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "LessEqual", HyperDexClient::LessEqual);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "GreaterEqual", HyperDexClient::GreaterEqual);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "GreaterThan", HyperDexClient::GreaterThan);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "Regex", HyperDexClient::Regex);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "LengthEquals", HyperDexClient::LengthEquals);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "LengthLessEqual", HyperDexClient::LengthLessEqual);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "LengthGreaterEqual", HyperDexClient::LengthGreaterEqual);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "Contains", HyperDexClient::Contains);
+
     NODE_SET_PROTOTYPE_METHOD(tpl, "loop", HyperDexClient::loop);
 #include "client.prototypes.cc"
 
@@ -316,6 +367,12 @@ HyperDexClient :: Init(v8::Handle<v8::Object> target)
     tpl_type->SetClassName(v8::String::NewSymbol("TypeHint"));
     tpl_type->InstanceTemplate()->SetInternalFieldCount(1);
     type_hint = v8::Persistent<v8::Function>::New(tpl_type->GetFunction());
+
+    v8::Local<v8::FunctionTemplate> tpl_pred
+        = v8::FunctionTemplate::New(Predicate::New);
+    tpl_pred->SetClassName(v8::String::NewSymbol("Predicate"));
+    tpl_pred->InstanceTemplate()->SetInternalFieldCount(2);
+    predicate = v8::Persistent<v8::Function>::New(tpl_pred->GetFunction());
 }
 
 v8::Handle<v8::Value>
@@ -662,6 +719,112 @@ hyperdatatype
 TypeHint :: get_type()
 {
     return m_type;
+}
+
+v8::Handle<v8::Value>
+Predicate :: New(const v8::Arguments& args)
+{
+    v8::HandleScope scope;
+
+    if (!args.IsConstructCall())
+    {
+        return v8::ThrowException(v8::String::New("client must be constructed with \"new\""));
+    }
+
+    if (args.Length() != 2)
+    {
+        return v8::ThrowException(v8::String::New("predicate requires (predicate, obj) arguments"));
+    }
+
+    if (args[0].IsEmpty() || !args[0]->IsNumber())
+    {
+        return v8::ThrowException(v8::String::New("predicate requires that the \"predicate\" argument be a number"));
+    }
+
+    if (args[1].IsEmpty())
+    {
+        return v8::ThrowException(v8::String::New("predicate requires something to cast"));
+    }
+
+    int _p = args[0].As<v8::Number>()->Value();
+    hyperpredicate p = static_cast<hyperpredicate>(_p);
+
+    switch (p)
+    {
+        case HYPERPREDICATE_FAIL:
+        case HYPERPREDICATE_EQUALS:
+        case HYPERPREDICATE_LESS_THAN:
+        case HYPERPREDICATE_LESS_EQUAL:
+        case HYPERPREDICATE_GREATER_EQUAL:
+        case HYPERPREDICATE_GREATER_THAN:
+        case HYPERPREDICATE_CONTAINS_LESS_THAN:
+        case HYPERPREDICATE_REGEX:
+        case HYPERPREDICATE_LENGTH_EQUALS:
+        case HYPERPREDICATE_LENGTH_LESS_EQUAL:
+        case HYPERPREDICATE_LENGTH_GREATER_EQUAL:
+        case HYPERPREDICATE_CONTAINS:
+            break;
+        default:
+            abort();
+    }
+
+    v8::Local<v8::Value> obj = v8::Local<v8::Value>::New(args[1]);
+    Predicate* pred = new Predicate(p, obj);
+    pred->Wrap(args.This());
+    return scope.Close(args.This());
+}
+
+Predicate :: Predicate(hyperpredicate p, v8::Local<v8::Value>& o)
+    : m_pred(p)
+    , m_obj()
+{
+    if (!o.IsEmpty())
+    {
+        m_obj = v8::Persistent<v8::Value>::New(o);
+    }
+}
+
+Predicate :: ~Predicate() throw ()
+{
+    if (!m_obj.IsEmpty())
+    {
+        m_obj.Dispose();
+        m_obj.Clear();
+    }
+}
+
+#define HYPERDEX_PRED_CAST(X, Y) \
+    v8::Handle<v8::Value> \
+    HyperDexClient :: X(const v8::Arguments& args) \
+    { \
+        v8::Local<v8::Function> pred = v8::Local<v8::Function>::New(predicate); \
+        v8::Local<v8::Value> p(v8::Integer::New(Y)); \
+        v8::Handle<v8::Value> argv[] = {p, args[0]}; \
+        return pred->NewInstance(2, argv); \
+    }
+
+HYPERDEX_PRED_CAST(Equals,              HYPERPREDICATE_EQUALS)
+HYPERDEX_PRED_CAST(LessThan,            HYPERPREDICATE_LESS_THAN)
+HYPERDEX_PRED_CAST(LessEqual,           HYPERPREDICATE_LESS_EQUAL)
+HYPERDEX_PRED_CAST(GreaterEqual,        HYPERPREDICATE_GREATER_EQUAL)
+HYPERDEX_PRED_CAST(GreaterThan,         HYPERPREDICATE_GREATER_THAN)
+HYPERDEX_PRED_CAST(Regex,               HYPERPREDICATE_REGEX)
+HYPERDEX_PRED_CAST(LengthEquals,        HYPERPREDICATE_LENGTH_EQUALS)
+HYPERDEX_PRED_CAST(LengthLessEqual,     HYPERPREDICATE_LENGTH_LESS_EQUAL)
+HYPERDEX_PRED_CAST(LengthGreaterEqual,  HYPERPREDICATE_LENGTH_GREATER_EQUAL)
+HYPERDEX_PRED_CAST(Contains,            HYPERPREDICATE_CONTAINS)
+
+v8::Handle<v8::Value>
+Predicate :: value()
+{
+    v8::HandleScope scope;
+    return scope.Close(v8::Local<v8::Value>::New(m_obj));
+}
+
+hyperpredicate
+Predicate :: get_pred()
+{
+    return m_pred;
 }
 
 #include "client.definitions.cc"
@@ -1088,11 +1251,17 @@ Operation :: convert_cstring(v8::Handle<v8::Value>& _cstring,
 bool
 Operation :: convert_type(v8::Handle<v8::Value>& _value,
                           const char** value, size_t* value_sz,
-                          hyperdatatype* datatype)
+                          hyperdatatype* datatype,
+                          bool make_callback_on_error,
+                          bool may_default_to_json)
 {
     if (_value.IsEmpty())
     {
-        this->callback_error_message("cannot convert undefined to HyperDex type");
+        if (make_callback_on_error)
+        {
+            this->callback_error_message("cannot convert undefined to HyperDex type");
+        }
+
         return false;
     }
 
@@ -1114,7 +1283,11 @@ Operation :: convert_type(v8::Handle<v8::Value>& _value,
 
         if (hyperdex_ds_copy_int(m_arena, num, &error, value, value_sz) < 0)
         {
-            this->callback_error_out_of_memory();
+            if (make_callback_on_error)
+            {
+                this->callback_error_out_of_memory();
+            }
+
             return false;
         }
 
@@ -1130,7 +1303,11 @@ Operation :: convert_type(v8::Handle<v8::Value>& _value,
 
         if (hyperdex_ds_copy_string(m_arena, data, sz, &error, value, value_sz) < 0)
         {
-            this->callback_error_out_of_memory();
+            if (make_callback_on_error)
+            {
+                this->callback_error_out_of_memory();
+            }
+
             return false;
         }
 
@@ -1144,7 +1321,11 @@ Operation :: convert_type(v8::Handle<v8::Value>& _value,
 
         if (s.length() == 0 && *s == NULL)
         {
-            this->callback_error_message("cannot convert object to string");
+            if (make_callback_on_error)
+            {
+                this->callback_error_message("cannot convert object to string");
+            }
+
             return false;
         }
 
@@ -1152,7 +1333,11 @@ Operation :: convert_type(v8::Handle<v8::Value>& _value,
 
         if (hyperdex_ds_copy_string(m_arena, *s, s.length(), &error, value, value_sz) < 0)
         {
-            this->callback_error_out_of_memory();
+            if (make_callback_on_error)
+            {
+                this->callback_error_out_of_memory();
+            }
+
             return false;
         }
 
@@ -1160,7 +1345,46 @@ Operation :: convert_type(v8::Handle<v8::Value>& _value,
         return true;
     }
 
-    this->callback_error_message("cannot convert to HyperDex type");
+    if (may_default_to_json)
+    {
+        v8::Local<v8::Object> global = v8::Context::GetCurrent()->Global();
+        v8::Local<v8::Object> JSON = global->Get(v8::String::New("JSON"))->ToObject();
+        v8::Handle<v8::Function> parse = v8::Handle<v8::Function>::Cast(JSON->Get(v8::String::New("stringify")));
+        v8::Handle<v8::Value> argv[1] = { _value };
+        v8::Local<v8::Value> str = v8::Local<v8::Value>::New(parse->Call(JSON, 1, argv));
+        v8::String::Utf8Value s(str);
+
+        if (s.length() == 0 && *s == NULL)
+        {
+            if (make_callback_on_error)
+            {
+                this->callback_error_message("cannot convert object to JSON");
+            }
+
+            return false;
+        }
+
+        hyperdex_ds_returncode error;
+
+        if (hyperdex_ds_copy_string(m_arena, *s, s.length(), &error, value, value_sz) < 0)
+        {
+            if (make_callback_on_error)
+            {
+                this->callback_error_out_of_memory();
+            }
+
+            return false;
+        }
+
+        *datatype = HYPERDATATYPE_DOCUMENT;
+        return true;
+    }
+
+    if (make_callback_on_error)
+    {
+        this->callback_error_message("cannot convert to HyperDex type");
+    }
+
     return false;
 }
 
@@ -1176,7 +1400,7 @@ Operation :: convert_key(v8::Handle<v8::Value>& _key,
                          const char** key, size_t* key_sz)
 {
     hyperdatatype datatype;
-    return convert_type(_key, key, key_sz, &datatype);
+    return convert_type(_key, key, key_sz, &datatype, true, false);
 }
 
 bool
@@ -1213,9 +1437,94 @@ Operation :: convert_attributes(v8::Handle<v8::Value>& x,
         if (!convert_cstring(key, &ret_attrs[i].attr) ||
             !convert_type(val, &ret_attrs[i].value,
                                &ret_attrs[i].value_sz,
-                               &ret_attrs[i].datatype))
+                               &ret_attrs[i].datatype, true, true))
         {
             return false;
+        }
+    }
+
+    return true;
+}
+
+bool
+Operation :: convert_document_predicates(const std::string& prefix,
+                                         v8::Handle<v8::Object>& x,
+                                         std::vector<hyperdex_client_attribute_check>* checks)
+{
+    v8::Local<v8::Array> arr = x->GetPropertyNames();
+
+    for (size_t i = 0; i < arr->Length(); ++i)
+    {
+        hyperdex_client_attribute_check check;
+        v8::Local<v8::Value> key = arr->Get(i);
+        v8::Local<v8::Value> val = x->Get(key);
+        hyperdex_ds_returncode error;
+        size_t sz;
+
+        if (convert_type(val, &check.value,
+                              &check.value_sz,
+                              &check.datatype, false, false))
+        {
+            if (!convert_cstring(key, &check.attr))
+            {
+                return false;
+            }
+
+            std::string attr = prefix + check.attr;
+
+            if (hyperdex_ds_copy_string(m_arena, attr.c_str(), attr.size() + 1, &error, &check.attr, &sz) < 0)
+            {
+                this->callback_error_out_of_memory();
+                return false;
+            }
+
+            check.predicate = HYPERPREDICATE_EQUALS;
+            checks->push_back(check);
+        }
+        else if (val->IsObject() &&
+                 val->ToObject()->GetConstructor()->StrictEquals(HyperDexClient::predicate))
+        {
+            Predicate* pred = node::ObjectWrap::Unwrap<Predicate>(val.As<v8::Object>());
+            v8::Local<v8::Value> v = v8::Local<v8::Value>::New(pred->value());
+
+            if (!convert_cstring(key, &check.attr) ||
+                !convert_type(v, &check.value,
+                              &check.value_sz,
+                              &check.datatype, true, false))
+            {
+                return false;
+            }
+
+            std::string attr = prefix + check.attr;
+
+            if (hyperdex_ds_copy_string(m_arena, attr.c_str(), attr.size() + 1, &error, &check.attr, &sz) < 0)
+            {
+                this->callback_error_out_of_memory();
+                return false;
+            }
+
+            check.predicate = pred->get_pred();
+            checks->push_back(check);
+        }
+        else if (val->IsObject())
+        {
+            v8::String::Utf8Value s(key);
+
+            if (s.length() == 0 && *s == NULL)
+            {
+                this->callback_error_message("cannot convert object to string");
+                return false;
+            }
+
+            std::string ss(prefix);
+            ss.append(*s, s.length());
+            ss.append(".", 1);
+            v8::Local<v8::Object> ps = val->ToObject();
+
+            if (!convert_document_predicates(ss, ps, checks))
+            {
+                return false;
+            }
         }
     }
 
@@ -1227,9 +1536,35 @@ Operation :: convert_predicates(v8::Handle<v8::Value>& x,
                                 const hyperdex_client_attribute_check** _checks,
                                 size_t* _checks_sz)
 {
-    v8::ThrowException(v8::String::New("predicates not yet supported")); // XXX
-    *_checks = NULL;
-    *_checks_sz = 0;
+    if (!x->IsObject())
+    {
+        this->callback_error_message("predicates must be an object");
+        return false;
+    }
+
+    v8::Local<v8::Object> predicates = x->ToObject();
+    std::vector<hyperdex_client_attribute_check> checks;
+
+    if (!convert_document_predicates("", predicates, &checks))
+    {
+        return false;
+    }
+
+    hyperdex_client_attribute_check* cs;
+    *_checks = cs = hyperdex_ds_allocate_attribute_check(m_arena, checks.size());
+    *_checks_sz = checks.size();
+
+    if (!*_checks)
+    {
+        this->callback_error_out_of_memory();
+        return false;
+    }
+
+    for (size_t i = 0; i < checks.size(); ++i)
+    {
+        cs[i] = checks[i];
+    }
+
     return true;
 }
 
@@ -1320,6 +1655,20 @@ Operation :: build_float(const char* value, size_t value_sz,
     }
 
     retval = v8::Number::New(tmp);
+    return true;
+}
+
+bool
+Operation :: build_document(const char* value, size_t value_sz,
+                            v8::Local<v8::Value>& retval,
+                            v8::Local<v8::Value>& error)
+{
+    v8::Local<v8::Object> global = v8::Context::GetCurrent()->Global();
+    v8::Local<v8::Object> JSON = global->Get(v8::String::New("JSON"))->ToObject();
+    v8::Handle<v8::Function> parse = v8::Handle<v8::Function>::Cast(JSON->Get(v8::String::New("parse")));
+    v8::Local<v8::String> str(v8::String::New(value, value_sz));
+    v8::Handle<v8::Value> argv[1] = { str };
+    retval = v8::Local<v8::Value>::New(parse->Call(JSON, 1, argv));
     return true;
 }
 
@@ -1987,6 +2336,8 @@ Operation :: build_attribute(const hyperdex_client_attribute* attr,
             return build_int(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_FLOAT:
             return build_float(attr->value, attr->value_sz, retval, error);
+        case HYPERDATATYPE_DOCUMENT:
+            return build_document(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_LIST_STRING:
             return build_list_string(attr->value, attr->value_sz, retval, error);
         case HYPERDATATYPE_LIST_INT64:
