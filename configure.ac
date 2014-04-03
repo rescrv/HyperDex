@@ -63,7 +63,7 @@ Please install popt to continue.
 -------------------------------------------------])])
 AC_CHECK_LIB([rt], [clock_gettime], [needs_lrt=yes], [needs_lrt=no])
 AC_CHECK_LIB([json], [json_object_get_double], [needs_json=yes], [needs_json=no])
-AC_CHECK_LIB([json_c], [json_object_get_double], [needs_json_c=yes], [needs_json_c=no])
+AC_CHECK_LIB([json-c], [json_object_get_double], [needs_json_c=yes], [needs_json_c=no])
 
 if test x"${needs_lrt}" = xyes; then
     AC_SUBST([LRT_CFLAGS], ["-lrt"])
