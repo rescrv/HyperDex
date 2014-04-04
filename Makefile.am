@@ -763,6 +763,7 @@ shell_wrappers =
 doctest_wrappers =
 doctest_wrappers += test/sh/doc.quick-start.sh
 doctest_wrappers += test/sh/doc.data-types.sh
+doctest_wrappers += test/sh/doc.documents.sh
 doctest_wrappers += test/sh/doc.async-ops.sh
 doctest_wrappers += test/sh/doc.atomic-ops.sh
 shell_wrappers += $(doctest_wrappers)
@@ -919,6 +920,7 @@ EXTRA_DIST += $(shell_wrappers)
 EXTRA_DIST += test/doc.async-ops.py
 EXTRA_DIST += test/doc.atomic-ops.py
 EXTRA_DIST += test/doc.data-types.py
+EXTRA_DIST += test/doc.documents.py
 EXTRA_DIST += test/doc-extract.py
 EXTRA_DIST += test/doc.quick-start.py
 EXTRA_DIST += test/doctest-runner.py
@@ -1330,3 +1332,4 @@ maintainer-generate:
 	python test/doc-extract.py python doc/data-types.tex test/doc.data-types.py
 	python test/doc-extract.py python doc/async-ops.tex test/doc.async-ops.py
 	python test/doc-extract.py python doc/atomic-ops.tex test/doc.atomic-ops.py
+	python test/doc-extract.py python doc/documents.tex test/doc.documents.py

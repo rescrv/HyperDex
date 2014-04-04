@@ -163,6 +163,8 @@ Required Dependencies:
     hash tables.  Requires version 2.0.x.
 \item \href{http://rpm5.org/}{libpopt}: Used for argument parsing.  The
     developers use 1.16 but any recent version should do.
+\item \href{https://github.com/json-c/json-c}{json-c}:  Used for document type
+    support.  Requires at least version 0.10.
 \item \href{http://hyperdex.org/downloads/}{libpo6}: Used for general POSIX
     wrappers.  Requires the latest version.  This package is maintained by the
     HyperDex developers.
@@ -328,6 +330,10 @@ Required Dependencies:
     Recommmended version: $\ge$ 0.15.
 \item \href{http://www.gnu.org/software/gperf/}{Gperf}  Generate perfect
     hashes.  Used in the client library.
+\item \href{http://www.gnu.org/software/help2man/}{help2man}  Generate manual
+    pages with options.  Used for man-pages.
+\item \href{http://johnmacfarlane.net/pandoc/}{pandoc}  Convert manual pages
+    from markdown to man page format.
 \end{itemize}
 
 You'll need to build po6, e, BusyBee, HyperLevelDB Replicant, and HyperDex from
@@ -386,3 +392,9 @@ HyperDex is installed correctly and ready for use.
 hyperdex help
 hyperdex daemon --help
 \end{consolecode}
+
+\section{Upgrading to 1.2}
+
+The 1.2 release introduces new features that are backwards incompatible with
+previous releases.  Before upgrading to 1.2, backup your data.  Once 1.2 is
+installed, copy your data into a newly-deployed 1.2 cluster.

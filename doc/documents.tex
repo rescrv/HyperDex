@@ -1,0 +1,125 @@
+\chapter{Document Storage}
+\label{chap:documents}
+
+Thus far, we have assumed that you know the structure of your data in advance.
+What do you do when you don't know what your data looks like in advance?
+HyperDex provides a document type for just this scenario.  Documents are JSON
+objects, stored within HyperDex, that can be updated and queried just like
+regular objects.
+
+Let's see how to use documents in practice.  The setup below is similar to the
+previous chapter, so if you have a running cluster, you can skip to the space
+creation step.
+
+\section{Setup}
+\label{sec:documents:setup}
+
+As in the previous chapters, the first step is to deploy the cluster and connect
+a client.   First we launch and initialize the coordinator:
+
+\begin{consolecode}
+hyperdex coordinator -f -l 127.0.0.1 -p 1982
+\end{consolecode}
+
+Next, let's launch a daemon process to store data.  Execute the following
+command:
+
+\begin{consolecode}
+hyperdex daemon -f --listen=127.0.0.1 --listen-port=2012 \
+                   --coordinator=127.0.0.1 --coordinator-port=1982 --data=/path/to/data
+\end{consolecode}
+
+We now have a HyperDex cluster ready to serve our data.  Finally, we create a
+space which makes use of the cluster.  In this example, let's create a space
+that may be suitable for storing social network profiles.
+
+\begin{pythoncode}
+>>> import hyperdex.admin
+>>> a = hyperdex.admin.Admin('127.0.0.1', 1982)
+>>> a.add_space('''
+... space profiles
+... key username
+... attributes
+...    document profile
+... ''')
+True
+>>> import hyperdex.client
+>>> c = hyperdex.client.Client('127.0.0.1', 1982)
+\end{pythoncode}
+
+\section{Working with Documents}
+
+It's easy to see how documents enable a wide array of applications.  Consider a
+social networking application that stores each user's profile as a document in
+HyperDex.  Users which provide very little information to the social network
+will have a relatively sparse profile like this:
+
+\begin{jsoncode}
+{"name": "John Smith"}
+\end{jsoncode}
+
+You can store this simple document almost exactly like you would store any other
+data in HyperDex.
+
+\begin{pythoncode}
+>>> Document = hyperdex.client.Document
+>>> c.put('profiles', 'jsmith1', {'profile': Document({"name": "John Smith"})})
+True
+\end{pythoncode}
+
+Of course, nothing prevents users from having more-complex versions of the
+profile like so:
+
+\begin{pythoncode}
+>>> c.put('profiles', 'jd', {'profile': Document({
+...     "name": "John Doe",
+...     "www": "http://example.org",
+...     "email": "doe@example.org",
+...     "friends": ["John Smith"]
+... })})
+True
+\end{pythoncode}
+
+You can search over documents just like you can search over regular HyperDex
+attributes.  For example, to retrieve the objects for all people named John Doe,
+you can do a search on \code{profile.name} to retrieve all such objects:
+
+\begin{pythoncode}
+>>> print [x for x in c.search('profiles', {'profile.name': 'John Doe'})]
+[{'username': 'jd', 'profile': Document({"www": "http://example.org", "friends":
+["John Smith"], "name": "John Doe", "email": "doe@example.org"})}]
+\end{pythoncode}
+
+You can even do HyperDex's more-complex queries.  For example, to find everyone
+whose name starts with ``John'', you can do a regular expression search like
+this:
+
+\begin{pythoncode}
+>>> print [x for x in c.search('profiles', {'profile.name': hyperdex.client.Regex('John Doe')})]
+[{'username': 'jd', 'profile': Document({"www": "http://example.org", "friends":
+["John Smith"], "name": "John Doe", "email": "doe@example.org"})}]
+\end{pythoncode}
+
+\section{Indexing Documents}
+
+Documents, by their very nature, impose no structure on the data they contain.
+Your application is free to store any JSON it wants as a document, and HyperDex
+will search it just fine.  Sometimes though, your documents {\em do} have some
+structure, and your queries will often look at the same elements of the
+documents.  For these situations, it is possible to construct an index on the
+document that significantly speeds up many popular search queries.
+
+With our example queries above, we could create an index on the
+\code{profile.name} attribute.  This index may be consulted by equality and
+range searches that include the \code{profile.name} element.
+
+To create this index, use the \code{add-index} command, specifying the space
+``profiles'' and the attribute ``profile.name''.
+
+\begin{consolecode}
+hyperdex add-index profiles profile.name
+\end{consolecode}
+
+This will instruct HyperDex to add the new index, and will index all existing
+data using the new index.  You can add and remove indices at any time as your
+documents change.

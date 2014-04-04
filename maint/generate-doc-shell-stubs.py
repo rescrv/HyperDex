@@ -6,7 +6,7 @@ python "${{HYPERDEX_SRCDIR}}"/test/runner.py --daemons=1 -- \\
            "${{HYPERDEX_SRCDIR}}"/test/doc.{name}.py {{HOST}} {{PORT}}
 '''
 
-for x in ('quick-start', 'data-types', 'async-ops', 'atomic-ops'):
+for x in ('quick-start', 'data-types', 'async-ops', 'atomic-ops', 'documents'):
     fname = 'test/sh/doc.{name}.sh'.format(name=x)
     f = open(fname, 'w')
     f.write(template.format(name=x))
