@@ -763,7 +763,6 @@ shell_wrappers =
 doctest_wrappers =
 doctest_wrappers += test/sh/doc.quick-start.sh
 doctest_wrappers += test/sh/doc.data-types.sh
-doctest_wrappers += test/sh/doc.documents.sh
 doctest_wrappers += test/sh/doc.async-ops.sh
 doctest_wrappers += test/sh/doc.atomic-ops.sh
 shell_wrappers += $(doctest_wrappers)
