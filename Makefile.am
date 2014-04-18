@@ -713,6 +713,8 @@ bindings/python/hyperdex/admin.c: bindings/python/hyperdex/admin.pyx
 bindings/python/hyperdex/admin.so: bindings/python/hyperdex/admin.la
 	$(LN_S) -f ${abs_top_builddir}/bindings/python/hyperdex/.libs/admin.so $@
 
+link-python: bindings/python/hyperdex/client.so bindings/python/hyperdex/admin.so
+
 ##################################### Ruby #####################################
 
 if ENABLE_RUBY_BINDINGS
