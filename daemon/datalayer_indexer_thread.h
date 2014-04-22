@@ -50,6 +50,7 @@ class hyperdex::datalayer::indexer_thread : public hyperdex::background_thread
         virtual void do_work();
 
     public:
+        void debug_dump();
         void kick();
         bool mark_usable(const region_id& ri, const index_id& ii);
 

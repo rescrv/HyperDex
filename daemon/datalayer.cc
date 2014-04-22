@@ -337,6 +337,24 @@ datalayer :: reconfigure(const configuration&,
     m_wiper->kick();
 }
 
+void
+datalayer :: debug_dump()
+{
+    LOG(INFO) << "index state ===================================================================";
+
+    for (size_t i = 0; i < m_indices.size(); ++i)
+    {
+        LOG(INFO) << "index id=" << m_indices[i].ii.get()
+                  << " region=" << m_indices[i].ri.get()
+                  << " usable=" << (m_indices[i].is_usable() ? "yes" : "no");
+    }
+
+    m_checkpointer->debug_dump();
+    m_mediator->debug_dump();
+    m_indexer->debug_dump();
+    m_wiper->debug_dump();
+}
+
 bool
 datalayer :: get_property(const e::slice& property,
                           std::string* value)

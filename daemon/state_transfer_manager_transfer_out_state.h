@@ -50,6 +50,9 @@ class state_transfer_manager::transfer_out_state
         ~transfer_out_state() throw ();
 
     public:
+        void debug_dump();
+
+    public:
         transfer xfer;
         po6::threads::mutex mtx;
         uint64_t next_seq_no;

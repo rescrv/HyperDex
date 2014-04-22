@@ -69,6 +69,9 @@ datalayer :: indexer_thread :: have_work()
 {
     m_interrupted = false;
     m_mediator->clear_indexer_region();
+    m_have_current = false;
+    m_current_region = region_id();
+    m_current_index = index_id();
 
     for (size_t i = 0; i < m_daemon->m_data.m_indices.size(); ++i)
     {
@@ -91,10 +94,6 @@ datalayer :: indexer_thread :: have_work()
 void
 datalayer :: indexer_thread :: copy_work()
 {
-    m_have_current = false;
-    m_current_region = region_id();
-    m_current_index = index_id();
-
     for (size_t i = 0; i < m_daemon->m_data.m_indices.size(); ++i)
     {
         index_state* is = &m_daemon->m_data.m_indices[i];
@@ -218,6 +217,18 @@ datalayer :: indexer_thread :: do_work()
 
     // Let the index possibly do its thing
     m_daemon->m_data.m_wiper->kick();
+}
+
+void
+datalayer :: indexer_thread :: debug_dump()
+{
+    this->lock();
+    LOG(INFO) << "indexer thread ================================================================";
+    LOG(INFO) << "have_current=" << (m_have_current ? "yes" : "no");
+    LOG(INFO) << "current_region=" << m_current_region;
+    LOG(INFO) << "current_index=" << m_current_index;
+    LOG(INFO) << "interrupted_count=" << m_interrupted_count;
+    this->unlock();
 }
 
 void

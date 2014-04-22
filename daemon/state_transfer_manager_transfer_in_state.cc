@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Google Log
+#include <glog/logging.h>
+
 // HyperDex
 #include "daemon/datalayer.h"
 #include "daemon/datalayer_iterator.h"
@@ -47,4 +50,14 @@ state_transfer_manager :: transfer_in_state :: transfer_in_state(const transfer&
 
 state_transfer_manager :: transfer_in_state :: ~transfer_in_state() throw ()
 {
+}
+
+void
+state_transfer_manager :: transfer_in_state :: debug_dump()
+{
+    po6::threads::mutex::hold hold(&mtx);
+    LOG(INFO) << "  transfer=" << xfer;
+    LOG(INFO) << "    upper_bound_acked=" << upper_bound_acked;
+    LOG(INFO) << "    wipe=" << wipe;
+    LOG(INFO) << "    wiped=" << wiped;
 }

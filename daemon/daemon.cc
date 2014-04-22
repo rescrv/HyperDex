@@ -387,10 +387,10 @@ daemon :: run(bool daemonize,
             s_debug = false;
             LOG(INFO) << "recieved SIGUSR2; dumping internal tables";
             // XXX m_coord.debug_dump();
-            // XXX m_data.debug_dump();
+            m_data.debug_dump();
             // XXX m_comm.debug_dump();
             m_repl.debug_dump();
-            // XXX m_stm.debug_dump();
+            m_stm.debug_dump();
             // XXX m_sm.debug_dump();
             LOG(INFO) << "end debug dump";
         }

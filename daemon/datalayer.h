@@ -103,6 +103,7 @@ class datalayer
         void reconfigure(const configuration& old_config,
                          const configuration& new_config,
                          const server_id& us);
+        void debug_dump();
         // stats
         bool get_property(const e::slice& property,
                           std::string* value);

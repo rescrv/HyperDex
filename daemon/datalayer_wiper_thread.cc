@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Google Log
+#include <glog/logging.h>
+
 // e
 #include <e/endian.h>
 #include <e/varint.h>
@@ -65,6 +68,9 @@ datalayer :: wiper_thread :: have_work()
 {
     m_interrupted = false;
     m_mediator->clear_wiper_region();
+    m_have_current = false;
+    m_wipe_current_xid = transfer_id();
+    m_wipe_current_rid = region_id();
     return !m_wiping.empty() && m_wiping_inhibit_permit_diff == 0 &&
            !m_mediator->region_conflicts_with_indexer(m_wiping.front().second);
 }
@@ -86,6 +92,26 @@ datalayer :: wiper_thread :: do_work()
     }
 
     wipe(m_wipe_current_xid, m_wipe_current_rid);
+}
+
+void
+datalayer :: wiper_thread :: debug_dump()
+{
+    this->lock();
+    LOG(INFO) << "wiper thread ==================================================================";
+    LOG(INFO) << "wiping:";
+
+    for (wipe_list_t::iterator it = m_wiping.begin(); it != m_wiping.end(); ++it)
+    {
+        LOG(INFO) << "  " << it->first << " " << it->second;
+    }
+
+    LOG(INFO) << "have_current=" << (m_have_current ? "yes" : "no");
+    LOG(INFO) << "wipe_current_xid=" << m_wipe_current_xid;
+    LOG(INFO) << "wipe_current_rid=" << m_wipe_current_rid;
+    LOG(INFO) << "wiping_inhibit_permit_diff=" << m_wiping_inhibit_permit_diff;
+    LOG(INFO) << "interrupted_count=" << m_interrupted_count;
+    this->unlock();
 }
 
 void
@@ -190,9 +216,6 @@ datalayer :: wiper_thread :: wipe(transfer_id xid, region_id rid)
         }
     }
 
-    // now report that it was wiped
-    m_daemon->m_stm.report_wiped(xid);
-
     this->lock();
     assert(!m_wiping.empty());
     assert(m_wiping.front().first == xid);
@@ -205,6 +228,9 @@ datalayer :: wiper_thread :: wipe(transfer_id xid, region_id rid)
 
     this->unlock();
     m_daemon->m_data.m_indexer->kick();
+
+    // now report that it was wiped
+    m_daemon->m_stm.report_wiped(xid);
 }
 
 void

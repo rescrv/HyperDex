@@ -211,8 +211,6 @@ replication_manager :: debug_dump()
         LOG(INFO) << regions[i] << " idgen=" << idgen << " lb=" << lb << " stable=" << stable;
     }
 
-    LOG(INFO) << "===============================================================================";
-
     // print key state
     LOG(INFO) << "key states ====================================================================";
 
@@ -223,7 +221,6 @@ replication_manager :: debug_dump()
         ks->debug_dump();
     }
 
-    LOG(INFO) << "===============================================================================";
     unpause();
 }
 

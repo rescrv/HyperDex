@@ -116,8 +116,14 @@ datalayer :: replay_iterator :: valid()
         {
             return true;
         }
-
-        m_iter->Next();
+        else if (m_iter->key().compare(prefix) < 0)
+        {
+            m_iter->SkipTo(prefix);
+        }
+        else
+        {
+            m_iter->SkipToLast();
+        }
     }
 
     return false;

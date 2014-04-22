@@ -46,6 +46,7 @@ class hyperdex::datalayer::wiper_thread : public hyperdex::background_thread
         virtual void do_work();
 
     public:
+        void debug_dump();
         // These are different than pause/unpause, which should only ever be
         // called by the main thread.  They guarantee that after the wiper is
         // done with the current region, it will not make progress to the next

@@ -184,6 +184,29 @@ state_transfer_manager :: reconfigure(const configuration&,
 }
 
 void
+state_transfer_manager :: debug_dump()
+{
+    LOG(INFO) << "state transfer manager ========================================================";
+    pause();
+    m_background_thread->wait_until_paused();
+    LOG(INFO) << "transfer-in states ============================================================";
+
+    for (size_t i = 0; i < m_transfers_in.size(); ++i)
+    {
+        m_transfers_in[i]->debug_dump();
+    }
+
+    LOG(INFO) << "transfer-out states ===========================================================";
+
+    for (size_t i = 0; i < m_transfers_out.size(); ++i)
+    {
+        m_transfers_out[i]->debug_dump();
+    }
+
+    unpause();
+}
+
+void
 state_transfer_manager :: handshake_syn(const virtual_server_id& from,
                                         const transfer_id& xid)
 {

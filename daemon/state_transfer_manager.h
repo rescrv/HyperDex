@@ -63,6 +63,7 @@ class state_transfer_manager
         void reconfigure(const configuration& old_config,
                          const configuration& new_config,
                          const server_id& us);
+        void debug_dump();
 
     public:
         void handshake_syn(const virtual_server_id& from,

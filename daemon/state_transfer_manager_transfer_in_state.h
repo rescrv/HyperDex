@@ -41,6 +41,9 @@ class hyperdex::state_transfer_manager::transfer_in_state
         ~transfer_in_state() throw ();
 
     public:
+        void debug_dump();
+
+    public:
         transfer xfer;
         po6::threads::mutex mtx;
         uint64_t upper_bound_acked;

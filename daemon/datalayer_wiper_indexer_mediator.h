@@ -37,6 +37,7 @@ class datalayer::wiper_indexer_mediator
         ~wiper_indexer_mediator() throw ();
 
     public:
+        void debug_dump();
         bool region_conflicts_with_wiper(const region_id& ri);
         bool region_conflicts_with_indexer(const region_id& ri);
         bool set_wiper_region(const region_id& ri);
@@ -65,6 +66,15 @@ datalayer :: wiper_indexer_mediator :: wiper_indexer_mediator()
 inline
 datalayer :: wiper_indexer_mediator :: ~wiper_indexer_mediator() throw ()
 {
+}
+
+inline void
+datalayer :: wiper_indexer_mediator :: debug_dump()
+{
+    po6::threads::mutex::hold hold(&m_protect);
+    LOG(INFO) << "wiper-indexer mediator ========================================================";
+    LOG(INFO) << "wiper=" << m_wiper;
+    LOG(INFO) << "indexer=" << m_indexer;
 }
 
 inline bool

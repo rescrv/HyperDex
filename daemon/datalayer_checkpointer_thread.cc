@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Google Log
+#include <glog/logging.h>
+
 // HyperDex
 #include "daemon/daemon.h"
 #include "daemon/datalayer.h"
@@ -69,6 +72,18 @@ void
 datalayer :: checkpointer_thread :: do_work()
 {
     collect_lower_checkpoints(m_checkpoint_target);
+}
+
+void
+datalayer :: checkpointer_thread :: debug_dump()
+{
+    this->lock();
+    LOG(INFO) << "checkpointer thread ===========================================================";
+    LOG(INFO) << "checkpoint_gc=" << m_checkpoint_gc;
+    LOG(INFO) << "checkpoint_gced=" << m_checkpoint_gced;
+    LOG(INFO) << "checkpoint_target=" << m_checkpoint_target;
+    LOG(INFO) << "gc_inhibit_permit_diff=" << m_gc_inhibit_permit_diff;
+    this->unlock();
 }
 
 void

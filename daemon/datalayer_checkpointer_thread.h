@@ -46,6 +46,7 @@ class hyperdex::datalayer::checkpointer_thread : public hyperdex::background_thr
         virtual void do_work();
 
     public:
+        void debug_dump();
         // these are different than pause/unpause, which should only ever be
         // called by the main thread.
         void inhibit_gc();

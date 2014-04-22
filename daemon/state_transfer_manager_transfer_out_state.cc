@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Google Log
+#include <glog/logging.h>
+
 // HyperDex
 #include "daemon/datalayer_iterator.h"
 #include "daemon/state_transfer_manager_pending.h"
@@ -48,4 +51,16 @@ state_transfer_manager :: transfer_out_state :: transfer_out_state(const transfe
 
 state_transfer_manager :: transfer_out_state :: ~transfer_out_state() throw ()
 {
+}
+
+void
+state_transfer_manager :: transfer_out_state :: debug_dump()
+{
+    po6::threads::mutex::hold hold(&mtx);
+    LOG(INFO) << "  transfer=" << xfer;
+    LOG(INFO) << "    next_seq_no=" << next_seq_no;
+    LOG(INFO) << "    window_sz=" << window_sz;
+    LOG(INFO) << "    handshake_syn=" << handshake_syn;
+    LOG(INFO) << "    handshake_ack=" << handshake_ack;
+    LOG(INFO) << "    wipe=" << wipe;
 }
