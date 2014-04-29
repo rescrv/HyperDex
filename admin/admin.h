@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 #ifndef hyperdex_admin_admin_h_
 #define hyperdex_admin_admin_h_
 
@@ -140,6 +142,8 @@ class admin
 
     private:
         coordinator_link m_coord;
+        e::garbage_collector m_gc;
+        e::garbage_collector::thread_state m_gc_ts;
         mapper m_busybee_mapper;
         busybee_st m_busybee;
         int64_t m_next_admin_id;

@@ -25,16 +25,19 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // Google Log
 #include <glog/logging.h>
 
 // HyperDex
 #include "common/hash.h"
 #include "daemon/daemon.h"
-#include "daemon/replication_manager_key_region.h"
+#include "daemon/key_region.h"
 #include "daemon/replication_manager_key_state.h"
 #include "daemon/replication_manager_pending.h"
 
+using hyperdex::key_region;
 using hyperdex::replication_manager;
 
 replication_manager :: key_state :: key_state(const key_region& kr)
@@ -60,7 +63,7 @@ replication_manager :: key_state :: ~key_state() throw ()
 {
 }
 
-replication_manager::key_region
+key_region
 replication_manager :: key_state :: state_key() const
 {
     return key_region(m_ri, m_key);
@@ -473,7 +476,7 @@ replication_manager :: key_state :: move_operations_between_queues(replication_m
         if (old_version >= m_deferred.front().first)
         {
             LOG(WARNING) << "dropping deferred CHAIN_* which was sent out of order: "
-                         << "we're using key " << state_key().key.hex() << " in region "
+                         << "we're using key " << e::slice(state_key().key).hex() << " in region "
                          << state_key().region
                          << ".  We've already seen " << old_version << " and the CHAIN_* "
                          << "is for version " << m_deferred.front().first;

@@ -95,7 +95,7 @@ bool
 communication :: setup(const po6::net::location& bind_to,
                        unsigned threads)
 {
-    m_busybee.reset(new busybee_mta(&m_busybee_mapper, bind_to, m_daemon->m_us.get(), threads));
+    m_busybee.reset(new busybee_mta(&m_daemon->m_gc, &m_busybee_mapper, bind_to, m_daemon->m_us.get(), threads));
     m_busybee->set_ignore_signals();
     return true;
 }

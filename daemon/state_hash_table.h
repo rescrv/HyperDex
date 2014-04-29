@@ -37,14 +37,23 @@
 // po6
 #include <po6/threads/mutex.h>
 
+// e
+#include <e/nwf_hash_map.h>
+
 // HyperDex
 #include "namespace.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-// Only one iterator may be used at a time
+template <typename T>
+uint64_t
+default_state_hash(const T& t)
+{
+    e::compat::hash<T> h;
+    return h(t);
+}
 
-template <typename K, typename T>
+template <typename K, typename T, uint64_t (*H)(const K& k) = default_state_hash>
 class state_hash_table
 {
     public:
@@ -52,14 +61,8 @@ class state_hash_table
         class iterator;
 
     public:
-        state_hash_table();
+        state_hash_table(e::garbage_collector* gc);
         ~state_hash_table() throw ();
-
-    public:
-        void set_empty_key(const K& k)
-        { m_state_map->set_empty_key(k); }
-        void set_deleted_key(const K& k)
-        { m_state_map->set_deleted_key(k); }
 
     public:
         T* create_state(const K& key, state_reference* sr);
@@ -67,20 +70,12 @@ class state_hash_table
         T* get_or_create_state(const K& key, state_reference* sr);
 
     private:
-        typedef std::list<e::intrusive_ptr<T> > state_list_t;
-        typedef google::dense_hash_map<K, typename state_list_t::iterator> state_map_t;
-
-    private:
-        po6::threads::mutex m_mtx;
-        const std::auto_ptr<state_map_t> m_state_map;
-        const std::auto_ptr<state_list_t> m_state_list;
-        typename state_list_t::iterator m_itl;
-        bool m_itl_erased;
-        bool m_iterating;
+        typedef typename e::nwf_hash_map<K, e::intrusive_ptr<T>, H> state_map_t;
+        state_map_t m_table;
 };
 
-template <typename K, typename T>
-class state_hash_table<K, T>::state_reference
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+class state_hash_table<K, T, H>::state_reference
 {
     public:
         state_reference();
@@ -100,96 +95,102 @@ class state_hash_table<K, T>::state_reference
         e::intrusive_ptr<T> m_state;
 };
 
-template <typename K, typename T>
-class state_hash_table<K, T>::iterator
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+class state_hash_table<K, T, H>::iterator
 {
     public:
-        iterator(state_hash_table* sht);
-        ~iterator() throw ();
+        iterator(state_hash_table* sht)
+            : m_sht(sht), m_iter(m_sht->m_table.begin()), m_sr() {}
 
     public:
-        T* get();
-        bool valid();
-        void next();
-
-    private:
-        void prime(bool inc);
+        bool valid() { return m_iter != m_sht->m_table.end(); }
+        T* operator * () { return m_iter->second.get(); }
+        T* operator -> () { return m_iter->second.get(); }
+        iterator& operator ++ () { ++m_iter; return *this; }
 
     private:
         state_hash_table* m_sht;
+        typename state_map_t::iterator m_iter;
         state_reference m_sr;
-        T* m_ptr;
-        bool m_primed;
-        bool m_valid;
 
     private:
         iterator(iterator&);
         iterator& operator = (iterator&);
 };
 
-template <typename K, typename T>
-state_hash_table<K, T> :: state_hash_table()
-    : m_mtx()
-    , m_state_map(new state_map_t())
-    , m_state_list(new state_list_t())
-    , m_itl(m_state_list->begin())
-    , m_itl_erased(false)
-    , m_iterating(false)
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+state_hash_table<K, T, H> :: state_hash_table(e::garbage_collector* gc)
+    : m_table(gc)
 {
 }
 
-template <typename K, typename T>
-state_hash_table<K, T> :: ~state_hash_table() throw ()
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+state_hash_table<K, T, H> :: ~state_hash_table() throw ()
 {
-    po6::threads::mutex::hold hold(&m_mtx);
 }
 
-template <typename K, typename T>
+template <typename K, typename T, uint64_t (*H)(const K& k)>
 T*
-state_hash_table<K, T> :: create_state(const K& key, state_reference* sr)
+state_hash_table<K, T, H> :: create_state(const K& key, state_reference* sr)
 {
     while (true)
     {
         e::intrusive_ptr<T> t = new T(key);
         sr->lock(this, t);
-        std::pair<typename state_map_t::iterator, bool> inserted;
 
+        if (m_table.put_ine(key, t))
         {
-            po6::threads::mutex::hold hold(&m_mtx);
-            typename state_list_t::iterator it;
-            it = m_state_list->insert(m_state_list->end(), t);
-            inserted = m_state_map->insert(std::make_pair(t->state_key(), it));
+            return t.get();
         }
 
-        if (!inserted.second)
+        sr->unlock();
+        return NULL;
+    }
+}
+
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+T*
+state_hash_table<K, T, H> :: get_state(const K& key, state_reference* sr)
+{
+    while (true)
+    {
+        e::intrusive_ptr<T> t;
+
+        if (!m_table.get(key, &t))
         {
-            sr->unlock();
             return NULL;
         }
 
+        sr->lock(this, t);
+
+        if (t->marked_garbage())
+        {
+            sr->unlock();
+            continue;
+        }
+
         return t.get();
     }
 }
 
-template <typename K, typename T>
+template <typename K, typename T, uint64_t (*H)(const K& k)>
 T*
-state_hash_table<K, T> :: get_state(const K& key, state_reference* sr)
+state_hash_table<K, T, H> :: get_or_create_state(const K& key, state_reference* sr)
 {
     while (true)
     {
         e::intrusive_ptr<T> t;
 
+        if (!m_table.get(key, &t))
         {
-            po6::threads::mutex::hold hold(&m_mtx);
-            typename state_map_t::iterator it = m_state_map->find(key);
+            t = new T(key);
 
-            if (it == m_state_map->end())
+            if (!m_table.put_ine(key, t))
             {
-                return NULL;
+                continue;
             }
-
-            t = *it->second;
         }
+        // else, have it
 
         sr->lock(this, t);
 
@@ -203,55 +204,16 @@ state_hash_table<K, T> :: get_state(const K& key, state_reference* sr)
     }
 }
 
-template <typename K, typename T>
-T*
-state_hash_table<K, T> :: get_or_create_state(const K& key, state_reference* sr)
-{
-    while (true)
-    {
-        e::intrusive_ptr<T> t;
-
-        {
-            po6::threads::mutex::hold hold(&m_mtx);
-            typename state_map_t::iterator it = m_state_map->find(key);
-
-            if (it == m_state_map->end())
-            {
-                t = new T(key);
-                typename state_list_t::iterator itl;
-                itl = m_state_list->insert(m_state_list->end(), t);
-                std::pair<typename state_map_t::iterator, bool> inserted;
-                inserted = m_state_map->insert(std::make_pair(t->state_key(), itl));
-                assert(inserted.second);
-            }
-            else
-            {
-                t = *it->second;
-            }
-        }
-
-        sr->lock(this, t);
-
-        if (t->marked_garbage())
-        {
-            sr->unlock();
-            continue;
-        }
-
-        return t.get();
-    }
-}
-
-template <typename K, typename T>
-state_hash_table<K, T> :: state_reference :: state_reference()
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+state_hash_table<K, T, H> :: state_reference :: state_reference()
     : m_locked(false)
     , m_sht(NULL)
     , m_state()
 {
 }
 
-template <typename K, typename T>
-state_hash_table<K, T> :: state_reference :: ~state_reference() throw ()
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+state_hash_table<K, T, H> :: state_reference :: ~state_reference() throw ()
 {
     if (m_locked)
     {
@@ -259,10 +221,10 @@ state_hash_table<K, T> :: state_reference :: ~state_reference() throw ()
     }
 }
 
-template <typename K, typename T>
+template <typename K, typename T, uint64_t (*H)(const K& k)>
 void
-state_hash_table<K, T> :: state_reference :: lock(state_hash_table* sht,
-                                                  e::intrusive_ptr<T> state)
+state_hash_table<K, T, H> :: state_reference :: lock(state_hash_table* sht,
+                                                     e::intrusive_ptr<T> state)
 {
     assert(!m_locked);
     m_locked = true;
@@ -271,9 +233,9 @@ state_hash_table<K, T> :: state_reference :: lock(state_hash_table* sht,
     m_state->lock();
 }
 
-template <typename K, typename T>
+template <typename K, typename T, uint64_t (*H)(const K& k)>
 void
-state_hash_table<K, T> :: state_reference :: unlock()
+state_hash_table<K, T, H> :: state_reference :: unlock()
 {
     assert(m_locked);
     // so we need to prevent a deadlock with cycle
@@ -293,134 +255,12 @@ state_hash_table<K, T> :: state_reference :: unlock()
 
     if (we_collect)
     {
-        po6::threads::mutex::hold hold(&m_sht->m_mtx);
-        typename state_map_t::iterator itm;
-        itm = m_sht->m_state_map->find(m_state->state_key());
-        typename state_list_t::iterator itl;
-        bool erase_iterator = itm->second == m_sht->m_itl;
-        itl = m_sht->m_state_list->erase(itm->second);
-
-        if (erase_iterator)
-        {
-            m_sht->m_itl = itl;
-            m_sht->m_itl_erased = true;
-        }
-
-        m_sht->m_state_map->erase(itm);
+        m_sht->m_table.del_if(m_state->state_key(), m_state);
     }
 
     m_sht = NULL;
     m_state = NULL;
     m_locked = false;
-}
-
-template <typename K, typename T>
-state_hash_table<K, T> :: iterator :: iterator(state_hash_table* sht)
-    : m_sht(sht)
-    , m_sr()
-    , m_ptr(NULL)
-    , m_primed(false)
-    , m_valid(false)
-{
-    po6::threads::mutex::hold hold(&m_sht->m_mtx);
-    assert(!m_sht->m_iterating);
-    m_sht->m_iterating = true;
-    m_sht->m_itl = m_sht->m_state_list->begin();
-    m_sht->m_itl_erased = false;
-}
-
-template <typename K, typename T>
-state_hash_table<K, T> :: iterator :: ~iterator() throw ()
-{
-    if (m_ptr)
-    {
-        m_sr.unlock();
-    }
-
-    po6::threads::mutex::hold hold(&m_sht->m_mtx);
-    assert(m_sht->m_iterating);
-    m_sht->m_iterating = false;
-}
-
-template <typename K, typename T>
-T*
-state_hash_table<K, T> :: iterator :: get()
-{
-    return m_ptr;
-}
-
-template <typename K, typename T>
-bool
-state_hash_table<K, T> :: iterator :: valid()
-{
-    if (!m_primed)
-    {
-        prime(false);
-    }
-
-    return m_valid;
-}
-
-template <typename K, typename T>
-void
-state_hash_table<K, T> :: iterator :: next()
-{
-    prime(true);
-}
-
-template <typename K, typename T>
-void
-state_hash_table<K, T> :: iterator :: prime(bool inc)
-{
-    m_primed = true;
-    m_valid = false;
-
-    if (m_ptr)
-    {
-        m_sr.unlock();
-        m_ptr = NULL;
-    }
-
-    while (true)
-    {
-        e::intrusive_ptr<T> t;
-
-        {
-            po6::threads::mutex::hold hold(&m_sht->m_mtx);
-
-            if (m_sht->m_itl == m_sht->m_state_list->end())
-            {
-                return;
-            }
-
-            if (inc && !m_sht->m_itl_erased)
-            {
-                ++(m_sht->m_itl);
-
-                if (m_sht->m_itl == m_sht->m_state_list->end())
-                {
-                    return;
-                }
-            }
-
-            inc = false;
-            m_sht->m_itl_erased = false;
-            t = *m_sht->m_itl;
-        }
-
-        m_sr.lock(m_sht, t);
-
-        if (t->marked_garbage())
-        {
-            m_sr.unlock();
-            inc = true;
-            continue;
-        }
-
-        m_ptr = t.get();
-        m_valid = true;
-        return;
-    }
 }
 
 END_HYPERDEX_NAMESPACE

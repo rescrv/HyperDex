@@ -52,6 +52,7 @@
 #include "common/network_returncode.h"
 #include "daemon/identifier_collector.h"
 #include "daemon/identifier_generator.h"
+#include "daemon/key_region.h"
 #include "daemon/reconfigure_returncode.h"
 #include "daemon/region_timestamp.h"
 #include "daemon/state_hash_table.h"
@@ -126,7 +127,6 @@ class replication_manager
 
     private:
         class pending; // state for one pending operation
-        class key_region; // a tuple of (key, region)
         class key_state; // state for a single key
         typedef state_hash_table<key_region, key_state> key_map_t;
         friend class e::compat::hash<key_region>;

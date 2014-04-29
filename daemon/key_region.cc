@@ -26,30 +26,30 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "daemon/replication_manager_key_region.h"
+#include "daemon/key_region.h"
 
-using hyperdex::replication_manager;
+using hyperdex::key_region;
 
-replication_manager :: key_region :: key_region()
+key_region :: key_region()
     : region()
     , key()
 {
 }
 
-replication_manager :: key_region :: key_region(const region_id& r, const e::slice& k)
+key_region :: key_region(const region_id& r, const e::slice& k)
     : region(r)
-    , key(k)
+    , key(reinterpret_cast<const char*>(k.data()), k.size())
 {
 }
 
-replication_manager :: key_region :: key_region(const key_region& other)
+key_region :: key_region(const key_region& other)
     : region(other.region)
     , key(other.key)
 {
 }
 
 bool
-replication_manager :: key_region :: operator < (const key_region& rhs) const
+key_region :: operator < (const key_region& rhs) const
 {
     if (region == rhs.region)
     {
@@ -60,13 +60,13 @@ replication_manager :: key_region :: operator < (const key_region& rhs) const
 }
 
 bool
-replication_manager :: key_region :: operator == (const key_region& rhs) const
+key_region :: operator == (const key_region& rhs) const
 {
     return region == rhs.region && key == rhs.key;
 }
 
-replication_manager::key_region&
-replication_manager :: key_region :: operator = (const key_region& rhs)
+key_region&
+key_region :: operator = (const key_region& rhs)
 {
     if (this != &rhs)
     {

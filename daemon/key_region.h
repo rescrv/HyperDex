@@ -1,4 +1,4 @@
-// Copyright (c) 2011, Cornell University
+// Copyright (c) 2011-2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,15 +25,19 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_daemon_replication_manager_key_region_h_
-#define hyperdex_daemon_replication_manager_key_region_h_
+#ifndef hyperdex_daemon_key_region_h_
+#define hyperdex_daemon_key_region_h_
+
+// e
+#include <e/compat.h>
 
 // HyperDex
 #include "common/ids.h"
 #include "cityhash/city.h"
-#include "daemon/replication_manager.h"
 
-class hyperdex::replication_manager::key_region
+BEGIN_HYPERDEX_NAMESPACE
+
+class key_region
 {
     public:
         key_region();
@@ -47,18 +51,20 @@ class hyperdex::replication_manager::key_region
 
     public:
         region_id region;
-        e::slice key;
+        std::string key;
 
     private:
         friend class e::compat::hash<key_region>;
 };
 
+END_HYPERDEX_NAMESPACE
+
 BEGIN_E_COMPAT_NAMESPACE
 
 template <>
-struct hash<hyperdex::replication_manager::key_region>
+struct hash<hyperdex::key_region>
 {
-    size_t operator()(const hyperdex::replication_manager::key_region& kr) const
+    size_t operator()(const hyperdex::key_region& kr) const
     {
         return CityHash64WithSeed(reinterpret_cast<const char*>(kr.key.data()),
                                   kr.key.size(),
@@ -68,4 +74,4 @@ struct hash<hyperdex::replication_manager::key_region>
 
 END_E_COMPAT_NAMESPACE
 
-#endif // hyperdex_daemon_replication_manager_key_region_h_
+#endif // hyperdex_daemon_key_region_h_

@@ -108,6 +108,7 @@ class daemon
         void collect_stats_io(std::ostringstream* ret);
 
     private:
+        friend class background_thread;
         friend class communication;
         friend class coordinator_link_wrapper;
         friend class datalayer;
@@ -119,6 +120,8 @@ class daemon
         server_id m_us;
         po6::net::location m_bind_to;
         std::vector<e::compat::shared_ptr<po6::threads::thread> > m_threads;
+        e::garbage_collector m_gc;
+        e::garbage_collector::thread_state m_gc_ts;
         coordinator_link_wrapper m_coord;
         std::string m_data_dir;
         datalayer m_data;

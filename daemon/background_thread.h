@@ -33,15 +33,19 @@
 #include <po6/threads/mutex.h>
 #include <po6/threads/thread.h>
 
+// e
+#include <e/garbage_collector.h>
+
 // HyperDex
 #include "namespace.h"
 
 BEGIN_HYPERDEX_NAMESPACE
+class daemon;
 
 class background_thread
 {
     public:
-        background_thread();
+        background_thread(daemon* d);
         virtual ~background_thread() throw ();
 
     public:
@@ -78,6 +82,8 @@ class background_thread
 
     private:
         po6::threads::thread m_thread;
+        e::garbage_collector* m_gc;
+        e::garbage_collector::thread_state m_gc_ts;
         po6::threads::mutex m_protect;
         po6::threads::cond m_wakeup_thread;
         po6::threads::cond m_wakeup_pauser;

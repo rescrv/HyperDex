@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // POSIX
 #include <signal.h>
 
@@ -699,7 +701,8 @@ state_transfer_manager :: send_ack(const transfer& xfer, uint64_t seq_no)
 }
 
 state_transfer_manager :: background_thread :: background_thread(state_transfer_manager* stm)
-    : m_stm(stm)
+    : hyperdex::background_thread(stm->m_daemon)
+    , m_stm(stm)
     , m_need_kickstart(false)
 {
 }

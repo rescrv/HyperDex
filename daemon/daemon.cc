@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // POSIX
 #include <dirent.h>
 #include <signal.h>
@@ -103,6 +105,8 @@ daemon :: daemon()
     : m_us()
     , m_bind_to()
     , m_threads()
+    , m_gc()
+    , m_gc_ts()
     , m_coord(this)
     , m_data_dir()
     , m_data(this)
@@ -141,10 +145,12 @@ daemon :: daemon()
     , m_stats_start(0)
     , m_stats()
 {
+    m_gc.register_thread(&m_gc_ts);
 }
 
 daemon :: ~daemon() throw ()
 {
+    m_gc.deregister_thread(&m_gc_ts);
 }
 
 static bool
@@ -429,11 +435,16 @@ daemon :: run(bool daemonize,
             m_data.set_checkpoint_gc(checkpoint_gc);
         }
 
+        m_gc.quiescent_state(&m_gc_ts);
+        m_gc.offline(&m_gc_ts);
+
         if (!m_coord.maintain_link())
         {
+            m_gc.online(&m_gc_ts);
             continue;
         }
 
+        m_gc.online(&m_gc_ts);
         const configuration& old_config(m_config);
         const configuration& new_config(m_coord.config());
 

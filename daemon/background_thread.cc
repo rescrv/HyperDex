@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // C
 #include <cassert>
 
@@ -36,12 +38,15 @@
 
 // HyperDex
 #include "daemon/background_thread.h"
+#include "daemon/daemon.h"
 
 using po6::threads::make_thread_wrapper;
 using hyperdex::background_thread;
 
-background_thread :: background_thread()
+background_thread :: background_thread(daemon* d)
     : m_thread(make_thread_wrapper(&background_thread::run, this))
+    , m_gc(&d->m_gc)
+    , m_gc_ts()
     , m_protect()
     , m_wakeup_thread(&m_protect)
     , m_wakeup_pauser(&m_protect)
@@ -51,11 +56,13 @@ background_thread :: background_thread()
     , m_offline(false)
 {
     po6::threads::mutex::hold hold(&m_protect);
+    m_gc->register_thread(&m_gc_ts);
 }
 
 background_thread :: ~background_thread() throw ()
 {
     shutdown();
+    m_gc->deregister_thread(&m_gc_ts);
 }
 
 void
@@ -150,6 +157,7 @@ background_thread :: run()
     while (true)
     {
         {
+            m_gc->quiescent_state(&m_gc_ts);
             po6::threads::mutex::hold hold(&m_protect);
 
             while ((!this->have_work() && !m_shutdown) || m_need_pause)
@@ -161,7 +169,9 @@ background_thread :: run()
                     m_wakeup_pauser.signal();
                 }
 
+                m_gc->offline(&m_gc_ts);
                 m_wakeup_thread.wait();
+                m_gc->online(&m_gc_ts);
                 m_paused = false;
             }
 

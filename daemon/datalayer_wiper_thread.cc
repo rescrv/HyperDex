@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // Google Log
 #include <glog/logging.h>
 
@@ -41,7 +43,8 @@
 using hyperdex::datalayer;
 
 datalayer :: wiper_thread :: wiper_thread(daemon* d, wiper_indexer_mediator* m)
-    : m_daemon(d)
+    : background_thread(d)
+    , m_daemon(d)
     , m_mediator(m)
     , m_wiping()
     , m_have_current(false)

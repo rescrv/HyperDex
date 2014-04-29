@@ -46,7 +46,6 @@
 #include "cityhash/city.h"
 #include "daemon/daemon.h"
 #include "daemon/replication_manager.h"
-#include "daemon/replication_manager_key_region.h"
 #include "daemon/replication_manager_key_state.h"
 #include "daemon/replication_manager_pending.h"
 
@@ -56,7 +55,7 @@ using hyperdex::replication_manager;
 
 replication_manager :: replication_manager(daemon* d)
     : m_daemon(d)
-    , m_key_states()
+    , m_key_states(&d->m_gc)
     , m_idgen()
     , m_idcol()
     , m_stable_counters()
@@ -75,8 +74,6 @@ replication_manager :: replication_manager(daemon* d)
     , m_need_periodic(false)
     , m_lower_bounds()
 {
-    m_key_states.set_empty_key(key_region(region_id(UINT64_MAX), e::slice("", 0)));
-    m_key_states.set_deleted_key(key_region(region_id(UINT64_MAX - 1), e::slice("", 0)));
     check_is_needed();
 }
 
@@ -136,9 +133,9 @@ replication_manager :: reconfigure(const configuration&,
     new_config.transfers_in_regions(m_daemon->m_us, &transfers_in_regions);
     std::sort(transfers_in_regions.begin(), transfers_in_regions.end());
 
-    for (key_map_t::iterator it(&m_key_states); it.valid(); it.next())
+    for (key_map_t::iterator it(&m_key_states); it.valid(); ++it)
     {
-        key_state* ks = it.get();
+        key_state* ks = *it;
         ks->clear_deferred();
 
         if (std::binary_search(transfers_in_regions.begin(),
@@ -214,10 +211,10 @@ replication_manager :: debug_dump()
     // print key state
     LOG(INFO) << "key states ====================================================================";
 
-    for (key_map_t::iterator it(&m_key_states); it.valid(); it.next())
+    for (key_map_t::iterator it(&m_key_states); it.valid(); ++it)
     {
-        key_state* ks = it.get();
-        LOG(INFO) << "state for " << ks->state_key().region << " " << ks->state_key().key.hex();
+        key_state* ks = *it;
+        LOG(INFO) << "state for " << ks->state_key().region << " " << e::slice(ks->state_key().key).hex();
         ks->debug_dump();
     }
 
@@ -966,6 +963,9 @@ replication_manager :: background_thread()
         return;
     }
 
+    e::garbage_collector::thread_state gc_ts;
+    m_daemon->m_gc.register_thread(&gc_ts);
+
     while (true)
     {
         bool need_post_reconfigure = false;
@@ -974,6 +974,7 @@ replication_manager :: background_thread()
         uint64_t seq_id = 0;
 
         {
+            m_daemon->m_gc.quiescent_state(&gc_ts);
             po6::threads::mutex::hold hold(&m_block_background_thread);
 
             while ((!(m_need_post_reconfigure ||
@@ -988,7 +989,9 @@ replication_manager :: background_thread()
                     m_wakeup_reconfigurer.signal();
                 }
 
+                m_daemon->m_gc.offline(&gc_ts);
                 m_wakeup_background_thread.wait();
+                m_daemon->m_gc.online(&gc_ts);
                 m_paused = false;
             }
 
@@ -1054,6 +1057,7 @@ replication_manager :: background_thread()
         }
     }
 
+    m_daemon->m_gc.deregister_thread(&gc_ts);
     LOG(INFO) << "replication background thread shutting down";
 }
 
@@ -1092,9 +1096,9 @@ void
 replication_manager :: retransmit(const std::vector<region_id>& point_leaders,
                                   std::vector<std::pair<region_id, uint64_t> >* seq_ids)
 {
-    for (key_map_t::iterator it(&m_key_states); it.valid(); it.next())
+    for (key_map_t::iterator it(&m_key_states); it.valid(); ++it)
     {
-        key_state* ks = it.get();
+        key_state* ks = *it;
         region_id ri = ks->state_key().region;
 
         if (std::binary_search(point_leaders.begin(),
