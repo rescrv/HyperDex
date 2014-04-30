@@ -295,8 +295,10 @@ test0()
         FAIL("migration failure: " << status);
     }
 
-    std::cout << "Sleeping for 20 seconds for the migration to complete...\n";
-    usleep(20 * 1000 * 1000);
+    std::cout << "Sleeping for 5 seconds for the migration to complete...\n";
+    std::cout << "This could fail if your disk is too slow (i.e. if you are using a HDD).\n";
+    std::cout << "In this case, you could modify the test file to wait for longer.\n";
+    usleep(5 * 1000 * 1000);
 
     read_and_verify_data(_space_to_name, num_objects);
 

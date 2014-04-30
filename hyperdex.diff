@@ -1,0 +1,4089 @@
+diff --git a/.gitignore b/.gitignore
+index f4f91fc..b470804 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -86,3 +86,4 @@
+ /test/replication-stress-test
+ /test/search-stress-test
+ /ylwrap
++hyperdex-migrate-data
+diff --git a/Makefile.am b/Makefile.am
+index 4316db0..2b0663d 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -139,6 +139,7 @@ noinst_HEADERS += common/schema.h
+ noinst_HEADERS += common/serialization.h
+ noinst_HEADERS += common/server.h
+ noinst_HEADERS += common/transfer.h
++noinst_HEADERS += common/migration.h
+ noinst_HEADERS += tools/common.h
+ 
+ check_PROGRAMS += common/test/ordered_encoding
+@@ -201,6 +202,9 @@ noinst_HEADERS += daemon/state_transfer_manager.h
+ noinst_HEADERS += daemon/state_transfer_manager_pending.h
+ noinst_HEADERS += daemon/state_transfer_manager_transfer_in_state.h
+ noinst_HEADERS += daemon/state_transfer_manager_transfer_out_state.h
++noinst_HEADERS += daemon/migration_manager.h
++noinst_HEADERS += daemon/migration_manager_pending.h
++noinst_HEADERS += daemon/migration_out_state.h
+ 
+ EXTRA_DIST += man/hyperdex-daemon.1.md
+ EXTRA_DIST += man/hyperdex-daemon.1.h2m
+@@ -232,6 +236,7 @@ hyperdex_daemon_SOURCES += common/schema.cc
+ hyperdex_daemon_SOURCES += common/serialization.cc
+ hyperdex_daemon_SOURCES += common/server.cc
+ hyperdex_daemon_SOURCES += common/transfer.cc
++hyperdex_daemon_SOURCES += common/migration.cc
+ hyperdex_daemon_SOURCES += cityhash/city.cc
+ hyperdex_daemon_SOURCES += daemon/communication.cc
+ hyperdex_daemon_SOURCES += daemon/coordinator_link_wrapper.cc
+@@ -260,6 +265,9 @@ hyperdex_daemon_SOURCES += daemon/state_transfer_manager.cc
+ hyperdex_daemon_SOURCES += daemon/state_transfer_manager_pending.cc
+ hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_in_state.cc
+ hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_out_state.cc
++hyperdex_daemon_SOURCES += daemon/migration_manager.cc
++hyperdex_daemon_SOURCES += daemon/migration_manager_pending.cc
++hyperdex_daemon_SOURCES += daemon/migration_out_state.cc
+ hyperdex_daemon_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
+ hyperdex_daemon_LDADD =
+ hyperdex_daemon_LDADD += $(E_LIBS)
+@@ -308,6 +316,7 @@ libhyperdex_coordinator_la_SOURCES += common/schema.cc
+ libhyperdex_coordinator_la_SOURCES += common/serialization.cc
+ libhyperdex_coordinator_la_SOURCES += common/server.cc
+ libhyperdex_coordinator_la_SOURCES += common/transfer.cc
++libhyperdex_coordinator_la_SOURCES += common/migration.cc
+ libhyperdex_coordinator_la_SOURCES += coordinator/coordinator.cc
+ libhyperdex_coordinator_la_SOURCES += coordinator/replica_sets.cc
+ libhyperdex_coordinator_la_SOURCES += coordinator/server_barrier.cc
+@@ -387,6 +396,7 @@ libhyperdex_client_la_SOURCES += common/schema.cc
+ libhyperdex_client_la_SOURCES += common/server.cc
+ libhyperdex_client_la_SOURCES += common/serialization.cc
+ libhyperdex_client_la_SOURCES += common/transfer.cc
++libhyperdex_client_la_SOURCES += common/migration.cc
+ libhyperdex_client_la_SOURCES += cityhash/city.cc
+ libhyperdex_client_la_SOURCES += client/c.cc
+ libhyperdex_client_la_SOURCES += client/client.cc
+@@ -472,6 +482,7 @@ libhyperdex_admin_la_SOURCES += common/schema.cc
+ libhyperdex_admin_la_SOURCES += common/serialization.cc
+ libhyperdex_admin_la_SOURCES += common/server.cc
+ libhyperdex_admin_la_SOURCES += common/transfer.cc
++libhyperdex_admin_la_SOURCES += common/migration.cc
+ libhyperdex_admin_la_SOURCES += cityhash/city.cc
+ libhyperdex_admin_la_SOURCES += admin/admin.cc
+ libhyperdex_admin_la_SOURCES += admin/backup_state_machine.cc
+@@ -983,6 +994,7 @@ hyperdexexec_PROGRAMS += hyperdex-wait-until-stable
+ hyperdexexec_PROGRAMS += hyperdex-backup
+ hyperdexexec_PROGRAMS += hyperdex-backup-manager
+ hyperdexexec_PROGRAMS += hyperdex-raw-backup
++hyperdexexec_PROGRAMS += hyperdex-migrate-data
+ dist_man_MANS += man/hyperdex-add-space.1
+ dist_man_MANS += man/hyperdex-rm-space.1
+ dist_man_MANS += man/hyperdex-list-spaces.1
+@@ -1000,6 +1012,7 @@ dist_man_MANS += man/hyperdex-wait-until-stable.1
+ dist_man_MANS += man/hyperdex-backup.1
+ dist_man_MANS += man/hyperdex-backup-manager.1
+ dist_man_MANS += man/hyperdex-raw-backup.1
++dist_man_MANS += man/hyperdex-migrate-data.1
+ endif
+ 
+ # hyperdex
+@@ -1167,6 +1180,15 @@ man/hyperdex-raw-backup.1: man/hyperdex-raw-backup.1.h2m tools/raw-backup.cc
+ 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-raw-backup$(EXEEXT)
+ 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-raw-backup$(EXEEXT)
+ 
++# hyperdex-migrate-data
++EXTRA_DIST += man/hyperdex-migrate-data.1.md
++EXTRA_DIST += man/hyperdex-migrate-data.1.h2m
++hyperdex_migrate_data_SOURCES = tools/migrate-data.cc
++hyperdex_migrate_data_LDADD = libhyperdex-admin.la -lpopt
++man/hyperdex-migrate-data.1: man/hyperdex-migrate-data.1.h2m tools/migrate-data.cc
++	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-migrate-data$(EXEEXT)
++	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-migrate-data$(EXEEXT)
++
+ ################################################################################
+ ################################# Documentation ################################
+ ################################################################################
+diff --git a/admin/admin.cc b/admin/admin.cc
+index f8eda92..886dbd2 100644
+--- a/admin/admin.cc
++++ b/admin/admin.cc
+@@ -193,6 +193,48 @@ admin :: fault_tolerance(const char* space, uint64_t ft,
+     }
+ }
+ 
++int64_t
++admin :: migrate_data(const char* space_from, const char* space_to,
++                      enum hyperdex_admin_returncode* status)
++{
++    if (!maintain_coord_connection(status))
++    {
++        return -1;
++    }
++
++    int64_t id = m_next_admin_id;
++    ++m_next_admin_id;
++    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "migrate");
++    uint64_t space_from_sz = strlen(space_from);
++    uint64_t space_to_sz = strlen(space_to);
++    
++    // Pack
++    size_t total_sz = sizeof(uint64_t) * 2 + space_from_sz + space_to_sz;
++    char buf[total_sz];
++    char* pos = buf;
++    e::pack64be(space_from_sz, pos);
++    pos += sizeof(uint64_t);
++    memcpy(pos, space_from, space_from_sz);
++    pos += space_from_sz;
++    e::pack64be(space_to_sz, pos);
++    pos += sizeof(uint64_t);
++    memcpy(pos, space_to, space_to_sz);
++
++    int64_t cid = m_coord.rpc("migrate", buf, total_sz,
++                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
++
++    if (cid >= 0)
++    {
++        m_coord_ops[cid] = op;
++        return op->admin_visible_id();
++    }
++    else
++    {
++        interpret_rpc_request_failure(op->repl_status, status);
++        return -1;
++    }
++}
++
+ int
+ admin :: validate_space(const char* description,
+                         hyperdex_admin_returncode* status)
+diff --git a/admin/admin.h b/admin/admin.h
+index b76e64b..b1b53f5 100644
+--- a/admin/admin.h
++++ b/admin/admin.h
+@@ -72,6 +72,8 @@ class admin
+                          enum hyperdex_admin_returncode* status);
+         int64_t list_spaces(enum hyperdex_admin_returncode* status,
+                             const char** spaces);
++        int64_t migrate_data(const char* space_from, const char* space_to,
++                             enum hyperdex_admin_returncode* status);
+         // manage servers
+         int64_t server_register(uint64_t token, const char* address,
+                                 enum hyperdex_admin_returncode* status);
+diff --git a/admin/c.cc b/admin/c.cc
+index d301621..ffc792f 100644
+--- a/admin/c.cc
++++ b/admin/c.cc
+@@ -174,6 +174,18 @@ hyperdex_admin_list_spaces(struct hyperdex_admin* _adm,
+ }
+ 
+ HYPERDEX_API int64_t
++hyperdex_admin_migrate_data(struct hyperdex_admin* _adm,
++                            const char* space_from,
++                            const char* space_to,
++                            enum hyperdex_admin_returncode* status)
++{
++    C_WRAP_EXCEPT(
++    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
++    return adm->migrate_data(space_from, space_to, status);
++    );
++}
++
++HYPERDEX_API int64_t
+ hyperdex_admin_server_register(struct hyperdex_admin* _adm,
+                                uint64_t token, const char* address,
+                                hyperdex_admin_returncode* status)
+diff --git a/common/configuration.cc b/common/configuration.cc
+index 4574c8c..d92e321 100644
+--- a/common/configuration.cc
++++ b/common/configuration.cc
+@@ -45,6 +45,7 @@ using hyperdex::schema;
+ using hyperdex::server;
+ using hyperdex::server_id;
+ using hyperdex::subspace;
++using hyperdex::space_id;
+ using hyperdex::subspace_id;
+ using hyperdex::virtual_server_id;
+ 
+@@ -66,6 +67,7 @@ configuration :: configuration()
+     , m_point_leaders_by_virtual()
+     , m_spaces()
+     , m_transfers()
++    , m_migrations()
+ {
+     refill_cache();
+ }
+@@ -88,6 +90,7 @@ configuration :: configuration(const configuration& other)
+     , m_point_leaders_by_virtual(other.m_point_leaders_by_virtual)
+     , m_spaces(other.m_spaces)
+     , m_transfers(other.m_transfers)
++    , m_migrations(other.m_migrations)
+ {
+     refill_cache();
+ }
+@@ -282,6 +285,21 @@ configuration :: get_virtual(const region_id& ri, const server_id& si) const
+     return virtual_server_id();
+ }
+ 
++space_id
++configuration :: space_of(const region_id& ri) const
++{
++    subspace_id ssid = subspace_of(ri);
++    for (size_t s = 0; s < m_spaces.size(); ++s)
++    {
++        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
++        {
++            if (m_spaces[s].subspaces[ss].id == ssid) {
++                return m_spaces[s].id;
++            }
++        }
++    }
++}
++
+ subspace_id
+ configuration :: subspace_of(const region_id& ri) const
+ {
+@@ -455,6 +473,39 @@ configuration :: point_leader(const char* sname, const e::slice& key) const
+ }
+ 
+ virtual_server_id
++configuration :: point_leader(const space_id& sid, const e::slice& key) const
++{
++    for (size_t s = 0; s < m_spaces.size(); ++s)
++    {
++        if (sid != m_spaces[s].id)
++        {
++            continue;
++        }
++
++        uint64_t h;
++        hash(m_spaces[s].sc, key, &h);
++
++        for (size_t pl = 0; pl < m_spaces[s].subspaces[0].regions.size(); ++pl)
++        {
++            if (m_spaces[s].subspaces[0].regions[pl].lower_coord[0] <= h &&
++                h <= m_spaces[s].subspaces[0].regions[pl].upper_coord[0])
++            {
++                if (m_spaces[s].subspaces[0].regions[pl].replicas.empty())
++                {
++                    return virtual_server_id();
++                }
++
++                return m_spaces[s].subspaces[0].regions[pl].replicas[0].vsi;
++            }
++        }
++
++        abort();
++    }
++
++    return virtual_server_id();
++}
++
++virtual_server_id
+ configuration :: point_leader(const region_id& rid, const e::slice& key) const
+ {
+     for (size_t s = 0; s < m_spaces.size(); ++s)
+@@ -614,6 +665,13 @@ configuration :: transfers_out_regions(const server_id& si, std::vector<region_i
+     }
+ }
+ 
++void configuration :: migrations_out(const server_id& sid, std::vector<migration>* migrations) const
++{
++    for (size_t m = 0; m < m_migrations.size(); ++m) {
++        migrations->push_back(m_migrations[m]);
++    }
++}
++
+ void
+ configuration :: lookup_region(const subspace_id& ssid,
+                                const std::vector<uint64_t>& hashes,
+@@ -876,6 +934,11 @@ configuration :: dump() const
+         out << m_transfers[i] << std::endl;
+     }
+ 
++    for (size_t i = 0; i < m_migrations.size(); ++i)
++    {
++        out << m_migrations[i] << std::endl;
++    }
++
+     return out.str();
+ }
+ 
+@@ -917,6 +980,7 @@ configuration :: operator = (const configuration& rhs)
+     m_point_leaders_by_virtual = rhs.m_point_leaders_by_virtual;
+     m_spaces = rhs.m_spaces;
+     m_transfers = rhs.m_transfers;
++    m_migrations = rhs.m_migrations;
+     refill_cache();
+     return *this;
+ }
+@@ -1022,9 +1086,11 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
+     uint64_t num_servers;
+     uint64_t num_spaces;
+     uint64_t num_transfers;
++    uint64_t num_migrations;
+     up = up >> c.m_cluster >> c.m_version >> c.m_flags
+             >> num_servers >> num_spaces
+-            >> num_transfers;
++            >> num_transfers >> num_migrations;
++
+     c.m_servers.clear();
+     c.m_servers.reserve(num_servers);
+ 
+@@ -1055,6 +1121,16 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
+         c.m_transfers.push_back(xfer);
+     }
+ 
++    c.m_migrations.clear();
++    c.m_migrations.reserve(num_migrations);
++
++    for (size_t i = 0; !up.error() && i < num_migrations; ++i)
++    {
++        migration m;
++        up = up >> m;
++        c.m_migrations.push_back(m);
++    }
++
+     c.refill_cache();
+     return up;
+ }
+diff --git a/common/configuration.h b/common/configuration.h
+index ce82480..7f16fff 100755
+--- a/common/configuration.h
++++ b/common/configuration.h
+@@ -47,6 +47,7 @@
+ #include "common/schema.h"
+ #include "common/server.h"
+ #include "common/transfer.h"
++#include "common/migration.h"
+ 
+ BEGIN_HYPERDEX_NAMESPACE
+ 
+@@ -78,6 +79,7 @@ class configuration
+         const schema* get_schema(const region_id& ri) const;
+         const subspace* get_subspace(const region_id& ri) const;
+         virtual_server_id get_virtual(const region_id& ri, const server_id& si) const;
++        space_id space_of(const region_id& ri) const;
+         subspace_id subspace_of(const region_id& ri) const;
+         subspace_id subspace_prev(const subspace_id& ss) const;
+         subspace_id subspace_next(const subspace_id& ss) const;
+@@ -88,6 +90,7 @@ class configuration
+         void key_regions(const server_id& s, std::vector<region_id>* servers) const;
+         bool is_point_leader(const virtual_server_id& e) const;
+         virtual_server_id point_leader(const char* space, const e::slice& key) const;
++        virtual_server_id point_leader(const space_id& sid, const e::slice& key) const;
+         // point leader for this key in the same space as ri
+         virtual_server_id point_leader(const region_id& ri, const e::slice& key) const;
+         // lhs and rhs are in adjacent subspaces such that lhs sends CHAIN_PUT
+@@ -109,6 +112,10 @@ class configuration
+         void transfers_in_regions(const server_id& s, std::vector<region_id>* transfers) const;
+         void transfers_out_regions(const server_id& s, std::vector<region_id>* transfers) const;
+ 
++    // migrations
++    public:
++        void migrations_out(const server_id& s, std::vector<migration>* migrations) const;
++
+     // hashing functions
+     public:
+         void lookup_region(const subspace_id& subspace,
+@@ -155,6 +162,7 @@ class configuration
+         std::vector<uint64_t> m_point_leaders_by_virtual;
+         std::vector<space> m_spaces;
+         std::vector<transfer> m_transfers;
++        std::vector<migration> m_migrations;
+ };
+ 
+ e::buffer::packer
+diff --git a/common/datatype_int64.cc b/common/datatype_int64.cc
+index f87e230..974817e 100644
+--- a/common/datatype_int64.cc
++++ b/common/datatype_int64.cc
+@@ -92,8 +92,10 @@ datatype_int64 :: apply(const e::slice& old_value,
+     for (size_t i = 0; i < funcs_sz; ++i)
+     {
+         const funcall* func = funcs + i;
+-        int64_t arg;
+-        e::unpack64le(func->arg1.data(), &arg);
++        int64_t arg = 0;
++        if (func->arg1.size() == sizeof(int64_t)) {
++            e::unpack64le(func->arg1.data(), &arg);
++        }
+ 
+         switch (func->name)
+         {
+diff --git a/common/ids.cc b/common/ids.cc
+index ff8bee8..57286c6 100644
+--- a/common/ids.cc
++++ b/common/ids.cc
+@@ -56,6 +56,7 @@ CREATE_ID(server)
+ CREATE_ID(space)
+ CREATE_ID(subspace)
+ CREATE_ID(transfer)
++CREATE_ID(migration)
+ CREATE_ID(virtual_server)
+ 
+ END_HYPERDEX_NAMESPACE
+diff --git a/common/ids.h b/common/ids.h
+index 826a720..5d0ad98 100644
+--- a/common/ids.h
++++ b/common/ids.h
+@@ -86,6 +86,7 @@ CREATE_ID(server)
+ CREATE_ID(space)
+ CREATE_ID(subspace)
+ CREATE_ID(transfer)
++CREATE_ID(migration)
+ CREATE_ID(virtual_server)
+ 
+ END_HYPERDEX_NAMESPACE
+diff --git a/common/migration.cc b/common/migration.cc
+new file mode 100644
+index 0000000..8e3ae70
+--- /dev/null
++++ b/common/migration.cc
+@@ -0,0 +1,129 @@
++// Copyright (c) 2012, Cornell University
++// All rights reserved.
++//
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++//
++//     * Redistributions of source code must retain the above copyright notice,
++//       this list of conditions and the following disclaimer.
++//     * Redistributions in binary form must reproduce the above copyright
++//       notice, this list of conditions and the following disclaimer in the
++//       documentation and/or other materials provided with the distribution.
++//     * Neither the name of HyperDex nor the names of its contributors may be
++//       used to endorse or promote products derived from this software without
++//       specific prior written permission.
++//
++// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
++// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++// POSSIBILITY OF SUCH DAMAGE.
++
++// HyperDex
++#include "common/migration.h"
++
++using hyperdex::migration;
++
++migration :: migration()
++    : id()
++    , space_from()
++    , space_to()
++    , outstanding_regions()
++{
++}
++
++migration :: ~migration() throw ()
++{
++}
++
++migration&
++migration :: operator = (const migration& rhs)
++{
++    id = rhs.id;
++    space_from = rhs.space_from;
++    space_to = rhs.space_to;
++    outstanding_regions = rhs.outstanding_regions;
++}
++
++bool migration :: operator < (const migration& rhs) const
++{
++    if (id < rhs.id) { return true; }
++    else if (id > rhs.id) { return false; }
++
++    if (space_from < rhs.space_from) { return true; }
++    else if (space_from > rhs.space_from) { return false; }
++
++    if (space_to < rhs.space_to) { return true; }
++    else if (space_to > rhs.space_to) { return false; }
++
++    return false;
++}
++
++migration :: migration(migration_id  _id,
++                       space_id _space_from,
++                       space_id _space_to)
++    : id(id)
++    , space_from(_space_from)
++    , space_to(_space_to)
++{
++}
++
++std::ostream&
++hyperdex :: operator << (std::ostream& lhs, const migration& rhs)
++{
++    return lhs << "migration(id=" << rhs.id
++               << ", space_from=" << rhs.space_from
++               << ", space_to=" << rhs.space_to;
++}
++
++e::buffer::packer
++hyperdex :: operator << (e::buffer::packer pa, const migration& m)
++{
++    size_t num_outstanding_regions = m.outstanding_regions.size();
++    pa = pa << m.id.get() << m.space_from.get() << m.space_to.get() << num_outstanding_regions;
++    for (size_t i = 0; i < num_outstanding_regions; ++i)
++    {
++        pa = pa << m.outstanding_regions[i];
++    }
++
++    return pa;
++}
++
++e::unpacker
++hyperdex :: operator >> (e::unpacker up, migration& m)
++{
++    uint64_t mid, space_from_id, space_to_id;
++    size_t num_outstanding_regions;
++    up >> mid >> space_from_id >> space_to_id >> num_outstanding_regions;
++    m.id = migration_id(mid);
++    m.space_from = space_id(space_from_id);
++    m.space_to = space_id(space_to_id);
++    m.outstanding_regions.resize(num_outstanding_regions);
++    for (size_t i = 0; !up.error() && i < num_outstanding_regions; ++i)
++    {
++        up = up >> m.outstanding_regions[i];
++    }
++    return up;
++}
++
++size_t
++hyperdex :: pack_size(const migration& m)
++{
++    size_t sz = sizeof(uint64_t)  // migration id
++              + sizeof(uint64_t)  // space_from
++              + sizeof(uint64_t)  // space_to
++              + sizeof(size_t);  // num_outstanding_regions
++
++    for (size_t i = 0; i < m.outstanding_regions.size(); ++i)
++    {
++        sz += pack_size(m.outstanding_regions[i]);
++    }
++
++    return sz;
++}
+diff --git a/common/migration.h b/common/migration.h
+new file mode 100644
+index 0000000..b0c877b
+--- /dev/null
++++ b/common/migration.h
+@@ -0,0 +1,74 @@
++// Copyright (c) 2012, Cornell University
++// All rights reserved.
++//
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++//
++//     * Redistributions of source code must retain the above copyright notice,
++//       this list of conditions and the following disclaimer.
++//     * Redistributions in binary form must reproduce the above copyright
++//       notice, this list of conditions and the following disclaimer in the
++//       documentation and/or other materials provided with the distribution.
++//     * Neither the name of HyperDex nor the names of its contributors may be
++//       used to endorse or promote products derived from this software without
++//       specific prior written permission.
++//
++// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
++// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++// POSSIBILITY OF SUCH DAMAGE.
++
++#ifndef hyperdex_common_migration_h_
++#define hyperdex_common_migration_h_
++
++// HyperDex
++#include "namespace.h"
++#include "common/ids.h"
++
++BEGIN_HYPERDEX_NAMESPACE
++
++class migration
++{
++    public:
++        migration();
++        migration(migration_id id,
++                  space_id space_from,
++                  space_id space_to);
++        ~migration() throw ();
++
++    public:
++        migration& operator = (const migration&);
++        bool operator < (const migration&) const;
++
++    public:
++        migration_id id;
++        space_id space_from;
++        space_id space_to;
++        // This is only used at the coordinator to keep track
++        // of which regions have not been migrated.
++        std::vector<region_id> outstanding_regions;
++};
++
++std::ostream&
++operator << (std::ostream& lhs, const migration& rhs);
++
++e::buffer::packer
++operator << (e::buffer::packer, const migration& t);
++
++e::unpacker
++operator >> (e::unpacker, migration& t);
++
++size_t
++pack_size(const migration&);
++
++
++END_HYPERDEX_NAMESPACE
++
++#endif // hyperdex_common_migration_h_
+\ No newline at end of file
+diff --git a/common/network_msgtype.h b/common/network_msgtype.h
+index b7bbe77..0fa1a10 100755
+--- a/common/network_msgtype.h
++++ b/common/network_msgtype.h
+@@ -50,6 +50,9 @@ enum network_msgtype
+     RESP_SEARCH_ITEM    = 35,
+     RESP_SEARCH_DONE    = 36,
+ 
++    REQ_MIGRATION = 37,
++    RESP_MIGRATION = 38,
++
+     REQ_SORTED_SEARCH   = 40,
+     RESP_SORTED_SEARCH  = 41,
+ 
+diff --git a/coordinator/coordinator.cc b/coordinator/coordinator.cc
+index 7037483..5eaf119 100644
+--- a/coordinator/coordinator.cc
++++ b/coordinator/coordinator.cc
+@@ -49,6 +49,7 @@ using hyperdex::region;
+ using hyperdex::region_intent;
+ using hyperdex::server;
+ using hyperdex::transfer;
++using hyperdex::migration;
+ 
+ // ASSUME:  I'm assuming only one server ever changes state at a time for a
+ //          given transition.  If you violate this assumption, fixup
+@@ -760,6 +761,33 @@ coordinator :: transfer_complete(replicant_state_machine_context* ctx,
+ }
+ 
+ void
++coordinator :: migration_complete(replicant_state_machine_context* ctx,
++                                  uint64_t version,
++                                  const migration_id& mid,
++                                  const region_id& rid)
++{
++    for (size_t m = 0; m < m_migrations.size(); m++)
++    {
++        if (m_migrations[m].id == mid)
++        {
++            for (size_t r = 0; r < m_migrations[m].outstanding_regions.size(); r++)
++            {
++                if (m_migrations[m].outstanding_regions[r] == rid)
++                {
++                    m_migrations[m].outstanding_regions.erase(m_migrations[m].outstanding_regions.begin() + r);
++                    if (m_migrations[m].outstanding_regions.size() == 0) {
++                        del_migration(m_migrations[m].id);
++                    }
++                    // TODO: do I need to call converge_intent?
++                    generate_next_configuration(ctx);  // TODO: is this an expensive operation?
++                    return generate_response(ctx, COORD_SUCCESS);
++                }
++            }
++        }
++    }
++}
++
++void
+ coordinator :: config_get(replicant_state_machine_context* ctx)
+ {
+     assert(m_cluster != 0 && m_version != 0);
+@@ -1638,6 +1666,75 @@ coordinator :: del_transfer(const transfer_id& xid)
+ }
+ 
+ void
++coordinator :: new_migration(replicant_state_machine_context* ctx,
++                             const char* space_from,
++                             const char* space_to)
++{
++    FILE* log = replicant_state_machine_log_stream(ctx);
++
++    // Make sure the spaces exist
++    space_map_t::iterator it;
++    it = m_spaces.find(std::string(space_from));
++    if (it == m_spaces.end())
++    {
++        fprintf(log, "could not migrate from space \"%s\" because it doesn't exist\n", space_from);
++        return generate_response(ctx, COORD_NOT_FOUND);
++    }
++
++    space_id space_from_id = it->second->id;
++
++    it = m_spaces.find(std::string(space_to));
++    if (it == m_spaces.end())
++    {
++        fprintf(log, "could not migrate to space \"%s\" because it doesn't exist\n", space_to);
++        return generate_response(ctx, COORD_NOT_FOUND);
++    }
++
++    space_id space_to_id = it->second->id;
++
++    migration mgt(migration_id(m_counter++), space_from_id, space_to_id);
++
++    space_ptr s = m_spaces[std::string(space_from)];
++    regions_in_space(s, &mgt.outstanding_regions);
++
++    m_migrations.push_back(mgt);
++
++    generate_next_configuration(ctx);
++}
++
++migration*
++coordinator :: get_migration(migration_id mid)
++{
++    for (size_t i = 0; i < m_migrations.size(); ++i)
++    {
++        
++        if (m_migrations[i].id == mid)
++        {
++            return &m_migrations[i];
++        }
++    }
++
++    return NULL;
++}
++
++void
++coordinator :: del_migration(migration_id mid)
++{
++    for (size_t i = 0; i < m_migrations.size(); ++i)
++    {
++        if (m_migrations[i].id == mid)
++        {
++            for (size_t j = i + 1; j < m_migrations.size(); ++j)
++            {
++                m_migrations[j - 1] = m_migrations[j];
++            }
++            m_migrations.pop_back();
++            break;
++        }
++    }
++}
++
++void
+ coordinator :: check_ack_condition(replicant_state_machine_context* ctx)
+ {
+     if (m_config_ack_through < m_config_ack_barrier.min_version())
+@@ -1712,12 +1809,18 @@ coordinator :: generate_cached_configuration(replicant_state_machine_context*)
+         sz += pack_size(m_transfers[i]);
+     }
+ 
++    for (size_t i = 0; i < m_migrations.size(); ++i)
++    {
++        sz += pack_size(m_migrations[i]);
++    }
++
+     std::auto_ptr<e::buffer> new_config(e::buffer::create(sz));
+     e::buffer::packer pa = new_config->pack_at(0);
+     pa = pa << m_cluster << m_version << m_flags
+             << uint64_t(m_servers.size())
+             << uint64_t(m_spaces.size())
+-            << uint64_t(m_transfers.size());
++            << uint64_t(m_transfers.size())
++            << uint64_t(m_migrations.size());
+ 
+     for (size_t i = 0; i < m_servers.size(); ++i)
+     {
+@@ -1735,6 +1838,11 @@ coordinator :: generate_cached_configuration(replicant_state_machine_context*)
+         pa = pa << m_transfers[i];
+     }
+ 
++    for (size_t i = 0; i < m_migrations.size(); ++i)
++    {
++        pa = pa << m_migrations[i];
++    }
++
+     m_latest_config = new_config;
+ }
+ 
+diff --git a/coordinator/coordinator.h b/coordinator/coordinator.h
+index 56efbec..6b636e3 100644
+--- a/coordinator/coordinator.h
++++ b/coordinator/coordinator.h
+@@ -44,6 +44,7 @@
+ #include "common/ids.h"
+ #include "common/server.h"
+ #include "common/transfer.h"
++#include "common/migration.h"
+ #include "coordinator/offline_server.h"
+ #include "coordinator/region_intent.h"
+ #include "coordinator/replica_sets.h"
+@@ -103,6 +104,16 @@ class coordinator
+                                uint64_t version,
+                                const transfer_id& xid);
+ 
++    // migrations management
++    public:
++        void migration_complete(replicant_state_machine_context* ctx,
++                                uint64_t version,
++                                const migration_id& mid,
++                                const region_id& rid);
++        void new_migration(replicant_state_machine_context* ctx,
++                           const char* space_from,
++                           const char* space_to);
++
+     // config management
+     public:
+         void config_get(replicant_state_machine_context* ctx);
+@@ -173,6 +184,9 @@ class coordinator
+         transfer* get_transfer(const region_id& rid);
+         transfer* get_transfer(const transfer_id& xid);
+         void del_transfer(const transfer_id& xid);
++        // migrations
++        migration* get_migration(migration_id mid);
++        void del_migration(migration_id mid);
+         // configuration
+         void check_ack_condition(replicant_state_machine_context* ctx);
+         void check_stable_condition(replicant_state_machine_context* ctx);
+@@ -203,6 +217,8 @@ class coordinator
+         std::vector<offline_server> m_offline;
+         // transfers
+         std::vector<transfer> m_transfers;
++        // migrations
++        std::vector<migration> m_migrations;
+         // barriers
+         uint64_t m_config_ack_through;
+         server_barrier m_config_ack_barrier;
+diff --git a/coordinator/symtable.c b/coordinator/symtable.c
+index 4e55c32..3e21019 100644
+--- a/coordinator/symtable.c
++++ b/coordinator/symtable.c
+@@ -56,10 +56,12 @@ struct replicant_state_machine HYPERDEX_API rsm = {
+      {"space_rm", hyperdex_coordinator_space_rm},
+      {"transfer_go_live", hyperdex_coordinator_transfer_go_live},
+      {"transfer_complete", hyperdex_coordinator_transfer_complete},
++     {"migration_complete", hyperdex_coordinator_migration_complete},
+      {"checkpoint_stable", hyperdex_coordinator_checkpoint_stable},
+      {"alarm", hyperdex_coordinator_alarm},
+      {"read_only", hyperdex_coordinator_read_only},
+      {"fault_tolerance", hyperdex_coordinator_fault_tolerance},
++     {"migrate", hyperdex_coordinator_migrate_data},
+      {"debug_dump", hyperdex_coordinator_debug_dump},
+      {"init", hyperdex_coordinator_init},
+      {NULL, NULL}}
+diff --git a/coordinator/transitions.cc b/coordinator/transitions.cc
+index 34b4530..2c967ab 100644
+--- a/coordinator/transitions.cc
++++ b/coordinator/transitions.cc
+@@ -194,6 +194,36 @@ hyperdex_coordinator_fault_tolerance(struct replicant_state_machine_context* ctx
+ }
+ 
+ void
++hyperdex_coordinator_migrate_data(struct replicant_state_machine_context* ctx,
++                                  void *obj, const char* data, size_t data_sz)
++{
++    PROTECT_UNINITIALIZED;
++    FILE* log = replicant_state_machine_log_stream(ctx);
++    coordinator* c = static_cast<coordinator*>(obj);
++
++    char* pos = const_cast<char*>(data);
++
++    uint64_t space_from_sz;
++    e::unpacker up_one(pos, sizeof(uint64_t));
++    up_one >> space_from_sz;
++    pos += sizeof(uint64_t);
++    char space_from[space_from_sz + 1];
++    memcpy(space_from, pos, space_from_sz);
++    pos += space_from_sz;
++    space_from[space_from_sz] = '\0';
++
++    uint64_t space_to_sz;
++    e::unpacker up_two(pos, sizeof(uint64_t));
++    up_two >> space_to_sz;
++    pos += sizeof(uint64_t);
++    char space_to[space_to_sz + 1];
++    memcpy(space_to, pos, space_to_sz);
++    space_to[space_to_sz] = '\0';
++
++    c->new_migration(ctx, space_from, space_to);
++}
++
++void
+ hyperdex_coordinator_config_get(struct replicant_state_machine_context* ctx,
+                                 void* obj, const char*, size_t)
+ {
+@@ -418,6 +448,22 @@ hyperdex_coordinator_transfer_complete(struct replicant_state_machine_context* c
+ }
+ 
+ void
++hyperdex_coordinator_migration_complete(struct replicant_state_machine_context* ctx,
++                                        void* obj, const char* data, size_t data_sz)
++{
++    PROTECT_UNINITIALIZED;
++    FILE* log = replicant_state_machine_log_stream(ctx);
++    coordinator* c = static_cast<coordinator*>(obj);
++    migration_id mid;
++    region_id rid;
++    uint64_t version;
++    e::unpacker up(data, data_sz);
++    up = up >> mid >> rid >> version;
++    CHECK_UNPACK(migration_complete);
++    c->migration_complete(ctx, version, mid, rid);
++}
++
++void
+ hyperdex_coordinator_checkpoint_stable(struct replicant_state_machine_context* ctx,
+                                        void* obj, const char* data, size_t data_sz)
+ {
+diff --git a/coordinator/transitions.h b/coordinator/transitions.h
+index dfb6060..a722a97 100644
+--- a/coordinator/transitions.h
++++ b/coordinator/transitions.h
+@@ -59,6 +59,7 @@ TRANSITION(init);
+ 
+ TRANSITION(read_only);
+ TRANSITION(fault_tolerance);
++TRANSITION(migrate_data);
+ 
+ TRANSITION(config_get);
+ TRANSITION(config_ack);
+@@ -79,6 +80,8 @@ TRANSITION(space_rm);
+ TRANSITION(transfer_go_live);
+ TRANSITION(transfer_complete);
+ 
++TRANSITION(migration_complete);
++
+ TRANSITION(checkpoint_stable);
+ 
+ TRANSITION(alarm);
+diff --git a/daemon/coordinator_link_wrapper.cc b/daemon/coordinator_link_wrapper.cc
+index 618ea47..ef5f10a 100644
+--- a/daemon/coordinator_link_wrapper.cc
++++ b/daemon/coordinator_link_wrapper.cc
+@@ -369,12 +369,27 @@ coordinator_link_wrapper :: transfer_complete(const transfer_id& id)
+     e::pack64be(id.get(), buf);
+     e::pack64be(version, buf + sizeof(uint64_t));
+     e::intrusive_ptr<coord_rpc> rpc = new coord_rpc();
+-    rpc->msg << "transver complete id=" << id;
++    rpc->msg << "transfer complete id=" << id;
+     make_rpc("transfer_complete", buf, 2 * sizeof(uint64_t), rpc);
+     LOG(INFO) << "requesting that " << id << " complete";
+ }
+ 
+ void
++coordinator_link_wrapper :: migration_complete(const migration_id& mid,
++                                               const region_id& rid)
++{
++    uint64_t version = m_daemon->m_config.version();
++    char buf[3 * sizeof(uint64_t)];
++    e::pack64be(mid.get(), buf);
++    e::pack64be(rid.get(), buf + sizeof(uint64_t));
++    e::pack64be(version, buf + 2 * sizeof(uint64_t));
++    e::intrusive_ptr<coord_rpc> rpc = new coord_rpc();
++    rpc->msg << "migration complete id=" << mid << " " << rid;
++    make_rpc("migration_complete", buf, 3 * sizeof(uint64_t), rpc);
++    // LOG(INFO) << "requesting that " << mid << " " << rid << " complete";
++}
++
++void
+ coordinator_link_wrapper :: report_tcp_disconnect(const server_id& id)
+ {
+     uint64_t version = m_daemon->m_config.version();
+diff --git a/daemon/coordinator_link_wrapper.h b/daemon/coordinator_link_wrapper.h
+index 2fdb1c9..b2fe243 100644
+--- a/daemon/coordinator_link_wrapper.h
++++ b/daemon/coordinator_link_wrapper.h
+@@ -69,6 +69,8 @@ class coordinator_link_wrapper
+     public:
+         void transfer_go_live(const transfer_id& id);
+         void transfer_complete(const transfer_id& id);
++        void migration_complete(const migration_id& mid,
++                                const region_id& rid);
+         void report_tcp_disconnect(const server_id& id);
+         void config_ack(uint64_t version);
+         void config_stable(uint64_t version);
+diff --git a/daemon/daemon.cc b/daemon/daemon.cc
+index 695a111..1902055 100644
+--- a/daemon/daemon.cc
++++ b/daemon/daemon.cc
+@@ -105,10 +105,12 @@ daemon :: daemon()
+     , m_comm(this)
+     , m_repl(this)
+     , m_stm(this)
++    , m_mm(this)
+     , m_sm(this)
+     , m_config()
+     , m_perf_req_get()
+     , m_perf_req_atomic()
++    , m_perf_req_migration()
+     , m_perf_req_search_start()
+     , m_perf_req_search_next()
+     , m_perf_req_search_stop()
+@@ -128,6 +130,7 @@ daemon :: daemon()
+     , m_perf_xfer_ack()
+     , m_perf_backup()
+     , m_perf_perf_counters()
++    , m_perf_resp_migration()
+     , m_block_stat_path()
+     , m_stat_collector(std::tr1::bind(&daemon::collect_stats, this))
+     , m_protect_stats()
+@@ -324,6 +327,7 @@ daemon :: run(bool daemonize,
+     m_comm.setup(bind_to, threads);
+     m_repl.setup();
+     m_stm.setup();
++    m_mm.setup();
+     m_sm.setup();
+ 
+     for (size_t i = 0; i < threads; ++i)
+@@ -429,6 +433,7 @@ daemon :: run(bool daemonize,
+                   << "; pausing all activity while we reconfigure";
+         m_sm.pause();
+         m_stm.pause();
++        m_mm.pause();
+         m_repl.pause();
+         m_data.pause();
+         m_comm.pause();
+@@ -436,12 +441,14 @@ daemon :: run(bool daemonize,
+         m_data.reconfigure(old_config, new_config, m_us);
+         m_repl.reconfigure(old_config, new_config, m_us);
+         m_stm.reconfigure(old_config, new_config, m_us);
++        m_mm.reconfigure(old_config, new_config, m_us);
+         m_sm.reconfigure(old_config, new_config, m_us);
+         m_config = new_config;
+         m_comm.unpause();
+         m_data.unpause();
+         m_repl.unpause();
+         m_stm.unpause();
++        m_mm.unpause();
+         m_sm.unpause();
+         LOG(INFO) << "reconfiguration complete; resuming normal operation";
+ 
+@@ -479,6 +486,7 @@ daemon :: run(bool daemonize,
+ 
+     m_sm.teardown();
+     m_stm.teardown();
++    m_mm.teardown();
+     m_repl.teardown();
+     m_comm.teardown();
+     m_data.teardown();
+@@ -546,6 +554,14 @@ daemon :: loop(size_t thread)
+                 process_req_atomic(from, vfrom, vto, msg, up);
+                 m_perf_req_atomic.tap();
+                 break;
++            case REQ_MIGRATION:
++                process_req_migration(from, vfrom, vto, msg, up);
++                m_perf_req_migration.tap();
++                break;
++            case RESP_MIGRATION:
++                process_resp_migration(from, vfrom, vto, msg, up);
++                m_perf_resp_migration.tap();
++                break;
+             case REQ_SEARCH_START:
+                 process_req_search_start(from, vfrom, vto, msg, up);
+                 m_perf_req_search_start.tap();
+@@ -617,6 +633,7 @@ daemon :: loop(size_t thread)
+             case BACKUP:
+                 process_backup(from, vfrom, vto, msg, up);
+                 m_perf_backup.tap();
++                break;
+             case PERF_COUNTERS:
+                 process_perf_counters(from, vfrom, vto, msg, up);
+                 m_perf_perf_counters.tap();
+@@ -715,6 +732,45 @@ daemon :: process_req_atomic(server_id from,
+     m_repl.client_atomic(from, vto, nonce, erase, fail_if_not_found, fail_if_found, key, checks, funcs);
+ }
+ 
++void daemon :: process_req_migration(server_id from,
++                                     virtual_server_id vfrom,
++                                     virtual_server_id vto,
++                                     std::auto_ptr<e::buffer> msg,
++                                     e::unpacker up)
++{
++    uint8_t flags;
++    e::slice key;
++    std::vector<attribute_check> checks;
++    std::vector<funcall> funcs;
++    region_id rid;
++    uint64_t seq_no;
++    up = up >> key >> flags >> checks >> funcs >> rid >> seq_no;
++
++    if (up.error())
++    {
++        LOG(WARNING) << "unpack of REQ_MIGRATION failed; here's some hex:  " << msg->hex();
++        return;
++    }
++
++    bool erase = !(flags & 128);
++    bool fail_if_not_found = flags & 1;
++    bool fail_if_found = flags & 2;
++    m_repl.request_atomic(from, vto, 0, erase, fail_if_not_found, fail_if_found, key, checks, funcs, true, rid, seq_no);
++}
++
++void daemon :: process_resp_migration(server_id from,
++                                      virtual_server_id vfrom,
++                                      virtual_server_id vto,
++                                      std::auto_ptr<e::buffer> msg,
++                                      e::unpacker up)
++{
++    region_id rid;
++    uint64_t seq_no;
++    uint16_t result;
++    up = up >> rid >> seq_no >> result;
++    m_mm.migration_ack(from, vto, rid, seq_no, result);
++}
++
+ void
+ daemon :: process_req_search_start(server_id from,
+                                    virtual_server_id,
+diff --git a/daemon/daemon.h b/daemon/daemon.h
+index a5dcfae..0e63c6f 100644
+--- a/daemon/daemon.h
++++ b/daemon/daemon.h
+@@ -51,6 +51,7 @@
+ #include "daemon/replication_manager.h"
+ #include "daemon/search_manager.h"
+ #include "daemon/state_transfer_manager.h"
++#include "daemon/migration_manager.h"
+ 
+ BEGIN_HYPERDEX_NAMESPACE
+ 
+@@ -74,6 +75,8 @@ class daemon
+         void loop(size_t thread);
+         void process_req_get(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+         void process_req_atomic(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
++        void process_req_migration(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
++        void process_resp_migration(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+         void process_req_search_start(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+         void process_req_search_next(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+         void process_req_search_stop(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+@@ -108,6 +111,7 @@ class daemon
+         friend class replication_manager;
+         friend class search_manager;
+         friend class state_transfer_manager;
++        friend class migration_manager;
+ 
+     private:
+         server_id m_us;
+@@ -119,11 +123,13 @@ class daemon
+         communication m_comm;
+         replication_manager m_repl;
+         state_transfer_manager m_stm;
++        migration_manager m_mm;
+         search_manager m_sm;
+         configuration m_config;
+         // counters
+         performance_counter m_perf_req_get;
+         performance_counter m_perf_req_atomic;
++        performance_counter m_perf_req_migration;
+         performance_counter m_perf_req_search_start;
+         performance_counter m_perf_req_search_next;
+         performance_counter m_perf_req_search_stop;
+@@ -143,6 +149,7 @@ class daemon
+         performance_counter m_perf_xfer_ack;
+         performance_counter m_perf_backup;
+         performance_counter m_perf_perf_counters;
++        performance_counter m_perf_resp_migration;
+         // iostat-like stats
+         std::string m_block_stat_path;
+         // historical data
+diff --git a/daemon/datalayer_iterator.h b/daemon/datalayer_iterator.h
+index 0596934..d8db075 100644
+--- a/daemon/datalayer_iterator.h
++++ b/daemon/datalayer_iterator.h
+@@ -57,6 +57,7 @@ class datalayer::iterator
+ 
+     protected:
+         friend class e::intrusive_ptr<iterator>;
++        friend class std::auto_ptr<iterator>;
+         virtual ~iterator() throw ();
+         void inc() { ++m_ref; }
+         void dec() { --m_ref; if (m_ref == 0) delete this; }
+@@ -64,6 +65,7 @@ class datalayer::iterator
+ 
+     private:
+         leveldb_snapshot_ptr m_snap;
++
+ };
+ 
+ class datalayer::replay_iterator
+diff --git a/daemon/migration_manager.cc b/daemon/migration_manager.cc
+new file mode 100644
+index 0000000..4a9b649
+--- /dev/null
++++ b/daemon/migration_manager.cc
+@@ -0,0 +1,447 @@
++// Copyright (c) 2012, Cornell University
++// All rights reserved.
++//
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++//
++//     * Redistributions of source code must retain the above copyright notice,
++//       this list of conditions and the following disclaimer.
++//     * Redistributions in binary form must reproduce the above copyright
++//       notice, this list of conditions and the following disclaimer in the
++//       documentation and/or other materials provided with the distribution.
++//     * Neither the name of HyperDex nor the names of its contributors may be
++//       used to endorse or promote products derived from this software without
++//       specific prior written permission.
++//
++// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
++// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++// POSSIBILITY OF SUCH DAMAGE.
++
++// POSIX
++#include <signal.h>
++
++// STL
++#include <algorithm>
++
++// Google Log
++#include <glog/logging.h>
++
++// HyperDex
++#include "common/serialization.h"
++#include "daemon/daemon.h"
++#include "daemon/datalayer_iterator.h"
++#include "daemon/migration_manager.h"
++#include "daemon/migration_manager_pending.h"
++#include "daemon/migration_out_state.h"
++#include "daemon/leveldb.h"
++
++using hyperdex::reconfigure_returncode;
++using hyperdex::migration_manager;
++using hyperdex::migration_id;
++using hyperdex::region_id;
++
++migration_manager :: migration_manager(daemon* d)
++    : m_daemon(d)
++    , m_migrations_out()
++    , m_kickstarter(std::tr1::bind(&migration_manager::kickstarter, this))
++    , m_block_kickstarter()
++    , m_wakeup_kickstarter(&m_block_kickstarter)
++    , m_wakeup_reconfigurer(&m_block_kickstarter)
++    , m_need_kickstart(false)
++    , m_shutdown(true)
++    , m_need_pause(false)
++    , m_paused(false)
++{
++}
++
++migration_manager :: ~migration_manager() throw ()
++{
++    shutdown();
++}
++
++bool
++migration_manager :: setup()
++{
++    po6::threads::mutex::hold hold(&m_block_kickstarter);
++    m_kickstarter.start();
++    m_shutdown = false;
++    return true;
++}
++
++void
++migration_manager :: teardown()
++{
++    shutdown();
++    m_migrations_out.clear();
++}
++
++void
++migration_manager :: pause()
++{
++    po6::threads::mutex::hold hold(&m_block_kickstarter);
++    assert(!m_need_pause);
++    m_need_pause = true;
++}
++
++void
++migration_manager :: unpause()
++{
++    po6::threads::mutex::hold hold(&m_block_kickstarter);
++    assert(m_need_pause);
++    m_wakeup_kickstarter.broadcast();
++    m_need_pause = false;
++    m_need_kickstart = true;
++}
++
++void
++migration_manager :: reconfigure(const configuration&,
++                                 const configuration& new_config,
++                                 const server_id& sid)
++{
++    LOG(INFO) << "reconfiguring migration_manager";
++    {
++        po6::threads::mutex::hold hold(&m_block_kickstarter);
++        assert(m_need_pause);
++
++        while (!m_paused)
++        {
++            m_wakeup_reconfigurer.wait();
++        }
++    }
++
++    std::vector<migration> migrations;
++    new_config.migrations_out(sid, &migrations);
++    std::sort(migrations.begin(), migrations.end());
++    setup_migration_state(migrations, &m_migrations_out);
++}
++
++void
++migration_manager :: setup_migration_state(const std::vector<hyperdex::migration> migrations,
++                      std::vector<e::intrusive_ptr<migration_out_state> >* migration_states)
++{
++    std::vector<e::intrusive_ptr<migration_out_state> > tmp;
++    // In reality, tmp probably will store way more elements than
++    // migrations, since one migration will likely correspond to
++    // many migration out states.
++    tmp.reserve(migrations.size());
++    size_t m_idx = 0;
++    size_t ms_idx = 0;
++
++    std::vector<region_id> regions;
++    m_daemon->m_config.mapped_regions(m_daemon->m_us, &regions);
++
++    leveldb_snapshot_ptr snapshot_ptr = m_daemon->m_data.make_snapshot();
++
++    while (m_idx < migrations.size() && ms_idx < migration_states->size())
++    {
++        if (migrations[m_idx].id == (*migration_states)[ms_idx]->mid)
++        {
++            tmp.push_back((*migration_states)[ms_idx]);
++            // TODO: commenting out the following line seems to fix the
++            // bug, but check the correctness of this method again.
++            // ++m_idx;
++            ++ms_idx;
++        }
++        else if (migrations[m_idx].id < (*migration_states)[ms_idx]->mid)
++        {
++            LOG(INFO) << "initiating migration out state " << migrations[m_idx];
++
++            std::vector<hyperdex::region_id>::iterator r_iter;
++            for (r_iter = regions.begin(); r_iter != regions.end(); r_iter++) {
++                region_id rid = (*r_iter);
++                if (m_daemon->m_config.space_of(rid) == migrations[m_idx].space_from) {
++                    datalayer::returncode err;
++                    std::auto_ptr<datalayer::iterator> iter;
++                    iter.reset(m_daemon->m_data.make_region_iterator(snapshot_ptr, rid, &err));
++                    if (err != datalayer::SUCCESS) {
++                        LOG(ERROR) << "failed to create region iterator";
++                        continue;  // TODO: should we continue?
++                    }
++                    e::intrusive_ptr<migration_out_state> ptr(
++                        new migration_out_state(migrations[m_idx].id,
++                                                migrations[m_idx].space_to,
++                                                rid,
++                                                iter));
++                    tmp.push_back(ptr);
++                }
++            }
++            ++m_idx;
++        }
++        else if (migrations[m_idx].id > (*migration_states)[ms_idx]->mid)
++        {
++            LOG(INFO) << "ending migration out state " << (*migration_states)[ms_idx]->mid;
++            ++ms_idx;
++        }
++    }
++
++    while (m_idx < migrations.size())
++    {
++        LOG(INFO) << "initiating migration out state " << migrations[m_idx];
++
++        std::vector<hyperdex::region_id>::iterator r_iter;
++        for (r_iter = regions.begin(); r_iter != regions.end(); r_iter++) {
++            region_id rid = (*r_iter);
++            if (m_daemon->m_config.space_of(rid) == migrations[m_idx].space_from) {
++                datalayer::returncode err;
++                std::auto_ptr<datalayer::iterator> iter;
++                iter.reset(m_daemon->m_data.make_region_iterator(snapshot_ptr, rid, &err));
++                if (err != datalayer::SUCCESS) {
++                    LOG(ERROR) << "failed to create region iterator";
++                    continue;  // TODO: should we continue?
++                }
++                e::intrusive_ptr<migration_out_state> ptr(
++                    new migration_out_state(migrations[m_idx].id,
++                                            migrations[m_idx].space_to,
++                                            rid,
++                                            iter));
++                tmp.push_back(ptr);
++            }
++        }
++        ++m_idx;
++    }
++    
++    while (ms_idx < migration_states->size())
++    {
++        ++ms_idx;
++    }
++
++    tmp.swap(*migration_states);
++}
++
++void
++migration_manager :: migrate_more_state(migration_out_state* mos)
++{
++    assert(mos->iter.get());
++
++    while (mos->window.size() < mos->window_sz && mos->iter->valid())
++    {
++        e::intrusive_ptr<pending> op(new pending());
++        op->rid = mos->rid;
++        op->seq_no = mos->next_seq_no;
++        ++mos->next_seq_no;
++
++        // TODO: can an object has no value?
++        if (m_daemon->m_data.get_from_iterator(mos->rid, mos->iter.get(), &op->key, &op->value, &op->version, &op->vref) != datalayer::SUCCESS)
++        {
++            LOG(ERROR) << "error unpacking value during migration";
++            break;
++        }
++
++        mos->window.push_back(op);
++        send_object(mos, op.get());
++        mos->iter->next();
++    }
++
++    if (mos->window.empty()) {
++        m_daemon->m_coord.migration_complete(mos->mid, mos->rid);
++    }
++}
++
++void
++migration_manager :: retransmit(migration_out_state* mos)
++{
++    for (std::list<e::intrusive_ptr<pending> >::iterator it = mos->window.begin();
++            it != mos->window.end(); ++it)
++    {
++        send_object(mos, it->get());
++    }
++}
++
++void
++migration_manager :: send_object(migration_out_state* mos, pending* op)
++{
++    virtual_server_id to = m_daemon->m_config.point_leader(mos->sid, op->key);
++
++    const schema* sc = m_daemon->m_config.get_schema(op->rid);
++    if (sc == NULL) {
++        // TODO: this happens occationally.  Not sure why.  Possibly because the
++        // related space has been destroyed?
++        LOG(INFO) << "trying to send an object whose region no longer exists.";
++        return;
++    }
++    std::vector<funcall> funcs;
++    std::vector<attribute_check> checks;
++    funcs.reserve(op->value.size());
++
++    for (size_t j = 1; j <= op->value.size(); ++j)
++    {
++        hyperdatatype datatype = sc->attrs[j].type;
++
++        funcall o;
++        o.attr = j;
++        o.name = FUNC_SET;
++        o.arg1 = op->value[j - 1];
++        o.arg1_datatype = datatype;
++        funcs.push_back(o);
++    }
++
++    size_t sz = HYPERDEX_HEADER_SIZE_SV
++              + pack_size(op->key)
++              + sizeof(uint8_t)
++              + pack_size(checks)
++              + pack_size(funcs)
++              + sizeof(region_id)
++              + sizeof(uint64_t); // seq_no
++    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
++    uint8_t flags = (0 | 0 | 128);
++    msg->pack_at(HYPERDEX_HEADER_SIZE_SV)
++        << op->key << flags << checks << funcs << mos->rid << op->seq_no;
++    m_daemon->m_comm.send(to, REQ_MIGRATION, msg);
++    // TODO: do we need this here? m_daemon->m_comm.wake_one();
++}
++
++void
++migration_manager :: migration_ack(const server_id& from,
++                                   const virtual_server_id& to,
++                                   region_id rid,
++                                   uint64_t seq_no,
++                                   uint16_t result)
++{
++    migration_out_state* mos = get_mos(rid);
++
++    if (!mos)
++    {
++        // TODO: it seems that sometimes we receive ACK for regions
++        // that have already been completely migrated.  Why is that?
++        // Does that indicate a bug?
++        // LOG(INFO) << "dropping RESP_MIGRATION for " << rid << " which we don't know about.";
++        return;
++    }
++
++    po6::threads::mutex::hold hold(&mos->mtx);
++
++    // TODO: do we need to check if the ACK comes from the right server?
++    // The state transfer manager does that.
++
++    std::list<e::intrusive_ptr<pending> >::iterator it;
++
++    for (it = mos->window.begin(); it != mos->window.end(); ++it)
++    {
++        if ((*it)->seq_no == seq_no)
++        {
++            break;
++        }
++    }
++
++    if (it != mos->window.end())
++    {
++        (*it)->acked = true;
++
++        if (mos->window_sz < 1024)
++        {
++            ++mos->window_sz;
++        }
++    }
++
++    while (!mos->window.empty() && (*mos->window.begin())->acked)
++    {
++        mos->window.pop_front();
++    }
++
++    migrate_more_state(mos);
++}
++
++migration_manager::migration_out_state*
++migration_manager :: get_mos(region_id rid)
++{
++    for (size_t i = 0; i < m_migrations_out.size(); ++i)
++    {
++        if (m_migrations_out[i]->rid == rid)
++        {
++            return m_migrations_out[i].get();
++        }
++    }
++
++    return NULL;
++}
++
++void
++migration_manager :: kickstarter()
++{
++    LOG(INFO) << "migration thread started";
++    sigset_t ss;
++
++    if (sigfillset(&ss) < 0)
++    {
++        PLOG(ERROR) << "sigfillset";
++        return;
++    }
++
++    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
++    {
++        PLOG(ERROR) << "could not block signals";
++        return;
++    }
++
++    while (true)
++    {
++        {
++            po6::threads::mutex::hold hold(&m_block_kickstarter);
++
++            while ((!m_need_kickstart && !m_shutdown) || m_need_pause)
++            {
++                m_paused = true;
++
++                if (m_need_pause)
++                {
++                    m_wakeup_reconfigurer.signal();
++                }
++
++                m_wakeup_kickstarter.wait();
++                m_paused = false;
++            }
++
++            if (m_shutdown)
++            {
++                break;
++            }
++
++            m_need_kickstart = false;
++        }
++
++        size_t idx = 0;
++
++        while (true)
++        {
++            po6::threads::mutex::hold hold(&m_block_kickstarter);
++
++            if (idx >= m_migrations_out.size())
++            {
++                break;
++            }
++
++            po6::threads::mutex::hold hold2(&m_migrations_out[idx]->mtx);
++            retransmit(m_migrations_out[idx].get());
++            migrate_more_state(m_migrations_out[idx].get());
++            ++idx;
++        }
++    }
++
++    LOG(INFO) << "migration thread shutting down";
++}
++
++void
++migration_manager :: shutdown()
++{
++    bool is_shutdown;
++
++    {
++        po6::threads::mutex::hold hold(&m_block_kickstarter);
++        m_wakeup_kickstarter.broadcast();
++        is_shutdown = m_shutdown;
++        m_shutdown = true;
++    }
++
++    if (!is_shutdown)
++    {
++        m_kickstarter.join();
++    }
++}
+diff --git a/daemon/migration_manager.h b/daemon/migration_manager.h
+new file mode 100644
+index 0000000..f5790b9
+--- /dev/null
++++ b/daemon/migration_manager.h
+@@ -0,0 +1,105 @@
++// Copyright (c) 2012, Cornell University
++// All rights reserved.
++//
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++//
++//     * Redistributions of source code must retain the above copyright notice,
++//       this list of conditions and the following disclaimer.
++//     * Redistributions in binary form must reproduce the above copyright
++//       notice, this list of conditions and the following disclaimer in the
++//       documentation and/or other materials provided with the distribution.
++//     * Neither the name of HyperDex nor the names of its contributors may be
++//       used to endorse or promote products derived from this software without
++//       specific prior written permission.
++//
++// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
++// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++// POSSIBILITY OF SUCH DAMAGE.
++
++#ifndef hyperdex_daemon_migration_manager_h_
++#define hyperdex_daemon_migration_manager_h_
++
++// STL
++#include <memory>
++
++// po6
++#include <po6/threads/cond.h>
++#include <po6/threads/mutex.h>
++#include <po6/threads/thread.h>
++
++// e
++#include <e/intrusive_ptr.h>
++
++// HyperDex
++#include "namespace.h"
++#include "common/configuration.h"
++#include "daemon/reconfigure_returncode.h"
++
++BEGIN_HYPERDEX_NAMESPACE
++class daemon;
++
++class migration_manager
++{
++    public:
++        migration_manager(daemon*);
++        ~migration_manager() throw ();
++
++    public:
++        bool setup();
++        void teardown();
++        void pause();
++        void unpause();
++        void reconfigure(const configuration& old_config,
++                         const configuration& new_config,
++                         const server_id&);
++
++        void migration_ack(const server_id& from,
++                           const virtual_server_id& to,
++                           region_id rid,
++                           uint64_t seq_no,
++                           uint16_t result);
++
++    private:
++        class pending;
++        class migration_out_state;
++
++    private:
++        void setup_migration_state(const std::vector<hyperdex::migration> migrations,
++                                   std::vector<e::intrusive_ptr<migration_out_state> >* migration_states);
++        void migrate_more_state(migration_out_state* mos);
++        void retransmit(migration_out_state* mos);
++        void send_object(migration_out_state* mos, pending* op);
++        void kickstarter();
++        void shutdown();
++
++        migration_out_state* get_mos(region_id rid);
++
++    private:
++        migration_manager(const migration_manager&);
++        migration_manager& operator = (const migration_manager&);
++
++    private:
++        daemon* m_daemon;
++        std::vector<e::intrusive_ptr<migration_out_state> > m_migrations_out;
++        po6::threads::thread m_kickstarter;
++        po6::threads::mutex m_block_kickstarter;
++        po6::threads::cond m_wakeup_kickstarter;
++        po6::threads::cond m_wakeup_reconfigurer;
++        bool m_need_kickstart;
++        bool m_shutdown;
++        bool m_need_pause;
++        bool m_paused;
++};
++
++END_HYPERDEX_NAMESPACE
++
++#endif // hyperdex_daemon_migration_manager_h_
+\ No newline at end of file
+diff --git a/daemon/migration_manager_pending.cc b/daemon/migration_manager_pending.cc
+new file mode 100644
+index 0000000..fb55773
+--- /dev/null
++++ b/daemon/migration_manager_pending.cc
+@@ -0,0 +1,48 @@
++// Copyright (c) 2012, Cornell University
++// All rights reserved.
++//
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++//
++//     * Redistributions of source code must retain the above copyright notice,
++//       this list of conditions and the following disclaimer.
++//     * Redistributions in binary form must reproduce the above copyright
++//       notice, this list of conditions and the following disclaimer in the
++//       documentation and/or other materials provided with the distribution.
++//     * Neither the name of HyperDex nor the names of its contributors may be
++//       used to endorse or promote products derived from this software without
++//       specific prior written permission.
++//
++// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
++// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++// POSSIBILITY OF SUCH DAMAGE.
++
++// HyperDex
++#include "daemon/migration_manager_pending.h"
++
++using hyperdex::migration_manager;
++
++migration_manager :: migration_manager :: pending :: pending()
++    : seq_no(0)
++    , rid(0)
++    , version(0)
++    , key()
++    , value()
++    , acked(false)
++    , msg()
++    , vref()
++    , m_ref(0)
++{
++}
++
++migration_manager :: migration_manager :: pending :: ~pending() throw ()
++{
++}
+diff --git a/daemon/migration_manager_pending.h b/daemon/migration_manager_pending.h
+new file mode 100644
+index 0000000..3539bf6
+--- /dev/null
++++ b/daemon/migration_manager_pending.h
+@@ -0,0 +1,62 @@
++// Copyright (c) 2012, Cornell University
++// All rights reserved.
++//
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++//
++//     * Redistributions of source code must retain the above copyright notice,
++//       this list of conditions and the following disclaimer.
++//     * Redistributions in binary form must reproduce the above copyright
++//       notice, this list of conditions and the following disclaimer in the
++//       documentation and/or other materials provided with the distribution.
++//     * Neither the name of HyperDex nor the names of its contributors may be
++//       used to endorse or promote products derived from this software without
++//       specific prior written permission.
++//
++// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
++// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++// POSSIBILITY OF SUCH DAMAGE.
++
++#ifndef hyperdex_daemon_migration_manager_pending_h_
++#define hyperdex_daemon_migration_manager_pending_h_
++
++// hyperdex
++#include "daemon/datalayer.h"
++#include "daemon/migration_manager.h"
++
++class hyperdex::migration_manager::pending
++{
++    public:
++        pending();
++        ~pending() throw ();
++
++    public:
++        uint64_t seq_no;
++        region_id rid;
++        uint64_t version;
++        e::slice key;
++        std::vector<e::slice> value;
++        bool acked;
++        std::auto_ptr<e::buffer> msg;
++        datalayer::reference vref;
++
++    private:
++        friend class e::intrusive_ptr<pending>;
++
++    private:
++        void inc() { ++m_ref; }
++        void dec() { --m_ref; if (m_ref == 0) delete this; }
++
++    private:
++        size_t m_ref;
++};
++
++#endif // hyperdex_daemon_migration_manager_pending_h_
+diff --git a/daemon/migration_out_state.cc b/daemon/migration_out_state.cc
+new file mode 100644
+index 0000000..f823ad6
+--- /dev/null
++++ b/daemon/migration_out_state.cc
+@@ -0,0 +1,64 @@
++// Copyright (c) 2012, Cornell University
++// All rights reserved.
++//
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++//
++//     * Redistributions of source code must retain the above copyright notice,
++//       this list of conditions and the following disclaimer.
++//     * Redistributions in binary form must reproduce the above copyright
++//       notice, this list of conditions and the following disclaimer in the
++//       documentation and/or other materials provided with the distribution.
++//     * Neither the name of HyperDex nor the names of its contributors may be
++//       used to endorse or promote products derived from this software without
++//       specific prior written permission.
++//
++// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
++// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++// POSSIBILITY OF SUCH DAMAGE.
++
++// HyperDex
++#include "daemon/datalayer_iterator.h"
++#include "daemon/migration_out_state.h"
++#include "daemon/migration_manager_pending.h"
++
++using hyperdex::migration_manager;
++
++migration_manager :: migration_out_state :: migration_out_state()
++    : mtx()
++    , next_seq_no(1)
++    , window()
++    , window_sz(1)
++    , iter()
++    , mid()
++    , sid()
++    , rid()
++    , m_ref(0)
++{
++}
++
++migration_manager :: migration_out_state :: migration_out_state(migration_id _mid,
++        space_id _sid, region_id _rid, std::auto_ptr<datalayer::iterator> _iter)
++    : mtx()
++    , next_seq_no(1)
++    , window()
++    , window_sz(1)
++    , iter(_iter)
++    , mid(_mid)
++    , sid(_sid)
++    , rid(_rid)
++    , m_ref(0)
++{
++}
++
++migration_manager :: migration_out_state :: ~migration_out_state() throw ()
++{
++}
+diff --git a/daemon/migration_out_state.h b/daemon/migration_out_state.h
+new file mode 100644
+index 0000000..4e2a1b6
+--- /dev/null
++++ b/daemon/migration_out_state.h
+@@ -0,0 +1,83 @@
++// Copyright (c) 2012, Cornell University
++// All rights reserved.
++//
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++//
++//     * Redistributions of source code must retain the above copyright notice,
++//       this list of conditions and the following disclaimer.
++//     * Redistributions in binary form must reproduce the above copyright
++//       notice, this list of conditions and the following disclaimer in the
++//       documentation and/or other materials provided with the distribution.
++//     * Neither the name of HyperDex nor the names of its contributors may be
++//       used to endorse or promote products derived from this software without
++//       specific prior written permission.
++//
++// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
++// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++// POSSIBILITY OF SUCH DAMAGE.
++
++#ifndef hyperdex_daemon_migration_manager_migration_out_state_h_
++#define hyperdex_daemon_migration_manager_migration_out_state_h_
++
++// STL
++#include <list>
++#include <tr1/memory>
++
++// po6
++#include <po6/threads/mutex.h>
++
++// e
++#include <e/intrusive_ptr.h>
++
++// HyperDex
++#include "common/ids.h"
++#include "daemon/datalayer.h"
++#include "daemon/migration_manager.h"
++
++using hyperdex::migration_manager;
++
++class migration_manager::migration_out_state
++{
++    public:
++        migration_out_state();
++        migration_out_state(migration_id mid,
++                            space_id sid,
++                            region_id rid,
++                            std::auto_ptr<datalayer::iterator> iter);
++        ~migration_out_state() throw ();
++
++    public:
++        po6::threads::mutex mtx;
++        uint64_t next_seq_no;
++        migration_id mid;
++        space_id sid;
++        region_id rid;
++        std::list<e::intrusive_ptr<pending> > window;
++        size_t window_sz;
++        std::auto_ptr<datalayer::iterator> iter;
++
++    private:
++        friend class e::intrusive_ptr<migration_out_state>;
++
++    private:
++        void inc() { __sync_add_and_fetch(&m_ref, 1); }
++        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
++
++    private:
++        size_t m_ref;
++
++    private:
++        migration_out_state(const migration_out_state&);
++        migration_out_state& operator = (const migration_out_state&);
++};
++
++#endif // hyperdex_daemon_migration_manager_migration_out_state_h_
+diff --git a/daemon/replication_manager.cc b/daemon/replication_manager.cc
+index 6fbffb4..951abce 100644
+--- a/daemon/replication_manager.cc
++++ b/daemon/replication_manager.cc
+@@ -226,6 +226,16 @@ replication_manager :: debug_dump()
+     unpause();
+ }
+ 
++// OK, so basically, you create a new class, something called "response", which
++// contains some state that specifies 1) whether the receiver is a client or a server,
++// 2) extra state if the receiver is a server, i.e. state that identify the corresponding
++// migration state for the object in question.  When receiving a req_atomic or a
++// migration_atomic, you generate such an object, then you call client_atomic with
++// this response object.  Then, client_atomic saves it into the key state.  Then,
++// when chain_ack is received, the point leader will look into the key state and
++// call some method on this response class, that would generate an appropriate response
++// that the point leader can send.
++
+ void
+ replication_manager :: client_atomic(const server_id& from,
+                                      const virtual_server_id& to,
+@@ -237,9 +247,31 @@ replication_manager :: client_atomic(const server_id& from,
+                                      const std::vector<attribute_check>& checks,
+                                      const std::vector<funcall>& funcs)
+ {
++    request_atomic(from, to, nonce, erase, fail_if_not_found, fail_if_found,
++                   key, checks, funcs, false, region_id(), 0);
++}
++
++void
++replication_manager :: request_atomic(const server_id& from,
++                                      const virtual_server_id& to,
++                                      uint64_t nonce,
++                                      bool erase,
++                                      bool fail_if_not_found,
++                                      bool fail_if_found,
++                                      const e::slice& key,
++                                      const std::vector<attribute_check>& checks,
++                                      const std::vector<funcall>& funcs,
++                                      bool is_migration_object,
++                                      region_id rid,
++                                      uint64_t seq_no)
++{
++    #define respond(ret) \
++        if (is_migration_object) { respond_for_migration(to, from, rid, seq_no, ret); } \
++        else { respond_to_client(to, from, nonce, ret); }
++
+     if (m_daemon->m_config.read_only())
+     {
+-        respond_to_client(to, from, nonce, NET_READONLY);
++        respond(NET_READONLY)
+         return;
+     }
+ 
+@@ -253,7 +285,7 @@ replication_manager :: client_atomic(const server_id& from,
+     {
+         LOG(ERROR) << "dropping nonce=" << nonce << " from client=" << from
+                    << " because the key, checks, or funcs don't validate";
+-        respond_to_client(to, from, nonce, NET_BADDIMSPEC);
++        respond(NET_BADDIMSPEC);
+         return;
+     }
+ 
+@@ -261,7 +293,7 @@ replication_manager :: client_atomic(const server_id& from,
+     {
+         LOG(ERROR) << "dropping nonce=" << nonce << " from client=" << from
+                    << " because it doesn't map to " << ri;
+-        respond_to_client(to, from, nonce, NET_NOTUS);
++        respond(NET_NOTUS);
+         return;
+     }
+ 
+@@ -271,7 +303,7 @@ replication_manager :: client_atomic(const server_id& from,
+ 
+     if (!ks->check_against_latest_version(sc, erase, fail_if_not_found, fail_if_found, checks, &nrc))
+     {
+-        respond_to_client(to, from, nonce, nrc);
++        respond(nrc);
+         return;
+     }
+ 
+@@ -285,9 +317,10 @@ replication_manager :: client_atomic(const server_id& from,
+     }
+     else
+     {
+-        if (!ks->put_from_funcs(sc, ri, seq_id, funcs, from, nonce))
++        if (!ks->put_from_funcs(sc, ri, seq_id, funcs, from, nonce,
++                                is_migration_object, rid, seq_id))
+         {
+-            respond_to_client(to, from, nonce, NET_OVERFLOW);
++            respond(NET_OVERFLOW);
+             return;
+         }
+     }
+@@ -530,7 +563,11 @@ replication_manager :: chain_ack(const virtual_server_id& from,
+ 
+     if (op->client != server_id())
+     {
+-        respond_to_client(to, op->client, op->nonce, NET_SUCCESS);
++        if (op->is_migration_object) {
++            respond_for_migration(to, op->client, op->rid, op->seq_no, NET_SUCCESS);
++        } else {
++            respond_to_client(to, op->client, op->nonce, NET_SUCCESS);
++        }
+     }
+ 
+     if (is_head && m_daemon->m_config.version() == op->recv_config_version)
+@@ -840,13 +877,44 @@ replication_manager :: respond_to_client(const virtual_server_id& us,
+                                          uint64_t nonce,
+                                          network_returncode ret)
+ {
+-    size_t sz = HYPERDEX_HEADER_SIZE_VC
+-              + sizeof(uint64_t)
+-              + sizeof(uint16_t);
+-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+-    uint16_t result = static_cast<uint16_t>(ret);
+-    msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << result;
+-    m_daemon->m_comm.send_client(us, client, RESP_ATOMIC, msg);
++    if (m_daemon->m_config.exists(client)) {
++        size_t sz = HYPERDEX_HEADER_SIZE_VV
++                  + sizeof(uint64_t)
++                  + sizeof(uint16_t);
++        std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
++        uint16_t result = static_cast<uint16_t>(ret);
++        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << nonce << result;
++        m_daemon->m_comm.send(us, client, RESP_ATOMIC, msg);
++    } else {
++        size_t sz = HYPERDEX_HEADER_SIZE_VC
++                  + sizeof(uint64_t)
++                  + sizeof(uint16_t);
++        std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
++        uint16_t result = static_cast<uint16_t>(ret);
++        msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << result;
++        m_daemon->m_comm.send_client(us, client, RESP_ATOMIC, msg);
++    }
++}
++
++void
++replication_manager :: respond_for_migration(const virtual_server_id& us,
++                                             const server_id& client,
++                                             region_id rid,
++                                             uint64_t seq_no,
++                                             network_returncode ret)
++{
++    if (m_daemon->m_config.exists(client)) {
++        size_t sz = HYPERDEX_HEADER_SIZE_VV
++                  + sizeof(uint64_t)
++                  + sizeof(uint64_t)
++                  + sizeof(uint16_t);
++        std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
++        uint16_t result = static_cast<uint16_t>(ret);
++        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << rid << seq_no << result;
++        m_daemon->m_comm.send(us, client, RESP_MIGRATION, msg);
++    } else {
++        LOG(ERROR) << "migration has to originate from a server";
++    }
+ }
+ 
+ bool
+diff --git a/daemon/replication_manager.h b/daemon/replication_manager.h
+index 8823dd8..922c5d0 100755
+--- a/daemon/replication_manager.h
++++ b/daemon/replication_manager.h
+@@ -91,6 +91,18 @@ class replication_manager
+                            const e::slice& key,
+                            const std::vector<attribute_check>& checks,
+                            const std::vector<funcall>& funcs);
++        void request_atomic(const server_id& from,
++                            const virtual_server_id& to,
++                            uint64_t nonce,
++                            bool erase,
++                            bool fail_if_not_found,
++                            bool fail_if_found,
++                            const e::slice& key,
++                            const std::vector<attribute_check>& checks,
++                            const std::vector<funcall>& funcs,
++                            bool is_migration_object,
++                            region_id rid,
++                            uint64_t seq_no);
+         // These are called in response to messages from other hosts.
+         void chain_op(const virtual_server_id& from,
+                       const virtual_server_id& to,
+@@ -165,6 +177,11 @@ class replication_manager
+                                const server_id& client,
+                                uint64_t nonce,
+                                network_returncode ret);
++        void respond_for_migration(const virtual_server_id& us,
++                                   const server_id& client,
++                                   region_id rid,
++                                   uint64_t seq_no,
++                                   network_returncode ret);
+         // check stability
+         bool is_check_needed();
+         void check_is_needed();
+diff --git a/daemon/replication_manager_key_state.cc b/daemon/replication_manager_key_state.cc
+index daf0f3f..eab82b8 100644
+--- a/daemon/replication_manager_key_state.cc
++++ b/daemon/replication_manager_key_state.cc
+@@ -279,7 +279,10 @@ bool
+ replication_manager :: key_state :: put_from_funcs(const schema& sc,
+                                                    const region_id& reg_id, uint64_t seq_id,
+                                                    const std::vector<funcall>& funcs,
+-                                                   const server_id& client, uint64_t nonce)
++                                                   const server_id& client, uint64_t nonce,
++                                                   bool is_migration_object,
++                                                   region_id rid,
++                                                   uint64_t seq_no)
+ {
+     bool has_old_value = false;
+     uint64_t old_version = 0;
+@@ -303,6 +306,10 @@ replication_manager :: key_state :: put_from_funcs(const schema& sc,
+                      client, nonce,
+                      0, virtual_server_id());
+ 
++    op->is_migration_object = is_migration_object;
++    op->rid = rid;
++    op->seq_no = seq_no;
++
+     if (funcs_passed == funcs.size())
+     {
+         insert_deferred(old_version + 1, op);
+diff --git a/daemon/replication_manager_key_state.h b/daemon/replication_manager_key_state.h
+index a112c6c..b9d2f04 100644
+--- a/daemon/replication_manager_key_state.h
++++ b/daemon/replication_manager_key_state.h
+@@ -73,7 +73,9 @@ class hyperdex::replication_manager::key_state
+         bool put_from_funcs(const schema& sc,
+                             const region_id& reg_id, uint64_t seq_id,
+                             const std::vector<funcall>& funcs,
+-                            const server_id& client, uint64_t nonce);
++                            const server_id& client, uint64_t nonce,
++                            bool is_migration_object,
++                            region_id rid, uint64_t seq_no);
+         void insert_deferred(uint64_t version, e::intrusive_ptr<pending> op);
+         bool persist_to_datalayer(replication_manager* rm, const region_id& ri,
+                                   const region_id& reg_id, uint64_t seq_id,
+diff --git a/daemon/replication_manager_pending.cc b/daemon/replication_manager_pending.cc
+index b2bb2a9..680861e 100644
+--- a/daemon/replication_manager_pending.cc
++++ b/daemon/replication_manager_pending.cc
+@@ -61,6 +61,9 @@ replication_manager :: pending :: pending(std::auto_ptr<e::buffer> _backing,
+     , this_new_region()
+     , prev_region()
+     , next_region()
++    , is_migration_object()
++    , rid(region_id())
++    , seq_no(0)
+     , m_ref(0)
+ {
+ }
+@@ -82,4 +85,7 @@ replication_manager :: pending :: debug_dump()
+     LOG(INFO) << "  this_old: " << this_old_region;
+     LOG(INFO) << "  this_new: " << this_new_region;
+     LOG(INFO) << "  next: " << next_region;
++    LOG(INFO) << "  is_migration_object: " << is_migration_object;
++    LOG(INFO) << "  rid: " << rid;
++    LOG(INFO) << "  seq_no: " << seq_no;
+ }
+diff --git a/daemon/replication_manager_pending.h b/daemon/replication_manager_pending.h
+index 9d551bf..5350b0e 100644
+--- a/daemon/replication_manager_pending.h
++++ b/daemon/replication_manager_pending.h
+@@ -72,6 +72,11 @@ class hyperdex::replication_manager::pending
+         region_id prev_region;
+         region_id next_region;
+ 
++        // Migration-related stuff
++        bool is_migration_object;
++        region_id rid;
++        uint64_t seq_no;
++
+     private:
+         friend class e::intrusive_ptr<pending>;
+         void inc() { ++m_ref; }
+diff --git a/hyperdex-migrate b/hyperdex-migrate
+new file mode 100755
+index 0000000..97402e3
+--- /dev/null
++++ b/hyperdex-migrate
+@@ -0,0 +1,228 @@
++#! /bin/bash
++
++# hyperdex-migrate - temporary wrapper script for .libs/hyperdex-migrate
++# Generated by libtool (GNU libtool) 2.4.2 Debian-2.4.2-1.3ubuntu1
++#
++# The hyperdex-migrate program cannot be directly executed until all the libtool
++# libraries that it depends on are installed.
++#
++# This wrapper script should never be moved out of the build directory.
++# If it is, it will not operate correctly.
++
++# Sed substitution that helps us do robust quoting.  It backslashifies
++# metacharacters that are still active within double-quoted strings.
++sed_quote_subst='s/\([`"$\\]\)/\\\1/g'
++
++# Be Bourne compatible
++if test -n "${ZSH_VERSION+set}" && (emulate sh) >/dev/null 2>&1; then
++  emulate sh
++  NULLCMD=:
++  # Zsh 3.x and 4.x performs word splitting on ${1+"$@"}, which
++  # is contrary to our usage.  Disable this feature.
++  alias -g '${1+"$@"}'='"$@"'
++  setopt NO_GLOB_SUBST
++else
++  case `(set -o) 2>/dev/null` in *posix*) set -o posix;; esac
++fi
++BIN_SH=xpg4; export BIN_SH # for Tru64
++DUALCASE=1; export DUALCASE # for MKS sh
++
++# The HP-UX ksh and POSIX shell print the target directory to stdout
++# if CDPATH is set.
++(unset CDPATH) >/dev/null 2>&1 && unset CDPATH
++
++relink_command="(cd /media/Work_Study/CS/workspace/HyperDex/HyperDex; { test -z \"\${LIBRARY_PATH+set}\" || unset LIBRARY_PATH || { LIBRARY_PATH=; export LIBRARY_PATH; }; }; { test -z \"\${COMPILER_PATH+set}\" || unset COMPILER_PATH || { COMPILER_PATH=; export COMPILER_PATH; }; }; { test -z \"\${GCC_EXEC_PREFIX+set}\" || unset GCC_EXEC_PREFIX || { GCC_EXEC_PREFIX=; export GCC_EXEC_PREFIX; }; }; { test -z \"\${LD_RUN_PATH+set}\" || unset LD_RUN_PATH || { LD_RUN_PATH=; export LD_RUN_PATH; }; }; { test -z \"\${LD_LIBRARY_PATH+set}\" || unset LD_LIBRARY_PATH || { LD_LIBRARY_PATH=; export LD_LIBRARY_PATH; }; }; PATH=/home/derek/.rvm/gems/ruby-2.0.0-p0/bin:/home/derek/.rvm/gems/ruby-2.0.0-p0@global/bin:/home/derek/.rvm/rubies/ruby-2.0.0-p0/bin:/home/derek/.rvm/bin:/usr/lib/mipsel-linux/bin:/usr/local/heroku/bin:/home/derek/bin:/usr/lib/lightdm/lightdm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/go/bin:/home/derek/go/bin:/home/derek/Dropbox/CS/workspace/go:/usr/lib/scala/bin:/usr/lib/akka/bin:/media/Work_Study/CS/workspace/Play:/home/derek/.cabal/bin:/usr/lib/vertx/bin:/usr/lib/jvm/jdk1.7.0/bin:/home/derek/Dropbox/CS/workspace/go/bin; export PATH; g++ -fvisibility=hidden -fvisibility-inlines-hidden -I/usr/local/include -I/usr/local/include -I/usr/local/include -I/usr/local/include -I/usr/local/include -I/usr/local/include -g -O2 -o \$progdir/\$file tools/migrate.o  ./.libs/libhyperdex-admin.so /usr/lib/x86_64-linux-gnu/libpopt.so -Wl,-rpath -Wl,/media/Work_Study/CS/workspace/HyperDex/HyperDex/.libs)"
++
++# This environment variable determines our operation mode.
++if test "$libtool_install_magic" = "%%%MAGIC variable%%%"; then
++  # install mode needs the following variables:
++  generated_by_libtool_version='2.4.2'
++  notinst_deplibs=' libhyperdex-admin.la'
++else
++  # When we are sourced in execute mode, $file and $ECHO are already set.
++  if test "$libtool_execute_magic" != "%%%MAGIC variable%%%"; then
++    file="$0"
++
++# A function that is used when there is no print builtin or printf.
++func_fallback_echo ()
++{
++  eval 'cat <<_LTECHO_EOF
++$1
++_LTECHO_EOF'
++}
++    ECHO="printf %s\\n"
++  fi
++
++# Very basic option parsing. These options are (a) specific to
++# the libtool wrapper, (b) are identical between the wrapper
++# /script/ and the wrapper /executable/ which is used only on
++# windows platforms, and (c) all begin with the string --lt-
++# (application programs are unlikely to have options which match
++# this pattern).
++#
++# There are only two supported options: --lt-debug and
++# --lt-dump-script. There is, deliberately, no --lt-help.
++#
++# The first argument to this parsing function should be the
++# script's ./libtool value, followed by no.
++lt_option_debug=
++func_parse_lt_options ()
++{
++  lt_script_arg0=$0
++  shift
++  for lt_opt
++  do
++    case "$lt_opt" in
++    --lt-debug) lt_option_debug=1 ;;
++    --lt-dump-script)
++        lt_dump_D=`$ECHO "X$lt_script_arg0" | /bin/sed -e 's/^X//' -e 's%/[^/]*$%%'`
++        test "X$lt_dump_D" = "X$lt_script_arg0" && lt_dump_D=.
++        lt_dump_F=`$ECHO "X$lt_script_arg0" | /bin/sed -e 's/^X//' -e 's%^.*/%%'`
++        cat "$lt_dump_D/$lt_dump_F"
++        exit 0
++      ;;
++    --lt-*)
++        $ECHO "Unrecognized --lt- option: '$lt_opt'" 1>&2
++        exit 1
++      ;;
++    esac
++  done
++
++  # Print the debug banner immediately:
++  if test -n "$lt_option_debug"; then
++    echo "hyperdex-migrate:hyperdex-migrate:${LINENO}: libtool wrapper (GNU libtool) 2.4.2 Debian-2.4.2-1.3ubuntu1" 1>&2
++  fi
++}
++
++# Used when --lt-debug. Prints its arguments to stdout
++# (redirection is the responsibility of the caller)
++func_lt_dump_args ()
++{
++  lt_dump_args_N=1;
++  for lt_arg
++  do
++    $ECHO "hyperdex-migrate:hyperdex-migrate:${LINENO}: newargv[$lt_dump_args_N]: $lt_arg"
++    lt_dump_args_N=`expr $lt_dump_args_N + 1`
++  done
++}
++
++# Core function for launching the target application
++func_exec_program_core ()
++{
++
++      if test -n "$lt_option_debug"; then
++        $ECHO "hyperdex-migrate:hyperdex-migrate:${LINENO}: newargv[0]: $progdir/$program" 1>&2
++        func_lt_dump_args ${1+"$@"} 1>&2
++      fi
++      exec "$progdir/$program" ${1+"$@"}
++
++      $ECHO "$0: cannot exec $program $*" 1>&2
++      exit 1
++}
++
++# A function to encapsulate launching the target application
++# Strips options in the --lt-* namespace from $@ and
++# launches target application with the remaining arguments.
++func_exec_program ()
++{
++  case " $* " in
++  *\ --lt-*)
++    for lt_wr_arg
++    do
++      case $lt_wr_arg in
++      --lt-*) ;;
++      *) set x "$@" "$lt_wr_arg"; shift;;
++      esac
++      shift
++    done ;;
++  esac
++  func_exec_program_core ${1+"$@"}
++}
++
++  # Parse options
++  func_parse_lt_options "$0" ${1+"$@"}
++
++  # Find the directory that this script lives in.
++  thisdir=`$ECHO "$file" | /bin/sed 's%/[^/]*$%%'`
++  test "x$thisdir" = "x$file" && thisdir=.
++
++  # Follow symbolic links until we get to the real thisdir.
++  file=`ls -ld "$file" | /bin/sed -n 's/.*-> //p'`
++  while test -n "$file"; do
++    destdir=`$ECHO "$file" | /bin/sed 's%/[^/]*$%%'`
++
++    # If there was a directory component, then change thisdir.
++    if test "x$destdir" != "x$file"; then
++      case "$destdir" in
++      [\\/]* | [A-Za-z]:[\\/]*) thisdir="$destdir" ;;
++      *) thisdir="$thisdir/$destdir" ;;
++      esac
++    fi
++
++    file=`$ECHO "$file" | /bin/sed 's%^.*/%%'`
++    file=`ls -ld "$thisdir/$file" | /bin/sed -n 's/.*-> //p'`
++  done
++
++  # Usually 'no', except on cygwin/mingw when embedded into
++  # the cwrapper.
++  WRAPPER_SCRIPT_BELONGS_IN_OBJDIR=no
++  if test "$WRAPPER_SCRIPT_BELONGS_IN_OBJDIR" = "yes"; then
++    # special case for '.'
++    if test "$thisdir" = "."; then
++      thisdir=`pwd`
++    fi
++    # remove .libs from thisdir
++    case "$thisdir" in
++    *[\\/].libs ) thisdir=`$ECHO "$thisdir" | /bin/sed 's%[\\/][^\\/]*$%%'` ;;
++    .libs )   thisdir=. ;;
++    esac
++  fi
++
++  # Try to get the absolute directory name.
++  absdir=`cd "$thisdir" && pwd`
++  test -n "$absdir" && thisdir="$absdir"
++
++  program=lt-'hyperdex-migrate'
++  progdir="$thisdir/.libs"
++
++  if test ! -f "$progdir/$program" ||
++     { file=`ls -1dt "$progdir/$program" "$progdir/../$program" 2>/dev/null | /bin/sed 1q`; \
++       test "X$file" != "X$progdir/$program"; }; then
++
++    file="$$-$program"
++
++    if test ! -d "$progdir"; then
++      mkdir "$progdir"
++    else
++      rm -f "$progdir/$file"
++    fi
++
++    # relink executable if necessary
++    if test -n "$relink_command"; then
++      if relink_command_output=`eval $relink_command 2>&1`; then :
++      else
++	printf %s\n "$relink_command_output" >&2
++	rm -f "$progdir/$file"
++	exit 1
++      fi
++    fi
++
++    mv -f "$progdir/$file" "$progdir/$program" 2>/dev/null ||
++    { rm -f "$progdir/$program";
++      mv -f "$progdir/$file" "$progdir/$program"; }
++    rm -f "$progdir/$file"
++  fi
++
++  if test -f "$progdir/$program"; then
++    if test "$libtool_execute_magic" != "%%%MAGIC variable%%%"; then
++      # Run the actual program with our arguments.
++      func_exec_program ${1+"$@"}
++    fi
++  else
++    # The program doesn't exist.
++    $ECHO "$0: error: \`$progdir/$program' does not exist" 1>&2
++    $ECHO "This script is just a wrapper for $program." 1>&2
++    $ECHO "See the libtool documentation for more information." 1>&2
++    exit 1
++  fi
++fi
+diff --git a/hyperdex.cc b/hyperdex.cc
+index 29866de..6ad37d6 100644
+--- a/hyperdex.cc
++++ b/hyperdex.cc
+@@ -45,6 +45,7 @@ main(int argc, const char* argv[])
+     cmds.push_back(e::subcommand("rm-space",              "Remove an existing HyperDex space"));
+     cmds.push_back(e::subcommand("list-spaces",           "List the names of all spaces"));
+     cmds.push_back(e::subcommand("validate-space",        "Validate a HyperDex space description"));
++    cmds.push_back(e::subcommand("migrate-data",          "Migrate data from one space to another"));
+     cmds.push_back(e::subcommand("server-register",       "Manually register a new HyperDex server"));
+     cmds.push_back(e::subcommand("server-offline",        "Manually take a daemon offline"));
+     cmds.push_back(e::subcommand("server-online",         "Manually bring a daemon online"));
+diff --git a/include/hyperdex/admin.h b/include/hyperdex/admin.h
+index 50b2dd8..05d0b20 100644
+--- a/include/hyperdex/admin.h
++++ b/include/hyperdex/admin.h
+@@ -120,6 +120,12 @@ hyperdex_admin_list_spaces(struct hyperdex_admin* admin,
+                            const char** spaces);
+ 
+ int64_t
++hyperdex_admin_migrate_data(struct hyperdex_admin* admin,
++                            const char* space_from,
++                            const char* space_to,
++                            enum hyperdex_admin_returncode* status);
++
++int64_t
+ hyperdex_admin_server_register(struct hyperdex_admin* admin,
+                                uint64_t token, const char* address,
+                                enum hyperdex_admin_returncode* status);
+diff --git a/include/hyperdex/admin.hpp b/include/hyperdex/admin.hpp
+index 9a93dca..8bb6f84 100644
+--- a/include/hyperdex/admin.hpp
++++ b/include/hyperdex/admin.hpp
+@@ -73,6 +73,10 @@ class Admin
+         int64_t list_spaces(enum hyperdex_admin_returncode* status,
+                             const char** spaces)
+             { return hyperdex_admin_list_spaces(m_adm, status, spaces); }
++        int64_t migrate_data(const char* space_from,
++                             const char* space_to,
++                             enum hyperdex_admin_returncode* status)
++            { return hyperdex_admin_migrate_data(m_adm, space_from, space_to, status); };
+         int64_t server_register(uint64_t token, const char* address,
+                                 enum hyperdex_admin_returncode* status)
+             { return hyperdex_admin_server_register(m_adm, token, address, status); }
+diff --git a/m4/.gitignore b/m4/.gitignore
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/m4/anal_warnings.m4 b/m4/anal_warnings.m4
+deleted file mode 100644
+index a5f1306..0000000
+--- a/m4/anal_warnings.m4
++++ /dev/null
+@@ -1,121 +0,0 @@
+-# Copyright (c) 2012-2013, Robert Escriva
+-# All rights reserved.
+-#
+-# Redistribution and use in source and binary forms, with or without
+-# modification, are permitted provided that the following conditions are met:
+-#
+-#     * Redistributions of source code must retain the above copyright notice,
+-#       this list of conditions and the following disclaimer.
+-#     * Redistributions in binary form must reproduce the above copyright
+-#       notice, this list of conditions and the following disclaimer in the
+-#       documentation and/or other materials provided with the distribution.
+-#     * Neither the name of this project nor the names of its contributors may
+-#       be used to endorse or promote products derived from this software
+-#       without specific prior written permission.
+-#
+-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-#
+-# This macro enables many compiler warnings for C++ that generally catch bugs in
+-# code.  It offers the "--enable-wanal-flags" option which defaults to "no".
+-
+-AC_DEFUN([ANAL_WARNINGS],
+-    [WANAL_CFLAGS=""
+-    WANAL_CXXFLAGS=""
+-    WANAL_CFLAGS_ONLY=""
+-    AC_ARG_ENABLE([wanal-flags],
+-              [AS_HELP_STRING([--enable-wanal-flags], [enable many warnings @<:@default: no@:>@])],
+-              [wanal_flags=${enableval}], [wanal_flags=no])
+-    if test x"${wanal_flags}" = xyes; then
+-        AX_CHECK_COMPILE_FLAG([-pedantic],[WANAL_CFLAGS="${WANAL_CFLAGS} -pedantic"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wabi],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wabi"],,)
+-        AX_CHECK_COMPILE_FLAG([-Waddress],[WANAL_CFLAGS="${WANAL_CFLAGS} -Waddress"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wall],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wall"],,)
+-        AX_CHECK_COMPILE_FLAG([-Warray-bounds],[WANAL_CFLAGS="${WANAL_CFLAGS} -Warray-bounds"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wc++0x-compat],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Wc++0x-compat"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wcast-align],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wcast-align"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wcast-qual],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wcast-qual"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wchar-subscripts],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wchar-subscripts"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wclobbered],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wclobbered"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wcomment],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wcomment"],,)
+-        #AX_CHECK_COMPILE_FLAG([-Wconversion],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wconversion"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wctor-dtor-privacy],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Wctor-dtor-privacy"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wdisabled-optimization],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wdisabled-optimization"],,)
+-        AX_CHECK_COMPILE_FLAG([-Weffc++],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Weffc++"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wempty-body],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wempty-body"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wenum-compare],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wenum-compare"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wextra],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wextra"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wfloat-equal],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wfloat-equal"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wformat=2],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wformat=2"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wformat-nonliteral],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wformat-nonliteral"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wformat-security],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wformat-security"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wformat],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wformat"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wformat-y2k],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wformat-y2k"],,)
+-        dnl AX_CHECK_COMPILE_FLAG([-Wframe-larger-than=8192],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wframe-larger-than=8192"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wignored-qualifiers],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wignored-qualifiers"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wimplicit],[WANAL_CFLAGS_ONLY="${WANAL_CFLAGS} -Wimplicit"],,)
+-        AX_CHECK_COMPILE_FLAG([-Winit-self],[WANAL_CFLAGS="${WANAL_CFLAGS} -Winit-self"],,)
+-        AX_CHECK_COMPILE_FLAG([-Winline],[WANAL_CFLAGS="${WANAL_CFLAGS} -Winline"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wlarger-than=4096],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wlarger-than=4096"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wlogical-op],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wlogical-op"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wmain],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmain"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wmissing-braces],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-braces"],,)
+-        #AX_CHECK_COMPILE_FLAG([-Wmissing-declarations],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-declarations"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wmissing-field-initializers],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-field-initializers"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wmissing-format-attribute],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-format-attribute"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wmissing-include-dirs],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-include-dirs"],,)
+-        dnl AX_CHECK_COMPILE_FLAG([-Wmissing-noreturn],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wmissing-noreturn"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wno-long-long],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wno-long-long"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wnon-virtual-dtor],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Wnon-virtual-dtor"],,)
+-        #AX_CHECK_COMPILE_FLAG([-Wold-style-cast],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Wold-style-cast"],,)
+-        AX_CHECK_COMPILE_FLAG([-Woverlength-strings],[WANAL_CFLAGS="${WANAL_CFLAGS} -Woverlength-strings"],,)
+-        AX_CHECK_COMPILE_FLAG([-Woverloaded-virtual],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Woverloaded-virtual"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wpacked-bitfield-compat],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wpacked-bitfield-compat"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wpacked],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wpacked"],,)
+-        #AX_CHECK_COMPILE_FLAG([-Wpadded],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wpadded"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wparentheses],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wparentheses"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wpointer-arith],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wpointer-arith"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wredundant-decls],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Wredundant-decls"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wreorder],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Wreorder"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wreturn-type],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wreturn-type"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wsequence-point],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wsequence-point"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wshadow],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wshadow"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wsign-compare],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wsign-compare"],,)
+-        #AX_CHECK_COMPILE_FLAG([-Wsign-conversion],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wsign-conversion"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wsign-promo],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Wsign-promo"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wstack-protector],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wstack-protector"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wstrict-aliasing=3],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wstrict-aliasing=3"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wstrict-aliasing],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wstrict-aliasing"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wstrict-null-sentinel],[WANAL_CXXFLAGS="${WANAL_CXXFLAGS} -Wstrict-null-sentinel"],,)
+-        #AX_CHECK_COMPILE_FLAG([-Wstrict-overflow=4],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wstrict-overflow=4"],,)
+-        #AX_CHECK_COMPILE_FLAG([-Wstrict-overflow],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wstrict-overflow"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wswitch-default],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wswitch-default"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wswitch-enum],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wswitch-enum"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wswitch],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wswitch"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wtrigraphs],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wtrigraphs"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wtype-limits],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wtype-limits"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wundef],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wundef"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wuninitialized],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wuninitialized"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wunsafe-loop-optimizations],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wunsafe-loop-optimizations"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wunused-function],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wunused-function"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wunused-label],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wunused-label"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wunused-parameter],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wunused-parameter"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wunused-value],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wunused-value"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wunused-variable],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wunused-variable"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wunused],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wunused"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wvolatile-register-var],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wvolatile-register-var"],,)
+-        AX_CHECK_COMPILE_FLAG([-Wwrite-strings],[WANAL_CFLAGS="${WANAL_CFLAGS} -Wwrite-strings"],,)
+-    fi
+-    WANAL_CXXFLAGS="${WANAL_CFLAGS} ${WANAL_CXXFLAGS}"
+-    WANAL_CFLAGS="${WANAL_CFLAGS} ${WANAL_CFLAGS_ONLY}"
+-    AC_SUBST([WANAL_CFLAGS], [${WANAL_CFLAGS}])
+-    AC_SUBST([WANAL_CXXFLAGS], [${WANAL_CXXFLAGS}])
+-])
+diff --git a/m4/ax_check_compile_flag.m4 b/m4/ax_check_compile_flag.m4
+deleted file mode 100644
+index c3a8d69..0000000
+--- a/m4/ax_check_compile_flag.m4
++++ /dev/null
+@@ -1,72 +0,0 @@
+-# ===========================================================================
+-#   http://www.gnu.org/software/autoconf-archive/ax_check_compile_flag.html
+-# ===========================================================================
+-#
+-# SYNOPSIS
+-#
+-#   AX_CHECK_COMPILE_FLAG(FLAG, [ACTION-SUCCESS], [ACTION-FAILURE], [EXTRA-FLAGS])
+-#
+-# DESCRIPTION
+-#
+-#   Check whether the given FLAG works with the current language's compiler
+-#   or gives an error.  (Warnings, however, are ignored)
+-#
+-#   ACTION-SUCCESS/ACTION-FAILURE are shell commands to execute on
+-#   success/failure.
+-#
+-#   If EXTRA-FLAGS is defined, it is added to the current language's default
+-#   flags (e.g. CFLAGS) when the check is done.  The check is thus made with
+-#   the flags: "CFLAGS EXTRA-FLAGS FLAG".  This can for example be used to
+-#   force the compiler to issue an error when a bad flag is given.
+-#
+-#   NOTE: Implementation based on AX_CFLAGS_GCC_OPTION. Please keep this
+-#   macro in sync with AX_CHECK_{PREPROC,LINK}_FLAG.
+-#
+-# LICENSE
+-#
+-#   Copyright (c) 2008 Guido U. Draheim <guidod@gmx.de>
+-#   Copyright (c) 2011 Maarten Bosmans <mkbosmans@gmail.com>
+-#
+-#   This program is free software: you can redistribute it and/or modify it
+-#   under the terms of the GNU General Public License as published by the
+-#   Free Software Foundation, either version 3 of the License, or (at your
+-#   option) any later version.
+-#
+-#   This program is distributed in the hope that it will be useful, but
+-#   WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+-#   Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License along
+-#   with this program. If not, see <http://www.gnu.org/licenses/>.
+-#
+-#   As a special exception, the respective Autoconf Macro's copyright owner
+-#   gives unlimited permission to copy, distribute and modify the configure
+-#   scripts that are the output of Autoconf when processing the Macro. You
+-#   need not follow the terms of the GNU General Public License when using
+-#   or distributing such scripts, even though portions of the text of the
+-#   Macro appear in them. The GNU General Public License (GPL) does govern
+-#   all other use of the material that constitutes the Autoconf Macro.
+-#
+-#   This special exception to the GPL applies to versions of the Autoconf
+-#   Macro released by the Autoconf Archive. When you make and distribute a
+-#   modified version of the Autoconf Macro, you may extend this special
+-#   exception to the GPL to apply to your modified version as well.
+-
+-#serial 2
+-
+-AC_DEFUN([AX_CHECK_COMPILE_FLAG],
+-[AC_PREREQ(2.59)dnl for _AC_LANG_PREFIX
+-AS_VAR_PUSHDEF([CACHEVAR],[ax_cv_check_[]_AC_LANG_ABBREV[]flags_$4_$1])dnl
+-AC_CACHE_CHECK([whether _AC_LANG compiler accepts $1], CACHEVAR, [
+-  ax_check_save_flags=$[]_AC_LANG_PREFIX[]FLAGS
+-  _AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS $4 $1"
+-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],
+-    [AS_VAR_SET(CACHEVAR,[yes])],
+-    [AS_VAR_SET(CACHEVAR,[no])])
+-  _AC_LANG_PREFIX[]FLAGS=$ax_check_save_flags])
+-AS_IF([test x"AS_VAR_GET(CACHEVAR)" = xyes],
+-  [m4_default([$2], :)],
+-  [m4_default([$3], :)])
+-AS_VAR_POPDEF([CACHEVAR])dnl
+-])dnl AX_CHECK_COMPILE_FLAGS
+diff --git a/m4/ax_check_link_flag.m4 b/m4/ax_check_link_flag.m4
+deleted file mode 100644
+index e2d0d36..0000000
+--- a/m4/ax_check_link_flag.m4
++++ /dev/null
+@@ -1,71 +0,0 @@
+-# ===========================================================================
+-#    http://www.gnu.org/software/autoconf-archive/ax_check_link_flag.html
+-# ===========================================================================
+-#
+-# SYNOPSIS
+-#
+-#   AX_CHECK_LINK_FLAG(FLAG, [ACTION-SUCCESS], [ACTION-FAILURE], [EXTRA-FLAGS])
+-#
+-# DESCRIPTION
+-#
+-#   Check whether the given FLAG works with the linker or gives an error.
+-#   (Warnings, however, are ignored)
+-#
+-#   ACTION-SUCCESS/ACTION-FAILURE are shell commands to execute on
+-#   success/failure.
+-#
+-#   If EXTRA-FLAGS is defined, it is added to the linker's default flags
+-#   when the check is done.  The check is thus made with the flags: "LDFLAGS
+-#   EXTRA-FLAGS FLAG".  This can for example be used to force the linker to
+-#   issue an error when a bad flag is given.
+-#
+-#   NOTE: Implementation based on AX_CFLAGS_GCC_OPTION. Please keep this
+-#   macro in sync with AX_CHECK_{PREPROC,COMPILE}_FLAG.
+-#
+-# LICENSE
+-#
+-#   Copyright (c) 2008 Guido U. Draheim <guidod@gmx.de>
+-#   Copyright (c) 2011 Maarten Bosmans <mkbosmans@gmail.com>
+-#
+-#   This program is free software: you can redistribute it and/or modify it
+-#   under the terms of the GNU General Public License as published by the
+-#   Free Software Foundation, either version 3 of the License, or (at your
+-#   option) any later version.
+-#
+-#   This program is distributed in the hope that it will be useful, but
+-#   WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+-#   Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License along
+-#   with this program. If not, see <http://www.gnu.org/licenses/>.
+-#
+-#   As a special exception, the respective Autoconf Macro's copyright owner
+-#   gives unlimited permission to copy, distribute and modify the configure
+-#   scripts that are the output of Autoconf when processing the Macro. You
+-#   need not follow the terms of the GNU General Public License when using
+-#   or distributing such scripts, even though portions of the text of the
+-#   Macro appear in them. The GNU General Public License (GPL) does govern
+-#   all other use of the material that constitutes the Autoconf Macro.
+-#
+-#   This special exception to the GPL applies to versions of the Autoconf
+-#   Macro released by the Autoconf Archive. When you make and distribute a
+-#   modified version of the Autoconf Macro, you may extend this special
+-#   exception to the GPL to apply to your modified version as well.
+-
+-#serial 2
+-
+-AC_DEFUN([AX_CHECK_LINK_FLAG],
+-[AS_VAR_PUSHDEF([CACHEVAR],[ax_cv_check_ldflags_$4_$1])dnl
+-AC_CACHE_CHECK([whether the linker accepts $1], CACHEVAR, [
+-  ax_check_save_flags=$LDFLAGS
+-  LDFLAGS="$LDFLAGS $4 $1"
+-  AC_LINK_IFELSE([AC_LANG_PROGRAM()],
+-    [AS_VAR_SET(CACHEVAR,[yes])],
+-    [AS_VAR_SET(CACHEVAR,[no])])
+-  LDFLAGS=$ax_check_save_flags])
+-AS_IF([test x"AS_VAR_GET(CACHEVAR)" = xyes],
+-  [m4_default([$2], :)],
+-  [m4_default([$3], :)])
+-AS_VAR_POPDEF([CACHEVAR])dnl
+-])dnl AX_CHECK_LINK_FLAGS
+diff --git a/m4/ax_check_preproc_flag.m4 b/m4/ax_check_preproc_flag.m4
+deleted file mode 100644
+index b1cfef6..0000000
+--- a/m4/ax_check_preproc_flag.m4
++++ /dev/null
+@@ -1,72 +0,0 @@
+-# ===========================================================================
+-#   http://www.gnu.org/software/autoconf-archive/ax_check_preproc_flag.html
+-# ===========================================================================
+-#
+-# SYNOPSIS
+-#
+-#   AX_CHECK_PREPROC_FLAG(FLAG, [ACTION-SUCCESS], [ACTION-FAILURE], [EXTRA-FLAGS])
+-#
+-# DESCRIPTION
+-#
+-#   Check whether the given FLAG works with the current language's
+-#   preprocessor or gives an error.  (Warnings, however, are ignored)
+-#
+-#   ACTION-SUCCESS/ACTION-FAILURE are shell commands to execute on
+-#   success/failure.
+-#
+-#   If EXTRA-FLAGS is defined, it is added to the preprocessor's default
+-#   flags when the check is done.  The check is thus made with the flags:
+-#   "CPPFLAGS EXTRA-FLAGS FLAG".  This can for example be used to force the
+-#   preprocessor to issue an error when a bad flag is given.
+-#
+-#   NOTE: Implementation based on AX_CFLAGS_GCC_OPTION. Please keep this
+-#   macro in sync with AX_CHECK_{COMPILE,LINK}_FLAG.
+-#
+-# LICENSE
+-#
+-#   Copyright (c) 2008 Guido U. Draheim <guidod@gmx.de>
+-#   Copyright (c) 2011 Maarten Bosmans <mkbosmans@gmail.com>
+-#
+-#   This program is free software: you can redistribute it and/or modify it
+-#   under the terms of the GNU General Public License as published by the
+-#   Free Software Foundation, either version 3 of the License, or (at your
+-#   option) any later version.
+-#
+-#   This program is distributed in the hope that it will be useful, but
+-#   WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+-#   Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License along
+-#   with this program. If not, see <http://www.gnu.org/licenses/>.
+-#
+-#   As a special exception, the respective Autoconf Macro's copyright owner
+-#   gives unlimited permission to copy, distribute and modify the configure
+-#   scripts that are the output of Autoconf when processing the Macro. You
+-#   need not follow the terms of the GNU General Public License when using
+-#   or distributing such scripts, even though portions of the text of the
+-#   Macro appear in them. The GNU General Public License (GPL) does govern
+-#   all other use of the material that constitutes the Autoconf Macro.
+-#
+-#   This special exception to the GPL applies to versions of the Autoconf
+-#   Macro released by the Autoconf Archive. When you make and distribute a
+-#   modified version of the Autoconf Macro, you may extend this special
+-#   exception to the GPL to apply to your modified version as well.
+-
+-#serial 2
+-
+-AC_DEFUN([AX_CHECK_PREPROC_FLAG],
+-[AC_PREREQ(2.59)dnl for _AC_LANG_PREFIX
+-AS_VAR_PUSHDEF([CACHEVAR],[ax_cv_check_[]_AC_LANG_ABBREV[]cppflags_$4_$1])dnl
+-AC_CACHE_CHECK([whether _AC_LANG preprocessor accepts $1], CACHEVAR, [
+-  ax_check_save_flags=$CPPFLAGS
+-  CPPFLAGS="$CPPFLAGS $4 $1"
+-  AC_PREPROC_IFELSE([AC_LANG_PROGRAM()],
+-    [AS_VAR_SET(CACHEVAR,[yes])],
+-    [AS_VAR_SET(CACHEVAR,[no])])
+-  CPPFLAGS=$ax_check_save_flags])
+-AS_IF([test x"AS_VAR_GET(CACHEVAR)" = xyes],
+-  [m4_default([$2], :)],
+-  [m4_default([$3], :)])
+-AS_VAR_POPDEF([CACHEVAR])dnl
+-])dnl AX_CHECK_PREPROC_FLAGS
+diff --git a/m4/ax_python_devel.m4 b/m4/ax_python_devel.m4
+deleted file mode 100644
+index cf2163c..0000000
+--- a/m4/ax_python_devel.m4
++++ /dev/null
+@@ -1,324 +0,0 @@
+-# ===========================================================================
+-#      http://www.gnu.org/software/autoconf-archive/ax_python_devel.html
+-# ===========================================================================
+-#
+-# SYNOPSIS
+-#
+-#   AX_PYTHON_DEVEL([version])
+-#
+-# DESCRIPTION
+-#
+-#   Note: Defines as a precious variable "PYTHON_VERSION". Don't override it
+-#   in your configure.ac.
+-#
+-#   This macro checks for Python and tries to get the include path to
+-#   'Python.h'. It provides the $(PYTHON_CPPFLAGS) and $(PYTHON_LDFLAGS)
+-#   output variables. It also exports $(PYTHON_EXTRA_LIBS) and
+-#   $(PYTHON_EXTRA_LDFLAGS) for embedding Python in your code.
+-#
+-#   You can search for some particular version of Python by passing a
+-#   parameter to this macro, for example ">= '2.3.1'", or "== '2.4'". Please
+-#   note that you *have* to pass also an operator along with the version to
+-#   match, and pay special attention to the single quotes surrounding the
+-#   version number. Don't use "PYTHON_VERSION" for this: that environment
+-#   variable is declared as precious and thus reserved for the end-user.
+-#
+-#   This macro should work for all versions of Python >= 2.1.0. As an end
+-#   user, you can disable the check for the python version by setting the
+-#   PYTHON_NOVERSIONCHECK environment variable to something else than the
+-#   empty string.
+-#
+-#   If you need to use this macro for an older Python version, please
+-#   contact the authors. We're always open for feedback.
+-#
+-# LICENSE
+-#
+-#   Copyright (c) 2009 Sebastian Huber <sebastian-huber@web.de>
+-#   Copyright (c) 2009 Alan W. Irwin
+-#   Copyright (c) 2009 Rafael Laboissiere <rafael@laboissiere.net>
+-#   Copyright (c) 2009 Andrew Collier
+-#   Copyright (c) 2009 Matteo Settenvini <matteo@member.fsf.org>
+-#   Copyright (c) 2009 Horst Knorr <hk_classes@knoda.org>
+-#   Copyright (c) 2013 Daniel Mullner <muellner@math.stanford.edu>
+-#
+-#   This program is free software: you can redistribute it and/or modify it
+-#   under the terms of the GNU General Public License as published by the
+-#   Free Software Foundation, either version 3 of the License, or (at your
+-#   option) any later version.
+-#
+-#   This program is distributed in the hope that it will be useful, but
+-#   WITHOUT ANY WARRANTY; without even the implied warranty of
+-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+-#   Public License for more details.
+-#
+-#   You should have received a copy of the GNU General Public License along
+-#   with this program. If not, see <http://www.gnu.org/licenses/>.
+-#
+-#   As a special exception, the respective Autoconf Macro's copyright owner
+-#   gives unlimited permission to copy, distribute and modify the configure
+-#   scripts that are the output of Autoconf when processing the Macro. You
+-#   need not follow the terms of the GNU General Public License when using
+-#   or distributing such scripts, even though portions of the text of the
+-#   Macro appear in them. The GNU General Public License (GPL) does govern
+-#   all other use of the material that constitutes the Autoconf Macro.
+-#
+-#   This special exception to the GPL applies to versions of the Autoconf
+-#   Macro released by the Autoconf Archive. When you make and distribute a
+-#   modified version of the Autoconf Macro, you may extend this special
+-#   exception to the GPL to apply to your modified version as well.
+-
+-#serial 16
+-
+-AU_ALIAS([AC_PYTHON_DEVEL], [AX_PYTHON_DEVEL])
+-AC_DEFUN([AX_PYTHON_DEVEL],[
+-	#
+-	# Allow the use of a (user set) custom python version
+-	#
+-	AC_ARG_VAR([PYTHON_VERSION],[The installed Python
+-		version to use, for example '2.3'. This string
+-		will be appended to the Python interpreter
+-		canonical name.])
+-
+-	AC_PATH_PROG([PYTHON],[python[$PYTHON_VERSION]])
+-	if test -z "$PYTHON"; then
+-	   AC_MSG_ERROR([Cannot find python$PYTHON_VERSION in your system path])
+-	   PYTHON_VERSION=""
+-	fi
+-
+-	#
+-	# Check for a version of Python >= 2.1.0
+-	#
+-	AC_MSG_CHECKING([for a version of Python >= '2.1.0'])
+-	ac_supports_python_ver=`$PYTHON -c "import sys; \
+-		ver = sys.version.split ()[[0]]; \
+-		print (ver >= '2.1.0')"`
+-	if test "$ac_supports_python_ver" != "True"; then
+-		if test -z "$PYTHON_NOVERSIONCHECK"; then
+-			AC_MSG_RESULT([no])
+-			AC_MSG_FAILURE([
+-This version of the AC@&t@_PYTHON_DEVEL macro
+-doesn't work properly with versions of Python before
+-2.1.0. You may need to re-run configure, setting the
+-variables PYTHON_CPPFLAGS, PYTHON_LDFLAGS, PYTHON_SITE_PKG,
+-PYTHON_EXTRA_LIBS and PYTHON_EXTRA_LDFLAGS by hand.
+-Moreover, to disable this check, set PYTHON_NOVERSIONCHECK
+-to something else than an empty string.
+-])
+-		else
+-			AC_MSG_RESULT([skip at user request])
+-		fi
+-	else
+-		AC_MSG_RESULT([yes])
+-	fi
+-
+-	#
+-	# if the macro parameter ``version'' is set, honour it
+-	#
+-	if test -n "$1"; then
+-		AC_MSG_CHECKING([for a version of Python $1])
+-		ac_supports_python_ver=`$PYTHON -c "import sys; \
+-			ver = sys.version.split ()[[0]]; \
+-			print (ver $1)"`
+-		if test "$ac_supports_python_ver" = "True"; then
+-		   AC_MSG_RESULT([yes])
+-		else
+-			AC_MSG_RESULT([no])
+-			AC_MSG_ERROR([this package requires Python $1.
+-If you have it installed, but it isn't the default Python
+-interpreter in your system path, please pass the PYTHON_VERSION
+-variable to configure. See ``configure --help'' for reference.
+-])
+-			PYTHON_VERSION=""
+-		fi
+-	fi
+-
+-	#
+-	# Check if you have distutils, else fail
+-	#
+-	AC_MSG_CHECKING([for the distutils Python package])
+-	ac_distutils_result=`$PYTHON -c "import distutils" 2>&1`
+-	if test -z "$ac_distutils_result"; then
+-		AC_MSG_RESULT([yes])
+-	else
+-		AC_MSG_RESULT([no])
+-		AC_MSG_ERROR([cannot import Python module "distutils".
+-Please check your Python installation. The error was:
+-$ac_distutils_result])
+-		PYTHON_VERSION=""
+-	fi
+-
+-	#
+-	# Check for Python include path
+-	#
+-	AC_MSG_CHECKING([for Python include path])
+-	if test -z "$PYTHON_CPPFLAGS"; then
+-		python_path=`$PYTHON -c "import distutils.sysconfig; \
+-			print (distutils.sysconfig.get_python_inc ());"`
+-		plat_python_path=`$PYTHON -c "import distutils.sysconfig; \
+-			print (distutils.sysconfig.get_python_inc (plat_specific=1));"`
+-		if test -n "${python_path}"; then
+-			if test "${plat_python_path}" != "${python_path}"; then
+-				python_path="-I$python_path -I$plat_python_path"
+-			else
+-				python_path="-I$python_path"
+-			fi
+-		fi
+-		PYTHON_CPPFLAGS=$python_path
+-	fi
+-	AC_MSG_RESULT([$PYTHON_CPPFLAGS])
+-	AC_SUBST([PYTHON_CPPFLAGS])
+-
+-	#
+-	# Check for Python library path
+-	#
+-	AC_MSG_CHECKING([for Python library path])
+-	if test -z "$PYTHON_LDFLAGS"; then
+-		# (makes two attempts to ensure we've got a version number
+-		# from the interpreter)
+-		ac_python_version=`cat<<EOD | $PYTHON -
+-
+-# join all versioning strings, on some systems
+-# major/minor numbers could be in different list elements
+-from distutils.sysconfig import *
+-e = get_config_var('VERSION')
+-if e is not None:
+-	print(e)
+-EOD`
+-
+-		if test -z "$ac_python_version"; then
+-			if test -n "$PYTHON_VERSION"; then
+-				ac_python_version=$PYTHON_VERSION
+-			else
+-				ac_python_version=`$PYTHON -c "import sys; \
+-					print (sys.version[[:3]])"`
+-			fi
+-		fi
+-
+-		# Make the versioning information available to the compiler
+-		AC_DEFINE_UNQUOTED([HAVE_PYTHON], ["$ac_python_version"],
+-                                   [If available, contains the Python version number currently in use.])
+-
+-		# First, the library directory:
+-		ac_python_libdir=`cat<<EOD | $PYTHON -
+-
+-# There should be only one
+-import distutils.sysconfig
+-e = distutils.sysconfig.get_config_var('LIBDIR')
+-if e is not None:
+-	print (e)
+-EOD`
+-
+-		# Now, for the library:
+-		ac_python_library=`cat<<EOD | $PYTHON -
+-
+-import distutils.sysconfig
+-c = distutils.sysconfig.get_config_vars()
+-if 'LDVERSION' in c:
+-	print ('python'+c[['LDVERSION']])
+-else:
+-	print ('python'+c[['VERSION']])
+-EOD`
+-
+-		# This small piece shamelessly adapted from PostgreSQL python macro;
+-		# credits goes to momjian, I think. I'd like to put the right name
+-		# in the credits, if someone can point me in the right direction... ?
+-		#
+-		if test -n "$ac_python_libdir" -a -n "$ac_python_library"
+-		then
+-			# use the official shared library
+-			ac_python_library=`echo "$ac_python_library" | sed "s/^lib//"`
+-			PYTHON_LDFLAGS="-L$ac_python_libdir -l$ac_python_library"
+-		else
+-			# old way: use libpython from python_configdir
+-			ac_python_libdir=`$PYTHON -c \
+-			  "from distutils.sysconfig import get_python_lib as f; \
+-			  import os; \
+-			  print (os.path.join(f(plat_specific=1, standard_lib=1), 'config'));"`
+-			PYTHON_LDFLAGS="-L$ac_python_libdir -lpython$ac_python_version"
+-		fi
+-
+-		if test -z "PYTHON_LDFLAGS"; then
+-			AC_MSG_ERROR([
+-  Cannot determine location of your Python DSO. Please check it was installed with
+-  dynamic libraries enabled, or try setting PYTHON_LDFLAGS by hand.
+-			])
+-		fi
+-	fi
+-	AC_MSG_RESULT([$PYTHON_LDFLAGS])
+-	AC_SUBST([PYTHON_LDFLAGS])
+-
+-	#
+-	# Check for site packages
+-	#
+-	AC_MSG_CHECKING([for Python site-packages path])
+-	if test -z "$PYTHON_SITE_PKG"; then
+-		PYTHON_SITE_PKG=`$PYTHON -c "import distutils.sysconfig; \
+-			print (distutils.sysconfig.get_python_lib(0,0));"`
+-	fi
+-	AC_MSG_RESULT([$PYTHON_SITE_PKG])
+-	AC_SUBST([PYTHON_SITE_PKG])
+-
+-	#
+-	# libraries which must be linked in when embedding
+-	#
+-	AC_MSG_CHECKING(python extra libraries)
+-	if test -z "$PYTHON_EXTRA_LIBS"; then
+-	   PYTHON_EXTRA_LIBS=`$PYTHON -c "import distutils.sysconfig; \
+-                conf = distutils.sysconfig.get_config_var; \
+-                print (conf('LIBS'))"`
+-	fi
+-	AC_MSG_RESULT([$PYTHON_EXTRA_LIBS])
+-	AC_SUBST(PYTHON_EXTRA_LIBS)
+-
+-	#
+-	# linking flags needed when embedding
+-	#
+-	AC_MSG_CHECKING(python extra linking flags)
+-	if test -z "$PYTHON_EXTRA_LDFLAGS"; then
+-		PYTHON_EXTRA_LDFLAGS=`$PYTHON -c "import distutils.sysconfig; \
+-			conf = distutils.sysconfig.get_config_var; \
+-			print (conf('LINKFORSHARED'))"`
+-	fi
+-	AC_MSG_RESULT([$PYTHON_EXTRA_LDFLAGS])
+-	AC_SUBST(PYTHON_EXTRA_LDFLAGS)
+-
+-	#
+-	# final check to see if everything compiles alright
+-	#
+-	AC_MSG_CHECKING([consistency of all components of python development environment])
+-	# save current global flags
+-	ac_save_LIBS="$LIBS"
+-	ac_save_CPPFLAGS="$CPPFLAGS"
+-	LIBS="$ac_save_LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+-	CPPFLAGS="$ac_save_CPPFLAGS $PYTHON_CPPFLAGS"
+-	AC_LANG_PUSH([C])
+-	AC_LINK_IFELSE([
+-		AC_LANG_PROGRAM([[#include <Python.h>]],
+-				[[Py_Initialize();]])
+-		],[pythonexists=yes],[pythonexists=no])
+-	AC_LANG_POP([C])
+-	# turn back to default flags
+-	CPPFLAGS="$ac_save_CPPFLAGS"
+-	LIBS="$ac_save_LIBS"
+-
+-	AC_MSG_RESULT([$pythonexists])
+-
+-        if test ! "x$pythonexists" = "xyes"; then
+-	   AC_MSG_FAILURE([
+-  Could not link test program to Python. Maybe the main Python library has been
+-  installed in some non-standard library path. If so, pass it to configure,
+-  via the LDFLAGS environment variable.
+-  Example: ./configure LDFLAGS="-L/usr/non-standard-path/python/lib"
+-  ============================================================================
+-   ERROR!
+-   You probably have to install the development version of the Python package
+-   for your distribution.  The exact name of this package varies among them.
+-  ============================================================================
+-	   ])
+-	  PYTHON_VERSION=""
+-	fi
+-
+-	#
+-	# all done!
+-	#
+-])
+diff --git a/m4/ax_ruby_ext.m4 b/m4/ax_ruby_ext.m4
+deleted file mode 100644
+index 8d5e5b0..0000000
+--- a/m4/ax_ruby_ext.m4
++++ /dev/null
+@@ -1,191 +0,0 @@
+-# ===========================================================================
+-#        http://www.gnu.org/software/autoconf-archive/ax_ruby_ext.html
+-# ===========================================================================
+-#
+-# SYNOPSIS
+-#
+-#   AX_RUBY_EXT
+-#
+-# DESCRIPTION
+-#
+-#   Fetches the linker flags and C compiler flags for compiling and linking
+-#   Ruby binary extensions.  The macro substitutes RUBY_VERSION,
+-#   RUBY_EXT_INC, RUBY_EXT_LIB, RUBY_EXT_CPPFLAGS, RUBY_EXT_LDFLAGS and
+-#   RUBY_EXT_DLEXT variables if Ruby executable has been found.  It also
+-#   checks the same variables before trying to retrieve them from the Ruby
+-#   configuration.
+-#
+-#     RUBY_VERSION: version of the Ruby interpreter
+-#     RUBY_EXT_INC: Ruby include directory
+-#     RUBY_EXT_LIB: Ruby extensions destination directory
+-#     RUBY_EXT_CPPFLAGS: C preprocessor flags to compile extensions
+-#     RUBY_EXT_LDFLAGS: linker flags to build extensions
+-#     RUBY_EXT_DLEXT: extensions suffix for ruby modules (e.g. "so")
+-#
+-#   Examples:
+-#
+-#     AX_RUBY_EXT
+-#     if test x"$RUBY" = x; then
+-#        AC_ERROR(["cannot find Ruby"])
+-#     fi
+-#
+-# LICENSE
+-#
+-#   Copyright (c) 2011 Stanislav Sedov <stas@FreeBSD.org>
+-#   Copyright (c) 2013 Robert Escriva <robert@hyperdex.org>
+-#
+-#   Redistribution and use in source and binary forms, with or without
+-#   modification, are permitted provided that the following conditions are
+-#   met:
+-#
+-#   1. Redistributions of source code must retain the above copyright
+-#
+-#      notice, this list of conditions and the following disclaimer.
+-#
+-#   2. Redistributions in binary form must reproduce the above copyright
+-#
+-#      notice, this list of conditions and the following disclaimer in the
+-#      documentation and/or other materials provided with the distribution.
+-#
+-#   THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+-#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+-#   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+-#   PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE
+-#   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+-#   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+-#   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+-#   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+-#   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+-#   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+-#   THE POSSIBILITY OF SUCH DAMAGE.
+-
+-#serial 1
+-
+-AC_DEFUN([AX_RUBY_EXT],[
+-
+-        #
+-        # Check if ruby executable exists.
+-        #
+-        AC_PATH_PROGS(RUBY, ["${RUBY-ruby}"], [])
+-
+-        if test -n "$RUBY" ; then
+-
+-                AC_MSG_NOTICE([Ruby executable: '$RUBY'])
+-
+-                #
+-                # Check Ruby version.
+-                #
+-                AC_MSG_CHECKING([for Ruby version])
+-                [RUBY_VERSION=`$RUBY -e 'puts RUBY_VERSION'`];
+-                AC_MSG_RESULT([$RUBY_VERSION])
+-                AC_SUBST(RUBY_VERSION)
+-
+-                #
+-                # Check for Ruby extensions include path.
+-                #
+-                AC_ARG_VAR(RUBY_EXT_INC, [Directory to include ruby headers from])
+-                AC_MSG_CHECKING([for Ruby headers include path])
+-                if test -z "$RUBY_EXT_INC" ; then
+-                        [RUBY_EXT_INC=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG["rubyhdrdir"]'`];
+-                fi
+-                AC_MSG_RESULT([$RUBY_EXT_INC])
+-                AC_SUBST(RUBY_EXT_INC)
+-
+-                #
+-                # Check for Ruby config.h include path.
+-                #
+-                AC_ARG_VAR(RUBY_EXT_ARCHINC, [Another directory to include ruby headers from])
+-                AC_MSG_CHECKING([for other Ruby headers include path])
+-                if test -z "$RUBY_EXT_ARCHINC" ; then
+-                        [RUBY_EXT_ARCHINC=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG["rubyhdrdir"] + "/" + RbConfig::CONFIG["arch"]'`];
+-                fi
+-                AC_MSG_RESULT([$RUBY_EXT_ARCHINC])
+-                AC_SUBST(RUBY_EXT_ARCHINC)
+-
+-                #
+-                # Check for Ruby CPP flags.
+-                #
+-                AC_ARG_VAR(RUBY_EXT_CPPFLAGS, [CPPFLAGS to compile Ruby extensions])
+-                AC_MSG_CHECKING([for Ruby extensions C preprocessor flags])
+-                if test -z "$RUBY_EXT_CPPFLAGS" ; then
+-                        [RUBY_EXT_CPPFLAGS=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG["CPPFLAGS"]'`];
+-                fi
+-                AC_MSG_RESULT([$RUBY_EXT_CPPFLAGS])
+-                AC_SUBST(RUBY_EXT_CPPFLAGS)
+-
+-                #
+-                # Check for Ruby extensions link flags.
+-                #
+-                AC_ARG_VAR(RUBY_EXT_LDFLAGS, [LDFLAGS to build Ruby extensions])
+-                AC_MSG_CHECKING([for Ruby extensions linker flags])
+-                if test -z "$RUBY_EXT_LDFLAGS" ; then
+-                        [RUBY_EXT_LDFLAGS=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG["LDFLAGS"]'`];
+-                fi
+-                # Fix LDFLAGS for OS X.  We don't want any -arch flags here, otherwise
+-                # linking might fail.  We also including the proper flags to create a bundle.
+-                case "$host" in
+-                *darwin*)
+-                        RUBY_EXT_LDFLAGS=`echo ${RUBY_EXT_LDFLAGS} | sed -e "s,-arch [[^ ]]*,,g"`
+-                        RUBY_EXT_LDFLAGS="${RUBY_EXT_LDFLAGS} -bundle -undefined dynamic_lookup"
+-                        ;;
+-                esac
+-                AC_MSG_RESULT([$RUBY_EXT_LDFLAGS])
+-                AC_SUBST(RUBY_EXT_LDFLAGS)
+-
+-                #
+-                # Check for Ruby dynamic library extension.
+-                #
+-                AC_ARG_VAR(RUBY_EXT_DLEXT, [Ruby dynamic library extension])
+-                AC_MSG_CHECKING([for Ruby dynamic library extension])
+-                if test -z "$RUBY_EXT_DLEXT" ; then
+-                        [RUBY_EXT_DLEXT=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG["DLEXT"]'`];
+-                        RUBY_EXT_DLEXT=".${RUBY_EXT_DLEXT}"
+-                fi
+-                AC_MSG_RESULT([$RUBY_EXT_DLEXT])
+-                AC_SUBST(RUBY_EXT_DLEXT)
+-
+-                #
+-                # Check for the site arch dir
+-                #
+-                AC_ARG_VAR(RUBY_EXT_SITEARCH, [Ruby site arch dir])
+-                AC_MSG_CHECKING([for Ruby extensions site arch dir])
+-                if test -z "$RUBY_EXT_SITEARCH" ; then
+-                    [RUBY_EXT_SITEARCH=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG["sitearchdir"]'`];
+-                elif test -z "$RUBY_EXT_LIB" ; then
+-                    [RUBY_EXT_LIB="${RUBY_EXT_SITEARCH}"];
+-                fi
+-                AC_MSG_RESULT([$RUBY_EXT_SITEARCH])
+-                AC_SUBST(RUBY_EXT_SITEARCH)
+-
+-                #
+-                # Check for the vendor arch dir
+-                #
+-                AC_ARG_VAR(RUBY_EXT_VENDORARCH, [Ruby vendor arch dir])
+-                AC_MSG_CHECKING([for Ruby extensions vendor arch dir])
+-                if test -z "$RUBY_EXT_VENDORARCH" ; then
+-                    [RUBY_EXT_VENDORARCH=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG["vendorarchdir"]'`];
+-                elif test -z "$RUBY_EXT_LIB" ; then
+-                    [RUBY_EXT_LIB="$RUBY_EXT_VENDORARCH"];
+-                fi
+-                AC_MSG_RESULT([$RUBY_EXT_VENDORARCH])
+-                AC_SUBST(RUBY_EXT_VENDORARCH)
+-
+-                AC_ARG_VAR(RUBY_EXT_LIB, [Ruby extension dir])
+-                if test -z "$RUBY_EXT_LIB" ; then
+-                     test "_$prefix" = _NONE && prefix="$ac_default_prefix"
+-                     if echo $RUBY_EXT_VENDORARCH | sed -e "s:^${prefix}:.:" | grep '^\.' >/dev/null; then
+-                         RUBY_EXT_LIB='$(prefix)'/`echo $RUBY_EXT_VENDORARCH | sed -e "s:^${prefix}:.:"`
+-                     elif echo $RUBY_EXT_SITEARCH | sed -e "s:^${prefix}:.:" | grep '^\.' >/dev/null; then
+-                         RUBY_EXT_LIB='$(prefix)'/`echo $RUBY_EXT_SITEARCH | sed -e "s:^${prefix}:.:"`
+-                     fi
+-                fi
+-                if test -z "$RUBY_EXT_LIB" ; then
+-                    AC_MSG_ERROR([
+--------------------------------------------------
+-Could not auto-detect the Ruby extension dir
+-Set RUBY_EXT_SITEARCH or RUBY_EXT_VENDORARCH
+--------------------------------------------------])
+-                fi
+-                AC_SUBST(RUBY_EXT_LIB)
+-        fi
+-])
+diff --git a/man/hyperdex-migrate-data.1.md b/man/hyperdex-migrate-data.1.md
+new file mode 100644
+index 0000000..f347bcc
+--- /dev/null
++++ b/man/hyperdex-migrate-data.1.md
+@@ -0,0 +1,23 @@
++.TH  "" "" 
++[NAME]
++[SYNOPSIS]
++[DESCRIPTION]
++[OPTIONS]
++[ENVIRONMENT]
++[FILES]
++[EXAMPLES]
++[AUTHORS]
++
++HyperDex is an open source project started by Cornell University and
++currently maintained by Cornell University and United Networks, LLC.
++For a complete list of contributors, see the AUTHORS file included in
++the HyperDex distribution.
++[REPORTING BUGS]
++
++Report bugs to the HyperDex mailing list
++<hyperdex-discuss@googlegroups.com> where the developers can help
++troubleshoot problems and file bug reports.
++[COPYRIGHT]
++
++Copyright (c) 2011-2013, The HyperDex Authors
++[SEE ALSO]
+diff --git a/test-driver b/test-driver
+new file mode 100755
+index 0000000..32bf39e
+--- /dev/null
++++ b/test-driver
+@@ -0,0 +1,127 @@
++#! /bin/sh
++# test-driver - basic testsuite driver script.
++
++scriptversion=2012-06-27.10; # UTC
++
++# Copyright (C) 2011-2013 Free Software Foundation, Inc.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2, or (at your option)
++# any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program.  If not, see <http://www.gnu.org/licenses/>.
++
++# As a special exception to the GNU General Public License, if you
++# distribute this file as part of a program that contains a
++# configuration script generated by Autoconf, you may include it under
++# the same distribution terms that you use for the rest of that program.
++
++# This file is maintained in Automake, please report
++# bugs to <bug-automake@gnu.org> or send patches to
++# <automake-patches@gnu.org>.
++
++# Make unconditional expansion of undefined variables an error.  This
++# helps a lot in preventing typo-related bugs.
++set -u
++
++usage_error ()
++{
++  echo "$0: $*" >&2
++  print_usage >&2
++  exit 2
++}
++
++print_usage ()
++{
++  cat <<END
++Usage:
++  test-driver --test-name=NAME --log-file=PATH --trs-file=PATH
++              [--expect-failure={yes|no}] [--color-tests={yes|no}]
++              [--enable-hard-errors={yes|no}] [--] TEST-SCRIPT
++The '--test-name', '--log-file' and '--trs-file' options are mandatory.
++END
++}
++
++# TODO: better error handling in option parsing (in particular, ensure
++# TODO: $log_file, $trs_file and $test_name are defined).
++test_name= # Used for reporting.
++log_file=  # Where to save the output of the test script.
++trs_file=  # Where to save the metadata of the test run.
++expect_failure=no
++color_tests=no
++enable_hard_errors=yes
++while test $# -gt 0; do
++  case $1 in
++  --help) print_usage; exit $?;;
++  --version) echo "test-driver $scriptversion"; exit $?;;
++  --test-name) test_name=$2; shift;;
++  --log-file) log_file=$2; shift;;
++  --trs-file) trs_file=$2; shift;;
++  --color-tests) color_tests=$2; shift;;
++  --expect-failure) expect_failure=$2; shift;;
++  --enable-hard-errors) enable_hard_errors=$2; shift;;
++  --) shift; break;;
++  -*) usage_error "invalid option: '$1'";;
++  esac
++  shift
++done
++
++if test $color_tests = yes; then
++  # Keep this in sync with 'lib/am/check.am:$(am__tty_colors)'.
++  red='[0;31m' # Red.
++  grn='[0;32m' # Green.
++  lgn='[1;32m' # Light green.
++  blu='[1;34m' # Blue.
++  mgn='[0;35m' # Magenta.
++  std='[m'     # No color.
++else
++  red= grn= lgn= blu= mgn= std=
++fi
++
++do_exit='rm -f $log_file $trs_file; (exit $st); exit $st'
++trap "st=129; $do_exit" 1
++trap "st=130; $do_exit" 2
++trap "st=141; $do_exit" 13
++trap "st=143; $do_exit" 15
++
++# Test script is run here.
++"$@" >$log_file 2>&1
++estatus=$?
++if test $enable_hard_errors = no && test $estatus -eq 99; then
++  estatus=1
++fi
++
++case $estatus:$expect_failure in
++  0:yes) col=$red res=XPASS recheck=yes gcopy=yes;;
++  0:*)   col=$grn res=PASS  recheck=no  gcopy=no;;
++  77:*)  col=$blu res=SKIP  recheck=no  gcopy=yes;;
++  99:*)  col=$mgn res=ERROR recheck=yes gcopy=yes;;
++  *:yes) col=$lgn res=XFAIL recheck=no  gcopy=yes;;
++  *:*)   col=$red res=FAIL  recheck=yes gcopy=yes;;
++esac
++
++# Report outcome to console.
++echo "${col}${res}${std}: $test_name"
++
++# Register the test result, and other relevant metadata.
++echo ":test-result: $res" > $trs_file
++echo ":global-test-result: $res" >> $trs_file
++echo ":recheck: $recheck" >> $trs_file
++echo ":copy-in-global-log: $gcopy" >> $trs_file
++
++# Local Variables:
++# mode: shell-script
++# sh-indentation: 2
++# eval: (add-hook 'write-file-hooks 'time-stamp)
++# time-stamp-start: "scriptversion="
++# time-stamp-format: "%:y-%02m-%02d.%02H"
++# time-stamp-time-zone: "UTC"
++# time-stamp-end: "; # UTC"
++# End:
+diff --git a/test/migration-test.cc b/test/migration-test.cc
+new file mode 100644
+index 0000000..ffe109c
+--- /dev/null
++++ b/test/migration-test.cc
+@@ -0,0 +1,305 @@
++// Copyright (c) 2014, Cornell University
++// All rights reserved.
++//
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++//
++//     * Redistributions of source code must retain the above copyright notice,
++//       this list of conditions and the following disclaimer.
++//     * Redistributions in binary form must reproduce the above copyright
++//       notice, this list of conditions and the following disclaimer in the
++//       documentation and/or other materials provided with the distribution.
++//     * Neither the name of HyperDex nor the names of its contributors may be
++//       used to endorse or promote products derived from this software without
++//       specific prior written permission.
++//
++// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
++// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++// POSSIBILITY OF SUCH DAMAGE.
++
++#include <unistd.h>
++
++// STL
++#include <memory>
++
++// e
++#include <e/slice.h>
++
++// po6
++#include <po6/error.h>
++
++// armnod
++#include "ygor.h"
++
++// HyperDex
++#include <hyperdex/admin.hpp>
++#include <hyperdex/client.hpp>
++#include <hyperdex/datastructures.h>
++
++const char *_space_from_name = "profiles";
++const char *_space_from_description = "space profiles \
++key username \
++attributes \
++    string name, \
++    float height, \
++    int profile_views";
++const char *_space_to_name = "profiles2";
++const char *_space_to_description = "space profiles2 \
++key username \
++attributes \
++    string name, \
++    float height, \
++    int profile_views";
++
++static bool _quiet = false;
++static int _testno = 0;
++static hyperdex::Client *_cl = NULL;
++static hyperdex::Admin *_ad = NULL;
++
++static void test0();
++static void add_space();
++static void remove_space();
++
++int
++main(int argc, const char *argv[])
++{
++    try {
++        // TODO: make the host and port customizable
++        hyperdex::Client cl("127.0.0.1", 1982);
++        _cl = &cl;
++        hyperdex::Admin ad("127.0.0.1", 1982);
++        _ad = &ad;
++
++        test0();
++
++        return EXIT_SUCCESS;
++    } catch (po6::error &e) {
++        std::cerr << "system error: " << e.what() << std::endl;
++        return EXIT_FAILURE;
++    }
++}
++
++static void
++success()
++{
++    if (!_quiet) std::cout << "Test " << _testno << ":  [\x1b[32mOK\x1b[0m]\n";
++}
++
++#define FAIL(REASON) \
++    do { \
++        if (!_quiet) std::cout << "Test " << _testno << ":  [\x1b[31mFAIL\x1b[0m]\n" \
++                                   << "location: " << __FILE__ << ":" << __LINE__ << "\n" \
++                                   << "reason:  " << REASON << "\n"; \
++        abort(); \
++    } while (0)
++
++static void
++setup_space()
++{
++    hyperdex_admin_returncode status;
++    if (_ad->add_space(_space_from_description, &status) < 0) {
++        FAIL("admin operation failed: " << status);
++    }
++    if (_ad->add_space(_space_to_description, &status) < 0) {
++        FAIL("admin operation failed: " << status);
++    }
++}
++
++static void
++remove_space()
++{
++    hyperdex_admin_returncode status;
++    if (_ad->rm_space(_space_from_name, &status) < 0) {
++        FAIL("admin operation failed: " << status);
++    }
++
++    if (_ad->rm_space(_space_to_name, &status) < 0) {
++        FAIL("admin operation failed: " << status);
++    }
++}
++
++static armnod_generator *
++get_random_generator(const char *method,
++                     const char *charset)
++{
++    armnod_config *config = armnod_config_create();
++    if (armnod_config_method(config, method) < 0) goto wrong_config;
++    if (armnod_config_charset(config, charset) < 0) goto wrong_config;
++    if (armnod_config_set_size(config, 1024) < 0) goto wrong_config;
++
++    {
++        armnod_generator *gen(armnod_generator_create(config));
++        armnod_generator_seed(gen, 0);
++        return gen;
++    }
++
++wrong_config:
++    FAIL("armnod_config received a wrong parameter.");
++}
++
++static void
++add_data(const char *space_name, uint64_t num_objects)
++{
++    armnod_generator *alpha_gen = get_random_generator("normal", "alpha");
++    armnod_generator *digit_gen = get_random_generator("normal", "digit");
++
++    const char *key_format = "object_%lu";
++    for (size_t i = 0; i < num_objects; i++) {
++        char key[20] = {0};
++        snprintf(key, 19, key_format, i);
++        size_t key_sz = strlen(key);
++
++        hyperdex_client_attribute attrs[3];
++
++        size_t attrs_sz = 0;
++
++        attrs[0].attr = "name";
++        attrs[0].value = armnod_generate(alpha_gen);
++        attrs[0].value_sz = strlen(attrs[0].value);
++        attrs[0].datatype = HYPERDATATYPE_STRING;
++
++        attrs[1].attr = "height";
++        double valf = atof(armnod_generate(digit_gen));
++        char buff[8] = {0};
++        hyperdex_ds_pack_float(valf, buff);
++        attrs[1].value = buff;
++        attrs[1].value_sz = 8;
++        attrs[1].datatype = HYPERDATATYPE_FLOAT;
++
++        attrs[2].attr = "profile_views";
++        int64_t vali = atoi(armnod_generate(digit_gen));
++        char bufi[8] = {0};
++        hyperdex_ds_pack_int(vali, bufi);
++        attrs[2].value = bufi;
++        attrs[2].value_sz = 8;
++        attrs[2].datatype = HYPERDATATYPE_INT64;
++
++        hyperdex_client_returncode op_status;
++        if (_cl->put(space_name, key, key_sz, attrs, 3, &op_status) < 0) {
++            FAIL("client operation failed: " << op_status);
++        }
++
++        hyperdex_client_returncode loop_status;
++        if (_cl->loop(-1, &loop_status) < 0) {
++            FAIL("client operation failed: " << loop_status);
++        }
++    }
++}
++
++inline static void
++check_attr(const hyperdex_client_attribute *attr,
++           const char *name,
++           const char *value,
++           hyperdatatype datatype)
++{
++    if (strcmp(attr->attr, name) != 0)
++        FAIL("presence check: attribute is \"" << attr->attr << "\" instead of \"name\"");
++
++    if (attr->datatype != datatype)
++        FAIL("presence check: attribute is not of datatype \"string\"");
++
++    switch (datatype) {
++    case HYPERDATATYPE_STRING: {
++        std::string str(attr->value, attr->value_sz);
++        if (str.compare(value) != 0)
++            FAIL("presence check: attribute has the value \""
++                 << str << "\" instead of \"" << value << "\"");
++        break;
++    }
++    case HYPERDATATYPE_INT64: {
++        int64_t num;
++        hyperdex_ds_unpack_int(attr->value, attr->value_sz, &num);
++        int64_t val_int = atoi(value);
++        if (num != val_int)
++            FAIL("presence check: attribute has the value \""
++                 << num << "\" instead of \"" << val_int << "\"");
++        break;
++    }
++    case HYPERDATATYPE_FLOAT: {
++        double num;
++        hyperdex_ds_unpack_float(attr->value, attr->value_sz, &num);
++        double val_float = atof(value);
++        if (num != val_float)
++            FAIL("presence check: attribute has the value \""
++                 << num << "\" instead of \"" << val_float << "\"");
++        break;
++    }
++    default:
++        FAIL("Unknown datatype " << datatype);
++    }
++}
++
++static void
++read_and_verify_data(const char *space_name, uint64_t num_objects)
++{
++    armnod_generator *alpha_gen = get_random_generator("normal", "alpha");
++    armnod_generator *digit_gen = get_random_generator("normal", "digit");
++
++    const char *key_format = "object_%lu";
++    for (size_t i = 0; i < num_objects; i++) {
++        char key[20] = {0};
++        snprintf(key, 19, key_format, i);
++        size_t key_sz = strlen(key);
++
++        const hyperdex_client_attribute *attrs;
++        size_t attrs_sz;
++
++        hyperdex_client_returncode get_status;
++        int64_t gid = _cl->get(space_name, key, key_sz, &get_status, &attrs, &attrs_sz);
++        if (gid < 0) {
++            FAIL("get encountered error: " << get_status);
++        }
++
++        hyperdex_client_returncode loop_status;
++        int64_t lid = _cl->loop(10000, &loop_status);
++        if (lid < 0) {
++            FAIL("loop encountered error: " << loop_status);
++        }
++
++        if (gid != lid)
++            FAIL("loop id (" << lid << ") does not match get id (" << gid << ")");
++
++        if (get_status != HYPERDEX_CLIENT_SUCCESS)
++            FAIL("operation " << gid << " (a presence check) returned " << get_status);
++
++        check_attr(&attrs[0], "name", armnod_generate(alpha_gen), HYPERDATATYPE_STRING);
++        check_attr(&attrs[1], "height", armnod_generate(digit_gen), HYPERDATATYPE_FLOAT);
++        check_attr(&attrs[2], "profile_views", armnod_generate(digit_gen), HYPERDATATYPE_INT64);
++    }
++
++    // armnod_config_destroy(alpha_gen->config);
++    armnod_generator_destroy(alpha_gen);
++    // armnod_config_destroy(digit_gen->config);
++    armnod_generator_destroy(digit_gen);
++}
++
++static uint64_t num_objects = 100000;
++
++static void
++test0()
++{
++    setup_space();
++
++    add_data(_space_from_name, num_objects);
++
++    hyperdex_admin_returncode status;
++    if (_ad->migrate_data(_space_from_name, _space_to_name, &status) < 0) {
++        FAIL("migration failure: " << status);
++    }
++
++    std::cout << "Sleeping for 20 seconds for the migration to complete...\n";
++    usleep(20 * 1000 * 1000);
++
++    read_and_verify_data(_space_to_name, num_objects);
++
++    remove_space();
++    success();
++}
+diff --git a/tools/migrate-data.cc b/tools/migrate-data.cc
+new file mode 100644
+index 0000000..9d247d3
+--- /dev/null
++++ b/tools/migrate-data.cc
+@@ -0,0 +1,102 @@
++// Copyright (c) 2012, Cornell University
++// All rights reserved.
++//
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++//
++//     * Redistributions of source code must retain the above copyright notice,
++//       this list of conditions and the following disclaimer.
++//     * Redistributions in binary form must reproduce the above copyright
++//       notice, this list of conditions and the following disclaimer in the
++//       documentation and/or other materials provided with the distribution.
++//     * Neither the name of Replicant nor the names of its contributors may be
++//       used to endorse or promote products derived from this software without
++//       specific prior written permission.
++//
++// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
++// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++// POSSIBILITY OF SUCH DAMAGE.
++
++// C
++#include <cstdlib>
++#include <string.h>
++
++// HyperDex
++#include <hyperdex/admin.hpp>
++#include "tools/common.h"
++
++int
++main(int argc, const char* argv[])
++{
++    hyperdex::connect_opts conn;
++    e::argparser ap;
++    ap.autohelp();
++    ap.add("Connect to a cluster:", conn.parser());
++
++    if (!ap.parse(argc, argv))
++    {
++        return EXIT_FAILURE;
++    }
++
++    if (!conn.validate())
++    {
++        std::cerr << "invalid host:port specification\n" << std::endl;
++        ap.usage();
++        return EXIT_FAILURE;
++    }
++
++    try
++    {
++        if (ap.args_sz() != 2) {
++            std::cerr << "invalid arguments: expecting exactly two space names\n" << std::endl;
++            ap.usage();
++            return EXIT_FAILURE;
++        }
++
++
++
++        hyperdex::Admin h(conn.host(), conn.port());
++        hyperdex_admin_returncode rrc;
++
++        int64_t rid = h.migrate_data(ap.args()[0], ap.args()[1], &rrc);
++
++        if (rid < 0)
++        {
++            std::cerr << "could not migrate data: " << h.error_message() << std::endl;
++            return EXIT_FAILURE;
++        }
++
++        hyperdex_admin_returncode lrc;
++        int64_t lid = h.loop(-1, &lrc);
++
++        if (lid < 0)
++        {
++            std::cerr << "could not migrate data: " << h.error_message() << std::endl;
++            return EXIT_FAILURE;
++        }
++
++        assert(rid == lid);
++
++        if (rrc != HYPERDEX_ADMIN_SUCCESS)
++        {
++            std::cerr << "could not migrate_data: " << h.error_message() << std::endl;
++            return EXIT_FAILURE;
++        }
++
++        std::cout << "migration in process..." << std::endl;
++        return EXIT_SUCCESS;
++    }
++    catch (std::exception& e)
++    {
++        std::cerr << "error: " << e.what() << std::endl;
++        return EXIT_FAILURE;
++    }
++}

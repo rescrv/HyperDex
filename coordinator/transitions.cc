@@ -210,8 +210,8 @@ hyperdex_coordinator_migrate_data(struct replicant_state_machine_context* ctx,
         space_from.data()[space_from.size() - 1] != '\0' ||
         space_to.data()[space_to.size() - 1] != '\0')
     {
-        fprintf(log, "received malformed \"migrate_data\" message\n"); \
-        return generate_response(ctx, hyperdex::COORD_MALFORMED); \
+        fprintf(log, "received malformed \"migrate_data\" message\n");
+        return generate_response(ctx, hyperdex::COORD_MALFORMED);
     }
 
     c->new_migration(ctx,

@@ -212,10 +212,10 @@ admin :: migrate_data(const char* space_from, const char* space_to,
     size_t total_sz = sizeof(uint32_t) * 2 + space_from_sz + space_to_sz;
     std::vector<char> buf(total_sz);
     char* pos = &buf[0];
-    pos = e::pack64be(space_from_sz, pos);
+    pos = e::pack32be(space_from_sz, pos);
     memcpy(pos, space_from, space_from_sz);
     pos += space_from_sz;
-    pos = e::pack64be(space_to_sz, pos);
+    pos = e::pack32be(space_to_sz, pos);
     memcpy(pos, space_to, space_to_sz);
 
     int64_t cid = m_coord.rpc("migrate", &buf[0], total_sz,
