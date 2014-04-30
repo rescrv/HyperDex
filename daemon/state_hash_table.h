@@ -84,6 +84,7 @@ class state_hash_table<K, T, H>::state_reference
     public:
         void lock(state_hash_table* sht, e::intrusive_ptr<T> state);
         void unlock();
+        bool locked();
 
     private:
         state_reference(state_reference&);
@@ -106,7 +107,7 @@ class state_hash_table<K, T, H>::iterator
         bool valid() { return m_iter != m_sht->m_table.end(); }
         T* operator * () { return m_iter->second.get(); }
         T* operator -> () { return m_iter->second.get(); }
-        iterator& operator ++ () { ++m_iter; return *this; }
+        iterator& operator ++ ();
 
     private:
         state_hash_table* m_sht;
@@ -261,6 +262,44 @@ state_hash_table<K, T, H> :: state_reference :: unlock()
     m_sht = NULL;
     m_state = NULL;
     m_locked = false;
+}
+
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+bool
+state_hash_table<K, T, H> :: state_reference :: locked()
+{
+    return m_locked;
+}
+
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+typename state_hash_table<K, T, H>::iterator&
+state_hash_table<K, T, H> :: iterator :: operator ++ ()
+{
+    if (m_iter != m_sht->m_table.end() && m_sr.locked())
+    {
+        m_sr.unlock();
+    }
+
+    ++m_iter;
+
+    while (true)
+    {
+        if (m_iter == m_sht->m_table.end())
+        {
+            return *this;
+        }
+
+        m_sr.lock(m_sht, m_iter->second);
+
+        if (m_iter->second->marked_garbage())
+        {
+            m_sr.unlock();
+            ++m_iter;
+            continue;
+        }
+
+        return *this;
+    }
 }
 
 END_HYPERDEX_NAMESPACE
