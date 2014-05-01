@@ -163,8 +163,13 @@ state_hash_table<K, T, H> :: get_state(const K& key, state_reference* sr)
         }
 
         sr->lock(this, t);
+        e::intrusive_ptr<T> u;
 
-        if (t->marked_garbage())
+        // check the get
+        // this is necessary
+        // if you don't know why, don't change this code
+
+        if (t->marked_garbage() || !m_table.get(key, &u) || u != t)
         {
             sr->unlock();
             continue;
@@ -180,24 +185,40 @@ state_hash_table<K, T, H> :: get_or_create_state(const K& key, state_reference* 
 {
     while (true)
     {
+        bool locked = false;
         e::intrusive_ptr<T> t;
 
-        if (!m_table.get(key, &t))
+        if (m_table.get(key, &t))
         {
+            sr->lock(this, t);
+            locked = true;
+        }
+        else
+        {
+            assert(!t);
             t = new T(key);
+            sr->lock(this, t);
+            locked = true;
 
             if (!m_table.put_ine(key, t))
             {
+                sr->unlock();
+                locked = false;
                 continue;
             }
         }
-        // else, have it
 
-        sr->lock(this, t);
+        assert(t);
+        assert(locked);
+        e::intrusive_ptr<T> u;
 
-        if (t->marked_garbage())
+        if (t->marked_garbage() || !m_table.get(key, &u) || u != t)
         {
-            sr->unlock();
+            if (locked)
+            {
+                sr->unlock();
+            }
+
             continue;
         }
 
@@ -289,9 +310,11 @@ state_hash_table<K, T, H> :: iterator :: operator ++ ()
             return *this;
         }
 
-        m_sr.lock(m_sht, m_iter->second);
+        e::intrusive_ptr<T> t = m_iter->second;
+        m_sr.lock(m_sht, t);
+        e::intrusive_ptr<T> u;
 
-        if (m_iter->second->marked_garbage())
+        if (t->marked_garbage() || !m_sht->m_table.get(m_iter->first, &u) || u != t)
         {
             m_sr.unlock();
             ++m_iter;
