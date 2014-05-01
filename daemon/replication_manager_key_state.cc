@@ -61,6 +61,8 @@ replication_manager :: key_state :: key_state(const key_region& kr)
 
 replication_manager :: key_state :: ~key_state() throw ()
 {
+    m_lock.lock();
+    m_lock.unlock();
 }
 
 key_region
