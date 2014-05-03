@@ -74,6 +74,7 @@ static jmethodID _double_doubleValue;
 static jclass _list;
 static jmethodID _list_iterator;
 static jmethodID _list_get;
+static jmethodID _list_size;
 
 static jclass _array_list;
 static jmethodID _array_list_init;
@@ -188,6 +189,7 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     REF(_list, (*env)->FindClass(env, "java/util/List"));
     _list_iterator = (*env)->GetMethodID(env, _list, "iterator", "()Ljava/util/Iterator;");
     _list_get = (*env)->GetMethodID(env, _list, "get", "(I)Ljava/lang/Object;");
+    _list_size = (*env)->GetMethodID(env, _list, "size", "()I");
     /* cache class ArrayList */
     REF(_array_list, (*env)->FindClass(env, "java/util/ArrayList"));
     _array_list_init = (*env)->GetMethodID(env, _array_list, "<init>", "()V");
@@ -280,6 +282,7 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     CHECK_CACHE(_list);
     CHECK_CACHE(_list_iterator);
     CHECK_CACHE(_list_get);
+    CHECK_CACHE(_list_size);
     CHECK_CACHE(_array_list);
     CHECK_CACHE(_array_list_init);
     CHECK_CACHE(_array_list_add);
@@ -1316,6 +1319,48 @@ hyperdex_java_client_convert_predicates(JNIEnv* env, jobject client,
 }
 
 static int
+hyperdex_java_client_convert_attributenames(JNIEnv* env, jobject client,
+                                            struct hyperdex_ds_arena* arena,
+                                            jobject attrs,
+                                            const char*** names, size_t* names_sz)
+{
+    size_t idx = 0;
+    jobject entry;
+    jobject it = (*env)->CallObjectMethod(env, attrs, _list_iterator);
+    ERROR_CHECK(-1);
+    *names_sz = (*env)->CallIntMethod(env, attrs, _list_size);
+    ERROR_CHECK(-1);
+    *names = hyperdex_ds_malloc(arena, sizeof(char*) * (*names_sz));
+
+    if (!(*names))
+    {
+        hyperdex_java_out_of_memory(env);
+        return -1;
+    }
+
+    idx = 0;
+
+    while ((*env)->CallIntMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
+    {
+        entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
+        ERROR_CHECK(-1);
+        (*names)[idx] = hyperdex_java_client_convert_cstring(env, arena, entry);
+
+        if (!(*names)[idx])
+        {
+            return -1;
+        }
+
+        (*env)->DeleteLocalRef(env, entry);
+        ++idx;
+    }
+
+    (*env)->DeleteLocalRef(env, it);
+    (void) client;
+    return 0;
+}
+
+static int
 hyperdex_java_client_convert_sortby(JNIEnv* env, jobject client,
                                     struct hyperdex_ds_arena* arena,
                                     jstring str,
@@ -1403,6 +1448,9 @@ hyperdex_java_client_build_attribute(JNIEnv* env,
 
             BUILD_FLOAT(tmp, tmp_d);
             return tmp;
+        case HYPERDATATYPE_DOCUMENT:
+            hyperdex_java_client_throw_exception(env, HYPERDEX_CLIENT_WRONGTYPE, "Java bindings do not support JSON objects");
+            return 0;
         case HYPERDATATYPE_LIST_STRING:
             hyperdex_ds_iterator_init(&iter, attr->datatype, attr->value, attr->value_sz);
             ret = (*env)->NewObject(env, _array_list, _array_list_init);

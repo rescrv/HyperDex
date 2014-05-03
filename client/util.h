@@ -52,6 +52,15 @@ value_to_attributes(const configuration& config,
                     const hyperdex_client_attribute** attrs,
                     size_t* attrs_sz);
 
+bool
+value_to_attributes(const configuration& config,
+                    const region_id& rid,
+                    const std::vector<std::pair<uint16_t, e::slice> >& value,
+                    hyperdex_client_returncode* op_status,
+                    e::error* op_error,
+                    const hyperdex_client_attribute** attrs,
+                    size_t* attrs_sz);
+
 END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_util_h_

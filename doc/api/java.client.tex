@@ -77,6 +77,63 @@ public Deferred async_get(
 
 \paragraph{See also:}  This is the asynchronous form of \code{get}.
 
+%%%%%%%%%%%%%%%%%%%% get_partial %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{get\_partial}}
+\label{api:java:get_partial}
+\index{get\_partial!Java API}
+\input{\topdir/api/desc/get_partial}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Map<String, Object> get_partial(
+        String spacename,
+        Object key,
+        List<String> attributenames) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{List<String> attributenames}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributenames}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_attributes}
+
+\pagebreak
+\subsubsection{\code{async\_get\_partial}}
+\label{api:java:async_get_partial}
+\index{async\_get\_partial!Java API}
+\input{\topdir/api/desc/get_partial}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_get_partial(
+        String spacename,
+        Object key,
+        List<String> attributenames) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{List<String> attributenames}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributenames}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_attributes}
+
+\paragraph{See also:}  This is the asynchronous form of \code{get\_partial}.
+
 %%%%%%%%%%%%%%%%%%%% put %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{put}}

@@ -29,6 +29,7 @@
 
 package org.hyperdex.client;
 
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -111,6 +112,12 @@ public class Client
     public Map<String, Object> get(String spacename, Object key) throws HyperDexClientException
     {
         return (Map<String, Object>) async_get(spacename, key).waitForIt();
+    }
+
+    public native Deferred async_get_partial(String spacename, Object key, List<String> attributenames) throws HyperDexClientException;
+    public Map<String, Object> get_partial(String spacename, Object key, List<String> attributenames) throws HyperDexClientException
+    {
+        return (Map<String, Object>) async_get_partial(spacename, key, attributenames).waitForIt();
     }
 
     public native Deferred async_put(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;

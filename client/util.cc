@@ -117,3 +117,68 @@ hyperdex :: value_to_attributes(const configuration& config,
     g.dismiss();
     return true;
 }
+
+bool
+hyperdex :: value_to_attributes(const configuration& config,
+                                const region_id& rid,
+                                const std::vector<std::pair<uint16_t, e::slice> >& value,
+                                hyperdex_client_returncode* op_status,
+                                e::error* op_error,
+                                const hyperdex_client_attribute** attrs,
+                                size_t* attrs_sz)
+{
+    const schema* sc = config.get_schema(rid);
+    size_t sz = sizeof(hyperdex_client_attribute) * value.size()
+              + strlen(sc->attrs[0].name) + 1;
+
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        uint16_t attr = value[i].first;
+
+        if (attr >= sc->attrs_sz)
+        {
+            UTIL_ERROR(SERVERERROR) << "received object with attribute " << value[i].first
+                                    << " which exceeds the number of attributes in the schema ("
+                                    << sc->attrs_sz << ")";
+            return false;
+        }
+
+        sz += strlen(sc->attrs[attr].name) + 1 + value[i].second.size();
+    }
+
+    std::vector<hyperdex_client_attribute> ha;
+    ha.reserve(sc->attrs_sz);
+    char* ret = static_cast<char*>(malloc(sz));
+
+    if (!ret)
+    {
+        UTIL_ERROR(NOMEM) << "out of memory";
+        return false;
+    }
+
+    e::guard g = e::makeguard(free, ret);
+    char* data = ret + sizeof(hyperdex_client_attribute) * value.size();
+
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        uint16_t attr = value[i].first;
+        ha.push_back(hyperdex_client_attribute());
+        size_t attr_sz = strlen(sc->attrs[attr].name) + 1;
+        ha.back().attr = data;
+        memmove(data, sc->attrs[attr].name, attr_sz);
+        data += attr_sz;
+        ha.back().value = data;
+        memmove(data, value[i].second.data(), value[i].second.size());
+        data += value[i].second.size();
+        ha.back().value_sz = value[i].second.size();
+        ha.back().datatype = sc->attrs[attr].type;
+    }
+
+    memmove(ret, &ha.front(), sizeof(hyperdex_client_attribute) * ha.size());
+    *op_status = HYPERDEX_CLIENT_SUCCESS;
+    *op_error = e::error();
+    *attrs = reinterpret_cast<hyperdex_client_attribute*>(ret);
+    *attrs_sz = ha.size();
+    g.dismiss();
+    return true;
+}

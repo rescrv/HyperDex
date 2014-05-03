@@ -41,6 +41,9 @@ enum network_msgtype
     REQ_GET         = 8,
     RESP_GET        = 9,
 
+    REQ_GET_PARTIAL = 10,
+    RESP_GET_PARTIAL = 11,
+
     REQ_ATOMIC      = 16,
     RESP_ATOMIC     = 17,
 

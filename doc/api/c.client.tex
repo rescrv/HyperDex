@@ -60,6 +60,43 @@ int64_t hyperdex_client_get(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_attributes}
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%% get_partial %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{get\_partial}}
+\label{api:c:get_partial}
+\index{get\_partial!C API}
+\input{\topdir/api/desc/get_partial}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_client_get_partial(struct hyperdex_client* client,
+        const char* space,
+        const char* key, size_t key_sz,
+        const char** attrnames, size_t attrnames_sz,
+        enum hyperdex_client_returncode* status,
+        const struct hyperdex_client_attribute** attrs, size_t* attrs_sz);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const char** attrnames, size\_t attrnames\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributenames}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
+\item \code{const struct hyperdex\_client\_attribute** attrs, size\_t* attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_attributes}
+\end{itemize}
+
 %%%%%%%%%%%%%%%%%%%% put %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{put}}

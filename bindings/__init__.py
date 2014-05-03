@@ -48,6 +48,9 @@ class Attributes(object):
 class MapAttributes(object):
     args = (('const struct hyperdex_client_map_attribute*', 'mapattrs'),
             ('size_t', 'mapattrs_sz'))
+class AttributeNames(object):
+    args = (('const char**', 'attrnames'),
+            ('size_t', 'attrnames_sz'))
 class Status(object):
     args = (('enum hyperdex_client_returncode', 'status'),)
 class AdminStatus(object):
@@ -95,6 +98,7 @@ class Method(object):
 
 Client = [
     Method('get', AsyncCall, (SpaceName, Key), (Status, Attributes)),
+    Method('get_partial', AsyncCall, (SpaceName, Key, AttributeNames), (Status, Attributes)),
     Method('put', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('cond_put', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('put_if_not_exist', AsyncCall, (SpaceName, Key, Attributes), (Status,)),

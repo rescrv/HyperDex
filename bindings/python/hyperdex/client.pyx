@@ -152,6 +152,7 @@ cdef extern from "hyperdex/client.h":
     char* hyperdex_client_error_location(hyperdex_client* client)
     char* hyperdex_client_returncode_to_string(hyperdex_client_returncode)
     int64_t hyperdex_client_get(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
+    int64_t hyperdex_client_get_partial(hyperdex_client* client, char* space, char* key, size_t key_sz, char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_put(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_put(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_put_if_not_exist(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
@@ -234,6 +235,7 @@ cdef extern from "hyperdex/datastructures.h":
     hyperdex_ds_arena* hyperdex_ds_arena_create()
     void hyperdex_ds_arena_destroy(hyperdex_ds_arena* arena)
 
+    void* hyperdex_ds_malloc(hyperdex_ds_arena* arena, size_t sz)
     hyperdex_client_attribute* hyperdex_ds_allocate_attribute(hyperdex_ds_arena* arena, size_t sz)
     hyperdex_client_attribute_check* hyperdex_ds_allocate_attribute_check(hyperdex_ds_arena* arena, size_t sz)
     hyperdex_client_map_attribute* hyperdex_ds_allocate_map_attribute(hyperdex_ds_arena* arena, size_t sz)
@@ -292,6 +294,7 @@ cdef extern from "hyperdex/datastructures.h":
 ctypedef object (*encret_deferred_fptr)(Deferred d)
 ctypedef object (*encret_iterator_fptr)(Iterator it)
 ctypedef int64_t asynccall__spacename_key__status_attributes_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
+ctypedef int64_t asynccall__spacename_key_attributenames__status_attributes_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
 ctypedef int64_t asynccall__spacename_key_attributes__status_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_key_predicates_attributes__status_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_key__status_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_returncode* status)
@@ -1130,6 +1133,13 @@ cdef class Client:
                 i += 1
         _mapattrs_sz[0] = i
 
+    cdef convert_attributenames(self, hyperdex_ds_arena* arena, attributenames,
+                                char*** _attributenames, size_t* _attributenames_sz):
+        _attributenames[0]    = <char**>hyperdex_ds_malloc(arena, sizeof(char*) * len(attributenames))
+        _attributenames_sz[0] = len(attributenames)
+        for i, attr in enumerate(attributenames):
+            _attributenames[0][i] = attr
+
     cdef convert_sortby(self, hyperdex_ds_arena* arena, bytes sortby, char** sortby_str):
         sortby_str[0] = sortby
 
@@ -1153,6 +1163,7 @@ cdef class Client:
             # _callback() may remove ret from self.ops.
             op._callback()
             return op
+
     cdef asynccall__spacename_key__status_attributes(self, asynccall__spacename_key__status_attributes_fptr f, bytes spacename, key):
         cdef Deferred d = Deferred(self)
         cdef char* in_space
@@ -1161,6 +1172,23 @@ cdef class Client:
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
         d.reqid = f(self.client, in_space, in_key, in_key_sz, &d.status, &d.attrs, &d.attrs_sz);
+        if d.reqid < 0:
+            raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
+        d.encode_return = hyperdex_python_client_deferred_encode_status_attributes
+        self.ops[d.reqid] = d
+        return d
+
+    cdef asynccall__spacename_key_attributenames__status_attributes(self, asynccall__spacename_key_attributenames__status_attributes_fptr f, bytes spacename, key, attributenames):
+        cdef Deferred d = Deferred(self)
+        cdef char* in_space
+        cdef char* in_key
+        cdef size_t in_key_sz
+        cdef char** in_attrnames
+        cdef size_t in_attrnames_sz
+        self.convert_spacename(d.arena, spacename, &in_space);
+        self.convert_key(d.arena, key, &in_key, &in_key_sz);
+        self.convert_attributenames(d.arena, attributenames, &in_attrnames, &in_attrnames_sz);
+        d.reqid = f(self.client, in_space, in_key, in_key_sz, in_attrnames, in_attrnames_sz, &d.status, &d.attrs, &d.attrs_sz);
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status_attributes
@@ -1352,6 +1380,11 @@ cdef class Client:
         return self.asynccall__spacename_key__status_attributes(hyperdex_client_get, spacename, key)
     def get(self, bytes spacename, key):
         return self.async_get(spacename, key).wait()
+
+    def async_get_partial(self, bytes spacename, key, attributenames):
+        return self.asynccall__spacename_key_attributenames__status_attributes(hyperdex_client_get_partial, spacename, key, attributenames)
+    def get_partial(self, bytes spacename, key, attributenames):
+        return self.async_get_partial(spacename, key, attributenames).wait()
 
     def async_put(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_put, spacename, key, attributes)

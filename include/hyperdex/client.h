@@ -116,6 +116,14 @@ hyperdex_client_get(struct hyperdex_client* client,
                     const struct hyperdex_client_attribute** attrs, size_t* attrs_sz);
 
 int64_t
+hyperdex_client_get_partial(struct hyperdex_client* client,
+                            const char* space,
+                            const char* key, size_t key_sz,
+                            const char** attrnames, size_t attrnames_sz,
+                            enum hyperdex_client_returncode* status,
+                            const struct hyperdex_client_attribute** attrs, size_t* attrs_sz);
+
+int64_t
 hyperdex_client_put(struct hyperdex_client* client,
                     const char* space,
                     const char* key, size_t key_sz,

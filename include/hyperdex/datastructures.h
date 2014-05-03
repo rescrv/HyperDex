@@ -69,6 +69,9 @@ hyperdex_ds_arena_create();
 void
 hyperdex_ds_arena_destroy(struct hyperdex_ds_arena* arena);
 
+void*
+hyperdex_ds_malloc(struct hyperdex_ds_arena* arena, size_t sz);
+
 /* client parameters */
 struct hyperdex_client_attribute*
 hyperdex_ds_allocate_attribute(struct hyperdex_ds_arena* arena, size_t sz);

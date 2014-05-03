@@ -29,6 +29,8 @@
 
 rb_define_method(class_client, "async_get", hyperdex_ruby_client_get, 2);
 rb_define_method(class_client, "get", hyperdex_ruby_client_wait_get, 2);
+rb_define_method(class_client, "async_get_partial", hyperdex_ruby_client_get_partial, 3);
+rb_define_method(class_client, "get_partial", hyperdex_ruby_client_wait_get_partial, 3);
 rb_define_method(class_client, "async_put", hyperdex_ruby_client_put, 3);
 rb_define_method(class_client, "put", hyperdex_ruby_client_wait_put, 3);
 rb_define_method(class_client, "async_cond_put", hyperdex_ruby_client_cond_put, 4);

@@ -49,6 +49,8 @@ def PYTYPEOF(x):
         return 'dict'
     elif x == bindings.MapAttributes:
         return 'dict'
+    elif x == bindings.AttributeNames:
+        return ''
     elif x == bindings.Predicates:
         return 'dict'
     elif x == bindings.SortBy:
@@ -106,7 +108,7 @@ def generate_worker_asynccall(call, x):
         args = ', '.join(['&in_' + n for p, n in arg.args])
         func += '    self.convert_{0}(d.arena, {0}, {1});\n'.format(arg.__name__.lower(), args)
     func += '    d.reqid = f(self.client, {0}, {1});\n'.format(', '.join(['in_' + n for p, n in sum([list(a.args) for a in x.args_in], [])]),
-                                                                ', '.join(['&d.' + n for p, n in sum([list(a.args) for a in x.args_out], [])]))
+                                                               ', '.join(['&d.' + n for p, n in sum([list(a.args) for a in x.args_out], [])]))
     func += '    if d.reqid < 0:\n'
     func += '        raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))\n'
     func += '    d.encode_return = hyperdex_python_client_deferred_encode_' + '_'.join([arg.__name__.lower() for arg in x.args_out]) + '\n'
@@ -132,7 +134,7 @@ def generate_worker_iterator(call, x):
         func += '    self.convert_{0}(it.arena, {0}, {1});\n'.format(arg.__name__.lower(), args)
 
     func += '    it.reqid = f(self.client, {0}, {1});\n'.format(', '.join(['in_' + n for p, n in sum([list(a.args) for a in x.args_in], [])]),
-                                                                 ', '.join(['&it.' + n for p, n in sum([list(a.args) for a in x.args_out], [])]))
+                                                                ', '.join(['&it.' + n for p, n in sum([list(a.args) for a in x.args_out], [])]))
     func += '    if it.reqid < 0:\n'
     func += '        raise HyperDexClientException(it.status, hyperdex_client_error_message(self.client))\n'
     func += '    it.encode_return = hyperdex_python_client_iterator_encode_' + '_'.join([arg.__name__.lower() for arg in x.args_out]) + '\n'
@@ -163,19 +165,19 @@ def generate_workers(xs):
             yield generate_worker_iterator(call, x)
         calls.add(call)
 
-def generate_method(x):
+def generate_method(x, lib):
     assert x.form in (bindings.AsyncCall, bindings.Iterator)
     typed_args = ', '.join([(PYTYPEOF(arg) + ' ' + arg_name(arg)).strip()
                              for arg in x.args_in])
     arg_list = ', '.join([arg_name(arg) for arg in x.args_in])
     if x.form == bindings.AsyncCall:
         meth  = 'def async_{0}(self, {1}):\n'.format(name(x), typed_args)
-        meth += '    return self.{0}(hyperdex_client_{1}, {2})\n'.format(bindings.call_name(x), x.name, arg_list)
+        meth += '    return self.{0}(hyperdex_{3}_{1}, {2})\n'.format(bindings.call_name(x), x.name, arg_list, lib)
         meth += 'def {0}(self, {1}):\n'.format(name(x), typed_args)
         meth += '    return self.async_{0}({1}).wait()\n'.format(name(x), arg_list)
     if x.form == bindings.Iterator:
         meth  = 'def {0}(self, {1}):\n'.format(name(x), typed_args)
-        meth += '    return self.{0}(hyperdex_client_{1}, {2})\n'.format(bindings.call_name(x), x.name, arg_list)
+        meth += '    return self.{0}(hyperdex_{3}_{1}, {2})\n'.format(bindings.call_name(x), x.name, arg_list, lib)
     return indent(meth)[:-1]
 
 def generate_api_norm_func(func):
@@ -234,7 +236,7 @@ def generate_client_python():
     fout.write(template.format(prototypes=prototypes, function_pointers=fps))
     fout.write('\n'.join(generate_workers(bindings.Client)))
     fout.write('\n')
-    fout.write('\n'.join([generate_method(c) for c in bindings.Client]))
+    fout.write('\n'.join([generate_method(c, 'client') for c in bindings.Client]))
 
 def generate_client_doc():
     fout = open(os.path.join(BASE, 'doc/api/python.client.tex'), 'w')

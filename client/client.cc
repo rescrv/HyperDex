@@ -50,6 +50,7 @@
 #include "client/pending_atomic.h"
 #include "client/pending_count.h"
 #include "client/pending_get.h"
+#include "client/pending_get_partial.h"
 #include "client/pending_group_del.h"
 #include "client/pending_search.h"
 #include "client/pending_search_describe.h"
@@ -84,6 +85,7 @@ client :: client(const char* coordinator, uint16_t port)
     , m_next_server_nonce(1)
     , m_pending_ops()
     , m_failed()
+    , m_yieldable()
     , m_yielding()
     , m_yielded()
     , m_last_error()
@@ -130,6 +132,77 @@ client :: get(const char* space, const char* _key, size_t _key_sz,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << key;
     return send_keyop(space, key, REQ_GET, msg, op, status);
+}
+
+int64_t
+client :: get_partial(const char* space, const char* _key, size_t _key_sz,
+                      const char** attrnames, size_t attrnames_sz,
+                      hyperdex_client_returncode* status,
+                      const hyperdex_client_attribute** attrs, size_t* attrs_sz)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    const schema* sc = m_coord.config()->get_schema(space);
+
+    if (!sc)
+    {
+        ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist";
+        return -1;
+    }
+
+    std::vector<uint16_t> attrnums;
+
+    for (size_t i = 0; i < attrnames_sz; ++i)
+    {
+        uint16_t attr = sc->lookup_attr(attrnames[i]);
+
+        if (attr == UINT16_MAX)
+        {
+            ERROR(UNKNOWNATTR) << "attribute \"" << e::strescape(attrnames[i])
+                               << "\" is not an attribute in space \""
+                               << e::strescape(space) << "\"";
+            return -1;
+        }
+
+        if (attr == 0)
+        {
+            ERROR(DONTUSEKEY) << "don't specify the key (\"" << e::strescape(attrnames[i])
+                              << "\") when doing get_partial on space \""
+                               << e::strescape(space) << "\"";
+            return -1;
+        }
+
+        attrnums.push_back(attr);
+    }
+
+    datatype_info* di = datatype_info::lookup(sc->attrs[0].type);
+    assert(di);
+    e::slice key(_key, _key_sz);
+
+    if (!di->validate(key))
+    {
+        ERROR(WRONGTYPE) << "key must be type " << sc->attrs[0].type;
+        return -1;
+    }
+
+    e::intrusive_ptr<pending> op;
+    op = new pending_get_partial(m_next_client_id++, status, attrs, attrs_sz);
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+              + sizeof(uint32_t) + key.size()
+              + sizeof(uint32_t) + attrnums.size() * sizeof(uint16_t);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
+    pa = pa << key << uint32_t(attrnums.size());
+
+    for (size_t i = 0; i < attrnums.size(); ++i)
+    {
+        pa = pa << attrnums[i];
+    }
+
+    return send_keyop(space, key, REQ_GET_PARTIAL, msg, op, status);
 }
 
 #define SEARCH_BOILERPLATE \
@@ -349,6 +422,7 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
 
     while (m_yielding ||
            !m_failed.empty() ||
+           !m_yieldable.empty() ||
            !m_pending_ops.empty())
     {
         m_gc.quiescent_state(&m_gc_ts);
@@ -376,6 +450,12 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
             }
 
             return client_id;
+        }
+        else if (!m_yieldable.empty())
+        {
+            m_yielding = m_yieldable.front();
+            m_yieldable.pop_front();
+            continue;
         }
         else if (!m_failed.empty())
         {

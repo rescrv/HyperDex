@@ -37,7 +37,7 @@ BEGIN_HYPERDEX_NAMESPACE
 class performance_counter
 {
     public:
-        performance_counter() : m_count(0), m_stable(0) {}
+        performance_counter() : m_count(0) {}
         ~performance_counter() throw () {}
 
     public:
@@ -45,7 +45,7 @@ class performance_counter
         // any number of threads can tap simultaneously
         void tap() { e::atomic::increment_64_nobarrier(&m_count, 1); }
         // any number of threads can call "read" simultaneously
-        uint64_t read() { return e::atomic::load_64_nobarrier(&m_count); }
+        uint64_t read() const { return e::atomic::load_64_nobarrier(&m_count); }
 
     private:
         performance_counter(const performance_counter&);
@@ -53,7 +53,6 @@ class performance_counter
 
     private:
         uint64_t m_count;
-        uint64_t m_stable;
 };
 
 END_HYPERDEX_NAMESPACE

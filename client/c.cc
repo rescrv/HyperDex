@@ -235,6 +235,19 @@ hyperdex_client_get(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_get_partial(struct hyperdex_client* _cl,
+                            const char* space,
+                            const char* key, size_t key_sz,
+                            const char** attrnames, size_t attrnames_sz,
+                            enum hyperdex_client_returncode* status,
+                            const struct hyperdex_client_attribute** attrs, size_t* attrs_sz)
+{
+    C_WRAP_EXCEPT(
+    return cl->get_partial(space, key, key_sz, attrnames, attrnames_sz, status, attrs, attrs_sz);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_put(struct hyperdex_client* _cl,
                     const char* space,
                     const char* key, size_t key_sz,

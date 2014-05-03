@@ -113,6 +113,7 @@ class BindingGenerator(object):
     def test(self, name, space): pass
     def finish(self): pass
     def get(self, space, key, expected): print 'XXX Get', str(self)
+    def get_partial(self, space, key, expected): print 'XXX Get', str(self)
     def put(self, space, key, value, expected): print 'XXX Pet', str(self)
     def delete(self, space, key, expected): print 'XXX Del', str(self)
     def search(self, space, predicate, expected): print 'XXX Search', str(self)
@@ -144,6 +145,9 @@ def to_objectset(xs):
 
     def get(self, space, key, expected):
         self.f.write('assert c.get({0!r}, {1!r}) == {2!r}\n'.format(space, key, expected))
+
+    def get_partial(self, space, key, attrs, expected):
+        self.f.write('assert c.get_partial({0!r}, {1!r}, {2!r}) == {3!r}\n'.format(space, key, attrs, expected))
 
     def put(self, space, key, value, expected):
         self.f.write('assert c.put({0!r}, {1!r}, {2!r}) == {3!r}\n'.format(space, key, value, expected))
@@ -203,6 +207,10 @@ c = HyperDex::Client::Client.new(ARGV[0], ARGV[1].to_i)
     def get(self, space, key, expected):
         self.f.write('assert {{ c.get({0}, {1}) == {2} }}\n'
                      .format(self.to_ruby(space), self.to_ruby(key), self.to_ruby(expected, symbol=True)))
+
+    def get_partial(self, space, key, attrs, expected):
+        self.f.write('assert {{ c.get_partial({0}, {1}, {2}) == {3} }}\n'
+                     .format(self.to_ruby(space), self.to_ruby(key), self.to_ruby(attrs), self.to_ruby(expected, symbol=True)))
 
     def put(self, space, key, value, expected):
         self.f.write('assert {{ c.put({0}, {1}, {2}) == {3} }}\n'
@@ -330,6 +338,24 @@ public class {0}
             self.f.write('        get{0}.entrySet().containsAll(expected{0}.entrySet());\n'.format(c))
             self.f.write('        expected{0}.entrySet().containsAll(get{0}.entrySet());\n'.format(c))
 
+    def get_partial(self, space, key, attrs, expected):
+        c = self.count
+        self.count += 1
+        self.f.write('        Map<String, Object> get{0} = c.get_partial({1}, {2}, {3});\n'
+                     .format(c, self.to_java(space),
+                                self.to_java(key),
+                                self.to_java(attrs, force='String')))
+        if expected is None:
+            self.f.write('        assert(get{0} == null);\n'.format(c))
+        else:
+            self.f.write('        assert(get{0} != null);\n'.format(c))
+            self.f.write('        Map<String, Object> expected{0} = new HashMap<String, Object>();\n'.format(c))
+            for k, v in sorted(expected.iteritems()):
+                self.f.write('        expected{0}.put({1}, {2});\n'
+                                 .format(c, self.to_java(k), self.to_java(v)))
+            self.f.write('        get{0}.entrySet().containsAll(expected{0}.entrySet());\n'.format(c))
+            self.f.write('        expected{0}.entrySet().containsAll(get{0}.entrySet());\n'.format(c))
+
     def put(self, space, key, value, expected):
         assert expected in (True, False)
         c = self.count
@@ -373,7 +399,7 @@ public class {0}
         self.f.write('            X{0}.add(it{0}.next());\n'.format(c))
         self.f.write('        }\n')
 
-    def to_java(self, x):
+    def to_java(self, x, force=None):
         if x is True:
             return 'true'
         elif x is False:
@@ -419,9 +445,10 @@ public class {0}
         elif isinstance(x, float):
             return str(x)
         elif isinstance(x, list):
+            elem = force if force is not None else 'Object'
             c = self.count
             self.count += 1
-            self.f.write('        List<Object> list{0} = new ArrayList<Object>();\n'.format(c))
+            self.f.write('        List<{1}> list{0} = new ArrayList<{1}>();\n'.format(c, elem))
             for y in x:
                 self.f.write('        list{0}.add({1});\n'.format(c, self.to_java(y)))
             return 'list{0}'.format(c)
@@ -462,6 +489,10 @@ class TestGenerator(object):
         for x in self.generators:
             x.get(space, key, expected)
 
+    def get_partial(self, space, key, attrs, expected):
+        for x in self.generators:
+            x.get_partial(space, key, attrs, expected)
+
     def put(self, space, key, value, expected):
         for x in self.generators:
             x.put(space, key, value, expected)
@@ -494,6 +525,7 @@ t.put('kv', 'k', {'v1': 'ABC'}, True)
 t.get('kv', 'k', {'v1': 'ABC', 'v2': ''})
 t.put('kv', 'k', {'v2': '123'}, True)
 t.get('kv', 'k', {'v1': 'ABC', 'v2': '123'})
+t.get_partial('kv', 'k', ['v1'], {'v1': 'ABC'})
 t.finish()
 
 t.test('DataTypeString', 'space kv key k attributes v')

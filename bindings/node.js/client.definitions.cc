@@ -63,6 +63,46 @@ HyperDexClient :: asynccall__spacename_key__status_attributes(int64_t (*f)(struc
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: asynccall__spacename_key_attributenames__status_attributes(int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const char** attrnames, size_t attrnames_sz, enum hyperdex_client_returncode* status, const struct hyperdex_client_attribute** attrs, size_t* attrs_sz), const v8::Arguments& args)
+{
+    v8::HandleScope scope;
+    v8::Local<v8::Object> client_obj = args.This();
+    HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
+    e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
+    v8::Local<v8::Function> func = args[3].As<v8::Function>();
+
+    if (func.IsEmpty() || !func->IsFunction())
+    {
+        v8::ThrowException(v8::String::New("Callback must be a function"));
+        return scope.Close(v8::Undefined());
+    }
+
+    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    const char* in_space;
+    v8::Local<v8::Value> spacename = args[0];
+    if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
+    const char* in_key;
+    size_t in_key_sz;
+    v8::Local<v8::Value> key = args[1];
+    if (!op->convert_key(key, &in_key, &in_key_sz)) return scope.Close(v8::Undefined());
+    const char** in_attrnames;
+    size_t in_attrnames_sz;
+    v8::Local<v8::Value> attributenames = args[2];
+    if (!op->convert_attributenames(attributenames, &in_attrnames, &in_attrnames_sz)) return scope.Close(v8::Undefined());
+    op->reqid = f(client->client(), in_space, in_key, in_key_sz, in_attrnames, in_attrnames_sz, &op->status, &op->attrs, &op->attrs_sz);
+
+    if (op->reqid < 0)
+    {
+        op->callback_error_from_status();
+        return scope.Close(v8::Undefined());
+    }
+
+    op->encode_return = &Operation::encode_asynccall_status_attributes;
+    client->add(op->reqid, op);
+    return scope.Close(v8::Undefined());
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: asynccall__spacename_key_attributes__status(int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_attribute* attrs, size_t attrs_sz, enum hyperdex_client_returncode* status), const v8::Arguments& args)
 {
     v8::HandleScope scope;
@@ -500,6 +540,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: get(const v8::Arguments& args)
 {
     return asynccall__spacename_key__status_attributes(hyperdex_client_get, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: get_partial(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_attributenames__status_attributes(hyperdex_client_get_partial, args);
 }
 
 v8::Handle<v8::Value>

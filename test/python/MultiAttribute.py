@@ -10,3 +10,4 @@ assert c.put('kv', 'k', {'v1': 'ABC'}) == True
 assert c.get('kv', 'k') == {'v1': 'ABC', 'v2': ''}
 assert c.put('kv', 'k', {'v2': '123'}) == True
 assert c.get('kv', 'k') == {'v1': 'ABC', 'v2': '123'}
+assert c.get_partial('kv', 'k', ['v1']) == {'v1': 'ABC'}

@@ -40,6 +40,8 @@ def JTYPEOF(x):
         return 'Map<String, Object>'
     elif x == bindings.MapAttributes:
         return 'Map<String, Map<Object, Object>>'
+    elif x == bindings.AttributeNames:
+        return 'List<String>'
     elif x == bindings.Predicates:
         return 'Map<String, Object>'
     elif x == bindings.SpaceName:
@@ -278,6 +280,7 @@ JAVA_HEAD = '''
 
 package org.hyperdex.client;
 
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 

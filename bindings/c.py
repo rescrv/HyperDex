@@ -144,6 +144,8 @@ def generate_client_c_wrapper(x):
     func += '    C_WRAP_EXCEPT(\n'
     if x.name == 'get':
         func += '    return cl->get(space, key, key_sz, status, attrs, attrs_sz);\n'
+    elif x.name == 'get_partial':
+        func += '    return cl->get_partial(space, key, key_sz, attrnames, attrnames_sz, status, attrs, attrs_sz);\n'
     elif x.name == 'search':
         func += '    return cl->search(space, checks, checks_sz, status, attrs, attrs_sz);\n'
     elif x.name == 'search_describe':

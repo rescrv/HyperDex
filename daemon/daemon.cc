@@ -119,6 +119,7 @@ daemon :: daemon()
     , m_can_pause(&m_protect_pause)
     , m_paused(false)
     , m_perf_req_get()
+    , m_perf_req_get_partial()
     , m_perf_req_atomic()
     , m_perf_req_search_start()
     , m_perf_req_search_next()
@@ -611,6 +612,10 @@ daemon :: loop(size_t thread)
                 process_req_get(from, vfrom, vto, msg, up);
                 m_perf_req_get.tap();
                 break;
+            case REQ_GET_PARTIAL:
+                process_req_get_partial(from, vfrom, vto, msg, up);
+                m_perf_req_get_partial.tap();
+                break;
             case REQ_ATOMIC:
                 process_req_atomic(from, vfrom, vto, msg, up);
                 m_perf_req_atomic.tap();
@@ -691,6 +696,7 @@ daemon :: loop(size_t thread)
                 m_perf_perf_counters.tap();
                 break;
             case RESP_GET:
+            case RESP_GET_PARTIAL:
             case RESP_ATOMIC:
             case RESP_SEARCH_ITEM:
             case RESP_SEARCH_DONE:
@@ -757,8 +763,80 @@ daemon :: process_req_get(server_id from,
               + pack_size(value);
     msg.reset(e::buffer::create(sz));
     e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
-    pa = pa << nonce << static_cast<uint16_t>(result) << value;
+    pa = pa << nonce << static_cast<uint16_t>(result);
+
+    if (result == NET_SUCCESS)
+    {
+        pa = pa << value;
+    }
+
     m_comm.send_client(vto, from, RESP_GET, msg);
+}
+
+void
+daemon :: process_req_get_partial(server_id from,
+                                  virtual_server_id,
+                                  virtual_server_id vto,
+                                  std::auto_ptr<e::buffer> msg,
+                                  e::unpacker up)
+{
+    uint64_t nonce;
+    e::slice key;
+    std::vector<uint16_t> attrs;
+
+    if ((up >> nonce >> key >> attrs).error())
+    {
+        LOG(WARNING) << "unpack of REQ_GET_PARTIAL failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    std::sort(attrs.begin(), attrs.end());
+    std::vector<e::slice> value;
+    uint64_t version;
+    datalayer::reference ref;
+    network_returncode result;
+
+    switch (m_data.get(m_config.get_region_id(vto), key, &value, &version, &ref))
+    {
+        case datalayer::SUCCESS:
+            result = NET_SUCCESS;
+            break;
+        case datalayer::NOT_FOUND:
+            result = NET_NOTFOUND;
+            break;
+        case datalayer::BAD_ENCODING:
+        case datalayer::CORRUPTION:
+        case datalayer::IO_ERROR:
+        case datalayer::LEVELDB_ERROR:
+        default:
+            LOG(ERROR) << "GET returned unacceptable error code.";
+            result = NET_SERVERERROR;
+            break;
+    }
+
+    size_t sz = HYPERDEX_HEADER_SIZE_VC
+              + sizeof(uint64_t)
+              + sizeof(uint16_t)
+              + pack_size(value)
+              + value.size() * sizeof(uint16_t);
+    msg.reset(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
+    pa = pa << nonce << static_cast<uint16_t>(result);
+
+    if (result == NET_SUCCESS)
+    {
+        for (size_t i = 0; i < value.size(); ++i)
+        {
+            uint16_t attr = i + 1;
+
+            if (std::binary_search(attrs.begin(), attrs.end(), attr))
+            {
+                pa = pa << attr << value[i];
+            }
+        }
+    }
+
+    m_comm.send_client(vto, from, RESP_GET_PARTIAL, msg);
 }
 
 void
@@ -1291,6 +1369,7 @@ void
 daemon :: collect_stats_msgs(std::ostringstream* ret)
 {
     *ret << " msgs.req_get=" << m_perf_req_get.read();
+    *ret << " msgs.req_get_partial=" << m_perf_req_get_partial.read();
     *ret << " msgs.req_atomic=" << m_perf_req_atomic.read();
     *ret << " msgs.req_search_start=" << m_perf_req_search_start.read();
     *ret << " msgs.req_search_next=" << m_perf_req_search_next.read();

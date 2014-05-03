@@ -292,6 +292,12 @@ hyperdex_ds_arena_destroy(struct hyperdex_ds_arena* arena)
     }
 }
 
+HYPERDEX_API void*
+hyperdex_ds_malloc(struct hyperdex_ds_arena* arena, size_t sz)
+{
+    return reinterpret_cast<void*>(arena->allocate(sz));
+}
+
 //////////////////////////////// Client Structs ////////////////////////////////
 
 HYPERDEX_API struct hyperdex_client_attribute*

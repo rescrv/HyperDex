@@ -167,6 +167,7 @@ cdef extern from "hyperdex/datastructures.h":
     hyperdex_ds_arena* hyperdex_ds_arena_create()
     void hyperdex_ds_arena_destroy(hyperdex_ds_arena* arena)
 
+    void* hyperdex_ds_malloc(hyperdex_ds_arena* arena, size_t sz)
     hyperdex_client_attribute* hyperdex_ds_allocate_attribute(hyperdex_ds_arena* arena, size_t sz)
     hyperdex_client_attribute_check* hyperdex_ds_allocate_attribute_check(hyperdex_ds_arena* arena, size_t sz)
     hyperdex_client_map_attribute* hyperdex_ds_allocate_map_attribute(hyperdex_ds_arena* arena, size_t sz)
@@ -1052,6 +1053,13 @@ cdef class Client:
                 i += 1
         _mapattrs_sz[0] = i
 
+    cdef convert_attributenames(self, hyperdex_ds_arena* arena, attributenames,
+                                char*** _attributenames, size_t* _attributenames_sz):
+        _attributenames[0]    = <char**>hyperdex_ds_malloc(arena, sizeof(char*) * len(attributenames))
+        _attributenames_sz[0] = len(attributenames)
+        for i, attr in enumerate(attributenames):
+            _attributenames[0][i] = attr
+
     cdef convert_sortby(self, hyperdex_ds_arena* arena, bytes sortby, char** sortby_str):
         sortby_str[0] = sortby
 
@@ -1075,3 +1083,4 @@ cdef class Client:
             # _callback() may remove ret from self.ops.
             op._callback()
             return op
+

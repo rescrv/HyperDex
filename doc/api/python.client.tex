@@ -73,6 +73,57 @@ def async_get(self, spacename, key)
 
 \paragraph{See also:}  This is the asynchronous form of \code{get}.
 
+%%%%%%%%%%%%%%%%%%%% get_partial %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{get\_partial}}
+\label{api:python:get_partial}
+\index{get\_partial!Python API}
+\input{\topdir/api/desc/get_partial}
+
+\paragraph{Definition:}
+\begin{pythoncode}
+def get_partial(self, spacename, key, attributenames)
+\end{pythoncode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_key}
+\item \code{attributenames}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_attributenames}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/python/client/return_asynccall__status_attributes}
+
+\pagebreak
+\subsubsection{\code{async\_get\_partial}}
+\label{api:python:async_get_partial}
+\index{async\_get\_partial!Python API}
+\input{\topdir/api/desc/get_partial}
+
+\paragraph{Definition:}
+\begin{pythoncode}
+def async_get_partial(self, spacename, key, attributenames)
+\end{pythoncode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_key}
+\item \code{attributenames}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_attributenames}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/python/client/return_async_asynccall__status_attributes}
+
+\paragraph{See also:}  This is the asynchronous form of \code{get\_partial}.
+
 %%%%%%%%%%%%%%%%%%%% put %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{put}}

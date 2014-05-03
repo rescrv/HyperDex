@@ -47,5 +47,13 @@ public class MultiAttribute
         expected4.put("v2", "123");
         get4.entrySet().containsAll(expected4.entrySet());
         expected4.entrySet().containsAll(get4.entrySet());
+        List<String> list6 = new ArrayList<String>();
+        list6.add("v1");
+        Map<String, Object> get5 = c.get_partial("kv", "k", list6);
+        assert(get5 != null);
+        Map<String, Object> expected5 = new HashMap<String, Object>();
+        expected5.put("v1", "ABC");
+        get5.entrySet().containsAll(expected5.entrySet());
+        expected5.entrySet().containsAll(get5.entrySet());
     }
 }

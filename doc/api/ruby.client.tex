@@ -73,6 +73,57 @@ async_get(spacename, key)
 
 \paragraph{See also:}  This is the asynchronous form of \code{get}.
 
+%%%%%%%%%%%%%%%%%%%% get_partial %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{get\_partial}}
+\label{api:ruby:get_partial}
+\index{get\_partial!Ruby API}
+\input{\topdir/api/desc/get_partial}
+
+\paragraph{Definition:}
+\begin{rubycode}
+get_partial(spacename, key, attributenames)
+\end{rubycode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_key}
+\item \code{attributenames}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_attributenames}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/ruby/client/return_asynccall__status_attributes}
+
+\pagebreak
+\subsubsection{\code{async\_get\_partial}}
+\label{api:ruby:async_get_partial}
+\index{async\_get\_partial!Ruby API}
+\input{\topdir/api/desc/get_partial}
+
+\paragraph{Definition:}
+\begin{rubycode}
+async_get_partial(spacename, key, attributenames)
+\end{rubycode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_key}
+\item \code{attributenames}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_attributenames}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/ruby/client/return_async_asynccall__status_attributes}
+
+\paragraph{See also:}  This is the asynchronous form of \code{get\_partial}.
+
 %%%%%%%%%%%%%%%%%%%% put %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{put}}

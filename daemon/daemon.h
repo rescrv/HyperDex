@@ -79,6 +79,7 @@ class daemon
         // process messages from the network threads
         void loop(size_t thread);
         void process_req_get(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_req_get_partial(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_atomic(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_search_start(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_search_next(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
@@ -136,6 +137,7 @@ class daemon
         bool m_paused;
         // counters
         performance_counter m_perf_req_get;
+        performance_counter m_perf_req_get_partial;
         performance_counter m_perf_req_atomic;
         performance_counter m_perf_req_search_start;
         performance_counter m_perf_req_search_next;

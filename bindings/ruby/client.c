@@ -685,6 +685,27 @@ hyperdex_ruby_client_convert_predicates(struct hyperdex_ds_arena* arena,
 }
 
 static void
+hyperdex_ruby_client_convert_attributenames(struct hyperdex_ds_arena* arena,
+                                            VALUE x,
+                                            const char*** names, size_t* names_sz)
+{
+    size_t i = 0;
+    *names_sz = RARRAY_LEN(x);
+    *names = hyperdex_ds_malloc(arena, sizeof(char*) * (*names_sz));
+
+    if (!(*names))
+    {
+        hyperdex_ruby_out_of_memory();
+    }
+
+    for (i = 0; i < *names_sz; ++i)
+    {
+        (*names)[i] = hyperdex_ruby_client_convert_cstring(rb_ary_entry(x, i),
+                "Attribute name must be a string or symbol");
+    }
+}
+
+static void
 hyperdex_ruby_client_convert_sortby(struct hyperdex_ds_arena* arena,
                                     VALUE x,
                                     const char** sortby)
@@ -739,6 +760,8 @@ hyperdex_ruby_client_build_attribute(const struct hyperdex_client_attribute* att
             }
 
             return rb_float_new(tmp_d);
+        case HYPERDATATYPE_DOCUMENT:
+            hyperdex_ruby_client_throw_exception(HYPERDEX_CLIENT_WRONGTYPE, "Ruby bindings do not support JSON objects");
         case HYPERDATATYPE_LIST_STRING:
             ret = rb_ary_new();
             hyperdex_ds_iterator_init(&iter, attrs->datatype, attrs->value, attrs->value_sz);

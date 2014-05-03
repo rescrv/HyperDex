@@ -64,6 +64,10 @@ class client
         int64_t get(const char* space, const char* key, size_t key_sz,
                     hyperdex_client_returncode* status,
                     const hyperdex_client_attribute** attrs, size_t* attrs_sz);
+        int64_t get_partial(const char* space, const char* key, size_t key_sz,
+                            const char** attrnames, size_t attrnames_sz,
+                            hyperdex_client_returncode* status,
+                            const hyperdex_client_attribute** attrs, size_t* attrs_sz);
         int64_t search(const char* space,
                        const hyperdex_client_attribute_check* checks, size_t checks_sz,
                        hyperdex_client_returncode* status,
@@ -120,6 +124,7 @@ class client
         typedef std::list<pending_server_pair> pending_queue_t;
         typedef std::list<std::string> arena_t;
         friend class pending_get;
+        friend class pending_get_partial;
         friend class pending_search;
         friend class pending_sorted_search;
 
@@ -178,6 +183,7 @@ class client
         uint64_t m_next_server_nonce;
         pending_map_t m_pending_ops;
         pending_queue_t m_failed;
+        std::list<e::intrusive_ptr<pending> > m_yieldable;
         e::intrusive_ptr<pending> m_yielding;
         e::intrusive_ptr<pending> m_yielded;
         e::error m_last_error;

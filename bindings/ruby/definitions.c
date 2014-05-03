@@ -56,6 +56,37 @@ hyperdex_ruby_client_asynccall__spacename_key__status_attributes(int64_t (*f)(st
 }
 
 static VALUE
+hyperdex_ruby_client_asynccall__spacename_key_attributenames__status_attributes(int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const char** attrnames, size_t attrnames_sz, enum hyperdex_client_returncode* status, const struct hyperdex_client_attribute** attrs, size_t* attrs_sz), VALUE self, VALUE spacename, VALUE key, VALUE attributenames)
+{
+    VALUE op;
+    const char* in_space;
+    const char* in_key;
+    size_t in_key_sz;
+    const char** in_attrnames;
+    size_t in_attrnames_sz;
+    struct hyperdex_client* client;
+    struct hyperdex_ruby_client_deferred* o;
+    op = rb_class_new_instance(1, &self, class_deferred);
+    rb_iv_set(self, "tmp", op);
+    Data_Get_Struct(self, struct hyperdex_client, client);
+    Data_Get_Struct(op, struct hyperdex_ruby_client_deferred, o);
+    hyperdex_ruby_client_convert_spacename(o->arena, spacename, &in_space);
+    hyperdex_ruby_client_convert_key(o->arena, key, &in_key, &in_key_sz);
+    hyperdex_ruby_client_convert_attributenames(o->arena, attributenames, &in_attrnames, &in_attrnames_sz);
+    o->reqid = f(client, in_space, in_key, in_key_sz, in_attrnames, in_attrnames_sz, &o->status, &o->attrs, &o->attrs_sz);
+
+    if (o->reqid < 0)
+    {
+        hyperdex_ruby_client_throw_exception(o->status, hyperdex_client_error_message(client));
+    }
+
+    o->encode_return = hyperdex_ruby_client_deferred_encode_status_attributes;
+    rb_hash_aset(rb_iv_get(self, "ops"), LONG2NUM(o->reqid), op);
+    rb_iv_set(self, "tmp", Qnil);
+    return op;
+}
+
+static VALUE
 hyperdex_ruby_client_asynccall__spacename_key_attributes__status(int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_attribute* attrs, size_t attrs_sz, enum hyperdex_client_returncode* status), VALUE self, VALUE spacename, VALUE key, VALUE attributes)
 {
     VALUE op;
@@ -398,6 +429,18 @@ VALUE
 hyperdex_ruby_client_wait_get(VALUE self, VALUE spacename, VALUE key)
 {
     VALUE deferred = hyperdex_ruby_client_get(self, spacename, key);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
+hyperdex_ruby_client_get_partial(VALUE self, VALUE spacename, VALUE key, VALUE attributenames)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_attributenames__status_attributes(hyperdex_client_get_partial, self, spacename, key, attributenames);
+}
+VALUE
+hyperdex_ruby_client_wait_get_partial(VALUE self, VALUE spacename, VALUE key, VALUE attributenames)
+{
+    VALUE deferred = hyperdex_ruby_client_get_partial(self, spacename, key, attributenames);
     return rb_funcall(deferred, rb_intern("wait"), 0);
 }
 
