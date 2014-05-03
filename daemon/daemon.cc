@@ -416,6 +416,7 @@ daemon :: run(bool daemonize,
         }
 
         if (m_config.version() > 0 &&
+            m_config.version() == m_coord.config_version() &&
             checkpoint < m_coord.checkpoint())
         {
             checkpoint = m_coord.checkpoint();
@@ -423,6 +424,7 @@ daemon :: run(bool daemonize,
         }
 
         if (m_config.version() > 0 &&
+            m_config.version() == m_coord.config_version() &&
             checkpoint_stable < m_coord.checkpoint_stable())
         {
             checkpoint_stable = m_coord.checkpoint_stable();
@@ -430,6 +432,7 @@ daemon :: run(bool daemonize,
         }
 
         if (m_config.version() > 0 &&
+            m_config.version() == m_coord.config_version() &&
             checkpoint_gc < m_coord.checkpoint_gc())
         {
             checkpoint_gc = m_coord.checkpoint_gc();
@@ -447,7 +450,8 @@ daemon :: run(bool daemonize,
 
         m_gc.online(&m_gc_ts);
         const configuration& old_config(m_config);
-        const configuration& new_config(m_coord.config());
+        configuration new_config;
+        m_coord.copy_config(&new_config);
 
         if (old_config.cluster() != 0 &&
             old_config.cluster() != new_config.cluster())
@@ -463,7 +467,7 @@ daemon :: run(bool daemonize,
                        << old_config.version();
             continue;
         }
-        else if (old_config.version() > new_config.version())
+        else if (old_config.version() >= new_config.version())
         {
             continue;
         }
@@ -492,7 +496,7 @@ daemon :: run(bool daemonize,
                   << "cluster at the same address as the old cluster?\n"
                   << "================================================================================";
     }
-    else if (m_coord.should_exit() && !m_coord.config().exists(m_us))
+    else if (m_coord.should_exit() && !m_config.exists(m_us))
     {
         LOG(INFO) << "\n================================================================================\n"
                   << "Exiting because the coordinator says it doesn't know about this node.\n"
@@ -517,6 +521,7 @@ daemon :: run(bool daemonize,
     m_repl.teardown();
     m_comm.teardown();
     m_data.teardown();
+    m_coord.teardown();
     LOG(INFO) << "hyperdex-daemon will now terminate";
     return EXIT_SUCCESS;
 }

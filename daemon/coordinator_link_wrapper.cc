@@ -111,12 +111,18 @@ coordinator_link_wrapper :: coord_rpc :: callback(coordinator_link_wrapper* clw)
     return false;
 }
 
+using po6::threads::make_thread_wrapper;
+
 coordinator_link_wrapper :: coordinator_link_wrapper(daemon* d)
     : m_daemon(d)
+    , m_poller(make_thread_wrapper(&coordinator_link_wrapper::background_maintenance, this))
     , m_coord()
     , m_rpcs()
     , m_mtx()
     , m_cond(&m_mtx)
+    , m_poller_started(false)
+    , m_teardown(false)
+    , m_deferred()
     , m_locked(false)
     , m_kill(false)
     , m_to_kill()
@@ -144,6 +150,16 @@ coordinator_link_wrapper :: coordinator_link_wrapper(daemon* d)
 
 coordinator_link_wrapper :: ~coordinator_link_wrapper() throw ()
 {
+    {
+        po6::threads::mutex::hold hold(&m_mtx);
+
+        m_teardown = true;
+    }
+
+    if (m_poller_started)
+    {
+        m_poller.join();
+    }
 }
 
 void
@@ -312,8 +328,19 @@ coordinator_link_wrapper :: initialize_checkpoints(uint64_t* _checkpoint,
 bool
 coordinator_link_wrapper :: should_exit()
 {
-    return (!m_coord->config()->exists(m_daemon->m_us) && m_coord->config()->version() > 0) ||
-           (m_shutdown_requested && m_coord->config()->get_state(m_daemon->m_us) == server::SHUTDOWN);
+    enter_critical_section();
+    bool yes = (!m_coord->config()->exists(m_daemon->m_us) && m_coord->config()->version() > 0) ||
+               (m_shutdown_requested && m_coord->config()->get_state(m_daemon->m_us) == server::SHUTDOWN);
+    exit_critical_section();
+    return yes;
+}
+
+void
+coordinator_link_wrapper :: teardown()
+{
+    enter_critical_section();
+    m_teardown = true;
+    exit_critical_section();
 }
 
 bool
@@ -321,6 +348,12 @@ coordinator_link_wrapper :: maintain_link()
 {
     enter_critical_section_killable();
     bool exit_status = false;
+
+    if (!m_poller_started)
+    {
+        m_poller.start();
+        m_poller_started = true;
+    }
 
     while (true)
     {
@@ -332,7 +365,18 @@ coordinator_link_wrapper :: maintain_link()
         ensure_checkpoint_stable();
         ensure_checkpoint_gc();
         replicant_returncode status = REPLICANT_GARBAGE;
-        int64_t id = m_coord->loop(1000, &status);
+        int64_t id = -1;
+
+        if (!m_deferred.empty())
+        {
+            id = m_deferred.front().first;
+            status = m_deferred.front().second;
+            m_deferred.pop();
+        }
+        else
+        {
+            id = m_coord->loop(1000, &status);
+        }
 
         if (id < 0 &&
             (status == REPLICANT_TIMEOUT ||
@@ -397,10 +441,22 @@ coordinator_link_wrapper :: maintain_link()
     return exit_status;
 }
 
-const configuration&
-coordinator_link_wrapper :: config()
+void
+coordinator_link_wrapper :: copy_config(configuration* config)
 {
-    return *m_coord->config();
+    enter_critical_section();
+    *config = *m_coord->config();
+    exit_critical_section();
+}
+
+uint64_t
+coordinator_link_wrapper :: config_version()
+{
+    uint64_t ver = 0;
+    enter_critical_section();
+    ver = m_coord->config()->version();
+    exit_critical_section();
+    return ver;
 }
 
 void
@@ -519,6 +575,44 @@ coordinator_link_wrapper :: checkpoint_report_stable(uint64_t seq)
 }
 
 void
+coordinator_link_wrapper :: background_maintenance()
+{
+    sigset_t ss;
+
+    if (sigfillset(&ss) < 0)
+    {
+        PLOG(ERROR) << "sigfillset";
+        return;
+    }
+
+    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
+    {
+        PLOG(ERROR) << "could not block signals";
+        return;
+    }
+
+    while (true)
+    {
+        enter_critical_section_background();
+
+        if (m_teardown)
+        {
+            break;
+        }
+
+        replicant_returncode status = REPLICANT_GARBAGE;
+        int64_t id = m_coord->loop(1000, &status);
+
+        if (status != REPLICANT_TIMEOUT && status != REPLICANT_INTERRUPTED)
+        {
+            m_deferred.push(std::make_pair(id, status));
+        }
+
+        exit_critical_section_killable();
+    }
+}
+
+void
 coordinator_link_wrapper :: do_sleep()
 {
     uint64_t sleep = m_sleep;
@@ -527,7 +621,7 @@ coordinator_link_wrapper :: do_sleep()
     while (sleep > 0)
     {
         ts.tv_sec = 0;
-        ts.tv_nsec = std::min(static_cast<uint64_t>(1000ULL * 1000ULL), sleep);
+        ts.tv_nsec = std::min(static_cast<uint64_t>(10 * 1000ULL * 1000ULL), sleep);
         sigset_t empty_signals;
         sigset_t old_signals;
         sigemptyset(&empty_signals); // should never fail
@@ -570,6 +664,7 @@ coordinator_link_wrapper :: enter_critical_section()
     }
 
     m_locked = true;
+    m_kill = false;
 }
 
 void
@@ -577,10 +672,11 @@ coordinator_link_wrapper :: exit_critical_section()
 {
     po6::threads::mutex::hold hold(&m_mtx);
     m_locked = false;
+    m_kill = false;
 
     if (m_waiting > 0)
     {
-        m_cond.signal();
+        m_cond.broadcast();
     }
 }
 
@@ -607,6 +703,23 @@ coordinator_link_wrapper :: enter_critical_section_killable()
 }
 
 void
+coordinator_link_wrapper :: enter_critical_section_background()
+{
+    po6::threads::mutex::hold hold(&m_mtx);
+
+    while (m_locked || m_waiting > 0)
+    {
+        ++m_waiting;
+        m_cond.wait();
+        --m_waiting;
+    }
+
+    m_locked = true;
+    m_kill = true;
+    m_to_kill = pthread_self();
+}
+
+void
 coordinator_link_wrapper :: exit_critical_section_killable()
 {
     po6::threads::mutex::hold hold(&m_mtx);
@@ -615,7 +728,7 @@ coordinator_link_wrapper :: exit_critical_section_killable()
 
     if (m_waiting > 0)
     {
-        m_cond.signal();
+        m_cond.broadcast();
     }
 }
 

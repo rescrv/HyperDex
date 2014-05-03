@@ -31,10 +31,14 @@
 // C
 #include <stdint.h>
 
+// STL
+#include <queue>
+
 // po6
 #include <po6/net/location.h>
 #include <po6/threads/cond.h>
 #include <po6/threads/mutex.h>
+#include <po6/threads/thread.h>
 
 // HyperDex
 #include "namespace.h"
@@ -61,8 +65,10 @@ class coordinator_link_wrapper
                                     uint64_t* checkpoint_stable,
                                     uint64_t* checkpoint_gc);
         bool should_exit();
+        void teardown();
         bool maintain_link();
-        const configuration& config();
+        void copy_config(configuration* config);
+        uint64_t config_version();
         void request_shutdown();
         uint64_t checkpoint();
         uint64_t checkpoint_stable();
@@ -90,11 +96,13 @@ class coordinator_link_wrapper
         typedef std::map<int64_t, e::intrusive_ptr<coord_rpc> > rpc_map_t;
 
     private:
+        void background_maintenance();
         void do_sleep();
         void reset_sleep();
         void enter_critical_section();
         void exit_critical_section();
         void enter_critical_section_killable();
+        void enter_critical_section_background();
         void exit_critical_section_killable();
         void ensure_available();
         void ensure_config_ack();
@@ -114,10 +122,14 @@ class coordinator_link_wrapper
 
     private:
         daemon* m_daemon;
+        po6::threads::thread m_poller;
         std::auto_ptr<coordinator_link> m_coord;
         rpc_map_t m_rpcs;
         po6::threads::mutex m_mtx;
         po6::threads::cond m_cond;
+        bool m_poller_started;
+        bool m_teardown;
+        std::queue<std::pair<int64_t, replicant_returncode> > m_deferred;
         bool m_locked;
         bool m_kill;
         pthread_t m_to_kill;

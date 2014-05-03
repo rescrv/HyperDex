@@ -563,8 +563,8 @@ replication_manager :: begin_checkpoint(uint64_t seq)
 {
     std::vector<region_id> key_regions;
     std::vector<region_id> mapped_regions;
-    m_daemon->m_coord.config().key_regions(m_daemon->m_us, &key_regions);
-    m_daemon->m_coord.config().mapped_regions(m_daemon->m_us, &mapped_regions);
+    m_daemon->m_config.key_regions(m_daemon->m_us, &key_regions);
+    m_daemon->m_config.mapped_regions(m_daemon->m_us, &mapped_regions);
     std::string timestamp = m_daemon->m_data.get_timestamp();
 
     {
@@ -882,7 +882,7 @@ replication_manager :: check_stable()
 
     if (tell_coord_stable)
     {
-        m_daemon->m_coord.config_stable(m_daemon->m_coord.config().version());
+        m_daemon->m_coord.config_stable(m_daemon->m_config.version());
         m_daemon->m_coord.checkpoint_report_stable(checkpoint);
     }
 }
@@ -928,7 +928,7 @@ replication_manager :: check_stable(const region_id& ri)
 
     if (tell_coord_stable)
     {
-        m_daemon->m_coord.config_stable(m_daemon->m_coord.config().version());
+        m_daemon->m_coord.config_stable(m_daemon->m_config.version());
         m_daemon->m_coord.checkpoint_report_stable(checkpoint);
     }
 }
@@ -1017,7 +1017,7 @@ replication_manager :: background_thread()
         {
             // get the list of point leaders
             std::vector<region_id> point_leaders;
-            m_daemon->m_coord.config().point_leaders(m_daemon->m_us, &point_leaders);
+            m_daemon->m_config.point_leaders(m_daemon->m_us, &point_leaders);
             std::sort(point_leaders.begin(), point_leaders.end());
 
             // peek at the next-to-generate values of m_idgen
