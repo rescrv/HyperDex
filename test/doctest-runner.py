@@ -30,6 +30,8 @@ import sys
 
 class Sentinel(object): pass
 
+def Document(x): return x
+
 def myeval(e):
     x = (' '.join(e.split('\n'))).strip()
     try:
