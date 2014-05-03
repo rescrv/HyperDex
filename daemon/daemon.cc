@@ -590,6 +590,9 @@ daemon :: loop(size_t thread)
         return;
     }
 
+    e::garbage_collector::thread_state ts;
+    m_gc.register_thread(&ts);
+
     server_id from;
     virtual_server_id vfrom;
     virtual_server_id vto;
@@ -701,8 +704,11 @@ daemon :: loop(size_t thread)
                 LOG(INFO) << "received " << type << " message which servers do not process";
                 break;
         }
+
+        m_gc.quiescent_state(&ts);
     }
 
+    m_gc.deregister_thread(&ts);
     LOG(INFO) << "network thread shutting down";
 }
 
