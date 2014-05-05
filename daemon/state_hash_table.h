@@ -212,13 +212,9 @@ state_hash_table<K, T, H> :: get_or_create_state(const K& key, state_reference* 
         assert(locked);
         e::intrusive_ptr<T> u;
 
-        if (t->marked_garbage() || !m_table.get(key, &u) || u != t)
+        if (t->marked_garbage())
         {
-            if (locked)
-            {
-                sr->unlock();
-            }
-
+            sr->unlock();
             continue;
         }
 
@@ -271,15 +267,10 @@ state_hash_table<K, T, H> :: state_reference :: unlock()
     if (we_collect)
     {
         m_state->mark_garbage();
-    }
-
-    m_state->unlock();
-
-    if (we_collect)
-    {
         m_sht->m_table.del_if(m_state->state_key(), m_state);
     }
 
+    m_state->unlock();
     m_sht = NULL;
     m_state = NULL;
     m_locked = false;
@@ -296,7 +287,7 @@ template <typename K, typename T, uint64_t (*H)(const K& k)>
 typename state_hash_table<K, T, H>::iterator&
 state_hash_table<K, T, H> :: iterator :: operator ++ ()
 {
-    if (m_iter != m_sht->m_table.end() && m_sr.locked())
+    if (m_sr.locked())
     {
         m_sr.unlock();
     }
@@ -312,9 +303,8 @@ state_hash_table<K, T, H> :: iterator :: operator ++ ()
 
         e::intrusive_ptr<T> t = m_iter->second;
         m_sr.lock(m_sht, t);
-        e::intrusive_ptr<T> u;
 
-        if (t->marked_garbage() || !m_sht->m_table.get(m_iter->first, &u) || u != t)
+        if (t->marked_garbage())
         {
             m_sr.unlock();
             ++m_iter;
