@@ -288,7 +288,7 @@ daemon :: run(bool daemonize,
 
             if (pid.get() < 0 || pid.xwrite(buf, buf_sz) != buf_sz)
             {
-                PLOG(ERROR) << "could not create pidfile";
+                PLOG(ERROR) << "could not create pidfile " << pidfile.get();
                 return EXIT_FAILURE;
             }
         }
