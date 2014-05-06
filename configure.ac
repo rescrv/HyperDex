@@ -101,11 +101,6 @@ AC_CHECK_HEADER([popt.h],,[AC_MSG_ERROR([
 HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
-AC_CHECK_HEADER([google/dense_hash_map],,[AC_MSG_ERROR([
--------------------------------------------------
-HyperDex relies upon the sparsehash library.
-Please install sparsehash to continue.
--------------------------------------------------])])
 AC_CHECK_HEADER([json/json.h],,[AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the libjson library.

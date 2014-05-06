@@ -31,9 +31,6 @@
 // STL
 #include <list>
 
-// Google
-#include <google/dense_hash_map>
-
 // po6
 #include <po6/threads/mutex.h>
 
