@@ -186,6 +186,8 @@ int
 daemon :: run(bool daemonize,
               po6::pathname data,
               po6::pathname log,
+              po6::pathname pidfile,
+              bool has_pidfile,
               bool set_bind_to,
               po6::net::location bind_to,
               bool set_coordinator,
@@ -252,14 +254,18 @@ daemon :: run(bool daemonize,
 
         if (lstat(log.get(), &x) < 0 || !S_ISDIR(x.st_mode))
         {
-            LOG(ERROR) << "cannot fork off to the background because the "
+            LOG(ERROR) << "cannot fork off to the background because "
                        << log.get() << " does not exist or is not writable";
             return EXIT_FAILURE;
         }
 
-        LOG(INFO) << "forking off to the background";
-        LOG(INFO) << "you can find the log at " << log.get() << "/hyperdex-daemon-YYYYMMDD-HHMMSS.sssss";
-        LOG(INFO) << "provide \"--foreground\" on the command-line if you want to run in the foreground";
+        if (!has_pidfile)
+        {
+            LOG(INFO) << "forking off to the background";
+            LOG(INFO) << "you can find the log at " << log.get() << "/hyperdex-daemon-YYYYMMDD-HHMMSS.sssss";
+            LOG(INFO) << "provide \"--foreground\" on the command-line if you want to run in the foreground";
+        }
+
         google::SetLogSymlink(google::INFO, "");
         google::SetLogSymlink(google::WARNING, "");
         google::SetLogSymlink(google::ERROR, "");
@@ -271,6 +277,20 @@ daemon :: run(bool daemonize,
         {
             PLOG(ERROR) << "could not daemonize";
             return EXIT_FAILURE;
+        }
+
+        if (has_pidfile)
+        {
+            char buf[21];
+            ssize_t buf_sz = sprintf(buf, "%d\n", getpid());
+            assert(buf_sz < static_cast<ssize_t>(sizeof(buf)));
+            po6::io::fd pid(open(pidfile.get(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR));
+
+            if (pid.get() < 0 || pid.xwrite(buf, buf_sz) != buf_sz)
+            {
+                PLOG(ERROR) << "could not create pidfile";
+                return EXIT_FAILURE;
+            }
         }
     }
     else

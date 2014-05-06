@@ -49,6 +49,8 @@ main(int argc, const char* argv[])
     bool daemonize = true;
     const char* data = ".";
     const char* log = NULL;
+    const char* pidfile = "";
+    bool has_pidfile = false;
     bool listen = false;
     const char* listen_host = "auto";
     long listen_port = 2012;
@@ -72,6 +74,9 @@ main(int argc, const char* argv[])
     ap.arg().name('L', "log")
             .description("store logs in this directory (default: --data)")
             .metavar("dir").as_string(&log);
+    ap.arg().long_name("pidfile")
+            .description("write the PID to a file (default: don't)")
+            .metavar("file").as_string(&pidfile).set_true(&has_pidfile);
     ap.arg().name('l', "listen")
             .description("listen on a specific IP address (default: auto)")
             .metavar("IP").as_string(&listen_host).set_true(&listen);
@@ -194,6 +199,7 @@ main(int argc, const char* argv[])
         return d.run(daemonize,
                      po6::pathname(data),
                      po6::pathname(log ? log : data),
+                     po6::pathname(pidfile), has_pidfile,
                      listen, bind_to,
                      coordinator, po6::net::hostname(coordinator_host, coordinator_port),
                      threads);
