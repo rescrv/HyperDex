@@ -173,8 +173,8 @@ hyperdexexec_PROGRAMS += hyperdex-daemon
 dist_man_MANS += man/hyperdex-daemon.1
 endif
 
-EXTRA_DIST += initscripts/default.hyperdex-daemon
-EXTRA_DIST += initscripts/sysv.hyperdex-daemon
+EXTRA_DIST += initscripts/sysv/default/hyperdex-daemon
+EXTRA_DIST += initscripts/sysv/init.d/hyperdex-daemon
 
 noinst_HEADERS += daemon/background_thread.h
 noinst_HEADERS += daemon/communication.h
@@ -313,8 +313,8 @@ hyperdexexec_PROGRAMS += hyperdex-coordinator
 dist_man_MANS += man/hyperdex-coordinator.1
 endif
 
-EXTRA_DIST += initscripts/default.hyperdex-coordinator
-EXTRA_DIST += initscripts/sysv.hyperdex-coordinator
+EXTRA_DIST += initscripts/sysv/default/hyperdex-coordinator
+EXTRA_DIST += initscripts/sysv/init.d/hyperdex-coordinator
 
 noinst_HEADERS += coordinator/coordinator.h
 noinst_HEADERS += coordinator/offline_server.h
