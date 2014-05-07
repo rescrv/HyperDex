@@ -1,0 +1,42 @@
+# defaults file for running a HyperDex coordinator
+
+# Start the HyperDex coordinator on this machine?
+# Allowable values are "true" and "false".
+# By default, no coordinator will be started.
+# If you set this to "true", you must also consider setting the other
+# HYPERDEX_COORDINATOR_* variables as well.
+HYPERDEX_COORDINATOR_ENABLE=false
+
+# Directory where HyperDex coordinator logs should be stored.
+# This directory must exist and be writable by the specified user.
+# It should be an empty directory reserved for the coordinator.
+#
+# REQUIRED:
+# HYPERDEX_COORDINATOR_LOG_DIR=
+
+# Directory where HyperDex coordinator data should be stored.
+# This directory must exist and be writable by the specified user.
+# It should be an empty directory reserved for the coordinator.
+#
+# REQUIRED:
+# HYPERDEX_COORDINATOR_DATA_DIR=
+
+# Address and port to bind to for incoming connections.
+# Valid values include "auto", an IPv4 or IPv6 address, or a hostname.
+#
+# The address should be accessible by all other entities in the cluster,
+# including other coordinator processes, daemons, and clients.
+#
+# The address must be bound to a local interface so that the coordinator may
+# bind to it.  If the value "auto" is provided (the default), then the
+# coordinator will attempt to bind to the first interface that is not the
+# loopback interface.
+HYPERDEX_COORDINATOR_LISTEN_ADDR=auto
+HYPERDEX_COORDINATOR_LISTEN_PORT=1982
+
+# Address and port of an existing cluster to join.
+#
+# These values should be left empty for the first coordinator, and specified for
+# each subsequent coordinator process.
+# HYPERDEX_COORDINATOR_CONNECT_ADDR=
+# HYPERDEX_COORDINATOR_CONNECT_PORT=
