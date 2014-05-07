@@ -287,31 +287,20 @@ template <typename K, typename T, uint64_t (*H)(const K& k)>
 typename state_hash_table<K, T, H>::iterator&
 state_hash_table<K, T, H> :: iterator :: operator ++ ()
 {
-    if (m_sr.locked())
-    {
-        m_sr.unlock();
-    }
-
-    ++m_iter;
-
     while (true)
     {
-        if (m_iter == m_sht->m_table.end())
+        if (m_sr.locked())
+        {
+            m_sr.unlock();
+        }
+
+        ++m_iter;
+
+        if (m_iter == m_sht->m_table.end() ||
+            m_sht->get_state(m_iter->first, &m_sr))
         {
             return *this;
         }
-
-        e::intrusive_ptr<T> t = m_iter->second;
-        m_sr.lock(m_sht, t);
-
-        if (t->marked_garbage())
-        {
-            m_sr.unlock();
-            ++m_iter;
-            continue;
-        }
-
-        return *this;
     }
 }
 
