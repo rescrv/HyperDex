@@ -160,13 +160,8 @@ state_hash_table<K, T, H> :: get_state(const K& key, state_reference* sr)
         }
 
         sr->lock(this, t);
-        e::intrusive_ptr<T> u;
 
-        // check the get
-        // this is necessary
-        // if you don't know why, don't change this code
-
-        if (t->marked_garbage() || !m_table.get(key, &u) || u != t)
+        if (t->marked_garbage())
         {
             sr->unlock();
             continue;
@@ -182,32 +177,27 @@ state_hash_table<K, T, H> :: get_or_create_state(const K& key, state_reference* 
 {
     while (true)
     {
-        bool locked = false;
         e::intrusive_ptr<T> t;
 
         if (m_table.get(key, &t))
         {
             sr->lock(this, t);
-            locked = true;
         }
         else
         {
             assert(!t);
             t = new T(key);
             sr->lock(this, t);
-            locked = true;
 
             if (!m_table.put_ine(key, t))
             {
                 sr->unlock();
-                locked = false;
                 continue;
             }
         }
 
         assert(t);
-        assert(locked);
-        e::intrusive_ptr<T> u;
+        assert(sr->locked());
 
         if (t->marked_garbage())
         {
