@@ -1,0 +1,152 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:          hyperdex-coordinator
+# Default-Start:     2 3 4 5
+# Default-Stop:      
+# Short-Description: diestributed key-value store
+# Description:       HyperDex is a distributed key-value store that
+#                    automatically partitions and replicates data across many
+#                    machines.
+### END INIT INFO
+
+set -e
+
+# /etc/init.d/hyperdex: start and stop the hyperdex cluster
+
+HYPERDEX=/usr/bin/hyperdex
+HYPERDEX_DEFAULTS_FILE=/etc/default/hyperdex-coordinator
+HYPERDEX_COORDINATOR_ENABLE=false
+HYPERDEX_COORDINATOR_PID_FILE=/var/run/hyperdex-coordinator.pid
+HYPERDEX_COORDINATOR_LOG_DIR=
+HYPERDEX_COORDINATOR_DATA_DIR=
+HYPERDEX_COORDINATOR_LISTEN_ADDR=auto
+HYPERDEX_COORDINATOR_LISTEN_PORT=1982
+HYPERDEX_COORDINATOR_CONNECT_ADDR=
+HYPERDEX_COORDINATOR_CONNECT_PORT=
+
+test -x $HYPERDEX || exit 0
+
+. /lib/lsb/init-functions
+
+if [ -s $HYPERDEX_DEFAULTS_FILE ]; then
+    . $HYPERDEX_DEFAULTS_FILE
+fi
+
+case "x$HYPERDEX_COORDINATOR_ENABLE" in
+xtrue|xfalse)
+    ;;
+*)
+    log_failure_msg "Value of HYPERDEX_COORDINATOR_ENABLE in $HYPERDEX_DEFAULTS_FILE must be either 'true' or 'false';"
+    log_failure_msg "not starting HyperDex coordinator."
+    exit 1
+    ;;
+esac
+
+if test -z "$HYPERDEX_COORDINATOR_LOG_DIR"; then
+    log_failure_msg "Value of HYPERDEX_COORDINATOR_LOG_DIR in $HYPERDEX_DEFAULTS_FILE must be provided;"
+    log_failure_msg "not starting HyperDex coordinator."
+    exit 1
+fi
+if test -z "$HYPERDEX_COORDINATOR_DATA_DIR"; then
+    log_failure_msg "Value of HYPERDEX_COORDINATOR_DATA_DIR in $HYPERDEX_DEFAULTS_FILE must be provided;"
+    log_failure_msg "not starting HyperDex coordinator."
+    exit 1
+fi
+if test -z "$HYPERDEX_COORDINATOR_LISTEN_ADDR"; then
+    log_failure_msg "Value of HYPERDEX_COORDINATOR_LISTEN_ADDR in $HYPERDEX_DEFAULTS_FILE must be provided;"
+    log_failure_msg "not starting HyperDex coordinator."
+    exit 1
+fi
+if test -z "$HYPERDEX_COORDINATOR_LISTEN_PORT"; then
+    log_failure_msg "Value of HYPERDEX_COORDINATOR_LISTEN_PORT in $HYPERDEX_DEFAULTS_FILE must be provided;"
+    log_failure_msg "not starting HyperDex coordinator."
+    exit 1
+fi
+
+export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
+
+hyperdex_start() {
+    HYPERDEX_OPTS="$HYPERDEX_OPTS --pidfile $HYPERDEX_COORDINATOR_PID_FILE"
+    HYPERDEX_OPTS="$HYPERDEX_OPTS --log $HYPERDEX_COORDINATOR_LOG_DIR"
+    HYPERDEX_OPTS="$HYPERDEX_OPTS --data $HYPERDEX_COORDINATOR_DATA_DIR"
+    HYPERDEX_OPTS="$HYPERDEX_OPTS --listen $HYPERDEX_COORDINATOR_LISTEN_ADDR"
+    HYPERDEX_OPTS="$HYPERDEX_OPTS --listen-port $HYPERDEX_COORDINATOR_LISTEN_PORT"
+    if test -n "$HYPERDEX_COORDINATOR_CONNECT_ADDR"; then
+        HYPERDEX_OPTS="$HYPERDEX_OPTS --connect $HYPERDEX_COORDINATOR_CONNECT_ADDR"
+    fi
+    if test -n "$HYPERDEX_COORDINATOR_CONNECT_PORT"; then
+        HYPERDEX_OPTS="$HYPERDEX_OPTS --connect-port $HYPERDEX_COORDINATOR_CONNECT_PORT"
+    fi
+    echo
+        echo $HYPERDEX_OPTS
+
+    if start-stop-daemon --start --quiet --pidfile $HYPERDEX_COORDINATOR_PID_FILE \
+        --startas $HYPERDEX -- coordinator $HYPERDEX_OPTS
+    then
+        rc=0
+        sleep 1
+        if ! kill -0 $(cat $HYPERDEX_COORDINATOR_PID_FILE) >/dev/null 2>&1; then
+            log_failure_msg "hyperdex coordinator failed to start"
+            rc=1
+        fi
+    else
+        rc=1
+    fi
+    if [ $rc -eq 0 ]; then
+        log_end_msg 0
+    else
+        log_end_msg 1
+        rm -f $HYPERDEX_COORDINATOR_PID_FILE
+    fi
+} # hyperdex_start
+
+case "$1" in
+    start)
+        if "$HYPERDEX_COORDINATOR_ENABLE"; then
+            log_daemon_msg "Starting HyperDex coordinator" "hyperdex-coordinator"
+            if [ -s $HYPERDEX_COORDINATOR_PID_FILE ] && kill -0 $(cat $HYPERDEX_COORDINATOR_PID_FILE) >/dev/null 2>&1; then
+                log_process_msg "already running or stale pidfile"
+                log_end_msg 0
+                exit 0
+            fi
+            hyperdex_start
+        fi
+        ;;
+
+    stop)
+        log_daemon_msg "Stopping HyperDex coordinator" "hyperdex-coordinator"
+        start-stop-daemon --stop --quiet --oknodo --pidfile $HYPERDEX_COORDINATOR_PID_FILE --retry=TERM/10/TERM/30
+        log_end_msg $?
+        rm -f $HYPERDEX_COORDINATOR_PID_FILE
+        ;;
+
+    reload|force-reload)
+        log_warning_msg "Reloading HyperDex coordinator: not necessary"
+        log_warning_msg "restart the coordinator if configuration changed."
+        ;;
+
+    restart)
+        set +e
+        if "$HYPERDEX_COORDINATOR_ENABLE"; then
+            log_daemon_msg "Restarting HyperDex coordinator" "hyperdex-coordinator"
+            if [ -s $HYPERDEX_COORDINATOR_PID_FILE ] && kill -0 $(cat $HYPERDEX_COORDINATOR_PID_FILE) >/dev/null 2>&1; then
+                start-stop-daemon --stop --quiet --oknodo --pidfile $HYPERDEX_COORDINATOR_PID_FILE --retry=TERM/10/TERM/30 || true
+                sleep 1
+                rm -f $HYPERDEX_COORDINATOR_PID_FILE
+            fi
+            hyperdex_start
+        fi
+        ;;
+
+    status)
+        status_of_proc -p $HYPERDEX_COORDINATOR_PID_FILE "$HYPERDEX" hyperdex-coordinator
+        exit $? # notreached due to set -e
+        ;;
+
+    *)
+        echo "Usage: /etc/init.d/hyperdex-coordinator {start|stop|reload|force-reload|restart|status}"
+        exit 1
+esac
+
+exit 0

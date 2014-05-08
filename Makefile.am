@@ -173,6 +173,9 @@ hyperdexexec_PROGRAMS += hyperdex-daemon
 dist_man_MANS += man/hyperdex-daemon.1
 endif
 
+EXTRA_DIST += initscripts/sysv/default/hyperdex-daemon
+EXTRA_DIST += initscripts/sysv/init.d/hyperdex-daemon
+
 noinst_HEADERS += daemon/background_thread.h
 noinst_HEADERS += daemon/communication.h
 noinst_HEADERS += daemon/coordinator_link_wrapper.h
@@ -309,6 +312,9 @@ hyperdexexec_LTLIBRARIES += libhyperdex-coordinator.la
 hyperdexexec_PROGRAMS += hyperdex-coordinator
 dist_man_MANS += man/hyperdex-coordinator.1
 endif
+
+EXTRA_DIST += initscripts/sysv/default/hyperdex-coordinator
+EXTRA_DIST += initscripts/sysv/init.d/hyperdex-coordinator
 
 noinst_HEADERS += coordinator/coordinator.h
 noinst_HEADERS += coordinator/offline_server.h
@@ -1007,13 +1013,13 @@ EXTRA_DIST += test/ruby/RangeSearchString.rb
 EXTRA_DIST += test/ruby/RegexSearch.rb
 
 test_replication_stress_test_SOURCES = test/replication-stress-test.cc
-test_replication_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
+test_replication_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt -lpthread
 
 test_search_stress_test_SOURCES = test/search-stress-test.cc
-test_search_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
+test_search_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt -lpthread
 
 test_simple_consistency_stress_test_SOURCES = test/simple-consistency-stress-test.cc
-test_simple_consistency_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
+test_simple_consistency_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt -lpthread
 
 ################################################################################
 ##################################### Tools ####################################

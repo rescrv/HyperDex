@@ -64,6 +64,8 @@ class daemon
         int run(bool daemonize,
                 po6::pathname data,
                 po6::pathname log,
+                po6::pathname pidfile,
+                bool has_pidfile,
                 bool set_bind_to,
                 po6::net::location bind_to,
                 bool set_coordinator,

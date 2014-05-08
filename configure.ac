@@ -101,11 +101,6 @@ AC_CHECK_HEADER([popt.h],,[AC_MSG_ERROR([
 HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
-AC_CHECK_HEADER([google/dense_hash_map],,[AC_MSG_ERROR([
--------------------------------------------------
-HyperDex relies upon the sparsehash library.
-Please install sparsehash to continue.
--------------------------------------------------])])
 AC_CHECK_HEADER([json/json.h],,[AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the libjson library.
@@ -219,7 +214,7 @@ AC_ARG_ENABLE([time-consuming-tests], [AS_HELP_STRING([--enable-time-consuming-t
 AM_CONDITIONAL([ENABLE_TIME_CONSUMING_TESTS], [test x"${enable_time_consuming_tests}" = xyes])
 
 # Generate outputs and finish
-AC_CONFIG_FILES([Makefile hyperdex-client.pc hyperdex-admin.pc hyperdex.upack])
+AC_CONFIG_FILES([Makefile hyperdex-client.pc hyperdex-admin.pc])
 AC_CONFIG_LINKS([test/java/.exists:test/java/.exists])
 AC_CONFIG_LINKS([bindings/python/hyperdex/__init__.py:bindings/python/hyperdex/__init__.py])
 AC_OUTPUT
