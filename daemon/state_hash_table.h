@@ -84,32 +84,35 @@ class state_hash_table<K, T, H>::state_reference
         bool locked();
 
     private:
-        state_reference(state_reference&);
-        state_reference& operator = (state_reference&);
-
-    private:
         bool m_locked;
         state_hash_table* m_sht;
         e::intrusive_ptr<T> m_state;
+
+    private:
+        state_reference(state_reference&);
+        state_reference& operator = (state_reference&);
 };
 
 template <typename K, typename T, uint64_t (*H)(const K& k)>
 class state_hash_table<K, T, H>::iterator
 {
     public:
-        iterator(state_hash_table* sht)
-            : m_sht(sht), m_iter(m_sht->m_table.begin()), m_sr() {}
+        iterator(state_hash_table* sht);
 
     public:
-        bool valid() { return m_iter != m_sht->m_table.end(); }
-        T* operator * () { return m_iter->second.get(); }
-        T* operator -> () { return m_iter->second.get(); }
+        bool valid();
+        T* operator * ();
+        T* operator -> ();
         iterator& operator ++ ();
+
+    private:
+        void prime();
 
     private:
         state_hash_table* m_sht;
         typename state_map_t::iterator m_iter;
         state_reference m_sr;
+        bool m_primed;
 
     private:
         iterator(iterator&);
@@ -271,9 +274,60 @@ state_hash_table<K, T, H> :: state_reference :: locked()
 }
 
 template <typename K, typename T, uint64_t (*H)(const K& k)>
+state_hash_table<K, T, H> :: iterator :: iterator(state_hash_table* sht)
+    : m_sht(sht)
+    , m_iter(m_sht->m_table.begin())
+    , m_sr()
+    , m_primed(false)
+{
+    prime();
+}
+
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+bool
+state_hash_table<K, T, H> :: iterator :: valid()
+{
+    prime();
+    return m_iter != m_sht->m_table.end();
+}
+
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+T*
+state_hash_table<K, T, H> :: iterator :: operator * ()
+{
+    assert(valid());
+    assert(m_sr.locked());
+    return m_iter->second.get();
+}
+
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+T*
+state_hash_table<K, T, H> :: iterator :: operator -> ()
+{
+    assert(valid());
+    assert(m_sr.locked());
+    return m_iter->second.get();
+}
+
+template <typename K, typename T, uint64_t (*H)(const K& k)>
 typename state_hash_table<K, T, H>::iterator&
 state_hash_table<K, T, H> :: iterator :: operator ++ ()
 {
+    m_primed = false;
+    ++m_iter;
+    prime();
+    return *this;
+}
+
+template <typename K, typename T, uint64_t (*H)(const K& k)>
+void
+state_hash_table<K, T, H> :: iterator :: prime()
+{
+    if (m_primed)
+    {
+        return;
+    }
+
     while (true)
     {
         if (m_sr.locked())
@@ -281,14 +335,16 @@ state_hash_table<K, T, H> :: iterator :: operator ++ ()
             m_sr.unlock();
         }
 
-        ++m_iter;
-
         if (m_iter == m_sht->m_table.end() ||
             m_sht->get_state(m_iter->first, &m_sr))
         {
-            return *this;
+            break;
         }
+
+        ++m_iter;
     }
+
+    m_primed = true;
 }
 
 END_HYPERDEX_NAMESPACE
