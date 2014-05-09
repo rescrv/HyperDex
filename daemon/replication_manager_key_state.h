@@ -89,6 +89,7 @@ class hyperdex::replication_manager::key_state
                                             const region_id& ri,
                                             const schema& sc);
         void debug_dump();
+        void check_invariants() const;
 
     private:
         typedef std::list<std::pair<uint64_t, e::intrusive_ptr<pending> > >

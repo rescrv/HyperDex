@@ -37,6 +37,12 @@
 #include "daemon/replication_manager_key_state.h"
 #include "daemon/replication_manager_pending.h"
 
+#if 0
+#define CHECK_INVARIANTS() this->check_invariants()
+#else
+#define CHECK_INVARIANTS() do {} while (0)
+#endif
+
 using hyperdex::key_region;
 using hyperdex::replication_manager;
 
@@ -120,6 +126,7 @@ replication_manager :: key_state :: clear()
     m_blocked.clear();
     m_deferred.clear();
     assert(empty());
+    CHECK_INVARIANTS();
 }
 
 uint64_t
@@ -127,21 +134,25 @@ replication_manager :: key_state :: max_seq_id() const
 {
     uint64_t ret = 0;
 
-    if (!m_committable.empty())
+    for (pending_list_t::const_iterator it = m_committable.begin();
+            it != m_committable.end(); ++it)
     {
-        ret = std::max(ret, m_committable.back().second->seq_id);
+        ret = std::max(ret, it->second->seq_id);
     }
 
-    if (!m_blocked.empty())
+    for (pending_list_t::const_iterator it = m_blocked.begin();
+            it != m_blocked.end(); ++it)
     {
-        ret = std::max(ret, m_blocked.back().second->seq_id);
+        ret = std::max(ret, it->second->seq_id);
     }
 
-    if (!m_deferred.empty())
+    for (pending_list_t::const_iterator it = m_deferred.begin();
+            it != m_deferred.end(); ++it)
     {
-        ret = std::max(ret, m_deferred.back().second->seq_id);
+        ret = std::max(ret, it->second->seq_id);
     }
 
+    CHECK_INVARIANTS();
     return ret;
 }
 
@@ -150,27 +161,33 @@ replication_manager :: key_state :: min_seq_id() const
 {
     uint64_t ret = 0;
 
-    if (!m_committable.empty())
+    for (pending_list_t::const_iterator it = m_committable.begin();
+            it != m_committable.end(); ++it)
     {
-        ret = std::min(ret, m_committable.front().second->seq_id);
+        ret = std::min(ret, it->second->seq_id);
     }
 
-    if (!m_blocked.empty())
+    for (pending_list_t::const_iterator it = m_blocked.begin();
+            it != m_blocked.end(); ++it)
     {
-        ret = std::min(ret, m_blocked.front().second->seq_id);
+        ret = std::min(ret, it->second->seq_id);
     }
 
-    if (!m_deferred.empty())
+    for (pending_list_t::const_iterator it = m_deferred.begin();
+            it != m_deferred.end(); ++it)
     {
-        ret = std::min(ret, m_deferred.front().second->seq_id);
+        ret = std::min(ret, it->second->seq_id);
     }
 
+    CHECK_INVARIANTS();
     return ret;
 }
 
 e::intrusive_ptr<replication_manager::pending>
 replication_manager :: key_state :: get_version(uint64_t version) const
 {
+    CHECK_INVARIANTS();
+
     if (!m_committable.empty() && m_committable.back().first >= version)
     {
         for (pending_list_t::const_iterator c = m_committable.begin();
@@ -230,6 +247,7 @@ replication_manager :: key_state :: initialize(datalayer* data,
     }
 
     m_initialized = true;
+    CHECK_INVARIANTS();
     return rc;
 }
 
@@ -241,10 +259,13 @@ replication_manager :: key_state :: check_against_latest_version(const schema& s
                                                                  const std::vector<attribute_check>& checks,
                                                                  network_returncode* nrc)
 {
+    assert(m_deferred.empty());
+    assert(sc.attrs_sz > 0);
     bool has_old_value = false;
     uint64_t old_version = 0;
     std::vector<e::slice>* old_value = NULL;
     get_latest(&has_old_value, &old_version, &old_value);
+    CHECK_INVARIANTS();
     return check_version(sc, erase, fail_if_not_found, fail_if_found, checks,
                          has_old_value, old_version, old_value, nrc);
 }
@@ -254,6 +275,7 @@ replication_manager :: key_state :: delete_latest(const schema& sc,
                                                   const region_id& reg_id, uint64_t seq_id,
                                                   const server_id& client, uint64_t nonce)
 {
+    assert(m_deferred.empty());
     assert(sc.attrs_sz > 0);
     e::intrusive_ptr<pending> op;
     op = new pending(std::auto_ptr<e::buffer>(),
@@ -261,23 +283,12 @@ replication_manager :: key_state :: delete_latest(const schema& sc,
                      false, std::vector<e::slice>(sc.attrs_sz - 1),
                      client, nonce,
                      0, virtual_server_id());
-
-    uint64_t new_version = 0;
-
-    if (!m_blocked.empty())
-    {
-        new_version = m_blocked.back().first + 1;
-    }
-    else if (!m_committable.empty())
-    {
-        new_version = m_committable.back().first + 1;
-    }
-    else
-    {
-        new_version = m_old_version + 1;
-    }
-
-    insert_deferred(new_version, op);
+    bool has_old_value = false;
+    uint64_t old_version = 0;
+    std::vector<e::slice>* old_value = NULL;
+    get_latest(&has_old_value, &old_version, &old_value);
+    insert_deferred(old_version + 1, op);
+    CHECK_INVARIANTS();
 }
 
 bool
@@ -286,6 +297,7 @@ replication_manager :: key_state :: put_from_funcs(const schema& sc,
                                                    const std::vector<funcall>& funcs,
                                                    const server_id& client, uint64_t nonce)
 {
+    assert(m_deferred.empty());
     bool has_old_value = false;
     uint64_t old_version = 0;
     std::vector<e::slice>* old_value = NULL;
@@ -308,9 +320,15 @@ replication_manager :: key_state :: put_from_funcs(const schema& sc,
                      client, nonce,
                      0, virtual_server_id());
 
+    CHECK_INVARIANTS();
+    assert(m_committable.empty() || old_version + 1 > m_committable.back().first);
+    assert(m_blocked.empty() || old_version + 1 > m_blocked.back().first);
+    assert(m_deferred.empty() || old_version + 1 > m_deferred.back().first);
+
     if (funcs_passed == funcs.size())
     {
         insert_deferred(old_version + 1, op);
+        CHECK_INVARIANTS();
         return true;
     }
 
@@ -320,6 +338,7 @@ replication_manager :: key_state :: put_from_funcs(const schema& sc,
 void
 replication_manager :: key_state :: insert_deferred(uint64_t version, e::intrusive_ptr<pending> op)
 {
+    CHECK_INVARIANTS();
     pending_list_t::iterator d = m_deferred.begin();
 
     while (d != m_deferred.end() && d->first <= version)
@@ -327,8 +346,9 @@ replication_manager :: key_state :: insert_deferred(uint64_t version, e::intrusi
         ++d;
     }
 
-    assert(d == m_deferred.end() || d->first != version);
+    assert(d == m_deferred.end() || d->first > version);
     m_deferred.insert(d, std::make_pair(version, op));
+    CHECK_INVARIANTS();
 }
 
 bool
@@ -340,6 +360,7 @@ replication_manager :: key_state :: persist_to_datalayer(replication_manager* rm
 {
     if (m_old_version < version)
     {
+        CHECK_INVARIANTS();
         e::intrusive_ptr<pending> op = get_version(version);
         assert(op);
         datalayer::returncode rc;
@@ -388,35 +409,45 @@ replication_manager :: key_state :: persist_to_datalayer(replication_manager* rm
         m_old_version = version;
         m_old_value = op->value;
         m_old_backing = op->backing;
+        CHECK_INVARIANTS();
     }
     else
     {
         rm->m_daemon->m_data.mark_acked(ri, reg_id, seq_id);
     }
 
+    CHECK_INVARIANTS();
     return true;
 }
 
 void
 replication_manager :: key_state :: clear_deferred()
 {
+    CHECK_INVARIANTS();
     m_deferred.clear();
+    CHECK_INVARIANTS();
 }
 
 void
 replication_manager :: key_state :: clear_acked_prefix()
 {
+    CHECK_INVARIANTS();
+
     while (!m_committable.empty() && m_committable.front().second->acked)
     {
         assert(m_committable.front().first <= m_old_version);
         m_committable.pop_front();
     }
+
+    CHECK_INVARIANTS();
 }
 
 void
 replication_manager :: key_state :: resend_committable(replication_manager* rm,
                                                        const virtual_server_id& us)
 {
+    CHECK_INVARIANTS();
+
     for (pending_list_t::iterator it = m_committable.begin();
             it != m_committable.end(); ++it)
     {
@@ -430,6 +461,8 @@ replication_manager :: key_state :: resend_committable(replication_manager* rm,
         it->second->sent_config_version = 0;
         rm->send_message(us, true, it->first, m_key, it->second);
     }
+
+    CHECK_INVARIANTS();
 }
 
 void
@@ -470,6 +503,7 @@ replication_manager :: key_state :: move_operations_between_queues(replication_m
     // Apply deferred operations
     while (!m_deferred.empty())
     {
+        CHECK_INVARIANTS();
         bool has_old_value = false;
         uint64_t old_version = 0;
         std::vector<e::slice>* old_value = NULL;
@@ -530,6 +564,7 @@ replication_manager :: key_state :: move_operations_between_queues(replication_m
     // Issue blocked operations
     while (!m_blocked.empty())
     {
+        CHECK_INVARIANTS();
         uint64_t version = m_blocked.front().first;
         e::intrusive_ptr<pending> op = m_blocked.front().second;
 
@@ -544,6 +579,8 @@ replication_manager :: key_state :: move_operations_between_queues(replication_m
         m_blocked.pop_front();
         rm->send_message(us, false, version, m_key, op);
     }
+
+    CHECK_INVARIANTS();
 }
 
 void
@@ -572,23 +609,62 @@ replication_manager :: key_state :: debug_dump()
 }
 
 void
+replication_manager :: key_state :: check_invariants() const
+{
+    assert(!m_marked_garbage);
+    assert(m_initialized);
+    assert(m_ref > 0);
+    uint64_t version = 0;
+
+    for (pending_list_t::const_iterator it = m_committable.begin();
+            it != m_committable.end(); ++it)
+    {
+        assert(version < it->first);
+        version = it->first;
+    }
+
+    for (pending_list_t::const_iterator it = m_blocked.begin();
+            it != m_blocked.end(); ++it)
+    {
+        assert(version < it->first);
+        version = it->first;
+    }
+
+    for (pending_list_t::const_iterator it = m_deferred.begin();
+            it != m_deferred.end(); ++it)
+    {
+        assert(version < it->first);
+        version = it->first;
+    }
+
+    assert(m_committable.empty() || m_old_version <= m_committable.back().first);
+    assert(m_blocked.empty() || m_old_version < m_blocked.front().first);
+    assert(m_deferred.empty() || m_old_version < m_deferred.front().first);
+}
+
+void
 replication_manager :: key_state :: get_latest(bool* has_old_value,
                                                uint64_t* old_version,
                                                std::vector<e::slice>** old_value)
 {
-    if (!m_blocked.empty())
+    CHECK_INVARIANTS();
+    *old_version = 0;
+
+    if (!m_blocked.empty() && m_blocked.back().first > *old_version)
     {
         *has_old_value = m_blocked.back().second->has_value;
         *old_version = m_blocked.back().first;
         *old_value = &m_blocked.back().second->value;
     }
-    else if (!m_committable.empty())
+
+    if (!m_committable.empty() && m_committable.back().first > *old_version)
     {
         *has_old_value = m_committable.back().second->has_value;
         *old_version = m_committable.back().first;
         *old_value = &m_committable.back().second->value;
     }
-    else
+
+    if (m_old_version > *old_version)
     {
         *has_old_value = m_has_old_value;
         *old_version = m_old_version;
