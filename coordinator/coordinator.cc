@@ -764,7 +764,7 @@ void
 coordinator :: index_rm(replicant_state_machine_context* ctx, index_id ii)
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
-    std::tr1::shared_ptr<space> s;
+    e::compat::shared_ptr<space> s;
     index* idx;
 
     for (space_map_t::iterator it = m_spaces.begin();
