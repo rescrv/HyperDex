@@ -84,7 +84,7 @@ Please install libjson to continue.
 fi
 
 PKG_CHECK_MODULES([PO6], [libpo6 >= 0.5])
-PKG_CHECK_MODULES([E], [libe >= 0.3.2])
+PKG_CHECK_MODULES([E], [libe >= 0.7])
 PKG_CHECK_MODULES([BUSYBEE], [busybee >= 0.3.0])
 PKG_CHECK_MODULES([HYPERLEVELDB], [libhyperleveldb >= 1.0])
 PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.2.dev])
