@@ -54,7 +54,7 @@ struct datalayer::index_state
 
         return *this;
     }
-    bool operator < (const region_id& x) { return ri < x; }
+    bool operator < (const region_id& x) const { return ri < x; }
 
     region_id ri;
     index_id ii;
