@@ -32,6 +32,7 @@
 
 // STL
 #include <algorithm>
+#include <map>
 #include <sstream>
 
 // e
@@ -545,13 +546,19 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: report_disconnect(replicant_state_machine_context*,
+coordinator :: report_disconnect(replicant_state_machine_context* ctx,
                                  const server_id& sid, uint64_t version)
 {
+    FILE* log = replicant_state_machine_log_stream(ctx);
+
     if (m_version != version)
     {
         return;
     }
+
+    fprintf(log, "server %lu reported for TCP disconnect in version %ld\n", sid.get(), version);
+    typedef std::vector<std::pair<virtual_server_id, virtual_server_id> > changed_t;
+    changed_t changed;
 
     for (space_map_t::iterator it = m_spaces.begin();
             it != m_spaces.end(); ++it)
@@ -570,13 +577,41 @@ coordinator :: report_disconnect(replicant_state_machine_context*,
                 {
                     if (reg->replicas[repl_idx].si == sid)
                     {
+                        virtual_server_id old = reg->replicas[repl_idx].vsi;
                         reg->replicas[repl_idx].vsi = virtual_server_id(m_counter);
                         ++m_counter;
+                        changed.push_back(std::make_pair(old, reg->replicas[repl_idx].vsi));
                     }
                 }
             }
         }
     }
+
+    std::sort(changed.begin(), changed.end());
+
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        changed_t::iterator it;
+
+        it = std::lower_bound(changed.begin(), changed.end(),
+                              std::make_pair(m_transfers[i].vsrc, virtual_server_id()));
+
+        if (it->first == m_transfers[i].vsrc)
+        {
+            m_transfers[i].vsrc = it->second;
+        }
+
+        it = std::lower_bound(changed.begin(), changed.end(),
+                              std::make_pair(m_transfers[i].vdst, virtual_server_id()));
+
+        if (it->first == m_transfers[i].vdst)
+        {
+            m_transfers[i].vdst = it->second;
+        }
+    }
+
+    generate_next_configuration(ctx);
+    return generate_response(ctx, COORD_SUCCESS);
 }
 
 void
