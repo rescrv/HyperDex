@@ -114,8 +114,8 @@ hyperspace :: hyperspace()
     , attributes()
     , subspaces()
     , indices()
-    , fault_tolerance(2)
-    , partitions(256)
+    , fault_tolerance(1)
+    , partitions(64)
 {
     memset(buffer, 0, 1024);
 }
