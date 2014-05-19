@@ -570,7 +570,7 @@ hyperdex :: space_to_space(hyperspace* in, hyperdex::space* out)
                 }
             }
 
-            if (!found)
+            if (!found && attr > 0)
             {
                 index idx(index::NORMAL, index_id(), attr, e::slice());
                 sp.indices.push_back(idx);
