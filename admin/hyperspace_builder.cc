@@ -554,6 +554,30 @@ hyperdex :: space_to_space(hyperspace* in, hyperdex::space* out)
         sp.indices.push_back(idx);
     }
 
+    for (size_t ss_idx = 0; ss_idx < sp.subspaces.size(); ++ ss_idx)
+    {
+        for (size_t a_idx = 0; a_idx < sp.subspaces[ss_idx].attrs.size(); ++a_idx)
+        {
+            uint16_t attr = sp.subspaces[ss_idx].attrs[a_idx];
+            bool found = false;
+
+            for (size_t i_idx = 0; i_idx < sp.indices.size(); ++i_idx)
+            {
+                if (sp.indices[i_idx].type == index::NORMAL &&
+                    sp.indices[i_idx].attr == attr)
+                {
+                    found = true;
+                }
+            }
+
+            if (!found)
+            {
+                index idx(index::NORMAL, index_id(), attr, e::slice());
+                sp.indices.push_back(idx);
+            }
+        }
+    }
+
     *out = sp;
     return true;
 }
