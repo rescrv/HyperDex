@@ -271,7 +271,6 @@ datalayer :: indexer_thread :: mark_usable(const region_id& ri, const index_id& 
             is->ii == ii)
         {
             is->set_usable();
-            LOG(INFO) << "enabling " << ii << " in " << ri;
         }
     }
 
