@@ -1055,6 +1055,54 @@ coordinator :: recreate(replicant_state_machine_context* ctx,
         return NULL;
     }
 
+    std::vector<std::pair<server_id, virtual_server_id> > region_tails;
+
+    for (space_map_t::iterator it = c->m_spaces.begin();
+            it != c->m_spaces.end(); ++it)
+    {
+        space* s(it->second.get());
+
+        for (size_t ss_idx = 0; ss_idx < s->subspaces.size(); ++ss_idx)
+        {
+            subspace* ss(&s->subspaces[ss_idx]);
+
+            for (size_t reg_idx = 0; reg_idx < ss->regions.size(); ++reg_idx)
+            {
+                region* reg = &ss->regions[reg_idx];
+
+                if (!reg->replicas.empty())
+                {
+                    region_tails.push_back(std::make_pair(reg->replicas.back().si,
+                                                          reg->replicas.back().vsi));
+                }
+            }
+        }
+    }
+
+    std::sort(region_tails.begin(), region_tails.end());
+
+    for (size_t i = 0; i < c->m_transfers.size(); )
+    {
+        const transfer* t = &c->m_transfers[i];
+        std::pair<server_id, virtual_server_id> src(std::make_pair(t->src, t->vsrc));
+        std::pair<server_id, virtual_server_id> dst(std::make_pair(t->dst, t->vdst));
+
+        if (!std::binary_search(region_tails.begin(), region_tails.end(), src) &&
+            !std::binary_search(region_tails.begin(), region_tails.end(), dst))
+        {
+            for (size_t j = i + 1; j < c->m_transfers.size(); ++j)
+            {
+                c->m_transfers[j - 1] = c->m_transfers[j];
+            }
+
+            c->m_transfers.pop_back();
+        }
+        else
+        {
+            ++i;
+        }
+    }
+
     c->generate_cached_configuration(ctx);
     replicant_state_machine_alarm(ctx, "alarm", ALARM_INTERVAL);
     return c.release();
