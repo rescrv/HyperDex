@@ -68,12 +68,14 @@ repository and install HyperDex:
 
 \begin{consolecode}
 sudo wget -O /etc/apt/sources.list.d/hyperdex.list \
-    http://ubuntu.hyperdex.org/hyperdex.list
+    http://ubuntu.hyperdex.org/precise.list
 sudo wget -O - http://ubuntu.hyperdex.org/hyperdex.gpg.key \
 | sudo apt-key add -
 sudo apt-get update
 sudo apt-get install hyperdex
 \end{consolecode}
+
+Change \code{precise.list} to reflect the version of Ubuntu that you are using.
 
 \subsection{Fedora}
 \label{sec:installation:binaries:fedora}
