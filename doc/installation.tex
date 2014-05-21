@@ -391,6 +391,18 @@ hyperdex help
 hyperdex daemon --help
 \end{consolecode}
 
+\section{Upgrading to 1.3}
+\label{sec:installation:upgrade1.3}
+
+Upgrading to 1.3 is a two step process.  First, take a full backup of your
+cluster using the provided backup tools.  Start the 1.3 cluster from the
+backup.  This will upgrade the coordinator to 1.3, and the daemons will work
+with the old data directory.
+
+Alternatively, take a backup, and restart the coordinator from the backed-up
+coordinator state on the same address.  Then do a rolling restart of the
+daemons.
+
 \section{Upgrading to 1.2}
 \label{sec:installation:upgrade1.2}
 
