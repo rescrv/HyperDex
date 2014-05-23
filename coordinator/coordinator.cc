@@ -669,6 +669,14 @@ coordinator :: space_rm(replicant_state_machine_context* ctx, const char* name)
             }
         }
 
+        for (size_t i = 0; i < m_migrations.size(); i++)
+        {
+            if (m_migrations[i].space_from == sid || m_migrations[i].space_to == sid)
+            {
+                m_migrations.erase(m_migrations.begin() + i);
+            }
+        }
+
         remove(sid, &m_deferred_init);
         generate_next_configuration(ctx);
         return generate_response(ctx, COORD_SUCCESS);
@@ -772,6 +780,7 @@ coordinator :: migration_complete(replicant_state_machine_context* ctx,
                                   const migration_id& mid,
                                   const region_id& rid)
 {
+    FILE* log = replicant_state_machine_log_stream(ctx);
     for (size_t m = 0; m < m_migrations.size(); m++)
     {
         if (m_migrations[m].id == mid)
@@ -781,11 +790,16 @@ coordinator :: migration_complete(replicant_state_machine_context* ctx,
                 if (m_migrations[m].outstanding_regions[r] == rid)
                 {
                     m_migrations[m].outstanding_regions.erase(m_migrations[m].outstanding_regions.begin() + r);
-                    if (m_migrations[m].outstanding_regions.size() == 0) {
-                        del_migration(m_migrations[m].id);
+                    if (m_migrations[m].outstanding_regions.size() == 0)
+                    {
+                        fprintf(log, "the migration is actually completed\n");
+                        for (size_t j = m + 1; j < m_migrations.size(); ++j)
+                        {
+                            m_migrations[j - 1] = m_migrations[j];
+                        }
+                        m_migrations.pop_back();
                     }
-                    // TODO: do I need to call converge_intent?
-                    generate_next_configuration(ctx);  // TODO: is this an expensive operation?
+                    generate_next_configuration(ctx);
                     return generate_response(ctx, COORD_SUCCESS);
                 }
             }
@@ -1734,23 +1748,6 @@ coordinator :: get_migration(migration_id mid)
     }
 
     return NULL;
-}
-
-void
-coordinator :: del_migration(migration_id mid)
-{
-    for (size_t i = 0; i < m_migrations.size(); ++i)
-    {
-        if (m_migrations[i].id == mid)
-        {
-            for (size_t j = i + 1; j < m_migrations.size(); ++j)
-            {
-                m_migrations[j - 1] = m_migrations[j];
-            }
-            m_migrations.pop_back();
-            break;
-        }
-    }
 }
 
 void

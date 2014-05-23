@@ -82,6 +82,7 @@ class migration_manager
         void shutdown();
 
         migration_out_state* get_mos(region_id rid);
+        void remove_mos(region_id rid);
 
     private:
         migration_manager(const migration_manager&);

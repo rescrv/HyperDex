@@ -126,6 +126,10 @@ hyperdex_admin_migrate_data(struct hyperdex_admin* admin,
                             const char* space_to,
                             enum hyperdex_admin_returncode* status);
 
+uint16_t
+hyperdex_admin_num_ongoing_migrations(struct hyperdex_admin* admin,
+                                      const char* space_name);
+
 int64_t
 hyperdex_admin_server_register(struct hyperdex_admin* admin,
                                uint64_t token,

@@ -215,6 +215,14 @@ hyperdex_admin_migrate_data(struct hyperdex_admin* _adm,
     );
 }
 
+HYPERDEX_API uint16_t
+hyperdex_admin_num_ongoing_migrations(struct hyperdex_admin* _adm,
+                                      const char* space_name)
+{
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->num_ongoing_migrations(space_name);
+}
+
 HYPERDEX_API int64_t
 hyperdex_admin_server_register(struct hyperdex_admin* _adm,
                                uint64_t token,

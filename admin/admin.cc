@@ -233,6 +233,12 @@ admin :: migrate_data(const char* space_from, const char* space_to,
     }
 }
 
+uint16_t
+admin :: num_ongoing_migrations(const char* space_name)
+{
+    return m_coord.config()->num_ongoing_migrations(space_name);
+}
+
 int
 admin :: validate_space(const char* description,
                         hyperdex_admin_returncode* status)

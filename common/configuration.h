@@ -115,6 +115,8 @@ class configuration
     // migrations
     public:
         void migrations_out(const server_id& s, std::vector<migration>* migrations) const;
+        // Return the number of ongoing migrations from or to the given space
+        uint16_t num_ongoing_migrations(const char* space_name) const;
 
     // hashing functions
     public:

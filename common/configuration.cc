@@ -665,11 +665,33 @@ configuration :: transfers_out_regions(const server_id& si, std::vector<region_i
     }
 }
 
-void configuration :: migrations_out(const server_id& sid, std::vector<migration>* migrations) const
+void
+configuration :: migrations_out(const server_id& sid, std::vector<migration>* migrations) const
 {
     for (size_t m = 0; m < m_migrations.size(); ++m) {
         migrations->push_back(m_migrations[m]);
     }
+}
+
+uint16_t
+configuration :: num_ongoing_migrations(const char* space_name) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        if (strcmp(m_spaces[s].name, space_name))
+        {
+            uint16_t counter = 0;
+            for (size_t m = 0; m < m_migrations.size(); ++m)
+            {
+                if (m_spaces[s].id == m_migrations[m].space_from || m_spaces[s].id == m_migrations[m].space_to)
+                {
+                    counter++;
+                }
+            }
+            return counter;
+        }
+    }
+    return 0;
 }
 
 void
