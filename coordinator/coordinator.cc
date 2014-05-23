@@ -792,7 +792,7 @@ coordinator :: migration_complete(replicant_state_machine_context* ctx,
                     m_migrations[m].outstanding_regions.erase(m_migrations[m].outstanding_regions.begin() + r);
                     if (m_migrations[m].outstanding_regions.size() == 0)
                     {
-                        fprintf(log, "the migration is actually completed\n");
+                        fprintf(log, "completing migration %" PRIu64 "\n", m_migrations[m].id.get());
                         for (size_t j = m + 1; j < m_migrations.size(); ++j)
                         {
                             m_migrations[j - 1] = m_migrations[j];
