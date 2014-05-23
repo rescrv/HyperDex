@@ -267,8 +267,16 @@ read_and_verify_data(const char *space_name, uint64_t num_objects)
         if (gid != lid)
             FAIL("loop id (" << lid << ") does not match get id (" << gid << ")");
 
-        if (get_status != HYPERDEX_CLIENT_SUCCESS)
-            FAIL("operation " << gid << " (a presence check) returned " << get_status);
+        if (get_status != HYPERDEX_CLIENT_SUCCESS) {
+            if (get_status == HYPERDEX_CLIENT_NOTFOUND) {
+                std::cout << "retrying" << std::endl;
+                usleep(0.5 * 1000 * 1000);
+                i -= 1;
+                continue;
+            } else {
+                FAIL("operation " << gid << " (a presence check) returned " << get_status);
+            }
+        }
 
         check_attr(&attrs[0], "name", armnod_generate(alpha_gen), HYPERDATATYPE_STRING);
         check_attr(&attrs[1], "height", armnod_generate(digit_gen), HYPERDATATYPE_FLOAT);
@@ -281,7 +289,7 @@ read_and_verify_data(const char *space_name, uint64_t num_objects)
     armnod_generator_destroy(digit_gen);
 }
 
-static uint64_t num_objects = 100000;
+static uint64_t num_objects = 10000;
 
 static void
 test0()
@@ -295,8 +303,10 @@ test0()
         FAIL("migration failure: " << status);
     }
 
-    std::cout << "Sleeping for 20 seconds for the migration to complete...\n";
-    usleep(20 * 1000 * 1000);
+    std::cout << "Sleeping for 10 seconds for the migration to complete...\n";
+    std::cout << "This could fail if your disk is too slow (i.e. if you are using a HDD).\n";
+    std::cout << "In this case, you could modify the test file to wait for longer.\n";
+    usleep(5 * 1000 * 1000);
 
     read_and_verify_data(_space_to_name, num_objects);
 

@@ -227,16 +227,6 @@ replication_manager :: debug_dump()
     unpause();
 }
 
-// OK, so basically, you create a new class, something called "response", which
-// contains some state that specifies 1) whether the receiver is a client or a server,
-// 2) extra state if the receiver is a server, i.e. state that identify the corresponding
-// migration state for the object in question.  When receiving a req_atomic or a
-// migration_atomic, you generate such an object, then you call client_atomic with
-// this response object.  Then, client_atomic saves it into the key state.  Then,
-// when chain_ack is received, the point leader will look into the key state and
-// call some method on this response class, that would generate an appropriate response
-// that the point leader can send.
-
 void
 replication_manager :: client_atomic(const server_id& from,
                                      const virtual_server_id& to,

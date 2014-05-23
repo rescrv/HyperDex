@@ -128,9 +128,6 @@ migration_manager :: setup_migration_state(const std::vector<hyperdex::migration
                       std::vector<e::intrusive_ptr<migration_out_state> >* migration_states)
 {
     std::vector<e::intrusive_ptr<migration_out_state> > tmp;
-    // In reality, tmp probably will store way more elements than
-    // migrations, since one migration will likely correspond to
-    // many migration out states.
     tmp.reserve(migrations.size());
     size_t m_idx = 0;
     size_t ms_idx = 0;
@@ -144,48 +141,24 @@ migration_manager :: setup_migration_state(const std::vector<hyperdex::migration
     {
         if (migrations[m_idx].id == (*migration_states)[ms_idx]->mid)
         {
-            tmp.push_back((*migration_states)[ms_idx]);
-            // TODO: commenting out the following line seems to fix the
-            // bug, but check the correctness of this method again.
-            // ++m_idx;
-            ++ms_idx;
+            while (ms_idx < migration_states->size() && migrations[m_idx].id == (*migration_states)[ms_idx]->mid) {
+                tmp.push_back((*migration_states)[ms_idx]);
+                ++ms_idx;
+            }
+            ++m_idx;  // this particular line is problematic
         }
         else if (migrations[m_idx].id < (*migration_states)[ms_idx]->mid)
         {
-            LOG(INFO) << "initiating migration out state " << migrations[m_idx];
-
-            std::vector<hyperdex::region_id>::iterator r_iter;
-            for (r_iter = regions.begin(); r_iter != regions.end(); r_iter++) {
-                region_id rid = (*r_iter);
-                if (m_daemon->m_config.space_of(rid) == migrations[m_idx].space_from) {
-                    datalayer::returncode err;
-                    std::auto_ptr<datalayer::iterator> iter;
-                    iter.reset(m_daemon->m_data.make_region_iterator(snapshot_ptr, rid, &err));
-                    if (err != datalayer::SUCCESS) {
-                        LOG(ERROR) << "failed to create region iterator";
-                        continue;  // TODO: should we continue?
-                    }
-                    e::intrusive_ptr<migration_out_state> ptr(
-                        new migration_out_state(migrations[m_idx].id,
-                                                migrations[m_idx].space_to,
-                                                rid,
-                                                iter));
-                    tmp.push_back(ptr);
-                }
-            }
             ++m_idx;
         }
         else if (migrations[m_idx].id > (*migration_states)[ms_idx]->mid)
         {
-            LOG(INFO) << "ending migration out state " << (*migration_states)[ms_idx]->mid;
             ++ms_idx;
         }
     }
 
     while (m_idx < migrations.size())
     {
-        LOG(INFO) << "initiating migration out state " << migrations[m_idx];
-
         std::vector<hyperdex::region_id>::iterator r_iter;
         for (r_iter = regions.begin(); r_iter != regions.end(); r_iter++) {
             region_id rid = (*r_iter);
@@ -233,7 +206,7 @@ migration_manager :: migrate_more_state(migration_out_state* mos)
         if (rc != datalayer::SUCCESS)
         {
             if (rc == datalayer::INVALID_REGION)
-                LOG(INFO) << "trying to send an object whose region no longer exists.";
+                LOG(ERROR) << "trying to send an object whose region no longer exists.";
             else
                 LOG(ERROR) << "error unpacking value during migration";
             break;
@@ -266,9 +239,7 @@ migration_manager :: send_object(migration_out_state* mos, pending* op)
 
     const schema* sc = m_daemon->m_config.get_schema(op->rid);
     if (sc == NULL) {
-        // TODO: this happens occationally.  Not sure why.  Possibly because the
-        // related space has been destroyed?
-        LOG(INFO) << "trying to send an object whose region no longer exists.";
+        LOG(ERROR) << "trying to send an object whose region no longer exists.";
         return;
     }
     std::vector<funcall> funcs;
@@ -313,17 +284,10 @@ migration_manager :: migration_ack(const server_id& from,
 
     if (!mos)
     {
-        // TODO: it seems that sometimes we receive ACK for regions
-        // that have already been completely migrated.  Why is that?
-        // Does that indicate a bug?
-        // LOG(INFO) << "dropping RESP_MIGRATION for " << rid << " which we don't know about.";
         return;
     }
 
     po6::threads::mutex::hold hold(&mos->mtx);
-
-    // TODO: do we need to check if the ACK comes from the right server?
-    // The state transfer manager does that.
 
     std::list<e::intrusive_ptr<pending> >::iterator it;
 
@@ -365,6 +329,18 @@ migration_manager :: get_mos(region_id rid)
     }
 
     return NULL;
+}
+
+void
+migration_manager :: remove_mos(region_id rid)
+{
+    for (size_t i = 0; i < m_migrations_out.size(); ++i)
+    {
+        if (m_migrations_out[i]->rid == rid)
+        {
+            m_migrations_out.erase(m_migrations_out.begin() + i);
+        }
+    }
 }
 
 void

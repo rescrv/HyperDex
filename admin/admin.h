@@ -74,6 +74,9 @@ class admin
                             const char** spaces);
         int64_t migrate_data(const char* space_from, const char* space_to,
                              enum hyperdex_admin_returncode* status);
+        // Return the number of ongoing migrations from or to the given space
+        uint16_t num_ongoing_migrations(const char* space_name);
+        
         // manage servers
         int64_t server_register(uint64_t token, const char* address,
                                 enum hyperdex_admin_returncode* status);

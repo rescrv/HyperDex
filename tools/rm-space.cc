@@ -60,7 +60,22 @@ main(int argc, const char* argv[])
         for (size_t i = 0; i < ap.args_sz(); ++i)
         {
             hyperdex_admin_returncode rrc;
-            int64_t rid = h.rm_space(ap.args()[i], &rrc);
+
+            const char* space_name = ap.args()[i];
+            uint16_t num_ongoing_migrations = h.num_ongoing_migrations(space_name);
+
+            if (num_ongoing_migrations > 0)
+            {
+                std::cout << "There are currently " << num_ongoing_migrations << " ongoing migraitons that "
+                          << "pertain to the space \"" << space_name << "\".  Do you want to proceed to delete it? (Y/n)" << std::endl;
+                char c = getchar();
+                if (!(c == 'y' || c == 'Y'))
+                {
+                    continue;
+                }
+            }
+
+            int64_t rid = h.rm_space(space_name, &rrc);
 
             if (rid < 0)
             {
