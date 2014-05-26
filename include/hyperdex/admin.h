@@ -116,6 +116,12 @@ hyperdex_admin_rm_space(struct hyperdex_admin* admin,
                         enum hyperdex_admin_returncode* status);
 
 int64_t
+hyperdex_admin_mv_space(struct hyperdex_admin* admin,
+                        const char* source,
+                        const char* target,
+                        enum hyperdex_admin_returncode* status);
+
+int64_t
 hyperdex_admin_list_spaces(struct hyperdex_admin* admin,
                            enum hyperdex_admin_returncode* status,
                            const char** spaces);

@@ -72,6 +72,8 @@ class admin
                           enum hyperdex_admin_returncode* status);
         int64_t rm_space(const char* name,
                          enum hyperdex_admin_returncode* status);
+        int64_t mv_space(const char* source, const char* target,
+                         enum hyperdex_admin_returncode* status);
         int64_t add_index(const char* space, const char* attr,
                           enum hyperdex_admin_returncode* status);
         int64_t rm_index(uint64_t idxid,

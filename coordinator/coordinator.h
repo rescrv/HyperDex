@@ -95,6 +95,7 @@ class coordinator
     public:
         void space_add(replicant_state_machine_context* ctx, const space& s);
         void space_rm(replicant_state_machine_context* ctx, const char* name);
+        void space_mv(replicant_state_machine_context* ctx, const char* src, const char* dst);
 
     // index management
     public:

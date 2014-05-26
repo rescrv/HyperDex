@@ -54,6 +54,7 @@ struct replicant_state_machine HYPERDEX_API rsm = {
      {"report_disconnect", hyperdex_coordinator_report_disconnect},
      {"space_add", hyperdex_coordinator_space_add},
      {"space_rm", hyperdex_coordinator_space_rm},
+     {"space_mv", hyperdex_coordinator_space_mv},
      {"index_add", hyperdex_coordinator_index_add},
      {"index_rm", hyperdex_coordinator_index_rm},
      {"transfer_go_live", hyperdex_coordinator_transfer_go_live},

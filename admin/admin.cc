@@ -298,6 +298,40 @@ admin :: rm_space(const char* name,
 }
 
 int64_t
+admin :: mv_space(const char* source, const char* target,
+                  hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    const size_t source_sz = strlen(source);
+    const size_t target_sz = strlen(target);
+    std::vector<char> buf(source_sz + target_sz + 2);
+    memmove(&buf[0], source, source_sz);
+    buf[source_sz] = '\0';
+    memmove(&buf[source_sz + 1], target, target_sz);
+    buf[source_sz + 1 + target_sz] = '\0';
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "mv space");
+    int64_t cid = m_coord.rpc("space_mv", &buf[0], buf.size(),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
 admin :: add_index(const char* space, const char* attr,
                    hyperdex_admin_returncode* status)
 {

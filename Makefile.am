@@ -1029,6 +1029,7 @@ test_simple_consistency_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpo
 if ENABLE_TOOLS
 hyperdexexec_PROGRAMS += hyperdex-add-space
 hyperdexexec_PROGRAMS += hyperdex-rm-space
+hyperdexexec_PROGRAMS += hyperdex-mv-space
 hyperdexexec_PROGRAMS += hyperdex-list-spaces
 hyperdexexec_PROGRAMS += hyperdex-validate-space
 hyperdexexec_PROGRAMS += hyperdex-add-index
@@ -1049,6 +1050,7 @@ hyperdexexec_PROGRAMS += hyperdex-raw-backup
 hyperdexexec_SCRIPTS += hyperdex-noc
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
+dist_man_MANS += man/hyperdex-mv-space.1
 dist_man_MANS += man/hyperdex-list-spaces.1
 dist_man_MANS += man/hyperdex-validate-space.1
 dist_man_MANS += man/hyperdex-add-index.1
@@ -1097,6 +1099,15 @@ hyperdex_rm_space_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-rm-space.1: man/hyperdex-rm-space.1.h2m tools/rm-space.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-rm-space$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-rm-space$(EXEEXT)
+
+# hyperdex-mv-space
+EXTRA_DIST += man/hyperdex-mv-space.1.md
+EXTRA_DIST += man/hyperdex-mv-space.1.h2m
+hyperdex_mv_space_SOURCES = tools/mv-space.cc
+hyperdex_mv_space_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-mv-space.1: man/hyperdex-mv-space.1.h2m tools/mv-space.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-mv-space$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-mv-space$(EXEEXT)
 
 # hyperdex-list-spaces
 EXTRA_DIST += man/hyperdex-list-spaces.1.md

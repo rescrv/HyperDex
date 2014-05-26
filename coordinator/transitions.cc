@@ -388,6 +388,32 @@ hyperdex_coordinator_space_rm(struct replicant_state_machine_context* ctx,
 }
 
 void
+hyperdex_coordinator_space_mv(struct replicant_state_machine_context* ctx,
+                              void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+
+    if (data_sz < 2 || data[data_sz - 1] != '\0')
+    {
+        fprintf(log, "received malformed \"mv_space\" message\n");
+        return generate_response(ctx, COORD_MALFORMED);
+    }
+
+    const char* src = data;
+    const char* dst = data + strlen(data) + 1;
+
+    if (dst >= data + data_sz)
+    {
+        fprintf(log, "received malformed \"mv_space\" message\n");
+        return generate_response(ctx, COORD_MALFORMED);
+    }
+
+    c->space_mv(ctx, src, dst);
+}
+
+void
 hyperdex_coordinator_index_add(struct replicant_state_machine_context* ctx,
                                void* obj, const char* data, size_t data_sz)
 {

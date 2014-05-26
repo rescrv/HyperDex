@@ -557,6 +557,24 @@ coordinator :: report_disconnect(replicant_state_machine_context* ctx,
     return server_suspect(ctx, sid);
 }
 
+static bool
+is_space_name(const char* str)
+{
+    size_t i = 0;
+
+    for (i = 0; str[i]; ++i)
+    {
+        if (!(i > 0 && isdigit(str[i])) &&
+            !(isalpha(str[i])) &&
+            str[i] != '_')
+        {
+            return false;
+        }
+    }
+
+    return i > 0;
+}
+
 void
 coordinator :: space_add(replicant_state_machine_context* ctx, const space& _s)
 {
@@ -598,7 +616,10 @@ coordinator :: space_add(replicant_state_machine_context* ctx, const space& _s)
         ++m_counter;
     }
 
-    m_spaces.insert(std::make_pair(std::string(s->name), s));
+    std::pair<space_map_t::iterator, bool> x;
+    x = m_spaces.insert(std::make_pair(std::string(s->name), s));
+    assert(x.second);
+    s->name = x.first->first.c_str();
     fprintf(log, "successfully added space \"%s\" with space(%" PRIu64 ")\n", s->name, s->id.get());
     initial_space_layout(ctx, s.get());
     generate_next_configuration(ctx);
@@ -653,6 +674,43 @@ coordinator :: space_rm(replicant_state_machine_context* ctx, const char* name)
         }
 
         remove(sid, &m_deferred_init);
+        generate_next_configuration(ctx);
+        return generate_response(ctx, COORD_SUCCESS);
+    }
+}
+
+void
+coordinator :: space_mv(replicant_state_machine_context* ctx, const char* src, const char* dst)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    space_map_t::iterator it;
+    it = m_spaces.find(std::string(src));
+
+    if (it == m_spaces.end())
+    {
+        fprintf(log, "could not rename space \"%s\" because it doesn't exist\n", src);
+        return generate_response(ctx, COORD_NOT_FOUND);
+    }
+    else if (m_spaces.find(std::string(dst)) != m_spaces.end())
+    {
+        fprintf(log, "could not rename space \"%s\" to \"%s\" because there is already a space \"%s\"\n", src, dst, dst);
+        return generate_response(ctx, COORD_DUPLICATE);
+    }
+    else if (!is_space_name(dst))
+    {
+        fprintf(log, "could not rename space \"%s\" to \"%s\" because \"%s\" is an invalid space name\n", src, dst, dst);
+        return generate_response(ctx, COORD_NO_CAN_DO);
+    }
+    else
+    {
+        space_ptr sp(it->second);
+        space_id sid(sp->id.get());
+        fprintf(log, "renaming space \"%s\" (%" PRIu64 ") to \"%s\"\n", src, sid.get(), dst);
+        m_spaces.erase(it);
+        std::pair<space_map_t::iterator, bool> x;
+        x = m_spaces.insert(std::make_pair(std::string(dst), sp));
+        assert(x.second);
+        sp->name = x.first->first.c_str();
         generate_next_configuration(ctx);
         return generate_response(ctx, COORD_SUCCESS);
     }

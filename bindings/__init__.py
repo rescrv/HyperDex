@@ -37,6 +37,10 @@ class StructAdmin(object):
 
 class SpaceName(object):
     args = (('const char*', 'space'),)
+class SpaceNameSource(object):
+    args = (('const char*', 'source'),)
+class SpaceNameTarget(object):
+    args = (('const char*', 'target'),)
 class Key(object):
     args = (('const char*', 'key'), ('size_t', 'key_sz'))
 class Predicates(object):
@@ -174,6 +178,7 @@ Admin = [
     Method('validate_space', SyncCall, (SpaceDescription,), (AdminStatus,)),
     Method('add_space', AsyncCall, (SpaceDescription,), (AdminStatus,)),
     Method('rm_space', AsyncCall, (SpaceName,), (AdminStatus,)),
+    Method('mv_space', AsyncCall, (SpaceNameSource, SpaceNameTarget), (AdminStatus,)),
     Method('list_spaces', AsyncCall, (), (AdminStatus, SpaceList)),
     Method('add_index', AsyncCall, (SpaceName, AttributeName), (AdminStatus,)),
     Method('rm_index', AsyncCall, (IndexID,), (AdminStatus,)),

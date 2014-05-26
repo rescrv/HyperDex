@@ -62,6 +62,7 @@
 /hyperdex-initiate-transfer
 /hyperdex-kill
 /hyperdex-list-spaces
+/hyperdex-mv-space
 /hyperdex-perf-counters
 /hyperdex-raw-backup
 /hyperdex-rm-index

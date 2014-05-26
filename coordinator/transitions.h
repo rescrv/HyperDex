@@ -75,6 +75,7 @@ TRANSITION(report_disconnect);
 
 TRANSITION(space_add);
 TRANSITION(space_rm);
+TRANSITION(space_mv);
 
 TRANSITION(index_add);
 TRANSITION(index_rm);

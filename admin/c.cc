@@ -193,6 +193,18 @@ hyperdex_admin_rm_space(struct hyperdex_admin* _adm,
 }
 
 HYPERDEX_API int64_t
+hyperdex_admin_mv_space(struct hyperdex_admin* _adm,
+                        const char* source,
+                        const char* target,
+                        enum hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->mv_space(source, target, status);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_admin_list_spaces(struct hyperdex_admin* _adm,
                            enum hyperdex_admin_returncode* status,
                            const char** spaces)
