@@ -217,7 +217,7 @@ cdef class DeferredString:
 
     def _callback(self):
         if self._cstr:
-            self._pstr = self._cstr
+            self._pstr = self._cstr.encode('ascii')
         self._finished = True
         del self._admin._ops[self._reqid]
 
