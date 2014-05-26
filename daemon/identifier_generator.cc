@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013, Cornell University
+// Copyright (c) 2012-2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -34,69 +34,36 @@
 // HyperDex
 #include "daemon/identifier_generator.h"
 
+using namespace e::atomic;
 using hyperdex::identifier_generator;
 using hyperdex::region_id;
 
-struct identifier_generator::counter
-{
-    counter() : ri(), count() {}
-    counter(const region_id& r, uint64_t c) : ri(r), count(c) {}
-    counter(const counter& other) : ri(other.ri), count(other.count) {}
-    region_id ri;
-    uint64_t count;
-
-    bool operator < (const counter& rhs) const
-    {
-        if (ri < rhs.ri)
-        {
-            return true;
-        }
-        else if (ri == rhs.ri)
-        {
-            return count < rhs.count;
-        }
-        else
-        {
-            return false;
-        }
-    }
-};
+const region_id identifier_generator::defaultri;
 
 identifier_generator :: identifier_generator()
-    : m_counters(NULL)
-    , m_counters_sz(0)
+    : m_generators()
 {
-    e::atomic::store_ptr_release(&m_counters, static_cast<counter*>(NULL));
-    e::atomic::store_64_release(&m_counters_sz, 0);
 }
 
 identifier_generator :: ~identifier_generator() throw ()
 {
-    counter* counters = NULL;
-    uint64_t counters_sz = 0;
-    get_base(&counters, &counters_sz);
-
-    if (counters)
-    {
-        delete[] counters;
-    }
 }
 
 bool
 identifier_generator :: bump(const region_id& ri, uint64_t id)
 {
-    counter* c = get_counter(ri);
+    uint64_t* val = NULL;
 
-    if (!c)
+    if (!m_generators.mod(ri, &val))
     {
         return false;
     }
 
-    uint64_t count = c->count;
+    uint64_t count = load_64_nobarrier(val);
 
     while (count <= id)
     {
-        count = e::atomic::compare_and_swap_64_nobarrier(&c->count, count, id + 1);
+        count = e::atomic::compare_and_swap_64_nobarrier(val, count, id + 1);
     }
 
     return true;
@@ -105,15 +72,7 @@ identifier_generator :: bump(const region_id& ri, uint64_t id)
 bool
 identifier_generator :: peek(const region_id& ri, uint64_t* id) const
 {
-    counter* c = get_counter(ri);
-
-    if (!c)
-    {
-        return false;
-    }
-
-    *id = e::atomic::increment_64_nobarrier(&c->count, 0);
-    return true;
+    return m_generators.get(ri, id);
 }
 
 bool
@@ -125,108 +84,39 @@ identifier_generator :: generate_id(const region_id& ri, uint64_t* id)
 bool
 identifier_generator :: generate_ids(const region_id& ri, uint64_t n, uint64_t* id)
 {
-    counter* c = get_counter(ri);
+    uint64_t* val = NULL;
 
-    if (!c)
+    if (!m_generators.mod(ri, &val))
     {
         return false;
     }
 
-    *id = e::atomic::increment_64_nobarrier(&c->count, n) - n;
+    *id = e::atomic::increment_64_nobarrier(val, n) - n;
     return true;
 }
 
 void
 identifier_generator :: adopt(region_id* ris, size_t ris_sz)
 {
-    // setup the new counters
-    counter* new_counters = new counter[ris_sz];
-    size_t new_sz = ris_sz;
+    generator_map_t new_generators;
 
-    for (size_t i = 0; i < new_sz; ++i)
+    for (size_t i = 0; i < ris_sz; ++i)
     {
-        new_counters[i].ri = ris[i];
-        new_counters[i].count = 1;
+        uint64_t count = 0;
+
+        if (!m_generators.get(ris[i], &count))
+        {
+            count = 1;
+        }
+
+        new_generators.put(ris[i], count);
     }
 
-    std::sort(new_counters, new_counters + new_sz);
-
-    // get the old counters
-    counter* old_counters = NULL;
-    uint64_t old_sz = 0;
-    get_base(&old_counters, &old_sz);
-
-    // carry over values
-    size_t o_idx = 0;
-    size_t n_idx = 0;
-
-    while (o_idx < old_sz && n_idx < new_sz)
-    {
-        if (old_counters[o_idx].ri == new_counters[n_idx].ri)
-        {
-            new_counters[n_idx].count = old_counters[o_idx].count;
-            ++o_idx;
-            ++n_idx;
-        }
-        else if (old_counters[o_idx].ri < new_counters[n_idx].ri)
-        {
-            ++o_idx;
-        }
-        else if (old_counters[o_idx].ri > new_counters[n_idx].ri)
-        {
-            ++n_idx;
-        }
-    }
-
-    // install the new values
-    e::atomic::store_ptr_release(&m_counters, new_counters);
-    e::atomic::store_64_release(&m_counters_sz, new_sz);
-    // free the old ones
-
-    if (old_counters)
-    {
-        delete[] old_counters;
-    }
+    m_generators.swap(&new_generators);
 }
 
 void
-identifier_generator :: copy_from(const identifier_generator& other)
+identifier_generator :: copy_from(const identifier_generator& ig)
 {
-    if (m_counters)
-    {
-        delete[] m_counters;
-    }
-
-    m_counters_sz = other.m_counters_sz;
-    m_counters = new counter[m_counters_sz];
-
-    for (size_t i = 0; i < m_counters_sz; ++i)
-    {
-        m_counters[i] = other.m_counters[i];
-    }
-}
-
-void
-identifier_generator :: get_base(counter** counters, uint64_t* counters_sz) const
-{
-    *counters_sz = e::atomic::load_64_acquire(&m_counters_sz);
-    *counters = m_counters;
-}
-
-identifier_generator::counter*
-identifier_generator :: get_counter(const region_id& ri) const
-{
-    counter* counters = NULL;
-    uint64_t counters_sz = 0;
-    get_base(&counters, &counters_sz);
-
-    for (uint64_t i = 0; i < counters_sz; ++i)
-    {
-        if (counters[i].ri == ri)
-        {
-            return counters + i;
-        }
-    }
-
-    return NULL;
+    m_generators.copy_from(ig.m_generators);
 }

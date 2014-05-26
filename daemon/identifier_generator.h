@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013, Cornell University
+// Copyright (c) 2012-2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,8 +28,8 @@
 #ifndef hyperdex_daemon_identifier_generator_h_
 #define hyperdex_daemon_identifier_generator_h_
 
-// po6
-#include <po6/threads/mutex.h>
+// e
+#include <e/ao_hash_map.h>
 
 // HyperDex
 #include "namespace.h"
@@ -63,19 +63,14 @@ class identifier_generator
         void copy_from(const identifier_generator&);
 
     private:
-        class counter;
-
-    private:
         identifier_generator(const identifier_generator&);
         identifier_generator& operator = (const identifier_generator&);
+        static uint64_t hashid(region_id ri) { return ri.get(); }
 
     private:
-        void get_base(counter** counters, uint64_t* counters_sz) const;
-        counter* get_counter(const region_id& ri) const;
-
-    private:
-        counter* m_counters;
-        uint64_t m_counters_sz;
+        const static region_id defaultri;
+        typedef e::ao_hash_map<region_id, uint64_t, hashid, defaultri> generator_map_t;
+        generator_map_t m_generators;
 };
 
 END_HYPERDEX_NAMESPACE
