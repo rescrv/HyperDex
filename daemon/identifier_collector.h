@@ -28,8 +28,10 @@
 #ifndef hyperdex_daemon_identifier_collector_h_
 #define hyperdex_daemon_identifier_collector_h_
 
-// po6
-#include <po6/threads/mutex.h>
+// e
+#include <e/ao_hash_map.h>
+#include <e/compat.h>
+#include <e/seqno_collector.h>
 
 // HyperDex
 #include "namespace.h"
@@ -40,7 +42,7 @@ BEGIN_HYPERDEX_NAMESPACE
 class identifier_collector
 {
     public:
-        identifier_collector();
+        identifier_collector(e::garbage_collector* gc);
         ~identifier_collector() throw ();
 
     // concurrent methods
@@ -59,23 +61,15 @@ class identifier_collector
         void adopt(region_id* ris, size_t ris_sz);
 
     private:
-        class counter;
-
-    private:
         identifier_collector(const identifier_collector&);
         identifier_collector& operator = (const identifier_collector&);
+        static uint64_t id(region_id ri) { return ri.get(); }
 
     private:
-        void get_base(counter** lower_bounds, uint64_t* lower_bounds_sz);
-        counter* get_lower_bound(const region_id& ri);
-        void squash_gaps(counter* c);
-
-    private:
-        counter* m_lower_bounds;
-        uint64_t m_lower_bounds_sz;
-        // gaps above lower bounds
-        po6::threads::mutex m_gaps_mtx;
-        std::vector<counter> m_gaps;
+        const static region_id defaultri;
+        typedef e::ao_hash_map<region_id, e::compat::shared_ptr<e::seqno_collector>, id, defaultri> collector_map_t;
+        e::garbage_collector* m_gc;
+        collector_map_t m_collectors;
 };
 
 END_HYPERDEX_NAMESPACE

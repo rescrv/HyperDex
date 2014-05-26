@@ -40,7 +40,8 @@ using hyperdex::region_id;
 
 TEST(IdentifierCollector, Test)
 {
-    identifier_collector ic;
+    e::garbage_collector gc;
+    identifier_collector ic(&gc);
     bool did_it = false;
     uint64_t id;
     // test unknown region id
@@ -95,4 +96,13 @@ TEST(IdentifierCollector, Test)
     did_it = ic.lower_bound(ri, &id);
     ASSERT_TRUE(did_it);
     ASSERT_EQ(id, 9U);
+
+    for (uint64_t i = 9; i < 65536; ++i)
+    {
+        did_it = ic.collect(ri, i);
+        ASSERT_TRUE(did_it);
+        did_it = ic.lower_bound(ri, &id);
+        ASSERT_TRUE(did_it);
+        ASSERT_EQ(id, i + 1);
+    }
 }

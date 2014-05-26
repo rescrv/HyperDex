@@ -299,6 +299,7 @@ TESTS += daemon/test/identifier_generator
 
 daemon_test_identifier_collector_SOURCES = daemon/test/identifier_collector.cc daemon/identifier_collector.cc $(th_sources)
 daemon_test_identifier_collector_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
+daemon_test_identifier_collector_LDFLAGS = $(E_LIBS)
 
 daemon_test_identifier_generator_SOURCES = daemon/test/identifier_generator.cc daemon/identifier_generator.cc $(th_sources)
 daemon_test_identifier_generator_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
