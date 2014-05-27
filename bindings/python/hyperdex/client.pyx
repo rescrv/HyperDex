@@ -98,23 +98,23 @@ cdef extern from "hyperdex/client.h":
     cdef struct hyperdex_client
 
     cdef struct hyperdex_client_attribute:
-        char* attr
-        char* value
+        const char* attr
+        const char* value
         size_t value_sz
         hyperdatatype datatype
 
     cdef struct hyperdex_client_map_attribute:
-        char* attr
-        char* map_key
+        const char* attr
+        const char* map_key
         size_t map_key_sz
         hyperdatatype map_key_datatype
-        char* value
+        const char* value
         size_t value_sz
         hyperdatatype value_datatype
 
     cdef struct hyperdex_client_attribute_check:
-        char* attr
-        char* value
+        const char* attr
+        const char* value
         size_t value_sz
         hyperdatatype datatype
         hyperpredicate predicate
@@ -151,74 +151,74 @@ cdef extern from "hyperdex/client.h":
     char* hyperdex_client_error_message(hyperdex_client* client)
     char* hyperdex_client_error_location(hyperdex_client* client)
     char* hyperdex_client_returncode_to_string(hyperdex_client_returncode)
-    int64_t hyperdex_client_get(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
-    int64_t hyperdex_client_get_partial(hyperdex_client* client, char* space, char* key, size_t key_sz, char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
-    int64_t hyperdex_client_put(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_put(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_put_if_not_exist(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_del(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_del(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_atomic_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_atomic_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_atomic_sub(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_atomic_sub(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_atomic_mul(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_atomic_mul(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_atomic_div(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_atomic_div(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_atomic_mod(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_atomic_mod(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_atomic_and(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_atomic_and(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_atomic_or(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_atomic_or(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_atomic_xor(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_atomic_xor(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_string_prepend(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_string_prepend(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_string_append(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_string_append(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_list_lpush(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_list_lpush(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_list_rpush(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_list_rpush(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_set_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_set_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_set_remove(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_set_remove(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_set_intersect(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_set_intersect(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_set_union(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_set_union(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_remove(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_remove(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_atomic_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_atomic_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_atomic_sub(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_atomic_sub(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_atomic_mul(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_atomic_mul(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_atomic_div(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_atomic_div(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_atomic_mod(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_atomic_mod(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_atomic_and(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_atomic_and(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_atomic_or(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_atomic_or(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_atomic_xor(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_atomic_xor(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_string_prepend(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_string_prepend(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_string_append(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_string_append(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_search(hyperdex_client* client, char* space, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
-    int64_t hyperdex_client_search_describe(hyperdex_client* client, char* space, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, char** description)
-    int64_t hyperdex_client_sorted_search(hyperdex_client* client, char* space, hyperdex_client_attribute_check* checks, size_t checks_sz, char* sort_by, uint64_t limit, int maxmin, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
-    int64_t hyperdex_client_group_del(hyperdex_client* client, char* space, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_count(hyperdex_client* client, char* space, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, uint64_t* count)
+    int64_t hyperdex_client_get(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
+    int64_t hyperdex_client_get_partial(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
+    int64_t hyperdex_client_put(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_put(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_put_if_not_exist(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_del(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_del(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_atomic_mod(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_atomic_mod(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_atomic_and(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_atomic_and(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_atomic_or(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_atomic_or(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_atomic_xor(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_atomic_xor(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_list_lpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_list_lpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_list_rpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_list_rpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_set_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_set_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_set_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_set_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_set_intersect(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_set_intersect(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_set_union(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_set_union(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_atomic_mod(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_atomic_mod(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_atomic_and(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_atomic_and(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_atomic_or(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_atomic_or(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_atomic_xor(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_atomic_xor(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_search(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
+    int64_t hyperdex_client_search_describe(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const char** description)
+    int64_t hyperdex_client_sorted_search(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const char* sort_by, uint64_t limit, int maxmin, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
+    int64_t hyperdex_client_group_del(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_count(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, uint64_t* count)
 
 
 cdef extern from "hyperdex/datastructures.h":
@@ -252,14 +252,14 @@ cdef extern from "hyperdex/datastructures.h":
     int hyperdex_ds_list_append_string(hyperdex_ds_list* list, char* str, size_t str_sz, hyperdex_ds_returncode* status)
     int hyperdex_ds_list_append_int(hyperdex_ds_list* list, int64_t num, hyperdex_ds_returncode* status)
     int hyperdex_ds_list_append_float(hyperdex_ds_list* list, double num, hyperdex_ds_returncode* status)
-    int hyperdex_ds_list_finalize(hyperdex_ds_list* list, hyperdex_ds_returncode* status, char** value, size_t* value_sz, hyperdatatype* datatype)
+    int hyperdex_ds_list_finalize(hyperdex_ds_list* list, hyperdex_ds_returncode* status, const char** value, size_t* value_sz, hyperdatatype* datatype)
 
     cdef struct hyperdex_ds_set
     hyperdex_ds_set* hyperdex_ds_allocate_set(hyperdex_ds_arena* arena)
     int hyperdex_ds_set_insert_string(hyperdex_ds_set* set, char* str, size_t str_sz, hyperdex_ds_returncode* status)
     int hyperdex_ds_set_insert_int(hyperdex_ds_set* set, int64_t num, hyperdex_ds_returncode* status)
     int hyperdex_ds_set_insert_float(hyperdex_ds_set* set, double num, hyperdex_ds_returncode* status)
-    int hyperdex_ds_set_finalize(hyperdex_ds_set*, hyperdex_ds_returncode* status, char** value, size_t* value_sz, hyperdatatype* datatype)
+    int hyperdex_ds_set_finalize(hyperdex_ds_set*, hyperdex_ds_returncode* status, const char** value, size_t* value_sz, hyperdatatype* datatype)
 
     cdef struct hyperdex_ds_map
     hyperdex_ds_map* hyperdex_ds_allocate_map(hyperdex_ds_arena* arena)
@@ -269,7 +269,7 @@ cdef extern from "hyperdex/datastructures.h":
     int hyperdex_ds_map_insert_val_int(hyperdex_ds_map* map, int64_t num, hyperdex_ds_returncode* status)
     int hyperdex_ds_map_insert_key_float(hyperdex_ds_map* map, double num, hyperdex_ds_returncode* status)
     int hyperdex_ds_map_insert_val_float(hyperdex_ds_map* map, double num, hyperdex_ds_returncode* status)
-    int hyperdex_ds_map_finalize(hyperdex_ds_map*, hyperdex_ds_returncode* status, char** value, size_t* value_sz, hyperdatatype* datatype)
+    int hyperdex_ds_map_finalize(hyperdex_ds_map*, hyperdex_ds_returncode* status, const char** value, size_t* value_sz, hyperdatatype* datatype)
 
     cdef struct hyperdex_ds_iterator:
         pass
@@ -293,19 +293,19 @@ cdef extern from "hyperdex/datastructures.h":
 
 ctypedef object (*encret_deferred_fptr)(Deferred d)
 ctypedef object (*encret_iterator_fptr)(Iterator it)
-ctypedef int64_t asynccall__spacename_key__status_attributes_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
-ctypedef int64_t asynccall__spacename_key_attributenames__status_attributes_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
-ctypedef int64_t asynccall__spacename_key_attributes__status_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-ctypedef int64_t asynccall__spacename_key_predicates_attributes__status_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-ctypedef int64_t asynccall__spacename_key__status_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_returncode* status)
-ctypedef int64_t asynccall__spacename_key_predicates__status_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
-ctypedef int64_t asynccall__spacename_key_mapattributes__status_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-ctypedef int64_t asynccall__spacename_key_predicates_mapattributes__status_fptr(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-ctypedef int64_t iterator__spacename_predicates__status_attributes_fptr(hyperdex_client* client, char* space, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
-ctypedef int64_t asynccall__spacename_predicates__status_description_fptr(hyperdex_client* client, char* space, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, char** description)
-ctypedef int64_t iterator__spacename_predicates_sortby_limit_maxmin__status_attributes_fptr(hyperdex_client* client, char* space, hyperdex_client_attribute_check* checks, size_t checks_sz, char* sort_by, uint64_t limit, int maxmin, hyperdex_client_returncode* status, hyperdex_client_attribute** attrs, size_t* attrs_sz)
-ctypedef int64_t asynccall__spacename_predicates__status_fptr(hyperdex_client* client, char* space, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
-ctypedef int64_t asynccall__spacename_predicates__status_count_fptr(hyperdex_client* client, char* space, hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, uint64_t* count)
+ctypedef int64_t asynccall__spacename_key__status_attributes_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
+ctypedef int64_t asynccall__spacename_key_attributenames__status_attributes_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
+ctypedef int64_t asynccall__spacename_key_attributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+ctypedef int64_t asynccall__spacename_key_predicates_attributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+ctypedef int64_t asynccall__spacename_key__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status)
+ctypedef int64_t asynccall__spacename_key_predicates__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
+ctypedef int64_t asynccall__spacename_key_mapattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+ctypedef int64_t asynccall__spacename_key_predicates_mapattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+ctypedef int64_t iterator__spacename_predicates__status_attributes_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
+ctypedef int64_t asynccall__spacename_predicates__status_description_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const char** description)
+ctypedef int64_t iterator__spacename_predicates_sortby_limit_maxmin__status_attributes_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const char* sort_by, uint64_t limit, int maxmin, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
+ctypedef int64_t asynccall__spacename_predicates__status_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
+ctypedef int64_t asynccall__spacename_predicates__status_count_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, uint64_t* count)
 
 class HyperDexClientException(Exception):
 
@@ -332,7 +332,7 @@ class HyperDexClientException(Exception):
 
 
 cdef hyperdex_python_client_convert_string(hyperdex_ds_arena* arena, bytes x,
-                                           char** value,
+                                           const char** value,
                                            size_t* value_sz,
                                            hyperdatatype* datatype):
     cdef hyperdex_ds_returncode error
@@ -342,7 +342,7 @@ cdef hyperdex_python_client_convert_string(hyperdex_ds_arena* arena, bytes x,
 
 
 cdef hyperdex_python_client_convert_int(hyperdex_ds_arena* arena, long x,
-                                        char** value,
+                                        const char** value,
                                         size_t* value_sz,
                                         hyperdatatype* datatype):
     cdef hyperdex_ds_returncode error
@@ -352,7 +352,7 @@ cdef hyperdex_python_client_convert_int(hyperdex_ds_arena* arena, long x,
 
 
 cdef hyperdex_python_client_convert_float(hyperdex_ds_arena* arena, double x,
-                                          char** value,
+                                          const char** value,
                                           size_t* value_sz,
                                           hyperdatatype* datatype):
     cdef hyperdex_ds_returncode error
@@ -371,7 +371,7 @@ cdef hyperdex_python_client_handle_elem_error(hyperdex_ds_returncode error, str 
 
 
 cdef hyperdex_python_client_convert_list(hyperdex_ds_arena* arena, list xs,
-                                         char** value,
+                                         const char** value,
                                          size_t* value_sz,
                                          hyperdatatype* datatype):
     cdef hyperdex_ds_list* lst = hyperdex_ds_allocate_list(arena)
@@ -396,7 +396,7 @@ cdef hyperdex_python_client_convert_list(hyperdex_ds_arena* arena, list xs,
 
 
 cdef hyperdex_python_client_convert_set(hyperdex_ds_arena* arena, set xs,
-                                        char** value,
+                                        const char** value,
                                         size_t* value_sz,
                                         hyperdatatype* datatype):
     cdef hyperdex_ds_set* st = hyperdex_ds_allocate_set(arena)
@@ -421,7 +421,7 @@ cdef hyperdex_python_client_convert_set(hyperdex_ds_arena* arena, set xs,
 
 
 cdef hyperdex_python_client_convert_map(hyperdex_ds_arena* arena, dict xs,
-                                        char** value,
+                                        const char** value,
                                         size_t* value_sz,
                                         hyperdatatype* datatype):
     cdef hyperdex_ds_map* mp = hyperdex_ds_allocate_map(arena)
@@ -460,7 +460,7 @@ cdef hyperdex_python_client_convert_map(hyperdex_ds_arena* arena, dict xs,
 
 
 cdef hyperdex_python_client_convert_type(hyperdex_ds_arena* arena, x,
-                                         char** value,
+                                         const char** value,
                                          size_t* value_sz,
                                          hyperdatatype* datatype):
     cdef hyperdatatype _datatype
@@ -485,28 +485,28 @@ cdef hyperdex_python_client_convert_type(hyperdex_ds_arena* arena, x,
         raise TypeError("Cannot convert object to a HyperDex type")
 
 
-cdef hyperdex_python_client_build_string(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_string(const char* value, size_t value_sz):
     return value[:value_sz]
 
 
-cdef hyperdex_python_client_build_int(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_int(const char* value, size_t value_sz):
     cdef int64_t i = 0
     if hyperdex_ds_unpack_int(value, value_sz, &i) < 0:
         raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed attributes")
     return long(i)
 
 
-cdef hyperdex_python_client_build_float(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_float(const char* value, size_t value_sz):
     cdef double d = 0
     if hyperdex_ds_unpack_float(value, value_sz, &d) < 0:
         raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed attributes")
     return float(d)
 
 
-cdef hyperdex_python_client_build_list_string(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_list_string(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
-    cdef char* tmp
+    cdef const char* tmp
     cdef size_t tmp_sz
     hyperdex_ds_iterator_init(&it, HYPERDATATYPE_LIST_STRING, value, value_sz)
     ret = []
@@ -520,7 +520,7 @@ cdef hyperdex_python_client_build_list_string(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_list_int(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_list_int(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
     cdef int64_t tmp
@@ -536,7 +536,7 @@ cdef hyperdex_python_client_build_list_int(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_list_float(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_list_float(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
     cdef double tmp
@@ -552,10 +552,10 @@ cdef hyperdex_python_client_build_list_float(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_set_string(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_set_string(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
-    cdef char* tmp
+    cdef const char* tmp
     cdef size_t tmp_sz
     hyperdex_ds_iterator_init(&it, HYPERDATATYPE_SET_STRING, value, value_sz)
     ret = set([])
@@ -569,7 +569,7 @@ cdef hyperdex_python_client_build_set_string(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_set_int(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_set_int(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
     cdef int64_t tmp
@@ -585,7 +585,7 @@ cdef hyperdex_python_client_build_set_int(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_set_float(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_set_float(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
     cdef double tmp
@@ -601,12 +601,12 @@ cdef hyperdex_python_client_build_set_float(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_map_string_string(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_map_string_string(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
-    cdef char* key
+    cdef const char* key
     cdef size_t key_sz
-    cdef char* val
+    cdef const char* val
     cdef size_t val_sz
     hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_STRING_STRING, value, value_sz)
     ret = {}
@@ -620,10 +620,10 @@ cdef hyperdex_python_client_build_map_string_string(char* value, size_t value_sz
     return ret
 
 
-cdef hyperdex_python_client_build_map_string_int(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_map_string_int(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
-    cdef char* key
+    cdef const char* key
     cdef size_t key_sz
     cdef int64_t val
     hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_STRING_INT64, value, value_sz)
@@ -638,10 +638,10 @@ cdef hyperdex_python_client_build_map_string_int(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_map_string_float(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_map_string_float(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
-    cdef char* key
+    cdef const char* key
     cdef size_t key_sz
     cdef double val
     hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_STRING_FLOAT, value, value_sz)
@@ -656,11 +656,11 @@ cdef hyperdex_python_client_build_map_string_float(char* value, size_t value_sz)
     return ret
 
 
-cdef hyperdex_python_client_build_map_int_string(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_map_int_string(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
     cdef int64_t key
-    cdef char* val
+    cdef const char* val
     cdef size_t val_sz
     hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_INT64_STRING, value, value_sz)
     ret = {}
@@ -674,7 +674,7 @@ cdef hyperdex_python_client_build_map_int_string(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_map_int_int(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_map_int_int(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
     cdef int64_t key
@@ -691,7 +691,7 @@ cdef hyperdex_python_client_build_map_int_int(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_map_int_float(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_map_int_float(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
     cdef int64_t key
@@ -708,11 +708,11 @@ cdef hyperdex_python_client_build_map_int_float(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_map_float_string(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_map_float_string(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
     cdef double key
-    cdef char* val
+    cdef const char* val
     cdef size_t val_sz
     hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_FLOAT_STRING, value, value_sz)
     ret = {}
@@ -726,7 +726,7 @@ cdef hyperdex_python_client_build_map_float_string(char* value, size_t value_sz)
     return ret
 
 
-cdef hyperdex_python_client_build_map_float_int(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_map_float_int(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
     cdef double key
@@ -743,7 +743,7 @@ cdef hyperdex_python_client_build_map_float_int(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_map_float_float(char* value, size_t value_sz):
+cdef hyperdex_python_client_build_map_float_float(const char* value, size_t value_sz):
     cdef hyperdex_ds_iterator it
     cdef int result = 0
     cdef double key
@@ -760,7 +760,7 @@ cdef hyperdex_python_client_build_map_float_float(char* value, size_t value_sz):
     return ret
 
 
-cdef hyperdex_python_client_build_attributes(hyperdex_client_attribute* attrs, size_t attrs_sz):
+cdef hyperdex_python_client_build_attributes(const hyperdex_client_attribute* attrs, size_t attrs_sz):
     ret = {}
     for i in range(attrs_sz):
         val = None
@@ -952,9 +952,9 @@ cdef class Deferred:
     cdef encret_deferred_fptr encode_return
     cdef int64_t reqid
     cdef hyperdex_client_returncode status
-    cdef hyperdex_client_attribute* attrs
+    cdef const hyperdex_client_attribute* attrs
     cdef size_t attrs_sz
-    cdef char* description
+    cdef const char* description
     cdef uint64_t count
     cdef bint finished
 
@@ -996,7 +996,7 @@ cdef class Iterator:
     cdef encret_iterator_fptr encode_return
     cdef int64_t reqid
     cdef hyperdex_client_returncode status
-    cdef hyperdex_client_attribute* attrs
+    cdef const hyperdex_client_attribute* attrs
     cdef size_t attrs_sz
     cdef list backlogged
     cdef bint finished
@@ -1060,10 +1060,10 @@ cdef class Client:
         if self.client:
             hyperdex_client_destroy(self.client)
 
-    cdef convert_spacename(self, hyperdex_ds_arena* arena, bytes spacename, char** spacename_str):
+    cdef convert_spacename(self, hyperdex_ds_arena* arena, bytes spacename, const char** spacename_str):
         spacename_str[0] = spacename
 
-    cdef convert_key(self, hyperdex_ds_arena* arena, key, char** _key, size_t* _key_sz):
+    cdef convert_key(self, hyperdex_ds_arena* arena, key, const char** _key, size_t* _key_sz):
         cdef hyperdatatype dt
         hyperdex_python_client_convert_type(arena, key, _key, _key_sz, &dt)
 
@@ -1134,13 +1134,13 @@ cdef class Client:
         _mapattrs_sz[0] = i
 
     cdef convert_attributenames(self, hyperdex_ds_arena* arena, attributenames,
-                                char*** _attributenames, size_t* _attributenames_sz):
-        _attributenames[0]    = <char**>hyperdex_ds_malloc(arena, sizeof(char*) * len(attributenames))
+                                const char*** _attributenames, size_t* _attributenames_sz):
+        _attributenames[0]    = <const char**>hyperdex_ds_malloc(arena, sizeof(char*) * len(attributenames))
         _attributenames_sz[0] = len(attributenames)
         for i, attr in enumerate(attributenames):
             _attributenames[0][i] = attr
 
-    cdef convert_sortby(self, hyperdex_ds_arena* arena, bytes sortby, char** sortby_str):
+    cdef convert_sortby(self, hyperdex_ds_arena* arena, bytes sortby, const char** sortby_str):
         sortby_str[0] = sortby
 
     cdef convert_limit(self, hyperdex_ds_arena* arena, long limit, uint64_t* count):
@@ -1166,8 +1166,8 @@ cdef class Client:
 
     cdef asynccall__spacename_key__status_attributes(self, asynccall__spacename_key__status_attributes_fptr f, bytes spacename, key):
         cdef Deferred d = Deferred(self)
-        cdef char* in_space
-        cdef char* in_key
+        cdef const char* in_space
+        cdef const char* in_key
         cdef size_t in_key_sz
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
@@ -1180,10 +1180,10 @@ cdef class Client:
 
     cdef asynccall__spacename_key_attributenames__status_attributes(self, asynccall__spacename_key_attributenames__status_attributes_fptr f, bytes spacename, key, attributenames):
         cdef Deferred d = Deferred(self)
-        cdef char* in_space
-        cdef char* in_key
+        cdef const char* in_space
+        cdef const char* in_key
         cdef size_t in_key_sz
-        cdef char** in_attrnames
+        cdef const char** in_attrnames
         cdef size_t in_attrnames_sz
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
@@ -1197,8 +1197,8 @@ cdef class Client:
 
     cdef asynccall__spacename_key_attributes__status(self, asynccall__spacename_key_attributes__status_fptr f, bytes spacename, key, dict attributes):
         cdef Deferred d = Deferred(self)
-        cdef char* in_space
-        cdef char* in_key
+        cdef const char* in_space
+        cdef const char* in_key
         cdef size_t in_key_sz
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1214,8 +1214,8 @@ cdef class Client:
 
     cdef asynccall__spacename_key_predicates_attributes__status(self, asynccall__spacename_key_predicates_attributes__status_fptr f, bytes spacename, key, dict predicates, dict attributes):
         cdef Deferred d = Deferred(self)
-        cdef char* in_space
-        cdef char* in_key
+        cdef const char* in_space
+        cdef const char* in_key
         cdef size_t in_key_sz
         cdef hyperdex_client_attribute_check* in_checks
         cdef size_t in_checks_sz
@@ -1234,8 +1234,8 @@ cdef class Client:
 
     cdef asynccall__spacename_key__status(self, asynccall__spacename_key__status_fptr f, bytes spacename, key):
         cdef Deferred d = Deferred(self)
-        cdef char* in_space
-        cdef char* in_key
+        cdef const char* in_space
+        cdef const char* in_key
         cdef size_t in_key_sz
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
@@ -1248,8 +1248,8 @@ cdef class Client:
 
     cdef asynccall__spacename_key_predicates__status(self, asynccall__spacename_key_predicates__status_fptr f, bytes spacename, key, dict predicates):
         cdef Deferred d = Deferred(self)
-        cdef char* in_space
-        cdef char* in_key
+        cdef const char* in_space
+        cdef const char* in_key
         cdef size_t in_key_sz
         cdef hyperdex_client_attribute_check* in_checks
         cdef size_t in_checks_sz
@@ -1265,8 +1265,8 @@ cdef class Client:
 
     cdef asynccall__spacename_key_mapattributes__status(self, asynccall__spacename_key_mapattributes__status_fptr f, bytes spacename, key, dict mapattributes):
         cdef Deferred d = Deferred(self)
-        cdef char* in_space
-        cdef char* in_key
+        cdef const char* in_space
+        cdef const char* in_key
         cdef size_t in_key_sz
         cdef hyperdex_client_map_attribute* in_mapattrs
         cdef size_t in_mapattrs_sz
@@ -1282,8 +1282,8 @@ cdef class Client:
 
     cdef asynccall__spacename_key_predicates_mapattributes__status(self, asynccall__spacename_key_predicates_mapattributes__status_fptr f, bytes spacename, key, dict predicates, dict mapattributes):
         cdef Deferred d = Deferred(self)
-        cdef char* in_space
-        cdef char* in_key
+        cdef const char* in_space
+        cdef const char* in_key
         cdef size_t in_key_sz
         cdef hyperdex_client_attribute_check* in_checks
         cdef size_t in_checks_sz
@@ -1302,7 +1302,7 @@ cdef class Client:
 
     cdef iterator__spacename_predicates__status_attributes(self, iterator__spacename_predicates__status_attributes_fptr f, bytes spacename, dict predicates):
         cdef Iterator it = Iterator(self)
-        cdef char* in_space
+        cdef const char* in_space
         cdef hyperdex_client_attribute_check* in_checks
         cdef size_t in_checks_sz
         self.convert_spacename(it.arena, spacename, &in_space);
@@ -1316,7 +1316,7 @@ cdef class Client:
 
     cdef asynccall__spacename_predicates__status_description(self, asynccall__spacename_predicates__status_description_fptr f, bytes spacename, dict predicates):
         cdef Deferred d = Deferred(self)
-        cdef char* in_space
+        cdef const char* in_space
         cdef hyperdex_client_attribute_check* in_checks
         cdef size_t in_checks_sz
         self.convert_spacename(d.arena, spacename, &in_space);
@@ -1330,10 +1330,10 @@ cdef class Client:
 
     cdef iterator__spacename_predicates_sortby_limit_maxmin__status_attributes(self, iterator__spacename_predicates_sortby_limit_maxmin__status_attributes_fptr f, bytes spacename, dict predicates, bytes sortby, int limit, str maxmin):
         cdef Iterator it = Iterator(self)
-        cdef char* in_space
+        cdef const char* in_space
         cdef hyperdex_client_attribute_check* in_checks
         cdef size_t in_checks_sz
-        cdef char* in_sort_by
+        cdef const char* in_sort_by
         cdef uint64_t in_limit
         cdef int in_maxmin
         self.convert_spacename(it.arena, spacename, &in_space);
@@ -1350,7 +1350,7 @@ cdef class Client:
 
     cdef asynccall__spacename_predicates__status(self, asynccall__spacename_predicates__status_fptr f, bytes spacename, dict predicates):
         cdef Deferred d = Deferred(self)
-        cdef char* in_space
+        cdef const char* in_space
         cdef hyperdex_client_attribute_check* in_checks
         cdef size_t in_checks_sz
         self.convert_spacename(d.arena, spacename, &in_space);
@@ -1364,7 +1364,7 @@ cdef class Client:
 
     cdef asynccall__spacename_predicates__status_count(self, asynccall__spacename_predicates__status_count_fptr f, bytes spacename, dict predicates):
         cdef Deferred d = Deferred(self)
-        cdef char* in_space
+        cdef const char* in_space
         cdef hyperdex_client_attribute_check* in_checks
         cdef size_t in_checks_sz
         self.convert_spacename(d.arena, spacename, &in_space);

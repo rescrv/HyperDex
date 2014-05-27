@@ -78,7 +78,6 @@ def generate_prototype(x, lib):
     func = func.replace('\n', ' ')
     func = ' '.join([x for x in func.split() if x])
     func = func.replace('enum ', '')
-    func = func.replace('const ', '')
     func = func.replace('struct ', '')
     func = func.rstrip(';')
     return func
@@ -87,7 +86,6 @@ def generate_function_ptr(x, name, lib):
     func = bindings.c.generate_func_ptr(x, lib)
     func = func.replace('(*f)', name)
     func = func.replace('enum ', '')
-    func = func.replace('const ', '')
     func = func.replace('struct ', '')
     func = func.rstrip(';')
     return func
@@ -99,10 +97,9 @@ def generate_worker_asynccall(call, x):
     func += '    cdef Deferred d = Deferred(self)\n'
     for arg in x.args_in:
         for p, n in arg.args:
-            if p.startswith('const '):
-                p = p[len('const '):]
-            if p.startswith('struct '):
-                p = p[len('struct '):]
+            if 'struct ' in p:
+                p = p.replace('const ', '')
+                p = p.replace('struct ', '')
             func += '    cdef ' + p + ' in_' + n + '\n'
     for arg in x.args_in:
         args = ', '.join(['&in_' + n for p, n in arg.args])
@@ -124,10 +121,9 @@ def generate_worker_iterator(call, x):
 
     for arg in x.args_in:
         for p, n in arg.args:
-            if p.startswith('const '):
-                p = p[len('const '):]
-            if p.startswith('struct '):
-                p = p[len('struct '):]
+            if 'struct ' in p:
+                p = p.replace('const ', '')
+                p = p.replace('struct ', '')
             func += '    cdef ' + p + ' in_' + n + '\n'
     for arg in x.args_in:
         args = ', '.join(['&in_' + n for p, n in arg.args])

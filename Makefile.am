@@ -690,7 +690,6 @@ bindings_python_hyperdex_client_la_CPPFLAGS += $(PYTHON_CPPFLAGS)
 bindings_python_hyperdex_client_la_CPPFLAGS += $(AM_CPPFLAGS)
 bindings_python_hyperdex_client_la_CPPFLAGS += $(CPPFLAGS)
 bindings_python_hyperdex_client_la_CFLAGS =
-bindings_python_hyperdex_client_la_CFLAGS += $(AM_CFLAGS)
 bindings_python_hyperdex_client_la_CFLAGS += -fvisibility=default
 bindings_python_hyperdex_client_la_CFLAGS += $(CFLAGS)
 bindings_python_hyperdex_client_la_LIBADD =
@@ -710,7 +709,6 @@ bindings_python_hyperdex_admin_la_CPPFLAGS += $(PYTHON_CPPFLAGS)
 bindings_python_hyperdex_admin_la_CPPFLAGS += $(AM_CPPFLAGS)
 bindings_python_hyperdex_admin_la_CPPFLAGS += $(CPPFLAGS)
 bindings_python_hyperdex_admin_la_CFLAGS =
-bindings_python_hyperdex_admin_la_CFLAGS += $(AM_CFLAGS)
 bindings_python_hyperdex_admin_la_CFLAGS += -fvisibility=default
 bindings_python_hyperdex_admin_la_CFLAGS += $(CFLAGS)
 bindings_python_hyperdex_admin_la_LIBADD =

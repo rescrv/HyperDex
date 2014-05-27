@@ -74,7 +74,7 @@ cdef extern from "hyperdex/admin.h":
     void hyperdex_admin_destroy(hyperdex_admin* admin)
     int64_t hyperdex_admin_add_space(hyperdex_admin* admin, char* description, hyperdex_admin_returncode* status)
     int64_t hyperdex_admin_rm_space(hyperdex_admin* admin, char* space, hyperdex_admin_returncode* status)
-    int64_t hyperdex_admin_dump_config(hyperdex_admin* admin, hyperdex_admin_returncode* status, char** config)
+    int64_t hyperdex_admin_dump_config(hyperdex_admin* admin, hyperdex_admin_returncode* status, const char** config)
     int64_t hyperdex_admin_enable_perf_counters(hyperdex_admin* admin, hyperdex_admin_returncode* status, hyperdex_admin_perf_counter* pc)
     void hyperdex_admin_disable_perf_counters(hyperdex_admin* admin)
     int64_t hyperdex_admin_loop(hyperdex_admin* admin, int timeout, hyperdex_admin_returncode* status) nogil
@@ -197,7 +197,7 @@ cdef class DeferredString:
     cdef Admin _admin
     cdef int64_t _reqid
     cdef hyperdex_admin_returncode _status
-    cdef char* _cstr
+    cdef const char* _cstr
     cdef str _pstr
     cdef bint _finished
 
