@@ -357,6 +357,8 @@ class Client
     public:
         int64_t loop(int timeout, hyperdex_client_returncode* status)
             { return hyperdex_client_loop(m_cl, timeout, status); }
+        int poll_fd()
+            { return hyperdex_client_poll(m_cl); }
         std::string error_message()
             { return hyperdex_client_error_message(m_cl); }
         std::string error_location()
