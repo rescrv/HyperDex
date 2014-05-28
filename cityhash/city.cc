@@ -33,6 +33,8 @@
 #include <algorithm>
 #include <string.h>  // for memcpy and memset
 
+#pragma GCC diagnostic ignored "-Wunsafe-loop-optimizations"
+
 typedef uint8_t uint8;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
