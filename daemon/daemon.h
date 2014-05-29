@@ -115,6 +115,7 @@ class daemon
         friend class communication;
         friend class coordinator_link_wrapper;
         friend class datalayer;
+        friend class key_state;
         friend class replication_manager;
         friend class search_manager;
         friend class state_transfer_manager;

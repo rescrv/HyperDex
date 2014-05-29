@@ -31,19 +31,19 @@
 #include <glog/logging.h>
 
 // HyperDex
-#include "daemon/replication_manager_pending.h"
+#include "daemon/key_operation.h"
 
-using hyperdex::replication_manager;
+using hyperdex::key_operation;
 
-replication_manager :: pending :: pending(std::auto_ptr<e::buffer> _backing,
-                                          const region_id& _reg_id,
-                                          uint64_t _seq_id,
-                                          bool _fresh,
-                                          bool _has_value,
-                                          const std::vector<e::slice>& _value,
-                                          server_id _client, uint64_t _nonce,
-                                          uint64_t _recv_config_version,
-                                          const virtual_server_id& _recv)
+key_operation :: key_operation(std::auto_ptr<e::buffer> _backing,
+                               const region_id& _reg_id,
+                               uint64_t _seq_id,
+                               bool _fresh,
+                               bool _has_value,
+                               const std::vector<e::slice>& _value,
+                               server_id _client, uint64_t _nonce,
+                               uint64_t _recv_config_version,
+                               const virtual_server_id& _recv)
     : backing(_backing)
     , reg_id(_reg_id)
     , seq_id(_seq_id)
@@ -67,12 +67,12 @@ replication_manager :: pending :: pending(std::auto_ptr<e::buffer> _backing,
 {
 }
 
-replication_manager :: pending :: ~pending() throw ()
+key_operation :: ~key_operation() throw ()
 {
 }
 
 void
-replication_manager :: pending :: debug_dump()
+key_operation :: debug_dump()
 {
     LOG(INFO) << "  unique op id: reg_id=" << reg_id << " seq_id=" << seq_id;
     LOG(INFO) << "  has value: " << (has_value ? "yes" : "no");

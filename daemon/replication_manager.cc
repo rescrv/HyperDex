@@ -46,10 +46,9 @@
 #include "cityhash/city.h"
 #include "daemon/daemon.h"
 #include "daemon/replication_manager.h"
-#include "daemon/replication_manager_key_state.h"
-#include "daemon/replication_manager_pending.h"
 
 using po6::threads::make_thread_wrapper;
+using hyperdex::key_state;
 using hyperdex::reconfigure_returncode;
 using hyperdex::replication_manager;
 
@@ -333,7 +332,7 @@ replication_manager :: chain_op(const virtual_server_id& from,
 
     key_map_t::state_reference ksr;
     key_state* ks = get_or_create_key_state(ri, key, &ksr);
-    e::intrusive_ptr<pending> op = ks->get_version(version);
+    e::intrusive_ptr<key_operation> op = ks->get_version(version);
 
     if (op)
     {
@@ -348,11 +347,11 @@ replication_manager :: chain_op(const virtual_server_id& from,
         return;
     }
 
-    op = new pending(backing,
-                     reg_id, seq_id, fresh,
-                     has_value, value,
-                     server_id(), 0,
-                     m_daemon->m_config.version(), from);
+    op = new key_operation(backing,
+                           reg_id, seq_id, fresh,
+                           has_value, value,
+                           server_id(), 0,
+                           m_daemon->m_config.version(), from);
     ks->insert_deferred(version, op);
     ks->move_operations_between_queues(this, to, ri, sc);
 }
@@ -396,8 +395,8 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
     key_map_t::state_reference ksr;
     key_state* ks = get_or_create_key_state(ri, key, &ksr);
 
-    // Create a new pending object to set as pending.
-    e::intrusive_ptr<pending> op = ks->get_version(version);
+    // Create a new key_operation object to set as deferred.
+    e::intrusive_ptr<key_operation> op = ks->get_version(version);
 
     if (op)
     {
@@ -412,11 +411,11 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
         return;
     }
 
-    op = new pending(backing,
-                     reg_id, seq_id, false,
-                     true, value,
-                     server_id(), 0,
-                     m_daemon->m_config.version(), from);
+    op = new key_operation(backing,
+                           reg_id, seq_id, false,
+                           true, value,
+                           server_id(), 0,
+                           m_daemon->m_config.version(), from);
     op->old_hashes.resize(sc.attrs_sz);
     op->new_hashes.resize(sc.attrs_sz);
     op->this_old_region = region_id();
@@ -481,7 +480,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
         return;
     }
 
-    e::intrusive_ptr<pending> op = ks->get_version(version);
+    e::intrusive_ptr<key_operation> op = ks->get_version(version);
 
     if (!op)
     {
@@ -625,7 +624,7 @@ replication_manager :: end_checkpoint(uint64_t seq)
     }
 }
 
-replication_manager::key_state*
+key_state*
 replication_manager :: get_key_state(const region_id& ri,
                                      const e::slice& key,
                                      key_map_t::state_reference* ksr)
@@ -634,7 +633,7 @@ replication_manager :: get_key_state(const region_id& ri,
     return m_key_states.get_state(kr, ksr);
 }
 
-replication_manager::key_state*
+key_state*
 replication_manager :: get_or_create_key_state(const region_id& ri,
                                                const e::slice& key,
                                                key_map_t::state_reference* ksr)
@@ -667,7 +666,7 @@ replication_manager :: send_message(const virtual_server_id& us,
                                     bool retransmission,
                                     uint64_t version,
                                     const e::slice& key,
-                                    e::intrusive_ptr<pending> op)
+                                    e::intrusive_ptr<key_operation> op)
 {
     // If we've sent it somewhere, we shouldn't resend.  If the sender intends a
     // resend, they should clear "sent" first.

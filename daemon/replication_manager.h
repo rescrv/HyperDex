@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2011-2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,9 @@
 #include "common/network_returncode.h"
 #include "daemon/identifier_collector.h"
 #include "daemon/identifier_generator.h"
+#include "daemon/key_operation.h"
 #include "daemon/key_region.h"
+#include "daemon/key_state.h"
 #include "daemon/reconfigure_returncode.h"
 #include "daemon/region_timestamp.h"
 #include "daemon/state_hash_table.h"
@@ -126,10 +128,8 @@ class replication_manager
         void end_checkpoint(uint64_t seq);
 
     private:
-        class pending; // state for one pending operation
-        class key_state; // state for a single key
         typedef state_hash_table<key_region, key_state> key_map_t;
-        friend class e::compat::hash<key_region>;
+        friend class key_state;
 
     private:
         replication_manager(const replication_manager&);
@@ -152,7 +152,7 @@ class replication_manager
                           bool retransmission,
                           uint64_t version,
                           const e::slice& key,
-                          e::intrusive_ptr<pending> op);
+                          e::intrusive_ptr<key_operation> op);
         bool send_ack(const virtual_server_id& us,
                       const virtual_server_id& to,
                       bool retransmission,

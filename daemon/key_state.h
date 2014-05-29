@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012-2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,14 +25,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_daemon_replication_manager_key_state_h_
-#define hyperdex_daemon_replication_manager_key_state_h_
+#ifndef hyperdex_daemon_key_state_h_
+#define hyperdex_daemon_key_state_h_
 
 // HyperDex
+#include "namespace.h"
 #include "daemon/datalayer.h"
-#include "daemon/replication_manager.h"
+#include "daemon/key_operation.h"
 
-class hyperdex::replication_manager::key_state
+BEGIN_HYPERDEX_NAMESPACE
+class replication_manager;
+
+class key_state
 {
     public:
         key_state(const key_region& kr);
@@ -53,7 +57,7 @@ class hyperdex::replication_manager::key_state
         void clear();
         uint64_t max_seq_id() const;
         uint64_t min_seq_id() const;
-        e::intrusive_ptr<pending> get_version(uint64_t version) const;
+        e::intrusive_ptr<key_operation> get_version(uint64_t version) const;
 
     public:
         datalayer::returncode initialize(datalayer* data,
@@ -71,7 +75,7 @@ class hyperdex::replication_manager::key_state
                             const region_id& reg_id, uint64_t seq_id,
                             const std::vector<funcall>& funcs,
                             const server_id& client, uint64_t nonce);
-        void insert_deferred(uint64_t version, e::intrusive_ptr<pending> op);
+        void insert_deferred(uint64_t version, e::intrusive_ptr<key_operation> op);
         bool persist_to_datalayer(replication_manager* rm, const region_id& ri,
                                   const region_id& reg_id, uint64_t seq_id,
                                   uint64_t version);
@@ -92,8 +96,8 @@ class hyperdex::replication_manager::key_state
         void check_invariants() const;
 
     private:
-        typedef std::list<std::pair<uint64_t, e::intrusive_ptr<pending> > >
-                pending_list_t;
+        typedef std::list<std::pair<uint64_t, e::intrusive_ptr<key_operation> > >
+                key_operation_list_t;
         friend class e::intrusive_ptr<key_state>;
         friend class key_state_reference;
 
@@ -119,7 +123,7 @@ class hyperdex::replication_manager::key_state
                           const std::vector<e::slice>& new_value,
                           bool has_old_value,
                           const std::vector<e::slice>& old_value,
-                          e::intrusive_ptr<pending> pend);
+                          e::intrusive_ptr<key_operation> pend);
 
     private:
         const region_id m_ri;
@@ -129,9 +133,9 @@ class hyperdex::replication_manager::key_state
         bool m_marked_garbage;
         bool m_initialized;
         size_t m_ref;
-        pending_list_t m_committable;
-        pending_list_t m_blocked;
-        pending_list_t m_deferred;
+        key_operation_list_t m_committable;
+        key_operation_list_t m_blocked;
+        key_operation_list_t m_deferred;
         bool m_has_old_value;
         uint64_t m_old_version;
         std::vector<e::slice> m_old_value;
@@ -139,4 +143,6 @@ class hyperdex::replication_manager::key_state
         std::auto_ptr<e::buffer> m_old_backing;
 };
 
-#endif // hyperdex_daemon_replication_manager_key_state_h_
+END_HYPERDEX_NAMESPACE
+
+#endif // hyperdex_daemon_key_state_h_

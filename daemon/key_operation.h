@@ -25,28 +25,35 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_daemon_replication_manager_pending_h_
-#define hyperdex_daemon_replication_manager_pending_h_
+#ifndef hyperdex_daemon_key_operation_h_
+#define hyperdex_daemon_key_operation_h_
 
 // STL
 #include <memory>
 
-// HyperDex
-#include "daemon/replication_manager.h"
+// e
+#include <e/buffer.h>
+#include <e/intrusive_ptr.h>
 
-class hyperdex::replication_manager::pending
+// HyperDex
+#include "namespace.h"
+#include "common/ids.h"
+
+BEGIN_HYPERDEX_NAMESPACE
+
+class key_operation
 {
     public:
-        pending(std::auto_ptr<e::buffer> backing,
-                const region_id& reg_id,
-                uint64_t seq_id,
-                bool fresh,
-                bool has_value,
-                const std::vector<e::slice>& value,
-                server_id _client, uint64_t _nonce,
-                uint64_t _recv_config_version,
-                const virtual_server_id& _recv);
-        ~pending() throw ();
+        key_operation(std::auto_ptr<e::buffer> backing,
+                      const region_id& reg_id,
+                      uint64_t seq_id,
+                      bool fresh,
+                      bool has_value,
+                      const std::vector<e::slice>& value,
+                      server_id _client, uint64_t _nonce,
+                      uint64_t _recv_config_version,
+                      const virtual_server_id& _recv);
+        ~key_operation() throw ();
 
     public:
         void debug_dump();
@@ -73,10 +80,12 @@ class hyperdex::replication_manager::pending
         region_id next_region;
 
     private:
-        friend class e::intrusive_ptr<pending>;
+        friend class e::intrusive_ptr<key_operation>;
         void inc() { ++m_ref; }
         void dec() { if (--m_ref == 0) delete this; }
         size_t m_ref;
 };
 
-#endif // hyperdex_daemon_replication_manager_pending_h_
+END_HYPERDEX_NAMESPACE
+
+#endif // hyperdex_daemon_key_operation_h_
