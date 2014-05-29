@@ -53,6 +53,7 @@
     class TYPE ## _id \
     { \
         public: \
+            static uint64_t hash(const TYPE ## _id& x) { return x.get(); } \
             TYPE ## _id() : m_id(0) {} \
             explicit TYPE ## _id(uint64_t id) : m_id(id) {} \
         public: \

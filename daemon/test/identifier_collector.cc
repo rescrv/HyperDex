@@ -42,41 +42,28 @@ TEST(IdentifierCollector, Test)
 {
     e::garbage_collector gc;
     identifier_collector ic(&gc);
-    bool did_it = false;
     uint64_t id;
-    // test unknown region id
-    did_it = ic.lower_bound(region_id(1), &id);
-    ASSERT_FALSE(did_it);
     // adopt a region
     region_id ri(1);
     ic.adopt(&ri, 1);
     // first try, nothing collected
-    did_it = ic.lower_bound(ri, &id);
-    ASSERT_TRUE(did_it);
+    id = ic.lower_bound(ri);
     ASSERT_EQ(id, 1U);
     // collect one
-    did_it = ic.collect(ri, 1);
-    ASSERT_TRUE(did_it);
-    did_it = ic.lower_bound(ri, &id);
-    ASSERT_TRUE(did_it);
+    ic.collect(ri, 1);
+    id = ic.lower_bound(ri);
     ASSERT_EQ(id, 2U);
     // collect three
-    did_it = ic.collect(ri, 3);
-    ASSERT_TRUE(did_it);
-    did_it = ic.lower_bound(ri, &id);
-    ASSERT_TRUE(did_it);
+    ic.collect(ri, 3);
+    id = ic.lower_bound(ri);
     ASSERT_EQ(id, 2U);
     // collect three again
-    did_it = ic.collect(ri, 3);
-    ASSERT_TRUE(did_it);
-    did_it = ic.lower_bound(ri, &id);
-    ASSERT_TRUE(did_it);
+    ic.collect(ri, 3);
+    id = ic.lower_bound(ri);
     ASSERT_EQ(id, 2U);
     // collect two
-    did_it = ic.collect(ri, 2);
-    ASSERT_TRUE(did_it);
-    did_it = ic.lower_bound(ri, &id);
-    ASSERT_TRUE(did_it);
+    ic.collect(ri, 2);
+    id = ic.lower_bound(ri);
     ASSERT_EQ(id, 4U);
     // resize
     region_id ris[2];
@@ -84,25 +71,19 @@ TEST(IdentifierCollector, Test)
     ris[1] = region_id(1);
     ic.adopt(ris, 2);
     // check lower bound
-    did_it = ic.lower_bound(ri, &id);
-    ASSERT_TRUE(did_it);
+    id = ic.lower_bound(ri);
     ASSERT_EQ(id, 4U);
     // bump!
-    did_it = ic.bump(ri, 9);
-    ASSERT_TRUE(did_it);
-    did_it = ic.lower_bound(ri, &id);
-    ASSERT_TRUE(did_it);
+    ic.bump(ri, 9);
+    id = ic.lower_bound(ri);
     ASSERT_EQ(id, 9U);
-    did_it = ic.lower_bound(ri, &id);
-    ASSERT_TRUE(did_it);
+    id = ic.lower_bound(ri);
     ASSERT_EQ(id, 9U);
 
     for (uint64_t i = 9; i < 65536; ++i)
     {
-        did_it = ic.collect(ri, i);
-        ASSERT_TRUE(did_it);
-        did_it = ic.lower_bound(ri, &id);
-        ASSERT_TRUE(did_it);
+        ic.collect(ri, i);
+        id = ic.lower_bound(ri);
         ASSERT_EQ(id, i + 1);
     }
 }

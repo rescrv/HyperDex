@@ -48,6 +48,7 @@
 
 // HyperDex
 #include "common/coordinator_returncode.h"
+#include "common/key_change.h"
 #include "common/serialization.h"
 #include "daemon/daemon.h"
 
@@ -55,13 +56,10 @@
 #include <mach/mach.h>
 #endif
 
-#define ALARM_INTERVAL 30
-
 using po6::threads::make_thread_wrapper;
 using hyperdex::daemon;
 
 int s_interrupts = 0;
-bool s_alarm = false;
 bool s_debug = false;
 
 static void
@@ -82,12 +80,6 @@ exit_after_timeout(int /*signum*/)
 {
     __sync_fetch_and_add(&s_interrupts, 1);
     RAW_LOG(ERROR, "took too long to shutdown; just exiting");
-}
-
-static void
-handle_alarm(int /*signum*/)
-{
-    s_alarm = true;
 }
 
 static void
@@ -131,7 +123,6 @@ daemon :: daemon()
     , m_perf_chain_op()
     , m_perf_chain_subspace()
     , m_perf_chain_ack()
-    , m_perf_chain_gc()
     , m_perf_xfer_handshake_syn()
     , m_perf_xfer_handshake_synack()
     , m_perf_xfer_handshake_ack()
@@ -209,12 +200,6 @@ daemon :: run(bool daemonize,
     if (!install_signal_handler(SIGTERM, exit_on_signal))
     {
         std::cerr << "could not install SIGTERM handler; exiting" << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    if (!install_signal_handler(SIGALRM, handle_alarm))
-    {
-        std::cerr << "could not install SIGALRM handler; exiting" << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -404,20 +389,12 @@ daemon :: run(bool daemonize,
     }
 
     m_stat_collector.start();
-    alarm(ALARM_INTERVAL);
     bool cluster_jump = false;
     bool requested_exit = false;
 
     while (__sync_fetch_and_add(&s_interrupts, 0) < 2 &&
            !m_coord.should_exit())
     {
-        if (s_alarm)
-        {
-            s_alarm = false;
-            alarm(ALARM_INTERVAL);
-            m_repl.trip_periodic();
-        }
-
         if (s_debug)
         {
             s_debug = false;
@@ -694,10 +671,6 @@ daemon :: loop(size_t thread)
                 process_chain_ack(from, vfrom, vto, msg, up);
                 m_perf_chain_ack.tap();
                 break;
-            case CHAIN_GC:
-                process_chain_gc(from, vfrom, vto, msg, up);
-                m_perf_chain_gc.tap();
-                break;
             case XFER_HS:
                 process_xfer_handshake_syn(from, vfrom, vto, msg, up);
                 m_perf_xfer_handshake_syn.tap();
@@ -881,11 +854,8 @@ daemon :: process_req_atomic(server_id from,
                              e::unpacker up)
 {
     uint64_t nonce;
-    uint8_t flags;
-    e::slice key;
-    std::vector<attribute_check> checks;
-    std::vector<funcall> funcs;
-    up = up >> nonce >> key >> flags >> checks >> funcs;
+    std::auto_ptr<key_change> kc(new key_change());
+    up = up >> nonce >> *kc;
 
     if (up.error())
     {
@@ -893,10 +863,7 @@ daemon :: process_req_atomic(server_id from,
         return;
     }
 
-    bool erase = !(flags & 128);
-    bool fail_if_not_found = flags & 1;
-    bool fail_if_found = flags & 2;
-    m_repl.client_atomic(from, vto, nonce, erase, fail_if_not_found, fail_if_found, key, checks, funcs);
+    m_repl.client_atomic(from, vto, nonce, kc, msg);
 }
 
 void
@@ -1045,13 +1012,12 @@ daemon :: process_chain_op(server_id,
                            e::unpacker up)
 {
     uint8_t flags;
-    uint64_t reg_id;
-    uint64_t seq_id;
-    uint64_t version;
+    uint64_t old_version;
+    uint64_t new_version;
     e::slice key;
     std::vector<e::slice> value;
 
-    if ((up >> flags >> reg_id >> seq_id >> version >> key >> value).error())
+    if ((up >> flags >> old_version >> new_version >> key >> value).error())
     {
         LOG(WARNING) << "unpack of CHAIN_OP failed; here's some hex:  " << msg->hex();
         return;
@@ -1059,8 +1025,7 @@ daemon :: process_chain_op(server_id,
 
     bool fresh = flags & 1;
     bool has_value = flags & 2;
-    bool retransmission = flags & 128;
-    m_repl.chain_op(vfrom, vto, retransmission, region_id(reg_id), seq_id, version, fresh, has_value, msg, key, value);
+    m_repl.chain_op(vfrom, vto, old_version, new_version, fresh, has_value, key, value, msg);
 }
 
 void
@@ -1070,41 +1035,24 @@ daemon :: process_chain_subspace(server_id,
                                  std::auto_ptr<e::buffer> msg,
                                  e::unpacker up)
 {
-    uint8_t flags;
-    uint64_t reg_id;
-    uint64_t seq_id;
-    uint64_t version;
+    uint64_t old_version;
+    uint64_t new_version;
     e::slice key;
     std::vector<e::slice> value;
-    std::vector<uint64_t> hashes;
+    region_id prev_region;
+    region_id this_old_region;
+    region_id this_new_region;
+    region_id next_region;
 
-    if ((up >> flags >> reg_id >> seq_id >> version >> key >> value >> hashes).error())
+    if ((up >> old_version >> new_version >> key >> value >>
+               prev_region >> this_old_region >> this_new_region >> next_region).error())
     {
         LOG(WARNING) << "unpack of CHAIN_SUBSPACE failed; here's some hex:  " << msg->hex();
         return;
     }
 
-    bool retransmission = flags & 128;
-    m_repl.chain_subspace(vfrom, vto, retransmission, region_id(reg_id), seq_id, version, msg, key, value, hashes);
-}
-
-void
-daemon :: process_chain_gc(server_id,
-                           virtual_server_id vfrom,
-                           virtual_server_id,
-                           std::auto_ptr<e::buffer> msg,
-                           e::unpacker up)
-{
-    uint64_t seq_id;
-
-    if ((up >> seq_id).error())
-    {
-        LOG(WARNING) << "unpack of CHAIN_GC failed; here's some hex:  " << msg->hex();
-        return;
-    }
-
-    region_id ri = m_config.get_region_id(vfrom);
-    m_repl.chain_gc(ri, seq_id);
+    m_repl.chain_subspace(vfrom, vto, old_version, new_version, key, value, msg,
+                          prev_region, this_old_region, this_new_region, next_region);
 }
 
 void
@@ -1114,20 +1062,16 @@ daemon :: process_chain_ack(server_id,
                             std::auto_ptr<e::buffer> msg,
                             e::unpacker up)
 {
-    uint8_t flags;
-    uint64_t reg_id;
-    uint64_t seq_id;
     uint64_t version;
     e::slice key;
 
-    if ((up >> flags >> reg_id >> seq_id >> version >> key).error())
+    if ((up >> version >> key).error())
     {
         LOG(WARNING) << "unpack of CHAIN_ACK failed; here's some hex:  " << msg->hex();
         return;
     }
 
-    bool retransmission = flags & 128;
-    m_repl.chain_ack(vfrom, vto, retransmission, region_id(reg_id), seq_id, version, key);
+    m_repl.chain_ack(vfrom, vto, version, key);
 }
 
 void
@@ -1415,7 +1359,6 @@ daemon :: collect_stats_msgs(std::ostringstream* ret)
     *ret << " msgs.chain_op=" << m_perf_chain_op.read();
     *ret << " msgs.chain_subspace=" << m_perf_chain_subspace.read();
     *ret << " msgs.chain_ack=" << m_perf_chain_ack.read();
-    *ret << " msgs.chain_gc=" << m_perf_chain_gc.read();
     *ret << " msgs.xfer_op=" << m_perf_xfer_op.read();
     *ret << " msgs.xfer_ack=" << m_perf_xfer_ack.read();
     *ret << " msgs.perf_counters=" << m_perf_perf_counters.read();

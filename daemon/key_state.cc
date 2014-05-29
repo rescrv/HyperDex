@@ -47,22 +47,51 @@ using hyperdex::key_operation;
 using hyperdex::key_region;
 using hyperdex::key_state;
 
+struct key_state::deferred_key_change
+{
+    deferred_key_change(const server_id& _from,
+                        uint64_t _nonce, uint64_t _version,
+                        std::auto_ptr<key_change> _kc,
+                        std::auto_ptr<e::buffer> _backing)
+        : from(_from)
+        , nonce(_nonce)
+        , version(_version)
+        , kc(_kc)
+        , backing(_backing)
+        , m_ref(0)
+    {
+    }
+
+    void inc() { ++m_ref; }
+    void dec() { if (--m_ref == 0) delete this; }
+
+    const server_id from;
+    const uint64_t nonce;
+    const uint64_t version;
+    const std::auto_ptr<key_change> kc;
+    const std::auto_ptr<e::buffer> backing;
+
+    private:
+        size_t m_ref;
+};
+
 key_state :: key_state(const key_region& kr)
-    : m_ri(kr.region)
+    : m_ref(0)
+    , m_ri(kr.region)
     , m_key_backing(reinterpret_cast<const char*>(kr.key.data()), kr.key.size())
     , m_key(m_key_backing.data(), m_key_backing.size())
     , m_lock()
     , m_marked_garbage(false)
     , m_initialized(false)
-    , m_ref(0)
-    , m_committable()
-    , m_blocked()
-    , m_deferred()
     , m_has_old_value(false)
     , m_old_version(0)
     , m_old_value()
     , m_old_disk_ref()
-    , m_old_backing()
+    , m_old_op()
+    , m_committable()
+    , m_blocked()
+    , m_deferred()
+    , m_changes()
 {
 }
 
@@ -93,7 +122,7 @@ key_state :: unlock()
 bool
 key_state :: finished()
 {
-    return empty();
+    return m_committable.empty() && m_blocked.empty() && m_deferred.empty();
 }
 
 void
@@ -112,116 +141,6 @@ bool
 key_state :: initialized() const
 {
     return m_initialized;
-}
-
-bool
-key_state :: empty() const
-{
-    return m_committable.empty() && m_blocked.empty() && m_deferred.empty();
-}
-
-void
-key_state :: clear()
-{
-    m_committable.clear();
-    m_blocked.clear();
-    m_deferred.clear();
-    assert(empty());
-    CHECK_INVARIANTS();
-}
-
-uint64_t
-key_state :: max_seq_id() const
-{
-    uint64_t ret = 0;
-
-    for (key_operation_list_t::const_iterator it = m_committable.begin();
-            it != m_committable.end(); ++it)
-    {
-        ret = std::max(ret, it->second->seq_id);
-    }
-
-    for (key_operation_list_t::const_iterator it = m_blocked.begin();
-            it != m_blocked.end(); ++it)
-    {
-        ret = std::max(ret, it->second->seq_id);
-    }
-
-    for (key_operation_list_t::const_iterator it = m_deferred.begin();
-            it != m_deferred.end(); ++it)
-    {
-        ret = std::max(ret, it->second->seq_id);
-    }
-
-    CHECK_INVARIANTS();
-    return ret;
-}
-
-uint64_t
-key_state :: min_seq_id() const
-{
-    uint64_t ret = 0;
-
-    for (key_operation_list_t::const_iterator it = m_committable.begin();
-            it != m_committable.end(); ++it)
-    {
-        ret = std::min(ret, it->second->seq_id);
-    }
-
-    for (key_operation_list_t::const_iterator it = m_blocked.begin();
-            it != m_blocked.end(); ++it)
-    {
-        ret = std::min(ret, it->second->seq_id);
-    }
-
-    for (key_operation_list_t::const_iterator it = m_deferred.begin();
-            it != m_deferred.end(); ++it)
-    {
-        ret = std::min(ret, it->second->seq_id);
-    }
-
-    CHECK_INVARIANTS();
-    return ret;
-}
-
-e::intrusive_ptr<key_operation>
-key_state :: get_version(uint64_t version) const
-{
-    CHECK_INVARIANTS();
-
-    if (!m_committable.empty() && m_committable.back().first >= version)
-    {
-        for (key_operation_list_t::const_iterator c = m_committable.begin();
-                c != m_committable.end(); ++c)
-        {
-            if (c->first == version)
-            {
-                return c->second;
-            }
-            else if (c->first > version)
-            {
-                return NULL;
-            }
-        }
-    }
-
-    if (!m_blocked.empty() && m_blocked.back().first >= version)
-    {
-        for (key_operation_list_t::const_iterator b = m_blocked.begin();
-                b != m_blocked.end(); ++b)
-        {
-            if (b->first == version)
-            {
-                return b->second;
-            }
-            else if (b->first > version)
-            {
-                return NULL;
-            }
-        }
-    }
-
-    return NULL;
 }
 
 hyperdex::datalayer::returncode
@@ -251,131 +170,129 @@ key_state :: initialize(datalayer* data, const region_id& ri)
     return rc;
 }
 
-bool
-key_state :: check_against_latest_version(const schema& sc,
-                                          bool erase,
-                                          bool fail_if_not_found,
-                                          bool fail_if_found,
-                                          const std::vector<attribute_check>& checks,
-                                          network_returncode* nrc)
-{
-    assert(m_deferred.empty());
-    assert(sc.attrs_sz > 0);
-    bool has_old_value = false;
-    uint64_t old_version = 0;
-    std::vector<e::slice>* old_value = NULL;
-    get_latest(&has_old_value, &old_version, &old_value);
-    CHECK_INVARIANTS();
-    return check_version(sc, erase, fail_if_not_found, fail_if_found, checks,
-                         has_old_value, old_version, old_value, nrc);
-}
-
 void
-key_state :: delete_latest(const schema& sc,
-                           const region_id& reg_id, uint64_t seq_id,
-                           const server_id& client, uint64_t nonce)
+key_state :: enqueue_key_change(const server_id& from,
+                                uint64_t nonce,
+                                uint64_t seq_id,
+                                std::auto_ptr<key_change> kc,
+                                std::auto_ptr<e::buffer> backing)
 {
-    assert(m_deferred.empty());
-    assert(sc.attrs_sz > 0);
-    e::intrusive_ptr<key_operation> op;
-    op = new key_operation(std::auto_ptr<e::buffer>(),
-                           reg_id, seq_id, false,
-                           false, std::vector<e::slice>(sc.attrs_sz - 1),
-                           client, nonce,
-                           0, virtual_server_id());
-    bool has_old_value = false;
-    uint64_t old_version = 0;
-    std::vector<e::slice>* old_value = NULL;
-    get_latest(&has_old_value, &old_version, &old_value);
-    insert_deferred(old_version + 1, op);
-    CHECK_INVARIANTS();
+    e::intrusive_ptr<deferred_key_change> dkc;
+    dkc = new deferred_key_change(from, nonce, seq_id, kc, backing);
+    m_changes.push_back(dkc);
 }
 
-bool
-key_state :: put_from_funcs(const schema& sc,
-                            const region_id& reg_id, uint64_t seq_id,
-                            const std::vector<funcall>& funcs,
-                            const server_id& client, uint64_t nonce)
+namespace
 {
-    assert(m_deferred.empty());
-    bool has_old_value = false;
-    uint64_t old_version = 0;
-    std::vector<e::slice>* old_value = NULL;
-    get_latest(&has_old_value, &old_version, &old_value);
-    std::auto_ptr<e::buffer> backing;
-    std::vector<e::slice> new_value(sc.attrs_sz - 1);
 
-    // if there is no old value, pretend it is "new_value" which is
-    // zero-initialized
-    if (!has_old_value)
+bool
+get_by_version(const std::list<e::intrusive_ptr<key_operation> >& list,
+               uint64_t version, e::intrusive_ptr<key_operation>* op)
+{
+    if (list.empty() || list.back()->this_version() < version)
     {
-        old_value = &new_value;
+        return false;
     }
 
-    size_t funcs_passed = apply_funcs(sc, funcs, m_key, *old_value, &backing, &new_value);
-    e::intrusive_ptr<key_operation> op;
-    op = new key_operation(backing,
-                           reg_id, seq_id, !has_old_value,
-                           true, new_value,
-                           client, nonce,
-                           0, virtual_server_id());
-
-    CHECK_INVARIANTS();
-    assert(m_committable.empty() || old_version + 1 > m_committable.back().first);
-    assert(m_blocked.empty() || old_version + 1 > m_blocked.back().first);
-    assert(m_deferred.empty() || old_version + 1 > m_deferred.back().first);
-
-    if (funcs_passed == funcs.size())
+    for (std::list<e::intrusive_ptr<key_operation> >::const_iterator it = list.begin();
+            it != list.end(); ++it)
     {
-        insert_deferred(old_version + 1, op);
-        CHECK_INVARIANTS();
-        return true;
+        uint64_t v = (*it)->this_version();
+
+        if (v == version)
+        {
+            *op = *it;
+            return true;
+        }
+        else if (v > version)
+        {
+            return false;
+        }
     }
 
     return false;
 }
 
-void
-key_state :: insert_deferred(uint64_t version, e::intrusive_ptr<key_operation> op)
+} // namespace
+
+e::intrusive_ptr<key_operation>
+key_state :: get(uint64_t new_version)
 {
     CHECK_INVARIANTS();
-    key_operation_list_t::iterator d = m_deferred.begin();
+    e::intrusive_ptr<key_operation> op;
 
-    while (d != m_deferred.end() && d->first <= version)
+    if (get_by_version(m_committable, new_version, &op) ||
+        get_by_version(m_blocked, new_version, &op) ||
+        get_by_version(m_deferred, new_version, &op))
     {
-        ++d;
+        assert(op);
+        return op;
     }
 
-    assert(d == m_deferred.end() || d->first > version);
-    m_deferred.insert(d, std::make_pair(version, op));
-    CHECK_INVARIANTS();
+    return NULL;
 }
 
-bool
-key_state :: persist_to_datalayer(replication_manager* rm,
-                                  const region_id& ri,
-                                  const region_id& reg_id,
-                                  uint64_t seq_id,
-                                  uint64_t version)
+e::intrusive_ptr<key_operation>
+key_state :: enqueue_continuous_key_op(uint64_t old_version,
+                                       uint64_t new_version,
+                                       bool fresh,
+                                       bool has_value,
+                                       const std::vector<e::slice>& value,
+                                       std::auto_ptr<e::buffer> backing)
+{
+    e::intrusive_ptr<key_operation> op;
+    op = new key_operation(old_version, new_version, fresh,
+                           has_value, value, backing);
+    op->set_continuous();
+
+    if ((!has_value && finished() && !m_has_old_value) ||
+        (new_version <= m_old_version))
+    {
+        op->mark_acked();
+        return op;
+    }
+
+    m_deferred.push_back(op);
+    return op;
+}
+
+e::intrusive_ptr<key_operation>
+key_state :: enqueue_discontinuous_key_op(uint64_t old_version,
+                                          uint64_t new_version,
+                                          const std::vector<e::slice>& value,
+                                          std::auto_ptr<e::buffer> backing,
+                                          const region_id& prev_region,
+                                          const region_id& this_old_region,
+                                          const region_id& this_new_region,
+                                          const region_id& next_region)
+{
+    e::intrusive_ptr<key_operation> op;
+    op = new key_operation(old_version, new_version, false,
+                           true, value, backing);
+    op->set_discontinuous(prev_region, this_old_region, this_new_region, next_region);
+    m_deferred.push_back(op);
+    return op;
+}
+
+void
+key_state :: update_datalayer(replication_manager* rm, uint64_t version)
 {
     if (m_old_version < version)
     {
         CHECK_INVARIANTS();
-        e::intrusive_ptr<key_operation> op = get_version(version);
+        e::intrusive_ptr<key_operation> op = get(version);
         assert(op);
-        datalayer::returncode rc;
+        assert(op->this_version() == version);
+        datalayer::returncode rc = datalayer::SUCCESS;
 
         // if this is a case where we are to remove the object from disk
-        if (!op->has_value || (op->this_old_region != op->this_new_region && ri == op->this_old_region))
+        // because of a delete or the first half of a subspace transfer
+        if (!op->has_value() ||
+            (op->this_old_region() != op->this_new_region() && m_ri == op->this_old_region()))
         {
             if (m_has_old_value)
             {
-                rc = rm->m_daemon->m_data.del(ri, reg_id, seq_id, m_key, m_old_value);
-            }
-            else
-            {
-                rm->m_daemon->m_data.mark_acked(ri, reg_id, seq_id);
-                rc = datalayer::SUCCESS;
+                rc = rm->m_daemon->m_data.del(m_ri, m_key, m_old_value);
             }
         }
         // otherwise it is a case where we are to place this object on disk
@@ -383,11 +300,11 @@ key_state :: persist_to_datalayer(replication_manager* rm,
         {
             if (m_has_old_value)
             {
-                rc = rm->m_daemon->m_data.overput(ri, reg_id, seq_id, m_key, m_old_value, op->value, version);
+                rc = rm->m_daemon->m_data.overput(m_ri, m_key, m_old_value, op->value(), version);
             }
             else
             {
-                rc = rm->m_daemon->m_data.put(ri, reg_id, seq_id, m_key, op->value, version);
+                rc = rm->m_daemon->m_data.put(m_ri, m_key, op->value(), version);
             }
         }
 
@@ -400,46 +317,24 @@ key_state :: persist_to_datalayer(replication_manager* rm,
             case datalayer::CORRUPTION:
             case datalayer::IO_ERROR:
             case datalayer::LEVELDB_ERROR:
-                return false;
+                return; // XXX
             default:
-                return false;
+                return; // XXX
         }
 
-        m_has_old_value = op->has_value;
+        m_has_old_value = op->has_value();
         m_old_version = version;
-        m_old_value = op->value;
-        m_old_backing = op->backing;
+        m_old_value = op->value();
+        m_old_op = op;
         CHECK_INVARIANTS();
     }
-    else
+
+    while (!m_committable.empty() && m_committable.front()->ackable())
     {
-        rm->m_daemon->m_data.mark_acked(ri, reg_id, seq_id);
-    }
-
-    CHECK_INVARIANTS();
-    return true;
-}
-
-void
-key_state :: clear_deferred()
-{
-    CHECK_INVARIANTS();
-    m_deferred.clear();
-    CHECK_INVARIANTS();
-}
-
-void
-key_state :: clear_acked_prefix()
-{
-    CHECK_INVARIANTS();
-
-    while (!m_committable.empty() && m_committable.front().second->acked)
-    {
-        assert(m_committable.front().first <= m_old_version);
+        assert(m_committable.front()->this_version() <= m_old_version);
         m_committable.pop_front();
+        CHECK_INVARIANTS();
     }
-
-    CHECK_INVARIANTS();
 }
 
 void
@@ -452,159 +347,391 @@ key_state :: resend_committable(replication_manager* rm,
             it != m_committable.end(); ++it)
     {
         // skip those messages already sent in this version
-        if (it->second->sent_config_version == rm->m_daemon->m_config.version())
+        if ((*it)->sent_version() >= rm->m_daemon->m_config.version())
         {
             continue;
         }
 
-        it->second->sent = virtual_server_id();
-        it->second->sent_config_version = 0;
-        rm->send_message(us, true, it->first, m_key, it->second);
+        (*it)->set_sent(0, virtual_server_id());
+        rm->send_message(us, m_key, *it);
     }
 
     CHECK_INVARIANTS();
 }
 
 void
-key_state :: append_seq_ids(std::vector<std::pair<region_id, uint64_t> >* seq_ids)
+key_state :: work_state_machine(replication_manager* rm,
+                                const virtual_server_id& us,
+                                const schema& sc)
 {
-    size_t sz = seq_ids->size() + m_committable.size() + m_blocked.size() + m_deferred.size();
+    CHECK_INVARIANTS();
 
-    if (seq_ids->capacity() < sz)
-    {
-        seq_ids->reserve(sz);
-    }
-
-    for (key_operation_list_t::iterator it = m_committable.begin();
-            it != m_committable.end(); ++it)
-    {
-        seq_ids->push_back(std::make_pair(m_ri, it->second->seq_id));
-    }
-
-    for (key_operation_list_t::iterator it = m_blocked.begin();
-            it != m_blocked.end(); ++it)
-    {
-        seq_ids->push_back(std::make_pair(m_ri, it->second->seq_id));
-    }
-
-    for (key_operation_list_t::iterator it = m_deferred.begin();
-            it != m_deferred.end(); ++it)
-    {
-        seq_ids->push_back(std::make_pair(m_ri, it->second->seq_id));
-    }
-}
-
-void
-key_state :: move_operations_between_queues(replication_manager* rm,
-                                            const virtual_server_id& us,
-                                            const region_id& ri,
-                                            const schema& sc)
-{
-    // Apply deferred operations
-    while (!m_deferred.empty())
+    while (!m_changes.empty() ||
+           !m_deferred.empty() ||
+           !m_blocked.empty())
     {
         CHECK_INVARIANTS();
-        bool has_old_value = false;
-        uint64_t old_version = 0;
-        std::vector<e::slice>* old_value = NULL;
-        get_latest(&has_old_value, &old_version, &old_value);
 
-        if (old_version >= m_deferred.front().first)
-        {
-            LOG(WARNING) << "dropping deferred CHAIN_* which was sent out of order: "
-                         << "we're using key " << e::slice(state_key().key).hex() << " in region "
-                         << state_key().region
-                         << ".  We've already seen " << old_version << " and the CHAIN_* "
-                         << "is for version " << m_deferred.front().first;
-            m_deferred.pop_front();
-            continue;
-        }
-
-        e::intrusive_ptr<key_operation> op = m_deferred.front().second;
-
-        // If the version numbers don't line up, and this is not fresh, and it
-        // is not a subspace transfer.  Note that if this were a subspace
-        // transfer, "op->this_new_region == ri" and "op->this_old_region !=
-        // op->this_new_region".
-        if (old_version + 1 != m_deferred.front().first &&
-            !op->fresh &&
-            (op->this_old_region == op->this_new_region ||
-             op->this_old_region == ri))
+        if (!step_state_machine_changes(rm, us, sc) &&
+            !step_state_machine_deferred(rm, us, sc) &&
+            !step_state_machine_blocked(rm, us))
         {
             break;
         }
+    }
 
-        // If this is not a subspace transfer
-        if (op->this_old_region == op->this_new_region ||
-            op->this_old_region == ri)
-        {
-            hash_objects(&rm->m_daemon->m_config, ri, sc, op->has_value, op->value, has_old_value, old_value ? *old_value : op->value, op);
+    CHECK_INVARIANTS();
+}
 
-            if (op->this_old_region != ri && op->this_new_region != ri)
-            {
-                LOG(INFO) << "dropping deferred CHAIN_* which didn't get sent to the right host";
-                m_deferred.pop_front();
-                continue;
-            }
+void
+key_state :: get_latest(bool* has_old_value,
+                        uint64_t* old_version,
+                        const std::vector<e::slice>** old_value)
+{
+    CHECK_INVARIANTS();
+    *old_version = 0;
 
-            if (op->recv != virtual_server_id() &&
-                rm->m_daemon->m_config.next_in_region(op->recv) != us &&
-                !rm->m_daemon->m_config.subspace_adjacent(op->recv, us))
-            {
-                LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
-                m_deferred.pop_front();
-                continue;
-            }
-        }
+    if (!m_blocked.empty() && m_blocked.back()->this_version() > *old_version)
+    {
+        *has_old_value = m_blocked.back()->has_value();
+        *old_version = m_blocked.back()->this_version();
+        *old_value = &m_blocked.back()->value();
+    }
 
-        m_blocked.push_back(m_deferred.front());
+    if (!m_committable.empty() && m_committable.back()->this_version() > *old_version)
+    {
+        *has_old_value = m_committable.back()->has_value();
+        *old_version = m_committable.back()->this_version();
+        *old_value = &m_committable.back()->value();
+    }
+
+    if (m_old_version > *old_version)
+    {
+        *has_old_value = m_has_old_value;
+        *old_version = m_old_version;
+        *old_value = &m_old_value;
+    }
+}
+
+bool
+key_state :: step_state_machine_changes(replication_manager* rm,
+                                        const virtual_server_id& us,
+                                        const schema& sc)
+{
+    if (!m_deferred.empty() || m_changes.empty())
+    {
+        return false;
+    }
+
+    assert(sc.attrs_sz > 0);
+    bool has_old_value = false;
+    uint64_t old_version = 0;
+    const std::vector<e::slice>* old_value = NULL;
+    get_latest(&has_old_value, &old_version, &old_value);
+
+    network_returncode nrc = NET_SUCCESS;
+    e::intrusive_ptr<deferred_key_change> dkc = m_changes.front();
+    m_changes.pop_front();
+    key_change* kc = dkc->kc.get();
+
+    if (!has_old_value && kc->erase)
+    {
+        nrc = NET_NOTFOUND;
+    }
+    else if (!has_old_value && kc->fail_if_not_found)
+    {
+        nrc = NET_NOTFOUND;
+    }
+    else if (!has_old_value && !kc->checks.empty())
+    {
+        nrc = NET_CMPFAIL;
+    }
+    else if (has_old_value && kc->fail_if_found)
+    {
+        nrc = NET_CMPFAIL;
+    }
+    else if (has_old_value && passes_attribute_checks(sc, kc->checks, m_key, *old_value) < kc->checks.size())
+    {
+        nrc = NET_CMPFAIL;
+    }
+
+    if (nrc != NET_SUCCESS)
+    {
+        rm->respond_to_client(us, dkc->from, dkc->nonce, nrc);
+        return true;
+    }
+
+    if (kc->erase)
+    {
+        e::intrusive_ptr<key_operation> op;
+        op = new key_operation(old_version, dkc->version, false,
+                               false, std::vector<e::slice>(sc.attrs_sz - 1),
+                               std::auto_ptr<e::buffer>());
+        op->set_continuous();
+        op->set_client(dkc->from, dkc->nonce);
+        m_deferred.push_back(op);
+        return true;
+    }
+
+    std::auto_ptr<e::buffer> backing;
+    std::vector<e::slice> new_value(sc.attrs_sz - 1);
+
+    // if there is no old value, pretend it is "new_value" which is
+    // zero-initialized
+    if (!has_old_value)
+    {
+        old_value = &new_value;
+    }
+
+    size_t funcs_passed = apply_funcs(sc, kc->funcs, m_key, *old_value, &backing, &new_value);
+
+    if (funcs_passed < kc->funcs.size())
+    {
+        rm->respond_to_client(us, dkc->from, dkc->nonce, NET_OVERFLOW);
+        return true;
+    }
+
+    e::intrusive_ptr<key_operation> op;
+    op = new key_operation(old_version, dkc->version, !has_old_value,
+                           true, new_value, backing);
+    op->set_continuous();
+    op->set_client(dkc->from, dkc->nonce);
+    m_deferred.push_back(op);
+    return true;
+}
+
+bool
+key_state :: compare_key_op_ptrs(const e::intrusive_ptr<key_operation>& lhs,
+                                 const e::intrusive_ptr<key_operation>& rhs)
+{
+    return lhs->this_version() < rhs->this_version();
+}
+
+bool
+key_state :: step_state_machine_deferred(replication_manager* rm,
+                                         const virtual_server_id& us,
+                                         const schema& sc)
+{
+    if (m_deferred.empty())
+    {
+        return false;
+    }
+
+    m_deferred.sort(compare_key_op_ptrs);
+
+    bool has_old_value = false;
+    uint64_t old_version = 0;
+    const std::vector<e::slice>* old_value = NULL;
+    get_latest(&has_old_value, &old_version, &old_value);
+    e::intrusive_ptr<key_operation> op = m_deferred.front();
+
+    if (old_version >= op->this_version())
+    {
+        LOG(WARNING) << "dropping deferred CHAIN_* which was sent out of order: "
+                     << "we're using key " << e::slice(state_key().key).hex() << " in region "
+                     << state_key().region
+                     << ".  We've already seen " << old_version << " and the CHAIN_* "
+                     << "is for version " << op->this_version();
         m_deferred.pop_front();
+        return true;
     }
 
-    // Issue blocked operations
-    while (!m_blocked.empty())
+    // if the op is continous (the version numbers are assumed to line up), and
+    // the op is not fresh (the only case a continuous op can have discontinuous
+    // version numbers), then it cannot be applied yet
+    if (op->is_continuous() && !op->is_fresh() && old_version != op->prev_version())
     {
-        CHECK_INVARIANTS();
-        uint64_t version = m_blocked.front().first;
-        e::intrusive_ptr<key_operation> op = m_blocked.front().second;
-
-        // If the op is on either side of a delete, wait until there are no more
-        // committable ops
-        if ((op->fresh || !op->has_value) && !m_committable.empty())
-        {
-            break;
-        }
-
-        m_committable.push_back(m_blocked.front());
-        m_blocked.pop_front();
-        rm->send_message(us, false, version, m_key, op);
+        return false;
     }
 
+    if (op->is_continuous())
+    {
+        hash_objects(&rm->m_daemon->m_config, m_ri, sc,
+                     op->has_value(), op->value(),
+                     has_old_value, old_value ? *old_value : op->value(), op);
+    }
+
+    // check that this host is supposed to process this op
+    if (op->this_old_region() != m_ri && op->this_new_region() != m_ri)
+    {
+        LOG(WARNING) << "dropping deferred CHAIN_* which didn't get sent to the right host: "
+                     << "we're using key " << e::slice(state_key().key).hex() << " in region "
+                     << state_key().region
+                     << ".  We've already seen " << old_version << " and the CHAIN_* "
+                     << "is for version " << op->this_version();
+        m_deferred.pop_front();
+        return true;
+    }
+
+    // check that the sender was the correct sender
+    if (op->is_continuous() &&
+        op->recv_from() != virtual_server_id() &&
+        rm->m_daemon->m_config.next_in_region(op->recv_from()) != us &&
+        !rm->m_daemon->m_config.subspace_adjacent(op->recv_from(), us))
+    {
+        LOG(WARNING) << "dropping deferred CHAIN_OP which didn't come from the right host: "
+                     << "we're using key " << e::slice(state_key().key).hex() << " in region "
+                     << state_key().region
+                     << ".  We received the bad update from " << op->recv_from();
+        m_deferred.pop_front();
+        return true;
+    }
+
+    if (op->is_discontinuous() &&
+        op->recv_from() != virtual_server_id() &&
+        rm->m_daemon->m_config.next_in_region(op->recv_from()) != us &&
+        rm->m_daemon->m_config.tail_of_region(op->this_old_region()) != op->recv_from())
+    {
+        LOG(WARNING) << "dropping deferred CHAIN_SUBSPACE which didn't come from the right host: "
+                     << "we're using key " << e::slice(state_key().key).hex() << " in region "
+                     << state_key().region
+                     << ".  We received the bad update from " << op->recv_from();
+        m_deferred.pop_front();
+        return true;
+    }
+
+    if (op->is_fresh() || op->is_discontinuous() || old_version == op->prev_version())
+    {
+        m_blocked.push_back(op);
+        m_deferred.pop_front();
+        return true;
+    }
+
+    return false;
+}
+
+bool
+key_state :: step_state_machine_blocked(replication_manager* rm, const virtual_server_id& us)
+{
+    if (m_blocked.empty())
+    {
+        return false;
+    }
+
+    assert(m_deferred.empty());
+    assert(!m_blocked.empty());
+    e::intrusive_ptr<key_operation> op = m_blocked.front();
+    bool withold = false;
+    // if the op is on either side of a delete, or is a delete itself
+    withold = withold || op->is_fresh();
+    withold = withold || !op->has_value();
+    withold = withold || (!m_committable.empty() && !m_committable.back()->has_value());
+    withold = withold || !op->is_discontinuous();
+    withold = withold || (!m_committable.empty() && !m_committable.back()->is_discontinuous());
+
+    if (withold && !m_committable.empty())
+    {
+        return false;
+    }
+
+    m_committable.push_back(op);
+    m_blocked.pop_front();
+    rm->send_message(us, m_key, op);
+    return true;
+}
+
+void
+key_state :: reconfigure()
+{
+    CHECK_INVARIANTS();
+    m_deferred.clear();
     CHECK_INVARIANTS();
 }
 
 void
-key_state :: debug_dump()
+key_state :: reset()
 {
+    CHECK_INVARIANTS();
+    m_committable.clear();
+    m_blocked.clear();
+    m_deferred.clear();
+    assert(finished());
+    CHECK_INVARIANTS();
+}
+
+void
+key_state :: append_all_versions(std::vector<std::pair<region_id, uint64_t> >* versions)
+{
+    size_t sz = versions->size() + m_committable.size() + m_blocked.size() + m_deferred.size();
+
+    if (versions->capacity() < sz)
+    {
+        versions->reserve(std::max(sz, versions->capacity() + (versions->capacity() >> 1ULL)));
+    }
+
     for (key_operation_list_t::iterator it = m_committable.begin();
             it != m_committable.end(); ++it)
     {
-        LOG(INFO) << " committable " << it->first;
-        it->second->debug_dump();
+        versions->push_back(std::make_pair(m_ri, (*it)->this_version()));
     }
 
     for (key_operation_list_t::iterator it = m_blocked.begin();
             it != m_blocked.end(); ++it)
     {
-        LOG(INFO) << " blocked " << it->first;
-        it->second->debug_dump();
+        versions->push_back(std::make_pair(m_ri, (*it)->this_version()));
     }
 
     for (key_operation_list_t::iterator it = m_deferred.begin();
             it != m_deferred.end(); ++it)
     {
-        LOG(INFO) << " deferred " << it->first;
-        it->second->debug_dump();
+        versions->push_back(std::make_pair(m_ri, (*it)->this_version()));
+    }
+}
+
+uint64_t
+key_state :: max_version() const
+{
+    uint64_t ret = 0;
+
+    for (key_operation_list_t::const_iterator it = m_committable.begin();
+            it != m_committable.end(); ++it)
+    {
+        ret = std::max(ret, (*it)->this_version());
+    }
+
+    for (key_operation_list_t::const_iterator it = m_blocked.begin();
+            it != m_blocked.end(); ++it)
+    {
+        ret = std::max(ret, (*it)->this_version());
+    }
+
+    for (key_operation_list_t::const_iterator it = m_deferred.begin();
+            it != m_deferred.end(); ++it)
+    {
+        ret = std::max(ret, (*it)->this_version());
+    }
+
+    for (key_change_list_t::const_iterator it = m_changes.begin();
+            it != m_changes.end(); ++it)
+    {
+        ret = std::max(ret, (*it)->version);
+    }
+
+    return ret;
+}
+
+void
+key_state :: debug_dump() const
+{
+    for (key_operation_list_t::const_iterator it = m_committable.begin();
+            it != m_committable.end(); ++it)
+    {
+        LOG(INFO) << " committable " << (*it)->this_version();
+        (*it)->debug_dump();
+    }
+
+    for (key_operation_list_t::const_iterator it = m_blocked.begin();
+            it != m_blocked.end(); ++it)
+    {
+        LOG(INFO) << " blocked " << (*it)->this_version();
+        (*it)->debug_dump();
+    }
+
+    for (key_operation_list_t::const_iterator it = m_deferred.begin();
+            it != m_deferred.end(); ++it)
+    {
+        LOG(INFO) << " deferred " << (*it)->this_version();
+        (*it)->debug_dump();
     }
 }
 
@@ -619,102 +746,49 @@ key_state :: check_invariants() const
     for (key_operation_list_t::const_iterator it = m_committable.begin();
             it != m_committable.end(); ++it)
     {
-        assert(version < it->first);
-        version = it->first;
+        key_operation* op = it->get();
+        assert(op);
+        assert(op->prev_version() < op->this_version());
+        assert(version == 0 || version == op->prev_version());
+        version = op->this_version();
+        assert(op->is_continuous() || op->is_discontinuous());
     }
 
     for (key_operation_list_t::const_iterator it = m_blocked.begin();
             it != m_blocked.end(); ++it)
     {
-        assert(version < it->first);
-        version = it->first;
+        key_operation* op = it->get();
+        assert(op);
+        assert(op->prev_version() < op->this_version());
+        assert(version == 0 || version == op->prev_version());
+        version = op->this_version();
+        assert(op->is_continuous() || op->is_discontinuous());
     }
 
     for (key_operation_list_t::const_iterator it = m_deferred.begin();
             it != m_deferred.end(); ++it)
     {
-        assert(version < it->first);
-        version = it->first;
+        key_operation* op = it->get();
+        assert(op);
+        assert(op->prev_version() < op->this_version());
+        assert(version == 0 || version <= op->prev_version());
+        version = op->this_version();
+        assert(op->is_continuous() || op->is_discontinuous());
     }
 
-    assert(m_committable.empty() || m_old_version <= m_committable.back().first);
-    assert(m_blocked.empty() || m_old_version < m_blocked.front().first);
-    assert(m_deferred.empty() || m_old_version < m_deferred.front().first);
-}
-
-void
-key_state :: get_latest(bool* has_old_value,
-                        uint64_t* old_version,
-                        std::vector<e::slice>** old_value)
-{
-    CHECK_INVARIANTS();
-    *old_version = 0;
-
-    if (!m_blocked.empty() && m_blocked.back().first > *old_version)
+    for (key_change_list_t::const_iterator it = m_changes.begin();
+            it != m_changes.end(); ++it)
     {
-        *has_old_value = m_blocked.back().second->has_value;
-        *old_version = m_blocked.back().first;
-        *old_value = &m_blocked.back().second->value;
+        deferred_key_change* dkc = it->get();
+        assert(dkc);
+        assert(version == 0 || version < dkc->version);
+        version = dkc->version;
     }
 
-    if (!m_committable.empty() && m_committable.back().first > *old_version)
-    {
-        *has_old_value = m_committable.back().second->has_value;
-        *old_version = m_committable.back().first;
-        *old_value = &m_committable.back().second->value;
-    }
-
-    if (m_old_version > *old_version)
-    {
-        *has_old_value = m_has_old_value;
-        *old_version = m_old_version;
-        *old_value = &m_old_value;
-    }
-}
-
-bool
-key_state :: check_version(const schema& sc,
-                           bool erase,
-                           bool fail_if_not_found,
-                           bool fail_if_found,
-                           const std::vector<attribute_check>& checks,
-                           bool has_old_value,
-                           uint64_t,
-                           std::vector<e::slice>* old_value,
-                           network_returncode* nrc)
-{
-    *nrc = NET_CMPFAIL;
-
-    if (!has_old_value && erase)
-    {
-        *nrc = NET_NOTFOUND;
-        return false;
-    }
-
-    if (!has_old_value && fail_if_not_found)
-    {
-        *nrc = NET_NOTFOUND;
-        return false;
-    }
-
-    if (has_old_value && fail_if_found)
-    {
-        return false;
-    }
-
-    if (checks.empty())
-    {
-        return true;
-    }
-
-    // we can assume !checks.empty() and so we must have an old value to work
-    // with
-    if (!has_old_value)
-    {
-        return false;
-    }
-
-    return passes_attribute_checks(sc, checks, m_key, *old_value) == checks.size();
+    assert(m_committable.empty() || m_old_version <= m_committable.back()->this_version());
+    assert(m_blocked.empty() || m_old_version < m_blocked.front()->this_version());
+    assert(m_deferred.empty() || m_old_version < m_deferred.front()->this_version());
+    assert(m_changes.empty() || m_old_version < m_changes.front()->version);
 }
 
 void
@@ -727,80 +801,82 @@ key_state :: hash_objects(const configuration* config,
                           const std::vector<e::slice>& old_value,
                           e::intrusive_ptr<key_operation> op)
 {
-    op->old_hashes.resize(sc.attrs_sz);
-    op->new_hashes.resize(sc.attrs_sz);
-    op->this_old_region = region_id();
-    op->this_new_region = region_id();
-    op->prev_region = region_id();
-    op->next_region = region_id();
+    std::vector<uint64_t> old_hashes(sc.attrs_sz);
+    std::vector<uint64_t> new_hashes(sc.attrs_sz);
+    region_id this_old_region;
+    region_id this_new_region;
+    region_id prev_region;
+    region_id next_region;
     subspace_id subspace_this = config->subspace_of(reg);
     subspace_id subspace_prev = config->subspace_prev(subspace_this);
     subspace_id subspace_next = config->subspace_next(subspace_this);
 
     if (has_old_value && has_new_value)
     {
-        hyperdex::hash(sc, m_key, new_value, &op->new_hashes.front());
-        hyperdex::hash(sc, m_key, old_value, &op->old_hashes.front());
+        hyperdex::hash(sc, m_key, new_value, &new_hashes.front());
+        hyperdex::hash(sc, m_key, old_value, &old_hashes.front());
 
         if (subspace_prev != subspace_id())
         {
-            config->lookup_region(subspace_prev, op->new_hashes, &op->prev_region);
+            config->lookup_region(subspace_prev, new_hashes, &prev_region);
         }
 
-        config->lookup_region(subspace_this, op->old_hashes, &op->this_old_region);
-        config->lookup_region(subspace_this, op->new_hashes, &op->this_new_region);
+        config->lookup_region(subspace_this, old_hashes, &this_old_region);
+        config->lookup_region(subspace_this, new_hashes, &this_new_region);
 
         if (subspace_next != subspace_id())
         {
-            config->lookup_region(subspace_next, op->old_hashes, &op->next_region);
+            config->lookup_region(subspace_next, old_hashes, &next_region);
         }
     }
     else if (has_old_value)
     {
-        hyperdex::hash(sc, m_key, old_value, &op->old_hashes.front());
+        hyperdex::hash(sc, m_key, old_value, &old_hashes.front());
 
         for (size_t i = 0; i < sc.attrs_sz; ++i)
         {
-            op->new_hashes[i] = op->old_hashes[i];
+            new_hashes[i] = old_hashes[i];
         }
 
         if (subspace_prev != subspace_id())
         {
-            config->lookup_region(subspace_prev, op->old_hashes, &op->prev_region);
+            config->lookup_region(subspace_prev, old_hashes, &prev_region);
         }
 
-        config->lookup_region(subspace_this, op->old_hashes, &op->this_old_region);
-        op->this_new_region = op->this_old_region;
+        config->lookup_region(subspace_this, old_hashes, &this_old_region);
+        this_new_region = this_old_region;
 
         if (subspace_next != subspace_id())
         {
-            config->lookup_region(subspace_next, op->old_hashes, &op->next_region);
+            config->lookup_region(subspace_next, old_hashes, &next_region);
         }
     }
     else if (has_new_value)
     {
-        hyperdex::hash(sc, m_key, new_value, &op->new_hashes.front());
+        hyperdex::hash(sc, m_key, new_value, &new_hashes.front());
 
         for (size_t i = 0; i < sc.attrs_sz; ++i)
         {
-            op->old_hashes[i] = op->new_hashes[i];
+            old_hashes[i] = new_hashes[i];
         }
 
         if (subspace_prev != subspace_id())
         {
-            config->lookup_region(subspace_prev, op->old_hashes, &op->prev_region);
+            config->lookup_region(subspace_prev, old_hashes, &prev_region);
         }
 
-        config->lookup_region(subspace_this, op->old_hashes, &op->this_new_region);
-        op->this_old_region = op->this_new_region;
+        config->lookup_region(subspace_this, old_hashes, &this_new_region);
+        this_old_region = this_new_region;
 
         if (subspace_next != subspace_id())
         {
-            config->lookup_region(subspace_next, op->old_hashes, &op->next_region);
+            config->lookup_region(subspace_next, old_hashes, &next_region);
         }
     }
     else
     {
         abort();
     }
+
+    op->set_continuous(prev_region, this_old_region, this_new_region, next_region);
 }

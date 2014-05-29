@@ -93,7 +93,6 @@ class daemon
         void process_chain_op(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_chain_subspace(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_chain_ack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
-        void process_chain_gc(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_xfer_handshake_syn(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_xfer_handshake_synack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_xfer_handshake_ack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
@@ -152,7 +151,6 @@ class daemon
         performance_counter m_perf_chain_op;
         performance_counter m_perf_chain_subspace;
         performance_counter m_perf_chain_ack;
-        performance_counter m_perf_chain_gc;
         performance_counter m_perf_xfer_handshake_syn;
         performance_counter m_perf_xfer_handshake_synack;
         performance_counter m_perf_xfer_handshake_ack;

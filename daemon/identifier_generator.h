@@ -49,11 +49,9 @@ class identifier_generator
         // ensure that new identifiers are strictly greater than "id"
         bool bump(const region_id& ri, uint64_t id);
         // look at the next identifier, and store it in "id"
-        bool peek(const region_id& ri, uint64_t* id) const;
+        uint64_t peek(const region_id& ri) const;
         // generate one unique identifier, and store it in "id"
-        bool generate_id(const region_id& ri, uint64_t* id);
-        // generate n sequential identifiers and store the first in "id"
-        bool generate_ids(const region_id& ri, uint64_t n, uint64_t* id);
+        uint64_t generate_id(const region_id& ri);
 
     // external synchronization required; nothing can call other methods during
     // adopt; copy_from must be mutually exclusive with adopt on either

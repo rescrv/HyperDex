@@ -75,10 +75,13 @@ using po6::threads::make_thread_wrapper;
 using hyperdex::datalayer;
 using hyperdex::reconfigure_returncode;
 
+const hyperdex::region_id datalayer::defaultri;
+
 datalayer :: datalayer(daemon* d)
     : m_daemon(d)
     , m_db()
     , m_indices()
+    , m_versions()
     , m_checkpointer(new checkpointer_thread(d))
     , m_mediator(new wiper_indexer_mediator())
     , m_indexer(new indexer_thread(d, m_mediator.get()))
@@ -333,6 +336,25 @@ datalayer :: reconfigure(const configuration&,
     }
 
     m_indices.swap(next_indices);
+
+    // update the versions
+    std::vector<region_id> key_regions;
+    config.key_regions(m_daemon->m_us, &key_regions);
+    e::ao_hash_map<region_id, uint64_t, id, defaultri> new_versions;
+
+    for (size_t i = 0; i < key_regions.size(); ++i)
+    {
+        uint64_t val = 0;
+
+        if (!m_versions.get(key_regions[i], &val))
+        {
+            val = max_version(key_regions[i]);
+        }
+
+        new_versions.put(key_regions[i], val);
+    }
+
+    m_versions.swap(&new_versions);
     m_indexer->kick();
     m_wiper->kick();
 }
@@ -419,8 +441,6 @@ datalayer :: get(const region_id& ri,
 
 datalayer::returncode
 datalayer :: del(const region_id& ri,
-                 const region_id& reg_id,
-                 uint64_t seq_id,
                  const e::slice& key,
                  const std::vector<e::slice>& old_value)
 {
@@ -439,17 +459,6 @@ datalayer :: del(const region_id& ri,
     std::vector<const index*> indices;
     find_indices(ri, &indices);
     create_index_changes(sc, ri, indices, key, &old_value, NULL, &updates);
-
-    // Mark acked as part of this batch write
-    if (seq_id != 0)
-    {
-        char abacking[ACKED_BUF_SIZE];
-        seq_id = UINT64_MAX - seq_id;
-        encode_acked(ri, reg_id, seq_id, abacking);
-        leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
-        leveldb::Slice aval("", 0);
-        updates.Put(akey, aval);
-    }
 
     // Perform the write
     leveldb::WriteOptions opts;
@@ -472,8 +481,6 @@ datalayer :: del(const region_id& ri,
 
 datalayer::returncode
 datalayer :: put(const region_id& ri,
-                 const region_id& reg_id,
-                 uint64_t seq_id,
                  const e::slice& key,
                  const std::vector<e::slice>& new_value,
                  uint64_t version)
@@ -499,16 +506,8 @@ datalayer :: put(const region_id& ri,
     find_indices(ri, &indices);
     create_index_changes(sc, ri, indices, key, NULL, &new_value, &updates);
 
-    // Mark acked as part of this batch write
-    if (seq_id != 0)
-    {
-        char abacking[ACKED_BUF_SIZE];
-        seq_id = UINT64_MAX - seq_id;
-        encode_acked(ri, reg_id, seq_id, abacking);
-        leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
-        leveldb::Slice aval("", 0);
-        updates.Put(akey, aval);
-    }
+    // ensure we've recorded a version at least as high as this key
+    bump_version(ri, version, &updates);
 
     // Perform the write
     leveldb::WriteOptions opts;
@@ -527,8 +526,6 @@ datalayer :: put(const region_id& ri,
 
 datalayer::returncode
 datalayer :: overput(const region_id& ri,
-                     const region_id& reg_id,
-                     uint64_t seq_id,
                      const e::slice& key,
                      const std::vector<e::slice>& old_value,
                      const std::vector<e::slice>& new_value,
@@ -555,16 +552,8 @@ datalayer :: overput(const region_id& ri,
     find_indices(ri, &indices);
     create_index_changes(sc, ri, indices, key, &old_value, &new_value, &updates);
 
-    // Mark acked as part of this batch write
-    if (seq_id != 0)
-    {
-        char abacking[ACKED_BUF_SIZE];
-        seq_id = UINT64_MAX - seq_id;
-        encode_acked(ri, reg_id, seq_id, abacking);
-        leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
-        leveldb::Slice aval("", 0);
-        updates.Put(akey, aval);
-    }
+    // ensure we've recorded a version at least as high as this key
+    bump_version(ri, version, &updates);
 
     // Perform the write
     leveldb::WriteOptions opts;
@@ -616,7 +605,7 @@ datalayer :: uncertain_del(const region_id& ri,
             return BAD_ENCODING;
         }
 
-        return del(ri, region_id(), 0, key, old_value);
+        return del(ri, key, old_value);
     }
     else if (st.IsNotFound())
     {
@@ -665,191 +654,15 @@ datalayer :: uncertain_put(const region_id& ri,
             return BAD_ENCODING;
         }
 
-        return overput(ri, region_id(), 0, key, old_value, new_value, version);
+        return overput(ri, key, old_value, new_value, version);
     }
     else if (st.IsNotFound())
     {
-        return put(ri, region_id(), 0, key, new_value, version);
+        return put(ri, key, new_value, version);
     }
     else
     {
         return handle_error(st);
-    }
-}
-
-bool
-datalayer :: check_acked(const region_id& ri,
-                         const region_id& reg_id,
-                         uint64_t seq_id)
-{
-    // make it so that increasing seq_ids are ordered in reverse in the KVS
-    seq_id = UINT64_MAX - seq_id;
-    leveldb::ReadOptions opts;
-    opts.fill_cache = true;
-    opts.verify_checksums = true;
-    char abacking[ACKED_BUF_SIZE];
-    encode_acked(ri, reg_id, seq_id, abacking);
-    leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
-    std::string val;
-    leveldb::Status st = m_db->Get(opts, akey, &val);
-
-    if (st.ok())
-    {
-        return true;
-    }
-    else if (st.IsNotFound())
-    {
-        return false;
-    }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: region=" << reg_id
-                   << " seq_id=" << seq_id << " desc=" << st.ToString();
-        return false;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: region=" << reg_id
-                   << " seq_id=" << seq_id << " desc=" << st.ToString();
-        return false;
-    }
-    else
-    {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-        return false;
-    }
-}
-
-void
-datalayer :: mark_acked(const region_id& ri,
-                        const region_id& reg_id,
-                        uint64_t seq_id)
-{
-    // make it so that increasing seq_ids are ordered in reverse in the KVS
-    seq_id = UINT64_MAX - seq_id;
-    leveldb::WriteOptions opts;
-    opts.sync = false;
-    char abacking[ACKED_BUF_SIZE];
-    encode_acked(ri, reg_id, seq_id, abacking);
-    leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
-    leveldb::Slice val("", 0);
-    leveldb::Status st = m_db->Put(opts, akey, val);
-
-    if (st.ok())
-    {
-        // Yay!
-    }
-    else if (st.IsNotFound())
-    {
-        LOG(ERROR) << "mark_acked returned NOT_FOUND at the disk layer: region=" << reg_id
-                   << " seq_id=" << seq_id << " desc=" << st.ToString();
-    }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: region=" << reg_id
-                   << " seq_id=" << seq_id << " desc=" << st.ToString();
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: region=" << reg_id
-                   << " seq_id=" << seq_id << " desc=" << st.ToString();
-    }
-    else
-    {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-    }
-}
-
-void
-datalayer :: max_seq_id(const region_id& reg_id,
-                        uint64_t* seq_id)
-{
-    leveldb::ReadOptions opts;
-    opts.fill_cache = false;
-    opts.verify_checksums = true;
-    opts.snapshot = NULL;
-    std::auto_ptr<leveldb::Iterator> it(m_db->NewIterator(opts));
-    char abacking[ACKED_BUF_SIZE];
-    encode_acked(reg_id, reg_id, 0, abacking);
-    leveldb::Slice key(abacking, ACKED_BUF_SIZE);
-    it->Seek(key);
-
-    if (!it->Valid())
-    {
-        *seq_id = 0;
-        return;
-    }
-
-    key = it->key();
-    region_id tmp_ri;
-    region_id tmp_reg_id;
-    uint64_t tmp_seq_id;
-    datalayer::returncode rc = decode_acked(e::slice(key.data(), key.size()),
-                                            &tmp_ri, &tmp_reg_id, &tmp_seq_id);
-
-    if (rc != SUCCESS || tmp_ri != reg_id || tmp_reg_id != reg_id)
-    {
-        *seq_id = 0;
-        return;
-    }
-
-    *seq_id = UINT64_MAX - tmp_seq_id;
-}
-
-void
-datalayer :: clear_acked(const region_id& reg_id,
-                         uint64_t seq_id)
-{
-    leveldb::ReadOptions opts;
-    opts.fill_cache = false;
-    opts.verify_checksums = true;
-    opts.snapshot = NULL;
-    std::auto_ptr<leveldb::Iterator> it(m_db->NewIterator(opts));
-    char abacking[ACKED_BUF_SIZE];
-    encode_acked(region_id(0), reg_id, 0, abacking);
-    it->Seek(leveldb::Slice(abacking, ACKED_BUF_SIZE));
-    encode_acked(region_id(0), region_id(reg_id.get() + 1), 0, abacking);
-    leveldb::Slice upper_bound(abacking, ACKED_BUF_SIZE);
-
-    while (it->Valid() &&
-           it->key().compare(upper_bound) < 0)
-    {
-        region_id tmp_ri;
-        region_id tmp_reg_id;
-        uint64_t tmp_seq_id;
-        datalayer::returncode rc = decode_acked(e::slice(it->key().data(), it->key().size()),
-                                                &tmp_ri, &tmp_reg_id, &tmp_seq_id);
-        tmp_seq_id = UINT64_MAX - tmp_seq_id;
-
-        if (rc == SUCCESS &&
-            tmp_reg_id == reg_id &&
-            tmp_seq_id < seq_id)
-        {
-            leveldb::WriteOptions wopts;
-            wopts.sync = false;
-            leveldb::Status st = m_db->Delete(wopts, it->key());
-
-            if (st.ok() || st.IsNotFound())
-            {
-                // WOOT!
-            }
-            else if (st.IsCorruption())
-            {
-                LOG(ERROR) << "corruption at the disk layer: could not delete "
-                           << reg_id << " " << seq_id << ": desc=" << st.ToString();
-            }
-            else if (st.IsIOError())
-            {
-                LOG(ERROR) << "IO error at the disk layer: could not delete "
-                           << reg_id << " " << seq_id << ": desc=" << st.ToString();
-            }
-            else
-            {
-                LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-            }
-        }
-
-        it->Next();
     }
 }
 
@@ -1061,6 +874,98 @@ datalayer :: get_from_iterator(const region_id& ri,
     {
         return handle_error(st);
     }
+}
+
+bool
+datalayer :: bump_version(const region_id& ri,
+                          uint64_t version,
+                          leveldb::WriteBatch* updates)
+{
+    version += REGION_PERIODIC;
+    version  = version & ~(REGION_PERIODIC - 1);
+    uint64_t* current = NULL;
+
+    if (!m_versions.mod(ri, &current) ||
+        e::atomic::load_64_nobarrier(current) >= version)
+    {
+        return false;
+    }
+
+    char vbacking[VERSION_BUF_SIZE];
+    encode_version(ri, version, vbacking);
+    updates->Put(leveldb::Slice(vbacking, VERSION_BUF_SIZE), leveldb::Slice());
+    return true;
+}
+
+void
+datalayer :: bump_version(const region_id& ri, uint64_t version)
+{
+    version += 2 * REGION_PERIODIC;
+    leveldb::WriteBatch updates;
+
+    if (!bump_version(ri, version, &updates))
+    {
+        return;
+    }
+
+    // Perform the write
+    leveldb::WriteOptions opts;
+    opts.sync = false;
+    leveldb::Status st = m_db->Write(opts, &updates);
+
+    if (!st.ok())
+    {
+        handle_error(st);
+    }
+
+    uint64_t* current = NULL;
+    m_versions.mod(ri, &current);
+    uint64_t expected = e::atomic::load_64_nobarrier(current);
+    uint64_t witness  = 0;
+
+    while ((witness = e::atomic::compare_and_swap_64_nobarrier(current, expected, version)) < version)
+    {
+        expected = witness;
+    }
+}
+
+uint64_t
+datalayer :: max_version(const region_id& ri)
+{
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    opts.snapshot = NULL;
+    std::auto_ptr<leveldb::Iterator> it(m_db->NewIterator(opts));
+    char vbacking[VERSION_BUF_SIZE];
+    encode_version(ri, UINT64_MAX, vbacking);
+    leveldb::Slice key(vbacking, VERSION_BUF_SIZE);
+    it->Seek(key);
+
+    if (!it->Valid())
+    {
+        // XXX err
+        return 0;
+    }
+
+    key = it->key();
+    region_id tmp_ri;
+    uint64_t tmp_version;
+    datalayer::returncode rc = decode_version(e::slice(key.data(), key.size()),
+                                              &tmp_ri, &tmp_version);
+
+    if (rc != SUCCESS)
+    {
+        // XXX err
+        return 0;
+    }
+
+    if (tmp_ri != ri)
+    {
+        return 0;
+    }
+
+    return tmp_version;
 }
 
 datalayer::returncode

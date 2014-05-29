@@ -49,46 +49,45 @@ identifier_collector :: ~identifier_collector() throw ()
 {
 }
 
-bool
+void
 identifier_collector :: bump(const region_id& ri, uint64_t lb)
 {
     e::compat::shared_ptr<e::seqno_collector> sc;
 
     if (!m_collectors.get(ri, &sc))
     {
-        return false;
+        abort();
     }
 
     sc->collect_up_to(lb);
-    return true;
 }
 
-bool
+void
 identifier_collector :: collect(const region_id& ri, uint64_t seqno)
 {
     e::compat::shared_ptr<e::seqno_collector> sc;
 
     if (!m_collectors.get(ri, &sc))
     {
-        return false;
+        abort();
     }
 
     sc->collect(seqno);
-    return true;
 }
 
-bool
-identifier_collector :: lower_bound(const region_id& ri, uint64_t* lb)
+uint64_t
+identifier_collector :: lower_bound(const region_id& ri)
 {
     e::compat::shared_ptr<e::seqno_collector> sc;
 
     if (!m_collectors.get(ri, &sc))
     {
-        return false;
+        abort();
     }
 
-    sc->lower_bound(lb);
-    return true;
+    uint64_t lb;
+    sc->lower_bound(&lb);
+    return lb;
 }
 
 void

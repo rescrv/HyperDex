@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Cornell University
+// Copyright (c) 2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,45 +25,45 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#define __STDC_LIMIT_MACROS
-
-// C
-#include <cmath>
-#include <stdint.h>
+#ifndef hyperdex_common_key_change_h_
+#define hyperdex_common_key_change_h_
 
 // HyperDex
-#include "test/th.h"
-#include "daemon/identifier_generator.h"
+#include "namespace.h"
+#include "common/attribute_check.h"
+#include "common/funcall.h"
 
-using hyperdex::identifier_generator;
-using hyperdex::region_id;
+BEGIN_HYPERDEX_NAMESPACE
 
-TEST(IdentifierGenerator, Test)
+class key_change
 {
-    identifier_generator ig;
-    uint64_t id;
-    // adopt a region
-    region_id ri(1);
-    ig.adopt(&ri, 1);
-    // try again
-    id = ig.generate_id(ri);
-    ASSERT_EQ(id, 1U);
-    id = ig.generate_id(ri);
-    ASSERT_EQ(id, 2U);
-    id = ig.generate_id(ri);
-    ASSERT_EQ(id, 3U);
-    // resize
-    region_id ris[2];
-    ris[0] = region_id(2);
-    ris[1] = region_id(1);
-    ig.adopt(ris, 2);
-    // generate
-    id = ig.generate_id(ri);
-    ASSERT_EQ(id, 4U);
-    // bump!
-    bool did_it = ig.bump(ri, 8);
-    ASSERT_TRUE(did_it);
-    // generate
-    id = ig.generate_id(ri);
-    ASSERT_EQ(id, 9U);
-}
+    public:
+        key_change();
+        key_change(const key_change& other);
+        ~key_change() throw ();
+
+    public:
+        bool validate(const schema& sc) const;
+
+    public:
+        key_change& operator = (const key_change&);
+
+    public:
+        e::slice key;
+        bool erase;
+        bool fail_if_not_found;
+        bool fail_if_found;
+        std::vector<attribute_check> checks;
+        std::vector<funcall> funcs;
+};
+
+e::buffer::packer
+operator << (e::buffer::packer, const key_change& td);
+e::unpacker
+operator >> (e::unpacker, key_change& td);
+size_t
+pack_size(const key_change& td);
+
+END_HYPERDEX_NAMESPACE
+
+#endif // hyperdex_common_key_change_h_

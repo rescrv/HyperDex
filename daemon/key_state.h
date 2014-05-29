@@ -42,7 +42,6 @@ class key_state
         key_state(const key_region& kr);
         ~key_state() throw ();
 
-    // for use with state_hash_table
     public:
         key_region state_key() const;
         void lock();
@@ -53,69 +52,69 @@ class key_state
 
     public:
         bool initialized() const;
-        bool empty() const;
-        void clear();
-        uint64_t max_seq_id() const;
-        uint64_t min_seq_id() const;
-        e::intrusive_ptr<key_operation> get_version(uint64_t version) const;
-
-    public:
         datalayer::returncode initialize(datalayer* data,
                                          const region_id& ri);
-        bool check_against_latest_version(const schema& sc,
-                                          bool erase,
-                                          bool fail_if_not_found,
-                                          bool fail_if_found,
-                                          const std::vector<attribute_check>& checks,
-                                          network_returncode* nrc);
-        void delete_latest(const schema& sc,
-                           const region_id& reg_id, uint64_t seq_id,
-                           const server_id& client, uint64_t nonce);
-        bool put_from_funcs(const schema& sc,
-                            const region_id& reg_id, uint64_t seq_id,
-                            const std::vector<funcall>& funcs,
-                            const server_id& client, uint64_t nonce);
-        void insert_deferred(uint64_t version, e::intrusive_ptr<key_operation> op);
-        bool persist_to_datalayer(replication_manager* rm, const region_id& ri,
-                                  const region_id& reg_id, uint64_t seq_id,
-                                  uint64_t version);
-        void clear_deferred();
-        void clear_acked_prefix();
+
+        void enqueue_key_change(const server_id& from,
+                                uint64_t nonce,
+                                uint64_t version,
+                                std::auto_ptr<key_change> kc,
+                                std::auto_ptr<e::buffer> backing);
+        e::intrusive_ptr<key_operation> get(uint64_t new_version);
+        e::intrusive_ptr<key_operation>
+            enqueue_continuous_key_op(uint64_t old_version,
+                                      uint64_t new_version,
+                                      bool fresh,
+                                      bool has_value,
+                                      const std::vector<e::slice>& value,
+                                      std::auto_ptr<e::buffer> backing);
+        e::intrusive_ptr<key_operation>
+            enqueue_discontinuous_key_op(uint64_t old_version,
+                                         uint64_t new_version,
+                                         const std::vector<e::slice>& value,
+                                         std::auto_ptr<e::buffer> backing,
+                                         const region_id& prev_region,
+                                         const region_id& this_old_region,
+                                         const region_id& this_new_region,
+                                         const region_id& next_region);
+        void update_datalayer(replication_manager* rm, uint64_t version);
         void resend_committable(replication_manager* rm,
                                 const virtual_server_id& us);
-        void append_seq_ids(std::vector<std::pair<region_id, uint64_t> >* seq_ids);
-        // Move operations between the queues in the key_state.  Blocked
-        // operations will have their blocking criteria checked.  Deferred
-        // operations will be checked for continuity with the blocked
-        // operations.
-        void move_operations_between_queues(replication_manager* rm,
-                                            const virtual_server_id& us,
-                                            const region_id& ri,
-                                            const schema& sc);
-        void debug_dump();
+        void work_state_machine(replication_manager* rm,
+                                const virtual_server_id& us,
+                                const schema& sc);
+
+        void reconfigure();
+        void reset();
+
+        void append_all_versions(std::vector<std::pair<region_id, uint64_t> >* versions);
+        uint64_t max_version() const;
+
         void check_invariants() const;
+        void debug_dump() const;
 
     private:
-        typedef std::list<std::pair<uint64_t, e::intrusive_ptr<key_operation> > >
-                key_operation_list_t;
+        struct deferred_key_change;
+        typedef std::list<e::intrusive_ptr<key_operation> > key_operation_list_t;
+        typedef std::list<e::intrusive_ptr<deferred_key_change> > key_change_list_t;
         friend class e::intrusive_ptr<key_state>;
-        friend class key_state_reference;
 
     private:
         void inc() { __sync_add_and_fetch(&m_ref, 1); }
         void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+        uint64_t highest_ackable();
         void get_latest(bool* has_old_value,
                         uint64_t* old_version,
-                        std::vector<e::slice>** old_value);
-        bool check_version(const schema& sc,
-                           bool erase,
-                           bool fail_if_not_found,
-                           bool fail_if_found,
-                           const std::vector<attribute_check>& checks,
-                           bool has_old_value,
-                           uint64_t old_version,
-                           std::vector<e::slice>* old_value,
-                           network_returncode* nrc);
+                        const std::vector<e::slice>** old_value);
+        static bool compare_key_op_ptrs(const e::intrusive_ptr<key_operation>& lhs,
+                                        const e::intrusive_ptr<key_operation>& rhs);
+        bool step_state_machine_changes(replication_manager* rm,
+                                        const virtual_server_id& us,
+                                        const schema& sc);
+        bool step_state_machine_deferred(replication_manager* rm,
+                                         const virtual_server_id& us,
+                                         const schema& sc);
+        bool step_state_machine_blocked(replication_manager* rm, const virtual_server_id& us);
         void hash_objects(const configuration* config,
                           const region_id& reg,
                           const schema& sc,
@@ -126,21 +125,22 @@ class key_state
                           e::intrusive_ptr<key_operation> pend);
 
     private:
+        size_t m_ref;
         const region_id m_ri;
         const std::string m_key_backing;
         const e::slice m_key;
         po6::threads::mutex m_lock;
         bool m_marked_garbage;
         bool m_initialized;
-        size_t m_ref;
-        key_operation_list_t m_committable;
-        key_operation_list_t m_blocked;
-        key_operation_list_t m_deferred;
         bool m_has_old_value;
         uint64_t m_old_version;
         std::vector<e::slice> m_old_value;
         datalayer::reference m_old_disk_ref;
-        std::auto_ptr<e::buffer> m_old_backing;
+        e::intrusive_ptr<key_operation> m_old_op;
+        key_operation_list_t m_committable;
+        key_operation_list_t m_blocked;
+        key_operation_list_t m_deferred;
+        key_change_list_t m_changes;
 };
 
 END_HYPERDEX_NAMESPACE

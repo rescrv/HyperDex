@@ -396,7 +396,7 @@ configuration :: point_leaders(const server_id& si, std::vector<region_id>* serv
 }
 
 void
-configuration :: key_regions(const server_id& si, std::vector<region_id>* servers) const
+configuration :: key_regions(const server_id& si, std::vector<region_id>* regions) const
 {
     for (size_t s = 0; s < m_spaces.size(); ++s)
     {
@@ -406,12 +406,14 @@ configuration :: key_regions(const server_id& si, std::vector<region_id>* server
             {
                 if (m_spaces[s].subspaces[0].regions[r].replicas[R].si == si)
                 {
-                    servers->push_back(m_spaces[s].subspaces[0].regions[r].id);
+                    regions->push_back(m_spaces[s].subspaces[0].regions[r].id);
                     break;
                 }
             }
         }
     }
+
+    std::sort(regions->begin(), regions->end());
 }
 
 bool
@@ -526,6 +528,8 @@ configuration :: mapped_regions(const server_id& si, std::vector<region_id>* ser
             }
         }
     }
+
+    std::sort(servers->begin(), servers->end());
 }
 
 const hyperdex::index*
@@ -675,6 +679,8 @@ configuration :: transfers_in_regions(const server_id& si, std::vector<region_id
             transfers->push_back(m_transfers[i].rid);
         }
     }
+
+    std::sort(transfers->begin(), transfers->end());
 }
 
 void

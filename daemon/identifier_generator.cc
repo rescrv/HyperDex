@@ -69,30 +69,31 @@ identifier_generator :: bump(const region_id& ri, uint64_t id)
     return true;
 }
 
-bool
-identifier_generator :: peek(const region_id& ri, uint64_t* id) const
+uint64_t
+identifier_generator :: peek(const region_id& ri) const
 {
-    return m_generators.get(ri, id);
+    e::atomic::memory_barrier();
+    uint64_t val = 0;
+
+    if (!m_generators.get(ri, &val))
+    {
+        abort();
+    }
+
+    return val;
 }
 
-bool
-identifier_generator :: generate_id(const region_id& ri, uint64_t* id)
-{
-    return generate_ids(ri, 1, id);
-}
-
-bool
-identifier_generator :: generate_ids(const region_id& ri, uint64_t n, uint64_t* id)
+uint64_t
+identifier_generator :: generate_id(const region_id& ri)
 {
     uint64_t* val = NULL;
 
     if (!m_generators.mod(ri, &val))
     {
-        return false;
+        abort();
     }
 
-    *id = e::atomic::increment_64_nobarrier(val, n) - n;
-    return true;
+    return e::atomic::increment_64_nobarrier(val, 1) - 1;
 }
 
 void

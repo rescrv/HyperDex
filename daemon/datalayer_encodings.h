@@ -78,17 +78,15 @@ decode_value(const e::slice& in,
              uint64_t* version);
 
 // Encode the record of an operation for which we have sent an ACK
-#define ACKED_BUF_SIZE (sizeof(uint8_t) + 3 * sizeof(uint64_t))
+#define VERSION_BUF_SIZE (sizeof(uint8_t) + 2 * sizeof(uint64_t))
 void
-encode_acked(const region_id& ri, /*region we saw an ack for*/
-             const region_id& reg_id, /*region of the point leader*/
-             uint64_t seq_id,
-             char* out);
+encode_version(const region_id& ri, /*region we wrote*/
+               uint64_t version,
+               char* out);
 datalayer::returncode
-decode_acked(const e::slice& in,
-             region_id* ri, /*region we saw an ack for*/
-             region_id* reg_id, /*region of the point leader*/
-             uint64_t* seq_id);
+decode_version(const e::slice& in,
+               region_id* ri, /*region we saw an ack for*/
+               uint64_t* version);
 
 // checkpoints
 #define CHECKPOINT_BUF_SIZE (sizeof(uint8_t) + 2 * sizeof(uint64_t))

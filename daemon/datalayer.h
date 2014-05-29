@@ -46,6 +46,9 @@
 #include <po6/threads/mutex.h>
 #include <po6/threads/thread.h>
 
+// e
+#include <e/ao_hash_map.h>
+
 // HyperDex
 #include "namespace.h"
 #include "common/attribute_check.h"
@@ -82,6 +85,8 @@ class datalayer
         class range_index_iterator;
         class intersect_iterator;
         typedef leveldb_snapshot_ptr snapshot;
+        // must be pow2
+        const static uint64_t REGION_PERIODIC = 65536;
 
     public:
         datalayer(daemon*);
@@ -119,19 +124,13 @@ class datalayer
                        reference* ref);
         // put, overput, or delete a key where the existing value is known
         returncode del(const region_id& ri,
-                       const region_id& reg_id,
-                       uint64_t seq_id,
                        const e::slice& key,
                        const std::vector<e::slice>& old_value);
         returncode put(const region_id& ri,
-                       const region_id& reg_id,
-                       uint64_t seq_id,
                        const e::slice& key,
                        const std::vector<e::slice>& new_value,
                        uint64_t version);
         returncode overput(const region_id& ri,
-                           const region_id& reg_id,
-                           uint64_t seq_id,
                            const e::slice& key,
                            const std::vector<e::slice>& old_value,
                            const std::vector<e::slice>& new_value,
@@ -143,19 +142,6 @@ class datalayer
                                  const e::slice& key,
                                  const std::vector<e::slice>& new_value,
                                  uint64_t version);
-        // state from retransmitted messages
-        // XXX errors are absorbed here; short of crashing we can only log
-        bool check_acked(const region_id& ri,
-                         const region_id& reg_id,
-                         uint64_t seq_id);
-        void mark_acked(const region_id& ri,
-                        const region_id& reg_id,
-                        uint64_t seq_id);
-        void max_seq_id(const region_id& reg_id,
-                        uint64_t* seq_id);
-        // Clear less than seq_id
-        void clear_acked(const region_id& reg_id,
-                         uint64_t seq_id);
         // leveldb provides no failure mechanism for this, neither do we
         snapshot make_snapshot();
         // create iterators from snapshots
@@ -172,6 +158,9 @@ class datalayer
                                      std::vector<e::slice>* value,
                                      uint64_t* version,
                                      reference* ref);
+        // track version counters
+        void bump_version(const region_id& ri, uint64_t version);
+        uint64_t max_version(const region_id& ri);
         // checkpointing
         returncode create_checkpoint(const region_timestamp& rt);
         void set_checkpoint_gc(uint64_t checkpoint_gc);
@@ -199,6 +188,9 @@ class datalayer
         datalayer& operator = (const datalayer&);
 
     private:
+        bool bump_version(const region_id& ri,
+                          uint64_t version,
+                          leveldb::WriteBatch* updates);
         void find_indices(const region_id& rid,
                           std::vector<const index*>* indices);
         void find_indices(const region_id& rid, uint16_t attr,
@@ -207,10 +199,14 @@ class datalayer
         returncode handle_error(leveldb::Status st);
         void collect_lower_checkpoints(uint64_t checkpoint_gc);
 
+        const static region_id defaultri;
+        static uint64_t id(region_id ri) { return ri.get(); }
+
     private:
         daemon* m_daemon;
         leveldb_db_ptr m_db;
         std::vector<index_state> m_indices;
+        e::ao_hash_map<region_id, uint64_t, id, defaultri> m_versions;
         const std::auto_ptr<checkpointer_thread> m_checkpointer;
         const std::auto_ptr<wiper_indexer_mediator> m_mediator;
         const std::auto_ptr<indexer_thread> m_indexer;

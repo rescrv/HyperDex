@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // LevelDB
 #include <hyperleveldb/write_batch.h>
 
@@ -215,40 +217,35 @@ hyperdex :: decode_value(const e::slice& in,
 }
 
 void
-hyperdex :: encode_acked(const region_id& ri, /*region we saw an ack for*/
-                         const region_id& reg_id, /*region of the point leader*/
-                         uint64_t seq_id,
-                         char* out)
+hyperdex :: encode_version(const region_id& ri, /*region we wrote*/
+                           uint64_t version,
+                           char* out)
 {
     char* ptr = out;
-    ptr = e::pack8be('a', ptr);
-    ptr = e::pack64be(reg_id.get(), ptr);
-    ptr = e::pack64be(seq_id, ptr);
+    ptr = e::pack8be('v', ptr);
     ptr = e::pack64be(ri.get(), ptr);
+    ptr = e::pack64be(UINT64_MAX - version, ptr);
 }
 
 datalayer::returncode
-hyperdex :: decode_acked(const e::slice& in,
-                         region_id* ri, /*region we saw an ack for*/
-                         region_id* reg_id, /*region of the point leader*/
-                         uint64_t* seq_id)
+hyperdex :: decode_version(const e::slice& in,
+                           region_id* ri, /*region we saw an ack for*/
+                           uint64_t* version)
 {
-    if (in.size() != ACKED_BUF_SIZE)
+    if (in.size() != VERSION_BUF_SIZE)
     {
         return datalayer::BAD_ENCODING;
     }
 
     uint8_t _p;
     uint64_t _ri;
-    uint64_t _reg_id;
     const uint8_t* ptr = in.data();
     ptr = e::unpack8be(ptr, &_p);
-    ptr = e::unpack64be(ptr, &_reg_id);
-    ptr = e::unpack64be(ptr, seq_id);
     ptr = e::unpack64be(ptr, &_ri);
+    ptr = e::unpack64be(ptr, version);
     *ri = region_id(_ri);
-    *reg_id = region_id(_reg_id);
-    return _p == 'a' ? datalayer::SUCCESS : datalayer::BAD_ENCODING;
+    *version = UINT64_MAX - *version;
+    return _p == 'v' ? datalayer::SUCCESS : datalayer::BAD_ENCODING;
 }
 
 void

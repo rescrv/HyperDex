@@ -50,11 +50,11 @@ class identifier_collector
     public:
         // force the lower bound for "ri" to be "lb" or more
         // equivalent to calling collect on 0 through lb - 1
-        bool bump(const region_id& ri, uint64_t lb);
+        void bump(const region_id& ri, uint64_t lb);
         // mark the identifier as collected
-        bool collect(const region_id& ri, uint64_t id);
+        void collect(const region_id& ri, uint64_t id);
         // store a value in "*lb" such that ids "< *lb" have been collected
-        bool lower_bound(const region_id& ri, uint64_t* lb);
+        uint64_t lower_bound(const region_id& ri);
 
     // external synchronization required; nothing can call other methods
     public:
