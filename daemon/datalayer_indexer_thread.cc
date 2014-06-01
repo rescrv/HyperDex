@@ -442,10 +442,10 @@ datalayer :: indexer_thread :: index_from_replay_iterator(replay_iterator* rit,
     leveldb::ReadOptions opts;
     opts.verify_checksums = true;
     leveldb::Status st = m_daemon->m_data.m_db->Get(opts, lkey, &ref2);
+    std::vector<e::slice> _old_value;
 
     if (st.ok())
     {
-        std::vector<e::slice> _old_value;
         uint64_t old_version;
         rc = decode_value(e::slice(ref2.data(), ref2.size()),
                           &_old_value, &old_version);
