@@ -150,7 +150,7 @@ order of operations, someone would lose money.
 
 Transactions are especially useful when multiple competing processes are
 executing transactions concurrently.  HyperDex Warp guarantees *one-copy
-serializablility*.  Any number of transactions may execute simultaneously.
+serializability*.  Any number of transactions may execute simultaneously.
 The final state of the database will always be identical to executing the
 committed transactions sequentially without concurrency.
 
@@ -226,7 +226,7 @@ Joe's balance = 456
 \end{pyconcode}
 
 A transaction will only abort if it was executed simultaneously with another
-transation that operates on the same data.  The typical process for handling
+transaction that operates on the same data.  The typical process for handling
 aborted transactions is to repeatedly try the transaction until it succeeds:
 
 \begin{pyconcode}
@@ -267,7 +267,7 @@ True
 \end{pyconcode}
 
 All transactions operate on the most recent copy of the data.  When a
-transaction commits, the transaction is cosistently applied.  HyperDex Warp
+transaction commits, the transaction is consistently applied.  HyperDex Warp
 really means it when it says a transaction has committed.  There are no
 conflicting operations to reconcile later (after the system commits), and there
 is no eventual consistency.  All effects are immediate and permanent.

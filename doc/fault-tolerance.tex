@@ -41,7 +41,7 @@ hyperdex coordinator -f -l 127.0.0.1 -p 1986 -c 127.0.0.1 -P 1982 -D /path/to/co
 
 For each new server in the cluster, the coordinator will automatically transfer
 a copy of the initialized state machine and replicate further operations on
-those nodes as well.  In it's current form our cluster can tolerate two
+those nodes as well.  In its current form our cluster can tolerate two
 simultaneous failures or planned shutdowns.  Go ahead and shutdown one or more
 coordinator servers by pressing Control-C.  When restarted, they'll rejoin the
 cluster and collect any state changes that occurred in their absence.

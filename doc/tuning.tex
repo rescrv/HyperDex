@@ -27,7 +27,7 @@ reads into more expensive write operations.
 
 For that reason, we recommend that the volume containing the HyperDex daemons'
 data directories be mounted with the ``noatime'' flag.  This prevents the
-filesytem from recording last-accessed times on files with each read.  Although
+filesystem from recording last-accessed times on files with each read.  Although
 the details are filesystem-dependent, the ``noatime'' flag is generally
 configured by modifying \code{/etc/fstab} to contain the flag:
 
