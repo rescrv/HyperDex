@@ -120,7 +120,7 @@ or decode data appropriately.
 
 As we've already seen, HyperDex supports \code{get} and \code{put} operations on
 integers.  In addition to these basic operations, HyperDex provides atomic
-opertions to manipulate integers using basic math operations.  This is useful
+operations to manipulate integers using basic math operations.  This is useful
 when implementing features such as page-view counters.  Let's add support for
 tracking the profile views of a page by incrementing the counter:
 
@@ -186,7 +186,7 @@ Note that lists provide both an lpush and rpush operation. The former adds the
 new element at the head of the list, while the latter adds at the tail. They
 also provide lpop operation for taking an element off the head of the list.
 Coupled together, these operations provide a comprehensive list datatype that
-can be used to implement fault-tolerant lists of all kinds. For instnace, one
+can be used to implement fault-tolerant lists of all kinds. For instance, one
 can implement work queues and generalized producer-consumer patterns on top of
 HyperDex lists in a pretty straightforward fashion. In this case, producers
 would push at one end of the list (the tail, with an rpush) and consumers would

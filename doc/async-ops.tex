@@ -74,7 +74,7 @@ objects simultaneously and to perform local computation while doing the same.
 In previous chapters, we submitted synchronous operations to the key-value
 store, where each client had just a single outstanding request, and waited
 patiently for that request to complete.  In high-throughput applications,
-clients may have a bactch of operations that may be performed simultaneously.
+clients may have a batch of operations that may be performed simultaneously.
 The standard practice in such cases is to issue *asynchronous* operations, where
 the client does not immediately wait for each individual operation to complete.
 HyperDex has a very versatile interface for supporting this use case.
