@@ -2440,7 +2440,7 @@ Operation :: encode_asynccall_status()
     }
 
     finished = true;
-    this->make_callback2(retval, error);
+    this->make_callback2(error, retval);
 }
 
 void
@@ -2470,7 +2470,7 @@ Operation :: encode_asynccall_status_attributes()
     }
 
     finished = true;
-    this->make_callback2(retval, error);
+    this->make_callback2(error, retval);
 }
 
 void
@@ -2501,7 +2501,7 @@ Operation :: encode_asynccall_status_count()
     }
 
     finished = true;
-    this->make_callback2(retval, error);
+    this->make_callback2(error, retval);
 }
 
 void
@@ -2532,7 +2532,7 @@ Operation :: encode_asynccall_status_description()
     }
 
     finished = true;
-    this->make_callback2(retval, error);
+    this->make_callback2(error, retval);
 }
 
 void
@@ -2573,7 +2573,7 @@ Operation :: encode_iterator_status_attributes()
         done = v8::Local<v8::Value>::New(v8::False());
     }
 
-    this->make_callback3(retval, done, error);
+    this->make_callback3(error, retval, done);
 }
 
 void
@@ -2636,12 +2636,12 @@ Operation :: callback_error(v8::Handle<v8::Value>& err)
 
     if (m_callback_sz == 2)
     {
-        return make_callback2(X, err);
+        return make_callback2(err, X);
     }
 
     if (m_callback_sz == 3)
     {
-        return make_callback3(X, T, err);
+        return make_callback3(err, X, T);
     }
 }
 
