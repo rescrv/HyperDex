@@ -10,5 +10,11 @@
   , "link_settings": {
       "libraries": ["-lhyperdex-client"]
       }
+  , "sources": [
+        "client.cc"
+      , "client.declarations.cc"
+      , "client.definitions.cc"
+      , "client.prototypes.cc"
+    ]
   }]
 }
