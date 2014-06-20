@@ -335,7 +335,7 @@ main(int argc, const char* argv[])
 
         for (size_t i = 0; i < daemons.size(); ++i)
         {
-            char buf[20];
+            char buf[21];
             sprintf(buf, "%lu", daemons[i].sid);
             pathname daemon_dir(join(base, pathname(now), pathname(buf)).get());
             bool prev = false;
