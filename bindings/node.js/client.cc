@@ -46,6 +46,8 @@
 
 #pragma GCC visibility push(hidden)
 
+#define HYPERDEX_NODE_INCLUDED_CLIENT_CC
+
 namespace hyperdex
 {
 namespace nodejs
@@ -168,6 +170,9 @@ class Operation
         bool convert_mapattributes(v8::Handle<v8::Value>& _predicates,
                                    const hyperdex_client_map_attribute** checks,
                                    size_t* checks_sz);
+        bool convert_attributenames(v8::Handle<v8::Value>& _attributenames,
+                                    const char*** attributenames,
+                                    size_t* attributenames_sz);
         bool convert_sortby(v8::Handle<v8::Value>& _sortby,
                             const char** sortby);
         bool convert_limit(v8::Handle<v8::Value>& _limit,
@@ -1577,6 +1582,42 @@ Operation :: convert_mapattributes(v8::Handle<v8::Value>& _predicates,
     *_mapattrs = NULL;
     *_mapattrs_sz = 0;
     return false;
+}
+
+bool
+Operation :: convert_attributenames(v8::Handle<v8::Value>& x,
+                                    const char*** attributenames,
+                                    size_t* attributenames_sz)
+{
+    if (!x->IsArray())
+    {
+        this->callback_error_message("attribute names must be an array");
+        return false;
+    }
+
+    v8::Handle<v8::Array> arr = v8::Handle<v8::Array>::Cast(x);
+    *attributenames_sz = arr->Length();
+    const char** ret = static_cast<const char**>(hyperdex_ds_malloc(m_arena, sizeof(char*) * *attributenames_sz));
+
+    if (!ret)
+    {
+        this->callback_error_out_of_memory();
+        return false;
+    }
+
+    *attributenames = ret;
+
+    for (size_t i = 0; i < arr->Length(); ++i)
+    {
+        v8::Local<v8::Value> key = arr->Get(i);
+
+        if (!convert_cstring(key, &ret[i]))
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool

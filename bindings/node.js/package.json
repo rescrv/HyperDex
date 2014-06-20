@@ -1,1 +1,1 @@
-{"name": "hyperdex-client", "license": "BSD-3-Clause", "bugs": {"url": "https://github.com/rescrv/HyperDex/issues", "email": "support@hyperdex.org"}, "version": "0.0.2", "homepage": "http://hyperdex.org", "description": "Client bindings for HyperDex"}
+{"name": "hyperdex-client", "license": "BSD-3-Clause", "bugs": {"url": "https://github.com/rescrv/HyperDex/issues", "email": "support@hyperdex.org"}, "version": "0.0.3", "homepage": "http://hyperdex.org", "description": "Client bindings for HyperDex"}
