@@ -18,6 +18,32 @@ AC_CONFIG_SRCDIR([include/hyperdex.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
+# Components that influence other checks
+AC_ARG_ENABLE([all-components], [AS_HELP_STRING([--enable-all-components],
+              [enable building all components @<:@default: yes@:>@])],
+              [enable_all_components=${enable_all_components}], [enable_all_components=yes])
+AC_ARG_ENABLE([client], [AS_HELP_STRING([--enable-client],
+              [enable building the client library @<:@default: yes@:>@])],
+              [enable_client=${enable_client}], [enable_client=${enable_all_components}])
+AM_CONDITIONAL([ENABLE_CLIENT], [test x"${enable_client}" = xyes])
+AC_ARG_ENABLE([admin], [AS_HELP_STRING([--enable-admin],
+              [enable building the admin library @<:@default: yes@:>@])],
+              [enable_admin=${enable_admin}], [enable_admin=${enable_all_components}])
+AM_CONDITIONAL([ENABLE_ADMIN], [test x"${enable_admin}" = xyes])
+AC_ARG_ENABLE([tools], [AS_HELP_STRING([--enable-tools],
+              [enable building the command-line tools @<:@default: yes@:>@])],
+              [enable_tools=${enable_tools}], [enable_tools=${enable_all_components}])
+AM_CONDITIONAL([ENABLE_TOOLS], [test x"${enable_tools}" = xyes])
+AC_ARG_ENABLE([coordinator], [AS_HELP_STRING([--enable-coordinator],
+              [enable building the coordinator @<:@default: yes@:>@])],
+              [enable_coordinator=${enable_coordinator}], [enable_coordinator=${enable_all_components}])
+AM_CONDITIONAL([ENABLE_COORDINATOR], [test x"${enable_coordinator}" = xyes])
+AC_ARG_ENABLE([daemon], [AS_HELP_STRING([--enable-daemon],
+              [enable building the daemon @<:@default: yes@:>@])],
+              [enable_daemon=${enable_daemon}], [enable_daemon=${enable_all_components}])
+AM_CONDITIONAL([ENABLE_DAEMON], [test x"${enable_daemon}" = xyes])
+AM_CONDITIONAL([ENABLE_HYPERDEX_STUB], [test x"${enable_daemon}" = xyes -o x"${enable_tools}" = xyes])
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
@@ -56,14 +82,23 @@ fi
 AC_SUBST([JNI_CPPFLAGS], [${JNI_CPPFLAGS}])
 
 # Checks for libraries.
-AC_CHECK_LIB([popt], [poptGetContext], [has_popt=true], [AC_MSG_ERROR([
+if test x"${enable_all_components}" = xyes -o \
+        x"${enable_tools}" = xyes -o \
+        x"${enable_coordinator}" = xyes -o \
+        x"${enable_daemon}" = xyes; then
+    AC_CHECK_LIB([popt], [poptGetContext], [has_popt=true], [AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
+fi
 AC_CHECK_LIB([rt], [clock_gettime], [needs_lrt=yes], [needs_lrt=no])
-AC_CHECK_LIB([json], [json_object_get_double], [needs_json=yes], [needs_json=no])
-AC_CHECK_LIB([json-c], [json_object_get_double], [needs_json_c=yes], [needs_json_c=no])
+if test x"${enable_all_components}" = xyes -o \
+        x"${enable_client}" = xyes -o \
+        x"${enable_daemon}" = xyes; then
+    AC_CHECK_LIB([json], [json_object_get_double], [needs_json=yes], [needs_json=no])
+    AC_CHECK_LIB([json-c], [json_object_get_double], [needs_json_c=yes], [needs_json_c=no])
+fi
 
 if test x"${needs_lrt}" = xyes; then
     AC_SUBST([LRT_CFLAGS], ["-lrt"])
@@ -86,26 +121,43 @@ fi
 PKG_CHECK_MODULES([PO6], [libpo6 >= 0.5])
 PKG_CHECK_MODULES([E], [libe >= 0.7])
 PKG_CHECK_MODULES([BUSYBEE], [busybee >= 0.5])
-PKG_CHECK_MODULES([HYPERLEVELDB], [libhyperleveldb >= 1.0])
+
+if test x"${enable_all_components}" = xyes -o \
+        x"${enable_daemon}" = xyes; then
+    PKG_CHECK_MODULES([HYPERLEVELDB], [libhyperleveldb >= 1.0])
+fi
 PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.6])
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])
-AC_CHECK_HEADER([glog/logging.h],,[AC_MSG_ERROR([
+
+if test x"${enable_all_components}" = xyes -o \
+        x"${enable_daemon}" = xyes; then
+    AC_CHECK_HEADER([glog/logging.h],,[AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the glog library.
 Please install glog to continue.
 -------------------------------------------------])])
-AC_CHECK_HEADER([popt.h],,[AC_MSG_ERROR([
+fi
+if test x"${enable_all_components}" = xyes -o \
+        x"${enable_tools}" = xyes -o \
+        x"${enable_coordinator}" = xyes -o \
+        x"${enable_daemon}" = xyes; then
+    AC_CHECK_HEADER([popt.h],,[AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
-AC_CHECK_HEADER([json/json.h],,[AC_MSG_ERROR([
+fi
+if test x"${enable_all_components}" = xyes -o \
+        x"${enable_client}" = xyes -o \
+        x"${enable_daemon}" = xyes; then
+    AC_CHECK_HEADER([json/json.h],,[AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the libjson library.
 Please install libjson to continue.
 -------------------------------------------------])])
+fi
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -181,29 +233,6 @@ AM_CONDITIONAL([ENABLE_RUBY_BINDINGS], [test x"${ruby_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])
 
 # Optional components
-AC_ARG_ENABLE([all-components], [AS_HELP_STRING([--enable-all-components],
-              [enable building all components @<:@default: yes@:>@])],
-              [enable_all_components=${enable_all_components}], [enable_all_components=yes])
-AC_ARG_ENABLE([client], [AS_HELP_STRING([--enable-client],
-              [enable building the client library @<:@default: yes@:>@])],
-              [enable_client=${enable_client}], [enable_client=${enable_all_components}])
-AM_CONDITIONAL([ENABLE_CLIENT], [test x"${enable_client}" = xyes])
-AC_ARG_ENABLE([admin], [AS_HELP_STRING([--enable-admin],
-              [enable building the admin library @<:@default: yes@:>@])],
-              [enable_admin=${enable_admin}], [enable_admin=${enable_all_components}])
-AM_CONDITIONAL([ENABLE_ADMIN], [test x"${enable_admin}" = xyes])
-AC_ARG_ENABLE([tools], [AS_HELP_STRING([--enable-tools],
-              [enable building the command-line tools @<:@default: yes@:>@])],
-              [enable_tools=${enable_tools}], [enable_tools=${enable_all_components}])
-AM_CONDITIONAL([ENABLE_TOOLS], [test x"${enable_tools}" = xyes])
-AC_ARG_ENABLE([coordinator], [AS_HELP_STRING([--enable-coordinator],
-              [enable building the coordinator @<:@default: yes@:>@])],
-              [enable_coordinator=${enable_coordinator}], [enable_coordinator=${enable_all_components}])
-AM_CONDITIONAL([ENABLE_COORDINATOR], [test x"${enable_coordinator}" = xyes])
-AC_ARG_ENABLE([daemon], [AS_HELP_STRING([--enable-daemon],
-              [enable building the daemon @<:@default: yes@:>@])],
-              [enable_daemon=${enable_daemon}], [enable_daemon=${enable_all_components}])
-AM_CONDITIONAL([ENABLE_DAEMON], [test x"${enable_daemon}" = xyes])
 AC_ARG_ENABLE([maintainer-tools], [AS_HELP_STRING([--enable-maintainer-tools],
               [enable maintainer tools @<:@default: no@:>@])],
               [enable_maintaine_tools=${enable_maintainer_tools}], [enable_maintaine_tools=no])

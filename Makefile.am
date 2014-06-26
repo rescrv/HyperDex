@@ -1072,8 +1072,10 @@ dist_man_MANS += man/hyperdex-raw-backup.1
 endif
 
 # hyperdex
+if ENABLE_HYPERDEX_STUB
 bin_PROGRAMS += hyperdex
 dist_man_MANS += man/hyperdex.1
+endif
 EXTRA_DIST += man/hyperdex.1.md
 EXTRA_DIST += man/hyperdex.1.h2m
 hyperdex_SOURCES = hyperdex.cc
