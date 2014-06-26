@@ -123,7 +123,9 @@ class Operation
     public:
         typedef bool (Operation::*type_converter)(v8::Handle<v8::Value>&, const char**, size_t*, hyperdatatype*);
 
-        bool set_callback(v8::Handle<v8::Function>& func, unsigned func_sz);
+        bool set_callback(v8::Handle<v8::Function>& func);
+        bool set_callback(v8::Handle<v8::Function>& func,
+                          v8::Handle<v8::Function>& done);
         bool convert_error(v8::Handle<v8::Value>& _value,
                            const char** value, size_t* value_sz,
                            hyperdatatype* datatype);
@@ -250,11 +252,9 @@ class Operation
         void encode_iterator_status_attributes();
 
     public:
-        void make_callback2(v8::Handle<v8::Value>& first,
-                            v8::Handle<v8::Value>& second);
-        void make_callback3(v8::Handle<v8::Value>& first,
-                            v8::Handle<v8::Value>& second,
-                            v8::Handle<v8::Value>& third);
+        void make_callback(v8::Handle<v8::Value>& first,
+                           v8::Handle<v8::Value>& second);
+        void make_callback_done();
         static v8::Local<v8::Value> error_from_status(hyperdex_client* client,
                                                       hyperdex_client_returncode status);
         v8::Local<v8::Value> error_from_status();
@@ -286,7 +286,8 @@ class Operation
         hyperdex_ds_arena* m_arena;
         v8::Persistent<v8::Object> m_client;
         v8::Persistent<v8::Object> m_callback;
-        unsigned m_callback_sz;
+        v8::Persistent<v8::Object> m_callback_done;
+        bool m_has_callback_done;
 };
 
 class TypeHint : public node::ObjectWrap
@@ -848,11 +849,14 @@ Operation :: Operation(v8::Handle<v8::Object>& c1, HyperDexClient* c2)
     , m_arena(hyperdex_ds_arena_create())
     , m_client()
     , m_callback()
-    , m_callback_sz(0)
+    , m_callback_done()
+    , m_has_callback_done(false)
 {
     m_client = v8::Persistent<v8::Object>::New(c1);
-    v8::Local<v8::Object> cbobj = v8::Object::New();
-    m_callback = v8::Persistent<v8::Object>::New(cbobj);
+    v8::Local<v8::Object> cbobj1 = v8::Object::New();
+    m_callback = v8::Persistent<v8::Object>::New(cbobj1);
+    v8::Local<v8::Object> cbobj2 = v8::Object::New();
+    m_callback_done = v8::Persistent<v8::Object>::New(cbobj2);
 }
 
 Operation :: ~Operation() throw ()
@@ -886,10 +890,19 @@ Operation :: ~Operation() throw ()
 }
 
 bool
-Operation :: set_callback(v8::Handle<v8::Function>& func, unsigned func_sz)
+Operation :: set_callback(v8::Handle<v8::Function>& func)
 {
     v8::Local<v8::Object>::New(m_callback)->Set(v8::String::NewSymbol("callback"), func);
-    m_callback_sz = func_sz;
+    m_has_callback_done = false;
+    return true;
+}
+
+bool
+Operation :: set_callback(v8::Handle<v8::Function>& func, v8::Handle<v8::Function>& done)
+{
+    v8::Local<v8::Object>::New(m_callback)->Set(v8::String::NewSymbol("callback"), func);
+    v8::Local<v8::Object>::New(m_callback_done)->Set(v8::String::NewSymbol("callback"), done);
+    m_has_callback_done = true;
     return true;
 }
 
@@ -2481,7 +2494,7 @@ Operation :: encode_asynccall_status()
     }
 
     finished = true;
-    this->make_callback2(error, retval);
+    this->make_callback(error, retval);
 }
 
 void
@@ -2511,7 +2524,7 @@ Operation :: encode_asynccall_status_attributes()
     }
 
     finished = true;
-    this->make_callback2(error, retval);
+    this->make_callback(error, retval);
 }
 
 void
@@ -2542,7 +2555,7 @@ Operation :: encode_asynccall_status_count()
     }
 
     finished = true;
-    this->make_callback2(error, retval);
+    this->make_callback(error, retval);
 }
 
 void
@@ -2573,7 +2586,7 @@ Operation :: encode_asynccall_status_description()
     }
 
     finished = true;
-    this->make_callback2(error, retval);
+    this->make_callback(error, retval);
 }
 
 void
@@ -2581,45 +2594,39 @@ Operation :: encode_iterator_status_attributes()
 {
     v8::Local<v8::Value> retval;
     v8::Local<v8::Value> error;
-    v8::Local<v8::Value> done;
 
     if (status == HYPERDEX_CLIENT_SEARCHDONE)
     {
         finished = true;
-        retval = v8::Local<v8::Value>::New(v8::Undefined());
-        error = v8::Local<v8::Value>::New(v8::Undefined());
-        done = v8::Local<v8::Value>::New(v8::True());
+        this->make_callback_done();
+        return;
     }
     else if (status == HYPERDEX_CLIENT_SUCCESS)
     {
         this->build_attributes(retval, error);
-        done = v8::Local<v8::Value>::New(v8::False());
     }
     else if (status == HYPERDEX_CLIENT_NOTFOUND)
     {
         retval = v8::Local<v8::Value>::New(v8::Null());
         error = v8::Local<v8::Value>::New(v8::Undefined());
-        done = v8::Local<v8::Value>::New(v8::False());
     }
     else if (status == HYPERDEX_CLIENT_CMPFAIL)
     {
         retval = v8::Local<v8::Value>::New(v8::False());
         error = v8::Local<v8::Value>::New(v8::Undefined());
-        done = v8::Local<v8::Value>::New(v8::False());
     }
     else
     {
         retval = v8::Local<v8::Value>::New(v8::Undefined());
         error = v8::Local<v8::Value>::New(this->error_from_status());
-        done = v8::Local<v8::Value>::New(v8::False());
     }
 
-    this->make_callback3(error, retval, done);
+    this->make_callback(error, retval);
 }
 
 void
-Operation :: make_callback2(v8::Handle<v8::Value>& first,
-                            v8::Handle<v8::Value>& second)
+Operation :: make_callback(v8::Handle<v8::Value>& first,
+                           v8::Handle<v8::Value>& second)
 {
     v8::Local<v8::Function> callback = v8::Local<v8::Object>::New(m_callback)->Get(v8::String::NewSymbol("callback")).As<v8::Function>();
     v8::Handle<v8::Value> argv[] = { first, second };
@@ -2627,13 +2634,12 @@ Operation :: make_callback2(v8::Handle<v8::Value>& first,
 }
 
 void
-Operation :: make_callback3(v8::Handle<v8::Value>& first,
-                            v8::Handle<v8::Value>& second,
-                            v8::Handle<v8::Value>& third)
+Operation :: make_callback_done()
 {
-    v8::Local<v8::Function> callback = v8::Local<v8::Object>::New(m_callback)->Get(v8::String::NewSymbol("callback")).As<v8::Function>();
-    v8::Handle<v8::Value> argv[] = { first, second, third };
-    node::MakeCallback(v8::Context::GetCurrent()->Global(), callback, 3, argv);
+    assert(m_has_callback_done);
+    v8::Local<v8::Function> callback = v8::Local<v8::Object>::New(m_callback_done)->Get(v8::String::NewSymbol("callback")).As<v8::Function>();
+    v8::Handle<v8::Value> argv[] = {};
+    node::MakeCallback(v8::Context::GetCurrent()->Global(), callback, 0, argv);
 }
 
 v8::Local<v8::Value>
@@ -2672,18 +2678,7 @@ void
 Operation :: callback_error(v8::Handle<v8::Value>& err)
 {
     v8::Local<v8::Value> X(v8::Local<v8::Value>::New(v8::Undefined()));
-    v8::Local<v8::Value> T(v8::Local<v8::Value>::New(v8::True()));
-    assert(m_callback_sz == 2 || m_callback_sz == 3);
-
-    if (m_callback_sz == 2)
-    {
-        return make_callback2(err, X);
-    }
-
-    if (m_callback_sz == 3)
-    {
-        return make_callback3(err, X, T);
-    }
+    make_callback(err, X);
 }
 
 void

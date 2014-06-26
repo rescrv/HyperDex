@@ -65,16 +65,28 @@ def generate_worker_definitions(xs, lib):
         func += '    v8::Local<v8::Object> client_obj = args.This();\n'
         func += '    HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);\n'
         func += '    e::intrusive_ptr<Operation> op(new Operation(client_obj, client));\n'
-        func += '    v8::Local<v8::Function> func = args[{0}].As<v8::Function>();\n'.format(len(x.args_in))
-        func += '\n    if (func.IsEmpty() || !func->IsFunction())\n'.format(len(x.args_in))
-        func += '    {\n'
-        func += '        v8::ThrowException(v8::String::New("Callback must be a function"));\n'
-        func += '        return scope.Close(v8::Undefined());\n'
-        func += '    }\n\n'
         if x.form == bindings.AsyncCall:
-            func += '    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }\n'
+            func += '    v8::Local<v8::Function> func = args[{0}].As<v8::Function>();\n'.format(len(x.args_in))
+            func += '\n    if (func.IsEmpty() || !func->IsFunction())\n'
+            func += '    {\n'
+            func += '        v8::ThrowException(v8::String::New("Callback must be a function"));\n'
+            func += '        return scope.Close(v8::Undefined());\n'
+            func += '    }\n\n'
+            func += '    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }\n'
         if x.form == bindings.Iterator:
-            func += '    if (!op->set_callback(func, 3)) { return scope.Close(v8::Undefined()); }\n'
+            func += '    v8::Local<v8::Function> func = args[{0}].As<v8::Function>();\n'.format(len(x.args_in))
+            func += '\n    if (func.IsEmpty() || !func->IsFunction())\n'
+            func += '    {\n'
+            func += '        v8::ThrowException(v8::String::New("Callback must be a function"));\n'
+            func += '        return scope.Close(v8::Undefined());\n'
+            func += '    }\n\n'
+            func += '    v8::Local<v8::Function> done = args[{0}].As<v8::Function>();\n'.format(len(x.args_in) + 1)
+            func += '\n    if (done.IsEmpty() || !done->IsFunction())\n'.format(len(x.args_in))
+            func += '    {\n'
+            func += '        v8::ThrowException(v8::String::New("Callback must be a function"));\n'
+            func += '        return scope.Close(v8::Undefined());\n'
+            func += '    }\n\n'
+            func += '    if (!op->set_callback(func, done)) { return scope.Close(v8::Undefined()); }\n'
         for idx, arg in enumerate(x.args_in):
             for p, n in arg.args:
                 func += '    ' + p + ' in_' + n + ';\n'

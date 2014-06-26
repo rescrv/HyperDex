@@ -43,7 +43,7 @@ HyperDexClient :: asynccall__spacename_key__status_attributes(int64_t (*f)(struc
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -79,7 +79,7 @@ HyperDexClient :: asynccall__spacename_key_attributenames__status_attributes(int
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -119,7 +119,7 @@ HyperDexClient :: asynccall__spacename_key_attributes__status(int64_t (*f)(struc
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -159,7 +159,7 @@ HyperDexClient :: asynccall__spacename_key_predicates_attributes__status(int64_t
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -203,7 +203,7 @@ HyperDexClient :: asynccall__spacename_key__status(int64_t (*f)(struct hyperdex_
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -239,7 +239,7 @@ HyperDexClient :: asynccall__spacename_key_predicates__status(int64_t (*f)(struc
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -279,7 +279,7 @@ HyperDexClient :: asynccall__spacename_key_mapattributes__status(int64_t (*f)(st
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -319,7 +319,7 @@ HyperDexClient :: asynccall__spacename_key_predicates_mapattributes__status(int6
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -363,7 +363,15 @@ HyperDexClient :: iterator__spacename_predicates__status_attributes(int64_t (*f)
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 3)) { return scope.Close(v8::Undefined()); }
+    v8::Local<v8::Function> done = args[3].As<v8::Function>();
+
+    if (done.IsEmpty() || !done->IsFunction())
+    {
+        v8::ThrowException(v8::String::New("Callback must be a function"));
+        return scope.Close(v8::Undefined());
+    }
+
+    if (!op->set_callback(func, done)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -399,7 +407,7 @@ HyperDexClient :: asynccall__spacename_predicates__status_description(int64_t (*
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -435,7 +443,15 @@ HyperDexClient :: iterator__spacename_predicates_sortby_limit_maxmin__status_att
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 3)) { return scope.Close(v8::Undefined()); }
+    v8::Local<v8::Function> done = args[6].As<v8::Function>();
+
+    if (done.IsEmpty() || !done->IsFunction())
+    {
+        v8::ThrowException(v8::String::New("Callback must be a function"));
+        return scope.Close(v8::Undefined());
+    }
+
+    if (!op->set_callback(func, done)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -480,7 +496,7 @@ HyperDexClient :: asynccall__spacename_predicates__status(int64_t (*f)(struct hy
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -516,7 +532,7 @@ HyperDexClient :: asynccall__spacename_predicates__status_count(int64_t (*f)(str
         return scope.Close(v8::Undefined());
     }
 
-    if (!op->set_callback(func, 2)) { return scope.Close(v8::Undefined()); }
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
