@@ -622,6 +622,9 @@ hyperdex_client_loop(struct hyperdex_client* client, int timeout,
 int
 hyperdex_client_poll(struct hyperdex_client* client);
 
+int
+hyperdex_client_block(struct hyperdex_client* client, int timeout);
+
 enum hyperdatatype
 hyperdex_client_attribute_type(struct hyperdex_client* client,
                                const char* space, const char* name,

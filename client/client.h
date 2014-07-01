@@ -98,6 +98,7 @@ class client
         // looping/polling
         int64_t loop(int timeout, hyperdex_client_returncode* status);
         int poll();
+        int block(int timeout);
         // error handling
         const char* error_message();
         const char* error_location();

@@ -27,6 +27,9 @@
 
 #define __STDC_LIMIT_MACROS
 
+// POSIX
+#include <poll.h>
+
 // STL
 #include <algorithm>
 
@@ -569,6 +572,16 @@ int
 client :: poll()
 {
     return m_busybee.poll_fd();
+}
+
+int
+client :: block(int timeout)
+{
+    pollfd pfd;
+    pfd.fd = m_busybee.poll_fd();
+    pfd.events = POLLIN|POLLHUP;
+    pfd.revents = 0;
+    return ::poll(&pfd, 1, timeout) >= 0 ? 0 : -1;
 }
 
 const char*

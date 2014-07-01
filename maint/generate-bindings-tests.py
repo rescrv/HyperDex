@@ -114,7 +114,8 @@ class BindingGenerator(object):
     def finish(self): pass
     def get(self, space, key, expected): print 'XXX Get', str(self)
     def get_partial(self, space, key, expected): print 'XXX Get', str(self)
-    def put(self, space, key, value, expected): print 'XXX Pet', str(self)
+    def put(self, space, key, value, expected): print 'XXX Put', str(self)
+    def cond_put(self, space, key, pred, value, expected): print 'XXX CondPut', str(self)
     def delete(self, space, key, expected): print 'XXX Del', str(self)
     def search(self, space, predicate, expected): print 'XXX Search', str(self)
 
@@ -151,6 +152,9 @@ def to_objectset(xs):
 
     def put(self, space, key, value, expected):
         self.f.write('assert c.put({0!r}, {1!r}, {2!r}) == {3!r}\n'.format(space, key, value, expected))
+
+    def cond_put(self, space, key, pred, value, expected):
+        self.f.write('assert c.cond_put({0!r}, {1!r}, {2!r}, {3!r}) == {4!r}\n'.format(space, key, pred, value, expected))
 
     def delete(self, space, key, expected):
         self.f.write('assert c.delete({0!r}, {1!r}) == {2!r}\n'.format(space, key, expected))
@@ -470,6 +474,200 @@ public class {0}
         else:
             raise RuntimeError("Cannot convert {0!r} to java".format(x))
 
+class GoGenerator(BindingGenerator):
+
+    def __init__(self):
+        self.f = None
+
+    def test(self, name, space):
+        assert self.f is None
+        self.path = 'test/go/{0}.go'.format(name)
+        gen_shell('go', name, 'go run test/go/{0}.go'.format(name), space)
+        self.f = open(self.path, 'w')
+        self.f.write('package main\n\n')
+        self.f.write('import "fmt"\n')
+        self.f.write('import "os"\n')
+        self.f.write('import "reflect"\n')
+        self.f.write('import "strconv"\n')
+        self.f.write('import "hyperdex/client"\n')
+        self.f.write('''
+func sloppyEqual(lhs client.Attributes, rhs client.Attributes) bool {
+	if reflect.DeepEqual(lhs, rhs) || fmt.Sprintf("%s", lhs) == fmt.Sprintf("%s", rhs) {
+        return true
+    }
+    for key, val := range lhs {
+        if _, ok := rhs[key]; ok {
+            if rhs[key] != val {
+                return false
+            }
+            if !reflect.DeepEqual(rhs[key], val) {
+                return false
+            }
+            if fmt.Sprintf("%s", rhs[key]) != fmt.Sprintf("%s", val) {
+                return false
+            }
+        }
+    }
+    for key, val := range rhs {
+        if _, ok := lhs[key]; ok {
+            if lhs[key] != val {
+                return false
+            }
+            if !reflect.DeepEqual(lhs[key], val) {
+                return false
+            }
+            if fmt.Sprintf("%s", lhs[key]) != fmt.Sprintf("%s", val) {
+                return false
+            }
+        }
+    }
+    return false
+}
+''')
+        self.f.write('\nfunc main() {\n')
+        self.f.write('\tvar attrs client.Attributes\n')
+        self.f.write('\tvar c *client.Client\n')
+        self.f.write('\tvar err client.Error\n')
+        # Don't care about error here; wrong port is caught by test anyway
+        self.f.write('\tport, _ := strconv.Atoi(os.Args[2])\n')
+        self.f.write('\tc, er := client.NewClient(os.Args[1], port)\n')
+        self.f.write('\tif er != nil {\n\t\tfmt.Println(err)\n\t\tos.Exit(1)\n\t}\n')
+
+
+    def finish(self):
+        self.f.write('\tos.Exit(0)\n')
+        self.f.write('}\n')
+        self.f.flush()
+        self.f.close()
+        self.f = None
+
+    def get(self, space, key, expected):
+        self.f.write('\tattrs, err = c.Get({0}, {1})\n'.format(self.to_go(space), self.to_go(key)))
+        if expected is None:
+            self.f.write('\tif err.Status != client.NOTFOUND {\n')
+            self.f.write('\t\tfmt.Printf("bad status: %d (should be NOTFOUND)\\n", err)\n\t}\n')
+        else:
+            self.f.write('\tif err.Status != client.SUCCESS {\n')
+            self.f.write('\t\tfmt.Printf("bad status: %d (should be SUCCESS)\\n", err.Status)\n\t}\n')
+            self.f.write('\tif !sloppyEqual(attrs, {0}) {{\n'.format(self.to_attrs(expected)))
+            self.f.write('\t\tfmt.Printf("%s %s\\n", attrs, {0})\n'.format(self.to_go(expected)))
+            self.f.write('\t\tpanic("objects not equal")\n\t}\n')
+
+    def get_partial(self, space, key, attrs, expected):
+        self.f.write('\tattrs, err = c.GetPartial({0}, {1}, {2})\n'.format(self.to_go(space), self.to_go(key), self.to_attrnames(attrs)))
+        if expected is None:
+            self.f.write('\tif err.Status != client.NOTFOUND {\n')
+            self.f.write('\t\tfmt.Printf("bad status: %d (should be NOTFOUND)\\n", err)\n\t}\n')
+        else:
+            self.f.write('\tif err.Status != client.SUCCESS {\n')
+            self.f.write('\t\tfmt.Printf("bad status: %d (should be SUCCESS)\\n", err.Status)\n\t}\n')
+            self.f.write('\tif !sloppyEqual(attrs, {0}) {{\n'.format(self.to_attrs(expected)))
+            self.f.write('\t\tfmt.Printf("%s %s\\n", attrs, {0})\n'.format(self.to_go(expected)))
+            self.f.write('\t\tpanic("objects not equal")\n\t}\n')
+
+    def put(self, space, key, value, expected):
+        self.f.write('\terr = c.Put({0}, {1}, {2})\n'.format(self.to_go(space),
+                                                             self.to_go(key),
+                                                             self.to_attrs(value)))
+        self.f.write('\tif err.Status != client.SUCCESS {\n')
+        self.f.write('\t\tos.Exit(1)\n\t}\n')
+
+    def cond_put(self, space, key, pred, value, expected):
+        self.f.write('\terr = c.CondPut({0}, {1}, {2}, {3})\n'.format(self.to_go(space),
+                                                                 self.to_go(key),
+                                                                 self.to_preds(pred),
+                                                                 self.to_attrs(value)))
+        if expected:
+            self.f.write('\tif err.Status != client.SUCCESS {\n')
+        else:
+            self.f.write('\tif err.Status != client.CMPFAIL {\n')
+        self.f.write('\t\tos.Exit(1)\n\t}\n')
+
+    def delete(self, space, key, expected):
+        self.f.write('\terr = c.Del({0}, {1})\n'.format(self.to_go(space),
+                                                        self.to_go(key)))
+        self.f.write('\tif err.Status != client.SUCCESS {\n')
+        self.f.write('\t\tos.Exit(1)\n\t}\n')
+
+    def search(self, space, predicate, expected):
+        self.f.write('\tpanic("MISSING SEARCH XXX")\n')
+
+    def to_preds(self, preds):
+        s = '[]client.Predicate{'
+        preds_as_strs = []
+        for name, val in preds.iteritems():
+            pred = 'EQUALS'
+            if isinstance(val, LessEqual):
+                val = val.x
+                pred = 'LESS_EQUAL'
+            elif isinstance(val, GreaterEqual):
+                val = val.x
+                pred = 'GREATER_EQUAL'
+            elif isinstance(val, LessThan):
+                val = val.x
+                pred = 'LESS_THAN'
+            elif isinstance(val, GreaterThan):
+                val = val.x
+                pred = 'GREATER_THAN'
+            elif isinstance(val, Regex):
+                val = val.x
+                pred = 'REGEX'
+            elif isinstance(val, LengthEquals):
+                val = val.x
+                pred = 'LENGTH_EQUALS'
+            elif isinstance(val, LengthLessEqual):
+                val = val.x
+                pred = 'LENGTH_LESS_EQUAL'
+            elif isinstance(val, LengthGreaterEqual):
+                val = val.x
+                pred = 'LENGTH_GREATER_EQUAL'
+            preds_as_strs.append('client.Predicate{{{0}, {1}, client.{2}}}'.format(self.to_go(name), self.to_go(val), pred))
+        s += ', '.join(preds_as_strs)
+        s += '}'
+        return s
+
+    def to_attrs(self, attrs):
+        s = 'client.Attributes{'
+        s += ', '.join(['{0}: {1}'.format(self.to_go(k), self.to_go(v))
+                        for k, v in sorted(attrs.items())])
+        s += '}'
+        return s
+
+    def to_attrnames(self, attrnames):
+        return '[]string{' + ', '.join([self.to_go(x) for x in attrnames]) + '}'
+
+    def to_go(self, x):
+        if x is True:
+            return 'true'
+        elif x is False:
+            return 'false'
+        elif x is None:
+            return 'nil'
+        elif isinstance(x, str):
+            return double_quote(x)
+        elif isinstance(x, long) or isinstance(x, int):
+            return 'int64(%s)' % str(x)
+        elif isinstance(x, float):
+            return 'float64(%s)' % str(x)
+        elif isinstance(x, list):
+            s = 'client.List{'
+            s += ', '.join(['{0}'.format(self.to_go(v)) for v in x])
+            s += '}'
+            return s
+        elif isinstance(x, set):
+            s = 'client.Set{'
+            s += ', '.join(['{0}'.format(self.to_go(v)) for v in sorted(x)])
+            s += '}'
+            return s
+        elif isinstance(x, dict):
+            s = 'client.Map{'
+            s += ', '.join(['{0}: {1}'.format(self.to_go(k), self.to_go(v))
+                            for k, v in sorted(x.items())])
+            s += '}'
+            return s
+        else:
+            raise RuntimeError("Cannot convert {0!r} to go".format(x))
+
 class TestGenerator(object):
 
     def __init__(self):
@@ -497,6 +695,10 @@ class TestGenerator(object):
         for x in self.generators:
             x.put(space, key, value, expected)
 
+    def cond_put(self, space, key, pred, value, expected):
+        for x in self.generators:
+            x.cond_put(space, key, pred, value, expected)
+
     def delete(self, space, key, expected):
         for x in self.generators:
             x.delete(space, key, expected)
@@ -517,6 +719,16 @@ t.put('kv', 'k', {'v': 'v3'}, True)
 t.get('kv', 'k', {'v': 'v3'})
 t.delete('kv', 'k', True)
 t.get('kv', 'k', None)
+t.finish()
+
+t.test('CondPut', 'space kv key k attribute v')
+t.get('kv', 'k', None)
+t.put('kv', 'k', {'v': 'v1'}, True)
+t.get('kv', 'k', {'v': 'v1'})
+t.cond_put('kv', 'k', {'v': 'v2'}, {'v': 'v3'}, False)
+t.get('kv', 'k', {'v': 'v1'})
+t.cond_put('kv', 'k', {'v': 'v1'}, {'v': 'v3'}, True)
+t.get('kv', 'k', {'v': 'v3'})
 t.finish()
 
 t.test('MultiAttribute', 'space kv key k attributes v1, v2')
