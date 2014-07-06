@@ -6,45 +6,88 @@ import "reflect"
 import "strconv"
 import "hyperdex/client"
 
-func sloppyEqual(lhs client.Attributes, rhs client.Attributes) bool {
-	if reflect.DeepEqual(lhs, rhs) || fmt.Sprintf("%s", lhs) == fmt.Sprintf("%s", rhs) {
+func sloppyEqual(lhs map[interface{}]interface{}, rhs map[interface{}]interface{}) bool {
+	if reflect.DeepEqual(lhs, rhs) || fmt.Sprintln(lhs) == fmt.Sprintln(rhs) {
 		return true
 	}
-	for key, val := range lhs {
-		if _, ok := rhs[key]; ok {
-			if rhs[key] != val {
+	for key, lval := range lhs {
+		if rval, ok := rhs[key]; ok {
+            lstr := fmt.Sprintln(lval)
+            rstr := fmt.Sprintln(rval)
+            for i := 0; i < 1000; i++ {
+                if lstr != rstr {
+                    rstr = fmt.Sprintln(rval)
+                }
+            }
+            lmap, lok := lval.(client.Map)
+            rmap, rok := rval.(client.Map)
+			if !(lval == rval || reflect.DeepEqual(lval, rval) ||
+                (lok && rok && sloppyEqualMap(lmap, rmap)) ||
+                lstr == rstr) {
 				return false
-			}
-			if !reflect.DeepEqual(rhs[key], val) {
-				return false
-			}
-			if fmt.Sprintf("%s", rhs[key]) != fmt.Sprintf("%s", val) {
-				return false
-			}
+            }
+		} else {
+			return false
 		}
 	}
-	for key, val := range rhs {
-		if _, ok := lhs[key]; ok {
-			if lhs[key] != val {
+	for key, rval := range rhs {
+		if lval, ok := lhs[key]; ok {
+            lstr := fmt.Sprintln(lval)
+            rstr := fmt.Sprintln(rval)
+            for i := 0; i < 1000; i++ {
+                if lstr != rstr {
+                    rstr = fmt.Sprintln(rval)
+                }
+            }
+            lmap, lok := lval.(client.Map)
+            rmap, rok := rval.(client.Map)
+			if !(lval == rval || reflect.DeepEqual(lval, rval) ||
+                (lok && rok && sloppyEqualMap(lmap, rmap)) ||
+                lstr == rstr) {
 				return false
-			}
-			if !reflect.DeepEqual(lhs[key], val) {
-				return false
-			}
-			if fmt.Sprintf("%s", lhs[key]) != fmt.Sprintf("%s", val) {
-				return false
-			}
+            }
+		} else {
+			return false
 		}
 	}
-	return false
+	return true
+}
+
+func sloppyEqualMap(lhs client.Map, rhs client.Map) bool {
+    lmap := map[interface{}]interface{}{}
+    rmap := map[interface{}]interface{}{}
+    for k, v := range lhs {
+        lmap[k] = v
+    }
+    for k, v := range rhs {
+        rmap[k] = v
+    }
+    return sloppyEqual(lmap, rmap)
+}
+
+func sloppyEqualAttributes(lhs client.Attributes, rhs client.Attributes) bool {
+    lmap := map[interface{}]interface{}{}
+    rmap := map[interface{}]interface{}{}
+    for k, v := range lhs {
+        lmap[k] = v
+    }
+    for k, v := range rhs {
+        rmap[k] = v
+    }
+    return sloppyEqual(lmap, rmap)
 }
 
 func main() {
 	var attrs client.Attributes
+	var objs chan client.Attributes
+	var errs chan client.Error
+	_ = attrs
+	_ = objs
+	_ = errs
 	var c *client.Client
 	var err client.Error
 	port, _ := strconv.Atoi(os.Args[2])
-	c, er := client.NewClient(os.Args[1], port)
+	c, er, _ := client.NewClient(os.Args[1], port)
 	if er != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -69,15 +112,15 @@ func main() {
 	if err.Status != client.SUCCESS {
 		os.Exit(1)
 	}
-	panic("MISSING SEARCH XXX")
-	panic("MISSING SEARCH XXX")
-	panic("MISSING SEARCH XXX")
-	panic("MISSING SEARCH XXX")
-	panic("MISSING SEARCH XXX")
-	panic("MISSING SEARCH XXX")
-	panic("MISSING SEARCH XXX")
-	panic("MISSING SEARCH XXX")
-	panic("MISSING SEARCH XXX")
-	panic("MISSING SEARCH XXX")
+	objs, errs = c.Search("kv", []client.Predicate{{"k", int64(0), client.LESS_EQUAL}})
+	objs, errs = c.Search("kv", []client.Predicate{{"v", int64(0), client.LESS_EQUAL}})
+	objs, errs = c.Search("kv", []client.Predicate{{"k", int64(0), client.GREATER_EQUAL}})
+	objs, errs = c.Search("kv", []client.Predicate{{"v", int64(0), client.GREATER_EQUAL}})
+	objs, errs = c.Search("kv", []client.Predicate{{"k", int64(0), client.LESS_THAN}})
+	objs, errs = c.Search("kv", []client.Predicate{{"v", int64(0), client.LESS_THAN}})
+	objs, errs = c.Search("kv", []client.Predicate{{"k", int64(0), client.GREATER_THAN}})
+	objs, errs = c.Search("kv", []client.Predicate{{"v", int64(0), client.GREATER_THAN}})
+	objs, errs = c.Search("kv", []client.Predicate{{"k", int64(-1), client.GREATER_EQUAL}, {"k", int64(1), client.LESS_EQUAL}})
+	objs, errs = c.Search("kv", []client.Predicate{{"v", int64(-1), client.GREATER_EQUAL}, {"v", int64(1), client.LESS_EQUAL}})
 	os.Exit(0)
 }

@@ -576,57 +576,47 @@ func (client *Client) convertAttributes(arena *C.struct_hyperdex_ds_arena, attri
 	return
 }
 
-func (client *Client) convertMapattributes(arena *C.struct_hyperdex_ds_arena, mapattributes MapAttributes, mapattrs **C.struct_hyperdex_client_map_attribute, mapattrs_sz *C.size_t) Error {
-	panic("NOT IMPLEMENTED") // XXX
-	/*
-	   func (client *Client) newCMapAttributeList(attrs Attributes) (*C.struct_hyperdex_client_map_attribute, C.size_t, error) {
-	       slice := make([]C.struct_hyperdex_client_map_attribute, 0)
-	       size := 0
-	       for attr, value := range attrs {
-	           if mapAttr, ok := value.(Map); ok {
-	               if len(mapAttr) == 0 {
-	                   continue
-	               }
+func (client *Client) convertMapattributes(arena *C.struct_hyperdex_ds_arena, mapattributes MapAttributes, mapattrs **C.struct_hyperdex_client_map_attribute, mapattrs_sz *C.size_t) (err error) {
+	*mapattrs = nil
+	*mapattrs_sz = 0
+	if len(mapattributes) == 0 {
+		return
+	}
+	slice := make([]C.struct_hyperdex_client_map_attribute, 0)
+	size := 0
+	for attr, mapval := range mapattributes {
+		var a *C.char
+		client.convertCString(arena, attr, &a)
+		/*if mapAttr, ok := mapval.(Map); ok {*/
+		if len(mapval) == 0 {
+			continue
+		}
+		for key, value := range mapval {
+			var k *C.char
+			var k_sz C.size_t
+			var k_dt C.enum_hyperdatatype
+			var v *C.char
+			var v_sz C.size_t
+			var v_dt C.enum_hyperdatatype
+			k, k_sz, k_dt, err = client.convertType(arena, key)
+			if err != nil {
+				return err
+			}
+			v, v_sz, v_dt, err = client.convertType(arena, value)
+			if err != nil {
+				return err
+			}
+			slice = append(slice, C.struct_hyperdex_client_map_attribute{a, k, k_sz, k_dt, [4]byte{}, v, v_sz, v_dt, [4]byte{}})
+			size++
+		}
+		/*} else {
+		    return fmt.Errorf("%s is not a map.", attr)
+		}*/
+	}
 
-	               for key, value := range mapAttr {
-	                   C_map_attr, err := client.newCMapAttribute(attr, key, value)
-	                   if err != nil {
-	                       return nil, 0, err
-	                   }
-	                   slice = append(slice, *C_map_attr)
-	                   size++
-	               }
-	           } else {
-	               return nil, 0, fmt.Errorf("%s is not a map.", attr)
-	           }
-	       }
-	       return &slice[0], C.size_t(size), nil
-	   }
-
-	   func (client *Client) newCMapAttribute(attrKey string, itemKey interface{}, itemValue interface{}) (*C.struct_hyperdex_client_map_attribute, error) {
-	       key, keySize, keyType, err := client.toHyperDexDatatype(itemKey)
-	       if err != nil {
-	           return nil, err
-	       }
-
-	       val, valSize, valType, err := client.toHyperDexDatatype(itemValue)
-	       if err != nil {
-	           return nil, err
-	       }
-
-	       return &C.struct_hyperdex_client_map_attribute{
-	           C.CString(attrKey),
-	           key,
-	           keySize,
-	           keyType,
-	           [4]byte{}, // alignment
-	           val,
-	           valSize,
-	           valType,
-	           [4]byte{},
-	       }, nil
-	   }
-	*/
+	*mapattrs = &slice[0]
+	*mapattrs_sz = C.size_t(size)
+	return
 }
 
 func (client *Client) convertSortby(arena *C.struct_hyperdex_ds_arena, attr string, out **C.char) (err Error) {

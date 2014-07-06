@@ -490,47 +490,94 @@ class GoGenerator(BindingGenerator):
         self.f.write('import "reflect"\n')
         self.f.write('import "strconv"\n')
         self.f.write('import "hyperdex/client"\n')
+        # This whole block is a dirty hack because Go won't just compare two
+        # maps as equal, and sometimes the casts even fail.  Further, the
+        # iteration over the map is random, so comparing by string fails.
+        # Cleanup suggestions welcome.
         self.f.write('''
-func sloppyEqual(lhs client.Attributes, rhs client.Attributes) bool {
-	if reflect.DeepEqual(lhs, rhs) || fmt.Sprintf("%s", lhs) == fmt.Sprintf("%s", rhs) {
-        return true
+func sloppyEqual(lhs map[interface{}]interface{}, rhs map[interface{}]interface{}) bool {
+	if reflect.DeepEqual(lhs, rhs) || fmt.Sprintln(lhs) == fmt.Sprintln(rhs) {
+		return true
+	}
+	for key, lval := range lhs {
+		if rval, ok := rhs[key]; ok {
+            lstr := fmt.Sprintln(lval)
+            rstr := fmt.Sprintln(rval)
+            for i := 0; i < 1000; i++ {
+                if lstr != rstr {
+                    rstr = fmt.Sprintln(rval)
+                }
+            }
+            lmap, lok := lval.(client.Map)
+            rmap, rok := rval.(client.Map)
+			if !(lval == rval || reflect.DeepEqual(lval, rval) ||
+                (lok && rok && sloppyEqualMap(lmap, rmap)) ||
+                lstr == rstr) {
+				return false
+            }
+		} else {
+			return false
+		}
+	}
+	for key, rval := range rhs {
+		if lval, ok := lhs[key]; ok {
+            lstr := fmt.Sprintln(lval)
+            rstr := fmt.Sprintln(rval)
+            for i := 0; i < 1000; i++ {
+                if lstr != rstr {
+                    rstr = fmt.Sprintln(rval)
+                }
+            }
+            lmap, lok := lval.(client.Map)
+            rmap, rok := rval.(client.Map)
+			if !(lval == rval || reflect.DeepEqual(lval, rval) ||
+                (lok && rok && sloppyEqualMap(lmap, rmap)) ||
+                lstr == rstr) {
+				return false
+            }
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+func sloppyEqualMap(lhs client.Map, rhs client.Map) bool {
+    lmap := map[interface{}]interface{}{}
+    rmap := map[interface{}]interface{}{}
+    for k, v := range lhs {
+        lmap[k] = v
     }
-    for key, val := range lhs {
-        if _, ok := rhs[key]; ok {
-            if rhs[key] != val {
-                return false
-            }
-            if !reflect.DeepEqual(rhs[key], val) {
-                return false
-            }
-            if fmt.Sprintf("%s", rhs[key]) != fmt.Sprintf("%s", val) {
-                return false
-            }
-        }
+    for k, v := range rhs {
+        rmap[k] = v
     }
-    for key, val := range rhs {
-        if _, ok := lhs[key]; ok {
-            if lhs[key] != val {
-                return false
-            }
-            if !reflect.DeepEqual(lhs[key], val) {
-                return false
-            }
-            if fmt.Sprintf("%s", lhs[key]) != fmt.Sprintf("%s", val) {
-                return false
-            }
-        }
+    return sloppyEqual(lmap, rmap)
+}
+
+func sloppyEqualAttributes(lhs client.Attributes, rhs client.Attributes) bool {
+    lmap := map[interface{}]interface{}{}
+    rmap := map[interface{}]interface{}{}
+    for k, v := range lhs {
+        lmap[k] = v
     }
-    return false
+    for k, v := range rhs {
+        rmap[k] = v
+    }
+    return sloppyEqual(lmap, rmap)
 }
 ''')
         self.f.write('\nfunc main() {\n')
         self.f.write('\tvar attrs client.Attributes\n')
+        self.f.write('\tvar objs chan client.Attributes\n')
+        self.f.write('\tvar errs chan client.Error\n')
+        self.f.write('\t_ = attrs\n')
+        self.f.write('\t_ = objs\n')
+        self.f.write('\t_ = errs\n')
         self.f.write('\tvar c *client.Client\n')
         self.f.write('\tvar err client.Error\n')
         # Don't care about error here; wrong port is caught by test anyway
         self.f.write('\tport, _ := strconv.Atoi(os.Args[2])\n')
-        self.f.write('\tc, er := client.NewClient(os.Args[1], port)\n')
+        self.f.write('\tc, er, _ := client.NewClient(os.Args[1], port)\n')
         self.f.write('\tif er != nil {\n\t\tfmt.Println(err)\n\t\tos.Exit(1)\n\t}\n')
 
 
@@ -549,7 +596,7 @@ func sloppyEqual(lhs client.Attributes, rhs client.Attributes) bool {
         else:
             self.f.write('\tif err.Status != client.SUCCESS {\n')
             self.f.write('\t\tfmt.Printf("bad status: %d (should be SUCCESS)\\n", err.Status)\n\t}\n')
-            self.f.write('\tif !sloppyEqual(attrs, {0}) {{\n'.format(self.to_attrs(expected)))
+            self.f.write('\tif !sloppyEqualAttributes(attrs, {0}) {{\n'.format(self.to_attrs(expected)))
             self.f.write('\t\tfmt.Printf("%s %s\\n", attrs, {0})\n'.format(self.to_go(expected)))
             self.f.write('\t\tpanic("objects not equal")\n\t}\n')
 
@@ -561,7 +608,7 @@ func sloppyEqual(lhs client.Attributes, rhs client.Attributes) bool {
         else:
             self.f.write('\tif err.Status != client.SUCCESS {\n')
             self.f.write('\t\tfmt.Printf("bad status: %d (should be SUCCESS)\\n", err.Status)\n\t}\n')
-            self.f.write('\tif !sloppyEqual(attrs, {0}) {{\n'.format(self.to_attrs(expected)))
+            self.f.write('\tif !sloppyEqualAttributes(attrs, {0}) {{\n'.format(self.to_attrs(expected)))
             self.f.write('\t\tfmt.Printf("%s %s\\n", attrs, {0})\n'.format(self.to_go(expected)))
             self.f.write('\t\tpanic("objects not equal")\n\t}\n')
 
@@ -589,14 +636,17 @@ func sloppyEqual(lhs client.Attributes, rhs client.Attributes) bool {
         self.f.write('\tif err.Status != client.SUCCESS {\n')
         self.f.write('\t\tos.Exit(1)\n\t}\n')
 
-    def search(self, space, predicate, expected):
-        self.f.write('\tpanic("MISSING SEARCH XXX")\n')
+    def search(self, space, pred, expected):
+        self.f.write('\tobjs, errs = c.Search({0}, {1})\n'.format(self.to_go(space), self.to_preds(pred)))
 
     def to_preds(self, preds):
-        s = '[]client.Predicate{'
         preds_as_strs = []
         for name, val in preds.iteritems():
             pred = 'EQUALS'
+            if isinstance(val, Range):
+                preds_as_strs.append('{{{0}, {1}, client.{2}}}'.format(self.to_go(name), self.to_go(val.x), 'GREATER_EQUAL'))
+                preds_as_strs.append('{{{0}, {1}, client.{2}}}'.format(self.to_go(name), self.to_go(val.y), 'LESS_EQUAL'))
+                continue
             if isinstance(val, LessEqual):
                 val = val.x
                 pred = 'LESS_EQUAL'
@@ -621,10 +671,8 @@ func sloppyEqual(lhs client.Attributes, rhs client.Attributes) bool {
             elif isinstance(val, LengthGreaterEqual):
                 val = val.x
                 pred = 'LENGTH_GREATER_EQUAL'
-            preds_as_strs.append('client.Predicate{{{0}, {1}, client.{2}}}'.format(self.to_go(name), self.to_go(val), pred))
-        s += ', '.join(preds_as_strs)
-        s += '}'
-        return s
+            preds_as_strs.append('{{{0}, {1}, client.{2}}}'.format(self.to_go(name), self.to_go(val), pred))
+        return '[]client.Predicate{' + ', '.join(preds_as_strs) + '}'
 
     def to_attrs(self, attrs):
         s = 'client.Attributes{'
