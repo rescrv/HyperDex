@@ -153,7 +153,8 @@ hyperdex :: passes_attribute_check(hyperdatatype type,
             return false;
         case HYPERPREDICATE_EQUALS:
             return di_attr->datatype() == di_check->datatype() &&
-                   check.value == value;
+                   (check.value == value ||
+                    (di_attr->comparable() && di_attr->compare(check.value, value) == 0));
         case HYPERPREDICATE_LESS_THAN:
             return di_attr->datatype() == di_check->datatype() &&
                    di_attr->comparable() &&
