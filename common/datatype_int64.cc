@@ -41,6 +41,26 @@
 using hyperdex::datatype_info;
 using hyperdex::datatype_int64;
 
+namespace
+{
+
+int64_t
+unpack(const e::slice& value)
+{
+    assert(value.size() == 0 || value.size() == sizeof(int64_t));
+
+    if (value.size() == 0)
+    {
+        return 0;
+    }
+
+    int64_t number;
+    e::unpack64le(value.data(), &number);
+    return number;
+}
+
+}
+
 datatype_int64 :: datatype_int64()
 {
 }
@@ -82,18 +102,12 @@ datatype_int64 :: apply(const e::slice& old_value,
                         const funcall* funcs, size_t funcs_sz,
                         uint8_t* writeto)
 {
-    int64_t number = 0;
-
-    if (validate(old_value) && old_value.size() == sizeof(int64_t))
-    {
-        e::unpack64le(old_value.data(), &number);
-    }
+    int64_t number = unpack(old_value);
 
     for (size_t i = 0; i < funcs_sz; ++i)
     {
         const funcall* func = funcs + i;
-        int64_t arg;
-        e::unpack64le(func->arg1.data(), &arg);
+        int64_t arg = unpack(func->arg1);
 
         switch (func->name)
         {
@@ -168,14 +182,7 @@ uint64_t
 datatype_int64 :: hash(const e::slice& value)
 {
     assert(validate(value));
-    int64_t number = 0;
-
-    if (value.size() == sizeof(int64_t))
-    {
-        e::unpack64le(value.data(), &number);
-    }
-
-    return ordered_encode_int64(number);
+    return ordered_encode_int64(unpack(value));
 }
 
 bool
@@ -223,10 +230,8 @@ static int
 compare(const e::slice& lhs,
         const e::slice& rhs)
 {
-    int64_t lhsnum = 0;
-    int64_t rhsnum = 0;
-    e::unpack64le(lhs.data(), &lhsnum);
-    e::unpack64le(rhs.data(), &rhsnum);
+    int64_t lhsnum = unpack(lhs);
+    int64_t rhsnum = unpack(rhs);
 
     if (lhsnum < rhsnum)
     {
