@@ -64,8 +64,12 @@ cdef extern from "hyperdex/admin.h":
         HYPERDEX_ADMIN_POLLFAILED   = 8770
         HYPERDEX_ADMIN_TIMEOUT      = 8771
         HYPERDEX_ADMIN_INTERRUPTED  = 8772
-        HYPERDEX_ADMIN_COORDFAIL    = 8774
         HYPERDEX_ADMIN_SERVERERROR  = 8773
+        HYPERDEX_ADMIN_COORDFAIL    = 8774
+        HYPERDEX_ADMIN_BADSPACE     = 8775
+        HYPERDEX_ADMIN_DUPLICATE    = 8776
+        HYPERDEX_ADMIN_NOTFOUND     = 8777
+        HYPERDEX_ADMIN_LOCALERROR   = 8778
         HYPERDEX_ADMIN_INTERNAL     = 8829
         HYPERDEX_ADMIN_EXCEPTION    = 8830
         HYPERDEX_ADMIN_GARBAGE      = 8831
@@ -91,24 +95,32 @@ class HyperDexAdminException(Exception):
                   ,HYPERDEX_ADMIN_POLLFAILED: 'Polling Failed'
                   ,HYPERDEX_ADMIN_TIMEOUT: 'Timeout'
                   ,HYPERDEX_ADMIN_INTERRUPTED: 'Interrupted by a signal'
-                  ,HYPERDEX_ADMIN_COORDFAIL: 'Coordinator Failure'
                   ,HYPERDEX_ADMIN_SERVERERROR: 'Server Error'
+                  ,HYPERDEX_ADMIN_COORDFAIL: 'Coordinator Failure'
+                  ,HYPERDEX_ADMIN_BADSPACE: 'Bad space description'
+                  ,HYPERDEX_ADMIN_DUPLICATE: 'Duplicate entry'
+                  ,HYPERDEX_ADMIN_NOTFOUND: 'Entity not found'
+                  ,HYPERDEX_ADMIN_LOCALERROR: 'Local error during backup'
                   ,HYPERDEX_ADMIN_INTERNAL: 'Internal Error (file a bug)'
                   ,HYPERDEX_ADMIN_EXCEPTION: 'Internal Exception (file a bug)'
                   ,HYPERDEX_ADMIN_GARBAGE: 'Internal Corruption (file a bug)'
                   }.get(status, 'Unknown Error (file a bug)')
         self._e = {HYPERDEX_ADMIN_SUCCESS: 'HYPERDEX_ADMIN_SUCCESS'
-                 ,HYPERDEX_ADMIN_NOMEM: 'HYPERDEX_ADMIN_NOMEM'
-                 ,HYPERDEX_ADMIN_NONEPENDING: 'HYPERDEX_ADMIN_NONEPENDING'
-                 ,HYPERDEX_ADMIN_POLLFAILED: 'HYPERDEX_ADMIN_POLLFAILED'
-                 ,HYPERDEX_ADMIN_TIMEOUT: 'HYPERDEX_ADMIN_TIMEOUT'
-                 ,HYPERDEX_ADMIN_INTERRUPTED: 'HYPERDEX_ADMIN_INTERRUPTED'
-                 ,HYPERDEX_ADMIN_COORDFAIL: 'HYPERDEX_ADMIN_COORDFAIL'
-                 ,HYPERDEX_ADMIN_SERVERERROR: 'HYPERDEX_ADMIN_SERVERERROR'
-                 ,HYPERDEX_ADMIN_INTERNAL: 'HYPERDEX_ADMIN_INTERNAL'
-                 ,HYPERDEX_ADMIN_EXCEPTION: 'HYPERDEX_ADMIN_EXCEPTION'
-                 ,HYPERDEX_ADMIN_GARBAGE: 'HYPERDEX_ADMIN_GARBAGE'
-                 }.get(status, 'BUG')
+                  ,HYPERDEX_ADMIN_NOMEM: 'HYPERDEX_ADMIN_NOMEM'
+                  ,HYPERDEX_ADMIN_NONEPENDING: 'HYPERDEX_ADMIN_NONEPENDING'
+                  ,HYPERDEX_ADMIN_POLLFAILED: 'HYPERDEX_ADMIN_POLLFAILED'
+                  ,HYPERDEX_ADMIN_TIMEOUT: 'HYPERDEX_ADMIN_TIMEOUT'
+                  ,HYPERDEX_ADMIN_INTERRUPTED: 'HYPERDEX_ADMIN_INTERRUPTED'
+                  ,HYPERDEX_ADMIN_SERVERERROR: 'HYPERDEX_ADMIN_SERVERERROR'
+                  ,HYPERDEX_ADMIN_COORDFAIL: 'HYPERDEX_ADMIN_COORDFAIL'
+                  ,HYPERDEX_ADMIN_BADSPACE: 'HYPERDEX_ADMIN_BADSPACE'
+                  ,HYPERDEX_ADMIN_DUPLICATE: 'HYPERDEX_ADMIN_DUPLICATE'
+                  ,HYPERDEX_ADMIN_NOTFOUND: 'HYPERDEX_ADMIN_NOTFOUND'
+                  ,HYPERDEX_ADMIN_LOCALERROR: 'HYPERDEX_ADMIN_LOCALERROR'
+                  ,HYPERDEX_ADMIN_INTERNAL: 'HYPERDEX_ADMIN_INTERNAL'
+                  ,HYPERDEX_ADMIN_EXCEPTION: 'HYPERDEX_ADMIN_EXCEPTION'
+                  ,HYPERDEX_ADMIN_GARBAGE: 'HYPERDEX_ADMIN_GARBAGE'
+                  }.get(status, 'BUG')
 
     def status(self):
         return self._status
