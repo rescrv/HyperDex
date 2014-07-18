@@ -9,7 +9,6 @@ package client
 import "C"
 import "unsafe"
 import "reflect"
-import "runtime"
 import "fmt"
 import "sync"
 
@@ -1002,49 +1001,41 @@ func NewClient(host string, port int) (*Client, error, chan Error) {
 	}
 
 	client := &Client{C_client, sync.Mutex{}, map[int64]chan Error{}, map[int64]*cIterator{}, make(chan bool, 1)}
-	runtime.SetFinalizer(client, func(c *Client) {
-		close(c.closeChan)
-	})
-
-	ptr := &client.ptr
-	mtx := &client.mutex
-	ops := &client.ops
-	scs := &client.searches
-	ccc := &client.closeChan
 	errChan := make(chan Error, 16)
 
 	go func() {
 		for {
 			select {
-			case <-*ccc:
-				mtx.Lock()
-				C.hyperdex_client_destroy(*ptr)
-				for _, val := range *ops {
+			case <-client.closeChan:
+				client.mutex.Lock()
+				C.hyperdex_client_destroy(client.ptr)
+				for _, val := range client.ops {
 					close(val)
 				}
-				mtx.Unlock()
+				client.mutex.Unlock()
+				close(errChan)
 				return
 			default:
-				C.hyperdex_client_block(*ptr, 250)
+				C.hyperdex_client_block(client.ptr, 250)
 				var loop_status C.enum_hyperdex_client_returncode
-				mtx.Lock()
-				reqid := int64(C.hyperdex_client_loop(*ptr, 0, &loop_status))
+				client.mutex.Lock()
+				reqid := int64(C.hyperdex_client_loop(client.ptr, 0, &loop_status))
 				if reqid < 0 && loop_status == TIMEOUT {
 					// pass
 				} else if reqid < 0 && loop_status == NONEPENDING {
 					// pass
 				} else if reqid < 0 {
 					e := Error{Status(loop_status),
-						C.GoString(C.hyperdex_client_error_message(*ptr)),
-						C.GoString(C.hyperdex_client_error_location(*ptr))}
+						C.GoString(C.hyperdex_client_error_message(client.ptr)),
+						C.GoString(C.hyperdex_client_error_location(client.ptr))}
 					errChan <- e
-				} else if c, ok := (*ops)[reqid]; ok {
+				} else if c, ok := (client.ops)[reqid]; ok {
 					e := Error{Status(loop_status),
-						C.GoString(C.hyperdex_client_error_message(*ptr)),
-						C.GoString(C.hyperdex_client_error_location(*ptr))}
+						C.GoString(C.hyperdex_client_error_message(client.ptr)),
+						C.GoString(C.hyperdex_client_error_location(client.ptr))}
 					c <- e
-					delete(*ops, reqid)
-				} else if cIter, ok := (*scs)[reqid]; ok {
+					delete(client.ops, reqid)
+				} else if cIter, ok := client.searches[reqid]; ok {
 					if cIter.status == C.HYPERDEX_CLIENT_SUCCESS {
 						attrs, er := client.buildAttributes(cIter.attrs, cIter.attrs_sz)
 						if er != nil {
@@ -1059,18 +1050,23 @@ func NewClient(host string, port int) (*Client, error, chan Error) {
 						close(cIter.errChan)
 					} else {
 						e := Error{Status(cIter.status),
-							C.GoString(C.hyperdex_client_error_message(*ptr)),
-							C.GoString(C.hyperdex_client_error_location(*ptr))}
+							C.GoString(C.hyperdex_client_error_message(client.ptr)),
+							C.GoString(C.hyperdex_client_error_location(client.ptr))}
 						cIter.errChan <- e
 					}
 				}
-				mtx.Unlock()
+				client.mutex.Unlock()
 			}
 		}
 		panic("Should not be reached: end of infinite loop")
 	}()
 
 	return client, nil, errChan
+}
+
+// For every call to NewClient, there must be a call to Destroy.
+func (client *Client) Destroy() {
+	close(client.closeChan)
 }
 
 // Begin Automatically Generated Code
