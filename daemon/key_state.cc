@@ -429,31 +429,11 @@ key_state :: step_state_machine_changes(replication_manager* rm,
     const std::vector<e::slice>* old_value = NULL;
     get_latest(&has_old_value, &old_version, &old_value);
 
-    network_returncode nrc = NET_SUCCESS;
     e::intrusive_ptr<deferred_key_change> dkc = m_changes.front();
     m_changes.pop_front();
     key_change* kc = dkc->kc.get();
 
-    if (!has_old_value && kc->erase)
-    {
-        nrc = NET_NOTFOUND;
-    }
-    else if (!has_old_value && kc->fail_if_not_found)
-    {
-        nrc = NET_NOTFOUND;
-    }
-    else if (!has_old_value && !kc->checks.empty())
-    {
-        nrc = NET_CMPFAIL;
-    }
-    else if (has_old_value && kc->fail_if_found)
-    {
-        nrc = NET_CMPFAIL;
-    }
-    else if (has_old_value && passes_attribute_checks(sc, kc->checks, m_key, *old_value) < kc->checks.size())
-    {
-        nrc = NET_CMPFAIL;
-    }
+    network_returncode nrc = kc->check(sc, has_old_value, old_value);
 
     if (nrc != NET_SUCCESS)
     {

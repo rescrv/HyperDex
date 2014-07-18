@@ -32,6 +32,7 @@
 #include "namespace.h"
 #include "common/attribute_check.h"
 #include "common/funcall.h"
+#include "common/network_returncode.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -44,6 +45,9 @@ class key_change
 
     public:
         bool validate(const schema& sc) const;
+        network_returncode check(const schema& sc,
+                                 bool has_old_value,
+                                 const std::vector<e::slice>* old_value) const;
 
     public:
         key_change& operator = (const key_change&);

@@ -65,6 +65,38 @@ key_change :: validate(const schema& sc) const
            (!erase || funcs.empty());
 }
 
+hyperdex::network_returncode
+key_change :: check(const schema& sc,
+                    bool has_old_value,
+                    const std::vector<e::slice>* old_value) const
+{
+    network_returncode nrc = NET_SUCCESS;
+    const key_change* kc = this;
+
+    if (!has_old_value && kc->erase)
+    {
+        nrc = NET_NOTFOUND;
+    }
+    else if (!has_old_value && kc->fail_if_not_found)
+    {
+        nrc = NET_NOTFOUND;
+    }
+    else if (!has_old_value && !kc->checks.empty())
+    {
+        nrc = NET_CMPFAIL;
+    }
+    else if (has_old_value && kc->fail_if_found)
+    {
+        nrc = NET_CMPFAIL;
+    }
+    else if (has_old_value && passes_attribute_checks(sc, kc->checks, key, *old_value) < kc->checks.size())
+    {
+        nrc = NET_CMPFAIL;
+    }
+
+    return nrc;
+}
+
 key_change&
 key_change :: operator = (const key_change& rhs)
 {
