@@ -1201,20 +1201,20 @@ hyperdex_client_loop(hyperdex_client* _cl, int timeout,
 }
 
 HYPERDEX_API int
-hyperdex_client_block(hyperdex_client* _cl, int timeout)
-{
-    FAKE_STATUS;
-    C_WRAP_EXCEPT(
-    return cl->block(timeout);
-    );
-}
-
-HYPERDEX_API int
 hyperdex_client_poll(hyperdex_client* _cl)
 {
     FAKE_STATUS;
     C_WRAP_EXCEPT(
     return cl->poll();
+    );
+}
+
+HYPERDEX_API int
+hyperdex_client_block(hyperdex_client* _cl, int timeout)
+{
+    FAKE_STATUS;
+    C_WRAP_EXCEPT(
+    return cl->block(timeout);
     );
 }
 

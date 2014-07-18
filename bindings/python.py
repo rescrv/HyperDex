@@ -90,11 +90,11 @@ def generate_function_ptr(x, name, lib):
     func = func.rstrip(';')
     return func
 
-def generate_worker_asynccall(call, x):
+def generate_worker_asynccall(call, x, client='self', ptr='client', fptr='_fptr'):
     typed_args = ', '.join([(PYTYPEOF(arg) + ' ' + arg_name(arg)).strip()
                              for arg in x.args_in])
-    func  = 'cdef {0}(self, {2} f, {1}):\n'.format(call, typed_args, call + '_fptr')
-    func += '    cdef Deferred d = Deferred(self)\n'
+    func  = 'cdef {0}(self, {2} f, {1}):\n'.format(call, typed_args, call + fptr)
+    func += '    cdef Deferred d = Deferred({0})\n'.format(client)
     for arg in x.args_in:
         for p, n in arg.args:
             if 'struct ' in p:
@@ -103,13 +103,13 @@ def generate_worker_asynccall(call, x):
             func += '    cdef ' + p + ' in_' + n + '\n'
     for arg in x.args_in:
         args = ', '.join(['&in_' + n for p, n in arg.args])
-        func += '    self.convert_{0}(d.arena, {0}, {1});\n'.format(arg.__name__.lower(), args)
-    func += '    d.reqid = f(self.client, {0}, {1});\n'.format(', '.join(['in_' + n for p, n in sum([list(a.args) for a in x.args_in], [])]),
-                                                               ', '.join(['&d.' + n for p, n in sum([list(a.args) for a in x.args_out], [])]))
+        func += '    {0}.convert_{1}(d.arena, {1}, {2});\n'.format(client, arg.__name__.lower(), args)
+    func += '    d.reqid = f(self.{0}, {1}, {2});\n'.format(ptr, ', '.join(['in_' + n for p, n in sum([list(a.args) for a in x.args_in], [])]),
+                                                                 ', '.join(['&d.' + n for p, n in sum([list(a.args) for a in x.args_out], [])]))
     func += '    if d.reqid < 0:\n'
-    func += '        raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))\n'
+    func += '        raise HyperDexClientException(d.status, hyperdex_client_error_message({0}.client))\n'.format(client)
     func += '    d.encode_return = hyperdex_python_client_deferred_encode_' + '_'.join([arg.__name__.lower() for arg in x.args_out]) + '\n'
-    func += '    self.ops[d.reqid] = d\n'
+    func += '    {0}.ops[d.reqid] = d\n'.format(client)
     func += '    return d'
     return indent(func)
 

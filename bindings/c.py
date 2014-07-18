@@ -101,16 +101,17 @@ def generate_enum(prefix, E):
 
 ################################ Code Generation ###############################
 
-def generate_func(x, lib, sep='\n', padd=None):
+def generate_func(x, lib, struct=None, sep='\n', namesep='_', padd=None):
     assert x.form in (bindings.AsyncCall, bindings.SyncCall,
                       bindings.NoFailCall, bindings.Iterator)
+    struct = struct or lib
     return_type = 'int64_t'
     if x.form == bindings.SyncCall:
         return_type = 'int'
     if x.form == bindings.NoFailCall:
         return_type = 'void'
-    name = 'hyperdex_' + lib + '_' + x.name
-    func = '{return_type}{sep}{name}(struct hyperdex_{lib}* {lib}'.format(**locals())
+    name = 'hyperdex_' + lib + namesep + x.name
+    func = '{return_type}{sep}{name}(struct hyperdex_{struct}* {lib}'.format(**locals())
     padd = ' ' * (len(name) + 1) if padd is None else ' ' * padd
     for arg in x.args_in:
         func += ',\n' + padd
@@ -124,8 +125,8 @@ def generate_func(x, lib, sep='\n', padd=None):
 def generate_func_ptr(x, lib):
     xp = copy.deepcopy(x)
     xp.name = 'WXYZ'
-    fptr = generate_func(xp, 'client')
-    fptr = fptr.replace('hyperdex_client_WXYZ', '(*f)')
+    fptr = generate_func(xp, lib)
+    fptr = fptr.replace('hyperdex_' + lib + '_WXYZ', '(*f)')
     fptr = ' ' .join([c.strip() for c in fptr.split('\n')])
     fptr = fptr.strip('; ')
     return fptr
@@ -361,6 +362,9 @@ hyperdex_client_loop(struct hyperdex_client* client, int timeout,
 
 int
 hyperdex_client_poll(struct hyperdex_client* client);
+
+int
+hyperdex_client_block(struct hyperdex_client* client, int timeout);
 
 enum hyperdatatype
 hyperdex_client_attribute_type(struct hyperdex_client* client,
@@ -604,6 +608,15 @@ hyperdex_client_poll(hyperdex_client* _cl)
     FAKE_STATUS;
     C_WRAP_EXCEPT(
     return cl->poll();
+    );
+}
+
+HYPERDEX_API int
+hyperdex_client_block(hyperdex_client* _cl, int timeout)
+{
+    FAKE_STATUS;
+    C_WRAP_EXCEPT(
+    return cl->block(timeout);
     );
 }
 
