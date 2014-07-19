@@ -220,6 +220,13 @@ c = HyperDex::Client::Client.new(ARGV[0], ARGV[1].to_i)
         self.f.write('assert {{ c.put({0}, {1}, {2}) == {3} }}\n'
                      .format(self.to_ruby(space), self.to_ruby(key), self.to_ruby(value), self.to_ruby(expected)))
 
+    def cond_put(self, space, key, predicate, value, expected):
+        self.f.write('assert {{ c.cond_put({0}, {1}, {2}, {3}) == {4} }}\n'
+                     .format(self.to_ruby(space), self.to_ruby(key),
+                             self.to_ruby(predicate),
+                             self.to_ruby(value),
+                             self.to_ruby(expected)))
+
     def delete(self, space, key, expected):
         self.f.write('assert {{ c.del({0}, {1}) == {2} }}\n'
                      .format(self.to_ruby(space), self.to_ruby(key), self.to_ruby(expected)))
@@ -369,6 +376,26 @@ public class {0}
             self.f.write('        attrs{0}.put({1}, {2});\n'
                              .format(c, self.to_java(k), self.to_java(v)))
         self.f.write('        Object obj{0} = c.put({1}, {2}, attrs{0});\n'
+                     .format(c, self.to_java(space),
+                                self.to_java(key)))
+        self.f.write('        assert(obj{0} != null);\n'.format(c))
+        self.f.write('        Boolean bool{0} = (Boolean)obj{0};\n'.format(c))
+        self.f.write('        assert(bool{0} == {1});\n'
+                     .format(c, self.to_java(expected)))
+
+    def cond_put(self, space, key, predicate, value, expected):
+        assert expected in (True, False)
+        c = self.count
+        self.count += 1
+        self.f.write('        Map<String, Object> attrs{0} = new HashMap<String, Object>();\n'.format(c))
+        for k, v in sorted(value.iteritems()):
+            self.f.write('        attrs{0}.put({1}, {2});\n'
+                             .format(c, self.to_java(k), self.to_java(v)))
+        self.f.write('        Map<String, Object> checks{0} = new HashMap<String, Object>();\n'.format(c))
+        for k, v in sorted(predicate.iteritems()):
+            self.f.write('        checks{0}.put({1}, {2});\n'
+                             .format(c, self.to_java(k), self.to_java(v)))
+        self.f.write('        Object obj{0} = c.cond_put({1}, {2}, checks{0}, attrs{0});\n'
                      .format(c, self.to_java(space),
                                 self.to_java(key)))
         self.f.write('        assert(obj{0} != null);\n'.format(c))
