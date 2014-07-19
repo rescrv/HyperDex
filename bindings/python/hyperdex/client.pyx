@@ -151,6 +151,7 @@ cdef extern from "hyperdex/client.h":
     char* hyperdex_client_error_message(hyperdex_client* client)
     char* hyperdex_client_error_location(hyperdex_client* client)
     char* hyperdex_client_returncode_to_string(hyperdex_client_returncode)
+    # Begin Automatically Generated Prototypes
     int64_t hyperdex_client_get(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_get_partial(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_put(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
@@ -219,6 +220,7 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_sorted_search(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const char* sort_by, uint64_t limit, int maxmin, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_group_del(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_count(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, uint64_t* count)
+    # End Automatically Generated Prototypes
 
 
 cdef extern from "hyperdex/datastructures.h":
@@ -293,6 +295,7 @@ cdef extern from "hyperdex/datastructures.h":
 
 ctypedef object (*encret_deferred_fptr)(Deferred d)
 ctypedef object (*encret_iterator_fptr)(Iterator it)
+# Begin Automatically Generated Function Pointers
 ctypedef int64_t asynccall__spacename_key__status_attributes_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 ctypedef int64_t asynccall__spacename_key_attributenames__status_attributes_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 ctypedef int64_t asynccall__spacename_key_attributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
@@ -306,6 +309,8 @@ ctypedef int64_t asynccall__spacename_predicates__status_description_fptr(hyperd
 ctypedef int64_t iterator__spacename_predicates_sortby_limit_maxmin__status_attributes_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const char* sort_by, uint64_t limit, int maxmin, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 ctypedef int64_t asynccall__spacename_predicates__status_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_predicates__status_count_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, uint64_t* count)
+# End Automatically Generated Function Pointers
+
 
 class HyperDexClientException(Exception):
 
@@ -1164,6 +1169,7 @@ cdef class Client:
             op._callback()
             return op
 
+    # Begin Automatically Generated Methods
     cdef asynccall__spacename_key__status_attributes(self, asynccall__spacename_key__status_attributes_fptr f, bytes spacename, key):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
@@ -1711,3 +1717,4 @@ cdef class Client:
         return self.asynccall__spacename_predicates__status_count(hyperdex_client_count, spacename, predicates)
     def count(self, bytes spacename, dict predicates):
         return self.async_count(spacename, predicates).wait()
+    # End Automatically Generated Methods

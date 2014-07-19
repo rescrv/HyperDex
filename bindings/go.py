@@ -256,14 +256,10 @@ def generate_client_code():
     code += '\n'
     code += '\n'.join([generate_method(c, 'Client') for c in bindings.Client])
     code += '\n'
-    goclient = os.path.join(BASE, 'bindings/go/client.go')
+    goclient = os.path.join(BASE, 'bindings/go/client/client.go')
     current = open(goclient, 'r').read()
-    START = '// Begin Automatically Generated Code\n'
-    END   = '// End Automatically Generated Code\n'
-    head, tail = current.split(START)
-    dead, tail = tail.split(END)
     fout = open(goclient, 'w')
-    fout.write(head + START + code + END + tail)
+    fout.write(bindings.substitute_generated('Code', current, code))
 
 if __name__ == '__main__':
     generate_client_code()

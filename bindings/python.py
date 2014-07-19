@@ -225,14 +225,18 @@ def generate_api_block(x, lib):
     return block
 
 def generate_client_python():
-    fout = open(os.path.join(BASE, 'bindings/python/hyperdex/client.pyx'), 'w')
-    template = open(os.path.join(BASE, 'bindings/python/hyperdex/client.pyx.in')).read()
+    pyxfile = os.path.join(BASE, 'bindings/python/hyperdex/client.pyx')
+    current = open(pyxfile, 'r').read()
+    fout = open(pyxfile, 'w')
     prototypes = indent('\n'.join([generate_prototype(c, 'client') for c in bindings.Client]))
+    current = bindings.substitute_generated('Prototypes', current, prototypes, prefix='#')
     fps = '\n'.join(generate_function_pointer_typedefs(bindings.Client, 'client'))
-    fout.write(template.format(prototypes=prototypes, function_pointers=fps))
-    fout.write('\n'.join(generate_workers(bindings.Client)))
-    fout.write('\n')
-    fout.write('\n'.join([generate_method(c, 'client') for c in bindings.Client]))
+    current = bindings.substitute_generated('Function Pointers', current, fps, prefix='#')
+    methods  = '\n'.join(generate_workers(bindings.Client))
+    methods += '\n'
+    methods += '\n'.join([generate_method(c, 'client') for c in bindings.Client])
+    current = bindings.substitute_generated('Methods', current, methods, prefix='#')
+    fout.write(current)
 
 def generate_client_doc():
     fout = open(os.path.join(BASE, 'doc/api/python.client.tex'), 'w')

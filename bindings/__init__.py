@@ -259,3 +259,13 @@ def doc_parameter_list(form, args, fragments, label_maker):
         block += '\\input{\\topdir/api/fragments/' + frag +'}\n'
     block += '\\end{itemize}\n'
     return block
+
+def substitute_generated(name, text, replacement, prefix='//', suffix='\n'):
+    if not replacement.endswith('\n'):
+        replacement += '\n'
+    START = '{0} Begin Automatically Generated {1}{2}'.format(prefix, name, suffix)
+    END = '{0} End Automatically Generated {1}{2}'.format(prefix, name, suffix)
+    head, tail = text.split(START)
+    body, tail = tail.split(END)
+    last_line = body.rsplit('\n')[-1]
+    return head + START + replacement + last_line + END + tail
