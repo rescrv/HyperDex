@@ -573,11 +573,9 @@ bindings_cc_admin_testcompile_LDADD = libhyperdex-admin.la
 
 EXTRA_DIST += bindings/go/admin_api.go
 EXTRA_DIST += bindings/go/admin_test.go
-EXTRA_DIST += bindings/go/client_api.go
+EXTRA_DIST += bindings/go/client
+EXTRA_DIST += bindings/go/client/client.go
 EXTRA_DIST += bindings/go/hypergo.go
-EXTRA_DIST += bindings/go/hypergo_test.go
-EXTRA_DIST += bindings/go/ops.go
-EXTRA_DIST += bindings/go/util.go
 
 ##################################### Java #####################################
 
@@ -683,7 +681,6 @@ CLEANFILES += bindings/python/hyperdex/*.pyc
 
 EXTRA_DIST += bindings/python.py
 EXTRA_DIST += bindings/python/hyperdex/__init__.py
-EXTRA_DIST += bindings/python/hyperdex/client.pyx.in
 
 EXTRA_DIST += bindings/python/hyperdex/client.pyx
 bindings_python_hyperdex_client_la_SOURCES = bindings/python/hyperdex/client.c
