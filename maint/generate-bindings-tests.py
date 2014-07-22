@@ -313,7 +313,7 @@ class JavaGenerator(BindingGenerator):
         self.count = 0
         self.path = 'test/java/{0}.java'.format(name)
         precmd = 'javac -d "${{HYPERDEX_BUILDDIR}}"/test/java "${{HYPERDEX_SRCDIR}}"/test/java/{0}.java'.format(name)
-        cmd = 'java -Djava.library.path="${{HYPERDEX_BUILDDIR}}"/.libs:/usr/local/lib:/usr/local/lib64:/usr/lib:/usr/lib64 {0}'.format(name)
+        cmd = 'java -ea -Djava.library.path="${{HYPERDEX_BUILDDIR}}"/.libs:/usr/local/lib:/usr/local/lib64:/usr/lib:/usr/lib64 {0}'.format(name)
         gen_shell('java', name, cmd, space, precmd=precmd)
         self.f = open(self.path, 'w')
         self.f.write('''import java.util.*;
