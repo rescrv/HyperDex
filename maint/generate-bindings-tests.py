@@ -110,14 +110,30 @@ class BindingGenerator(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def test(self, name, space): pass
-    def finish(self): pass
-    def get(self, space, key, expected): print 'XXX Get', str(self)
-    def get_partial(self, space, key, expected): print 'XXX Get', str(self)
-    def put(self, space, key, value, expected): print 'XXX Put', str(self)
-    def cond_put(self, space, key, pred, value, expected): print 'XXX CondPut', str(self)
-    def delete(self, space, key, expected): print 'XXX Del', str(self)
-    def search(self, space, predicate, expected): print 'XXX Search', str(self)
+    @abc.abstractmethod
+    def test(self, name, space):
+        pass
+    @abc.abstractmethod
+    def finish(self):
+        pass
+    @abc.abstractmethod
+    def get(self, space, key, expected):
+        pass
+    @abc.abstractmethod
+    def get_partial(self, space, key, attrs, expected):
+        pass
+    @abc.abstractmethod
+    def put(self, space, key, value, expected):
+        pass
+    @abc.abstractmethod
+    def cond_put(self, space, key, pred, value, expected):
+        pass
+    @abc.abstractmethod
+    def delete(self, space, key, expected):
+        pass
+    @abc.abstractmethod
+    def search(self, space, predicate, expected):
+        pass
 
 class PythonGenerator(BindingGenerator):
 
