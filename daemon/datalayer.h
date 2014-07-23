@@ -188,9 +188,11 @@ class datalayer
         datalayer& operator = (const datalayer&);
 
     private:
-        bool bump_version(const region_id& ri,
-                          uint64_t version,
-                          leveldb::WriteBatch* updates);
+        bool write_version(const region_id& ri,
+                           uint64_t version,
+                           leveldb::WriteBatch* updates);
+        void update_memory_version(const region_id& ri, uint64_t version);
+        uint64_t disk_version(const region_id& ri);
         void find_indices(const region_id& rid,
                           std::vector<const index*>* indices);
         void find_indices(const region_id& rid, uint16_t attr,

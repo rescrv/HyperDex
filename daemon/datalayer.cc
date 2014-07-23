@@ -348,7 +348,7 @@ datalayer :: reconfigure(const configuration&,
 
         if (!m_versions.get(key_regions[i], &val))
         {
-            val = max_version(key_regions[i]);
+            val = disk_version(key_regions[i]);
         }
 
         new_versions.put(key_regions[i], val);
@@ -507,7 +507,7 @@ datalayer :: put(const region_id& ri,
     create_index_changes(sc, ri, indices, key, NULL, &new_value, &updates);
 
     // ensure we've recorded a version at least as high as this key
-    bump_version(ri, version, &updates);
+    write_version(ri, version, &updates);
 
     // Perform the write
     leveldb::WriteOptions opts;
@@ -516,6 +516,7 @@ datalayer :: put(const region_id& ri,
 
     if (st.ok())
     {
+        update_memory_version(ri, version);
         return SUCCESS;
     }
     else
@@ -553,7 +554,7 @@ datalayer :: overput(const region_id& ri,
     create_index_changes(sc, ri, indices, key, &old_value, &new_value, &updates);
 
     // ensure we've recorded a version at least as high as this key
-    bump_version(ri, version, &updates);
+    write_version(ri, version, &updates);
 
     // Perform the write
     leveldb::WriteOptions opts;
@@ -562,6 +563,7 @@ datalayer :: overput(const region_id& ri,
 
     if (st.ok())
     {
+        update_memory_version(ri, version);
         return SUCCESS;
     }
     else
@@ -876,13 +878,26 @@ datalayer :: get_from_iterator(const region_id& ri,
     }
 }
 
-bool
-datalayer :: bump_version(const region_id& ri,
-                          uint64_t version,
-                          leveldb::WriteBatch* updates)
+namespace
 {
-    version += REGION_PERIODIC;
-    version  = version & ~(REGION_PERIODIC - 1);
+
+uint64_t
+roundup_version(uint64_t v)
+{
+    const static uint64_t REGION_PERIODIC = hyperdex::datalayer::REGION_PERIODIC;
+    v += REGION_PERIODIC;
+    v  = v & ~(REGION_PERIODIC - 1);
+    return v;
+}
+
+}
+
+bool
+datalayer :: write_version(const region_id& ri,
+                           uint64_t version,
+                           leveldb::WriteBatch* updates)
+{
+    version = roundup_version(version);
     uint64_t* current = NULL;
 
     if (!m_versions.mod(ri, &current) ||
@@ -898,12 +913,26 @@ datalayer :: bump_version(const region_id& ri,
 }
 
 void
+datalayer :: update_memory_version(const region_id& ri, uint64_t version)
+{
+    version = roundup_version(version);
+    uint64_t* current = NULL;
+    m_versions.mod(ri, &current);
+    uint64_t expected = e::atomic::load_64_nobarrier(current);
+    uint64_t witness  = 0;
+
+    while ((witness = e::atomic::compare_and_swap_64_nobarrier(current, expected, version)) < version)
+    {
+        expected = witness;
+    }
+}
+
+void
 datalayer :: bump_version(const region_id& ri, uint64_t version)
 {
-    version += 2 * REGION_PERIODIC;
     leveldb::WriteBatch updates;
 
-    if (!bump_version(ri, version, &updates))
+    if (!write_version(ri, version, &updates))
     {
         return;
     }
@@ -918,19 +947,24 @@ datalayer :: bump_version(const region_id& ri, uint64_t version)
         handle_error(st);
     }
 
-    uint64_t* current = NULL;
-    m_versions.mod(ri, &current);
-    uint64_t expected = e::atomic::load_64_nobarrier(current);
-    uint64_t witness  = 0;
-
-    while ((witness = e::atomic::compare_and_swap_64_nobarrier(current, expected, version)) < version)
-    {
-        expected = witness;
-    }
+    update_memory_version(ri, version);
 }
 
 uint64_t
 datalayer :: max_version(const region_id& ri)
+{
+    uint64_t val;
+
+    if (!m_versions.get(ri, &val))
+    {
+        val = disk_version(ri);
+    }
+
+    return val;
+}
+
+uint64_t
+datalayer :: disk_version(const region_id& ri)
 {
     leveldb::ReadOptions opts;
     opts.fill_cache = false;
