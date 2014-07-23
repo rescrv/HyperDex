@@ -340,6 +340,17 @@ datalayer :: reconfigure(const configuration&,
     // update the versions
     std::vector<region_id> key_regions;
     config.key_regions(m_daemon->m_us, &key_regions);
+    std::vector<region_id> xfer_regions;
+    config.transfers_in_regions(m_daemon->m_us, &xfer_regions);
+
+    for (size_t i = 0; i < xfer_regions.size(); ++i)
+    {
+        if (config.is_point_leader(config.head_of_region(xfer_regions[i])))
+        {
+            key_regions.push_back(xfer_regions[i]);
+        }
+    }
+
     e::ao_hash_map<region_id, uint64_t, id, defaultri> new_versions;
 
     for (size_t i = 0; i < key_regions.size(); ++i)
@@ -918,6 +929,12 @@ datalayer :: update_memory_version(const region_id& ri, uint64_t version)
     version = roundup_version(version);
     uint64_t* current = NULL;
     m_versions.mod(ri, &current);
+
+    if (current == NULL)
+    {
+        return;
+    }
+
     uint64_t expected = e::atomic::load_64_nobarrier(current);
     uint64_t witness  = 0;
 
