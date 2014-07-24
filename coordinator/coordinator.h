@@ -146,6 +146,7 @@ class coordinator
     private:
         typedef e::compat::shared_ptr<space> space_ptr;
         typedef std::map<std::string, space_ptr > space_map_t;
+        struct transfer_sorter;
 
     // utilities
     private:
@@ -187,6 +188,7 @@ class coordinator
         void check_stable_condition(replicant_state_machine_context* ctx);
         void generate_next_configuration(replicant_state_machine_context* ctx);
         void generate_cached_configuration(replicant_state_machine_context* ctx);
+        void prioritized_transfer_subset(std::vector<transfer>* transfers);
         void servers_in_configuration(std::vector<server_id>* sids);
         void regions_in_space(space_ptr s, std::vector<region_id>* rids);
         // checkpoints

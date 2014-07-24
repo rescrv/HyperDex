@@ -1944,12 +1944,15 @@ coordinator :: generate_cached_configuration(replicant_state_machine_context*)
         sz += pack_size(m_transfers[i]);
     }
 
+    std::vector<transfer> transfers_subset;
+    prioritized_transfer_subset(&transfers_subset);
+
     std::auto_ptr<e::buffer> new_config(e::buffer::create(sz));
     e::buffer::packer pa = new_config->pack_at(0);
     pa = pa << m_cluster << m_version << m_flags
             << uint64_t(m_servers.size())
             << uint64_t(m_spaces.size())
-            << uint64_t(m_transfers.size());
+            << uint64_t(transfers_subset.size());
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
@@ -1962,12 +1965,67 @@ coordinator :: generate_cached_configuration(replicant_state_machine_context*)
         pa = pa << *it->second;
     }
 
-    for (size_t i = 0; i < m_transfers.size(); ++i)
+    for (size_t i = 0; i < transfers_subset.size(); ++i)
     {
-        pa = pa << m_transfers[i];
+        pa = pa << transfers_subset[i];
     }
 
     m_latest_config = new_config;
+}
+
+struct coordinator::transfer_sorter
+{
+    transfer_sorter(coordinator* c) : coord(c) {}
+    transfer_sorter(const transfer_sorter& other) : coord(other.coord) {}
+    bool operator () (const transfer& lhs, const transfer& rhs) const;
+    coordinator* coord;
+
+    private:
+        transfer_sorter& operator = (const transfer_sorter&);
+};
+
+bool
+coordinator :: transfer_sorter :: operator () (const transfer& lhs, const transfer& rhs) const
+{
+    region* rlhs = coord->get_region(lhs.rid);
+    region* rrhs = coord->get_region(rhs.rid);
+    bool live_lhs = !rlhs->replicas.empty() && rlhs->replicas.back().vsi == lhs.vdst;
+    bool live_rhs = !rrhs->replicas.empty() && rrhs->replicas.back().vsi == rhs.vdst;
+
+    if (live_lhs && !live_rhs)
+    {
+        return true;
+    }
+    else if (live_rhs && !live_lhs)
+    {
+        return false;
+    }
+    else
+    {
+        return rlhs->replicas.size() < rrhs->replicas.size();
+    }
+}
+
+void
+coordinator :: prioritized_transfer_subset(std::vector<transfer>* transfers)
+{
+    std::vector<server_id> seen;
+    std::vector<transfer> tmp_transfers(m_transfers);
+    transfer_sorter ts(this);
+    std::sort(tmp_transfers.begin(), tmp_transfers.end(), ts);
+    transfers->clear();
+    transfers->reserve(std::min(m_servers.size(), m_transfers.size()));
+
+    for (size_t i = 0; i < tmp_transfers.size(); ++i)
+    {
+        if (std::find(seen.begin(), seen.end(), tmp_transfers[i].src) == seen.end() &&
+            std::find(seen.begin(), seen.end(), tmp_transfers[i].dst) == seen.end())
+        {
+            seen.push_back(tmp_transfers[i].src);
+            seen.push_back(tmp_transfers[i].dst);
+            transfers->push_back(tmp_transfers[i]);
+        }
+    }
 }
 
 void
