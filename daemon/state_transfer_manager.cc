@@ -739,6 +739,8 @@ state_transfer_manager :: background_thread :: do_work()
         m_stm->transfer_more_state(m_stm->m_transfers_out[idx].get());
         ++idx;
     }
+
+    m_stm->m_daemon->m_comm.wake_one();
 }
 
 void
@@ -746,5 +748,6 @@ state_transfer_manager :: background_thread :: kick()
 {
     this->lock();
     m_need_kickstart = true;
+    this->wakeup();
     this->unlock();
 }

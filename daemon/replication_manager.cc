@@ -122,6 +122,7 @@ void
 replication_manager :: unpause()
 {
     m_retransmitter->unpause();
+    m_retransmitter->trigger();
 }
 
 void
@@ -228,6 +229,7 @@ replication_manager :: debug_dump()
     }
 
     m_retransmitter->unpause();
+    m_retransmitter->trigger();
 }
 
 void
@@ -425,6 +427,8 @@ replication_manager :: chain_ack(const virtual_server_id& from,
 void
 replication_manager :: begin_checkpoint(uint64_t checkpoint_num)
 {
+    m_retransmitter->initiate_pause();
+    m_retransmitter->wait_until_paused();
     std::string timestamp = m_daemon->m_data.get_timestamp();
 
     {
@@ -457,11 +461,15 @@ replication_manager :: begin_checkpoint(uint64_t checkpoint_num)
     }
 
     check_stable();
+    m_retransmitter->unpause();
+    m_retransmitter->trigger();
 }
 
 void
 replication_manager :: end_checkpoint(uint64_t checkpoint_num)
 {
+    m_retransmitter->initiate_pause();
+    m_retransmitter->wait_until_paused();
     po6::threads::mutex::hold hold(&m_protect_stable_stuff);
 
     for (size_t i = 0; i < m_timestamps.size(); )
@@ -477,6 +485,9 @@ replication_manager :: end_checkpoint(uint64_t checkpoint_num)
             ++i;
         }
     }
+
+    m_retransmitter->unpause();
+    m_retransmitter->trigger();
 }
 
 key_state*
@@ -744,6 +755,8 @@ replication_manager :: collect(const region_id& ri, e::intrusive_ptr<key_operati
         m_idcol.collect(ri, op->this_version());
         check_stable(ri);
     }
+
+    check_stable();
 }
 
 void
@@ -936,12 +949,14 @@ replication_manager :: retransmitter_thread :: do_work()
     }
 
     m_rm->check_stable();
+    m_rm->m_daemon->m_comm.wake_one();
 }
 
 void
 replication_manager :: retransmitter_thread :: trigger()
 {
-    lock();
+    this->lock();
     ++m_trigger;
-    unlock();
+    this->wakeup();
+    this->unlock();
 }
