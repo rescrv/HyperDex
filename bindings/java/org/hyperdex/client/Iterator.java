@@ -70,7 +70,7 @@ public class Iterator implements Operation
     private native void _destroy();
 
     /* Other calls */
-    public Boolean hasNext()
+    public Boolean hasNext() throws HyperDexClientException
     {
         while (!finished() && backlogged.isEmpty())
         {

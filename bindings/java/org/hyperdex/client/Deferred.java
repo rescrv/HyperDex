@@ -65,11 +65,11 @@ public class Deferred implements Operation
     private native void _destroy();
 
     /* Other calls */
-    public native Object waitForIt();
+    public native Object waitForIt() throws HyperDexClientException;
     public native void callback();
 
     /* Utilities */
-    private void loop()
+    private void loop() throws HyperDexClientException
     {
         this.c.loop();
     }

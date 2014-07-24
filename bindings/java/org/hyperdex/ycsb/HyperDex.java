@@ -45,6 +45,7 @@ import com.yahoo.ycsb.StringByteIterator;
 
 import org.hyperdex.client.ByteString;
 import org.hyperdex.client.Client;
+import org.hyperdex.client.HyperDexClientException;
 import org.hyperdex.client.Iterator;
 
 public class HyperDex extends DB
@@ -89,19 +90,31 @@ public class HyperDex extends DB
      */
     public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
     {
-        Map map = new HashMap<String,Object>();
-
-        try
+        while (true)
         {
-            map = m_client.get(table, key);
-        }
-        catch(Exception e)
-        {
-            return 1;
-        }
+            Map map = new HashMap<String,Object>();
 
-        convert_to_java(fields, map, result);
-        return 0;
+            try
+            {
+                map = m_client.get(table, key);
+            }
+            catch(HyperDexClientException e)
+            {
+                if (e.status() == 8517)
+                {
+                    continue;
+                }
+
+                return 1;
+            }
+            catch(Exception e)
+            {
+                return 1;
+            }
+
+            convert_to_java(fields, map, result);
+            return 0;
+        }
     }
 
     /**
@@ -116,44 +129,56 @@ public class HyperDex extends DB
      */
     public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
     {
-        // XXX I'm going to be lazy and not support "fields" for now.  Patches
-        // welcome.
-
-        if (!m_scannable)
+        while (true)
         {
-            return 1;
-        }
+            // XXX I'm going to be lazy and not support "fields" for now.  Patches
+            // welcome.
 
-        m_mat.reset(startkey);
-
-        if (!m_mat.matches())
-        {
-            return 2;
-        }
-
-        long base = Long.parseLong(m_mat.group(2));
-        long lower = base << 32;
-        long upper = (base + recordcount) << 32;
-
-        HashMap<String,Object> values = new HashMap<String,Object>();
-        AbstractMap.SimpleEntry<Long,Long> range
-            = new AbstractMap.SimpleEntry<Long,Long>(lower,upper);
-        values.put("recno", range);
-
-        try
-        {
-            Iterator s = m_client.search(table, values);
-
-            while (s.hasNext())
+            if (!m_scannable)
             {
-                s.next();
+                return 1;
             }
 
-            return 0;
-        }
-        catch(Exception e)
-        {
-            return 3;
+            m_mat.reset(startkey);
+
+            if (!m_mat.matches())
+            {
+                return 2;
+            }
+
+            long base = Long.parseLong(m_mat.group(2));
+            long lower = base << 32;
+            long upper = (base + recordcount) << 32;
+
+            HashMap<String,Object> values = new HashMap<String,Object>();
+            AbstractMap.SimpleEntry<Long,Long> range
+                = new AbstractMap.SimpleEntry<Long,Long>(lower,upper);
+            values.put("recno", range);
+
+            try
+            {
+                Iterator s = m_client.search(table, values);
+
+                while (s.hasNext())
+                {
+                    s.next();
+                }
+
+                return 0;
+            }
+            catch(HyperDexClientException e)
+            {
+                if (e.status() == 8517)
+                {
+                    continue;
+                }
+
+                return 1;
+            }
+            catch(Exception e)
+            {
+                return 3;
+            }
         }
     }
 
@@ -168,35 +193,47 @@ public class HyperDex extends DB
      */
     public int update(String table, String key, HashMap<String,ByteIterator> _values)
     {
-        HashMap<String,Object> values = new HashMap<String,Object>();
-
-        for (Map.Entry<String, ByteIterator> entry : _values.entrySet())
+        while (true)
         {
-            values.put(entry.getKey(), new ByteString(entry.getValue().toArray()));
-        }
+            HashMap<String,Object> values = new HashMap<String,Object>();
 
-        if (m_scannable)
-        {
-            m_mat.reset(key);
-
-            if (!m_mat.matches())
+            for (Map.Entry<String, ByteIterator> entry : _values.entrySet())
             {
-                return -1;
+                values.put(entry.getKey(), new ByteString(entry.getValue().toArray()));
             }
 
-            long num = Long.parseLong(m_mat.group(2));
-            values.put("recno", new Long(num << 32));
-        }
+            if (m_scannable)
+            {
+                m_mat.reset(key);
 
-        try
-        {
-            m_client.put(table, key, values);
-            return 0;
-        }
-        catch(Exception e)
-        {
-            System.err.println(e.toString());
-            return 1;
+                if (!m_mat.matches())
+                {
+                    return -1;
+                }
+
+                long num = Long.parseLong(m_mat.group(2));
+                values.put("recno", new Long(num << 32));
+            }
+
+            try
+            {
+                m_client.put(table, key, values);
+                return 0;
+            }
+            catch(HyperDexClientException e)
+            {
+                if (e.status() == 8517)
+                {
+                    continue;
+                }
+
+                return 1;
+            }
+            catch(Exception e)
+            {
+                System.err.println(e.toString());
+                return 1;
+            }
         }
     }
 
@@ -223,14 +260,26 @@ public class HyperDex extends DB
      */
     public int delete(String table, String key)
     {
-        try
+        while (true)
         {
-            m_client.del(table, key);
-            return 0;
-        }
-        catch(Exception e)
-        {
-            return 1;
+            try
+            {
+                m_client.del(table, key);
+                return 0;
+            }
+            catch(HyperDexClientException e)
+            {
+                if (e.status() == 8517)
+                {
+                    continue;
+                }
+
+                return 1;
+            }
+            catch(Exception e)
+            {
+                return 1;
+            }
         }
     }
 
