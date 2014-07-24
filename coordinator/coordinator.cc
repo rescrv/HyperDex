@@ -398,7 +398,6 @@ coordinator :: server_offline(replicant_state_machine_context* ctx,
                      sid.get(), server::to_string(srv->state),
                      server::to_string(server::NOT_AVAILABLE));
         srv->state = server::NOT_AVAILABLE;
-        remove_permutation(sid);
         rebalance_replica_sets(ctx);
         generate_next_configuration(ctx);
     }
@@ -537,7 +536,6 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
                      sid.get(), server::to_string(srv->state),
                      server::to_string(server::NOT_AVAILABLE));
         srv->state = server::NOT_AVAILABLE;
-        remove_permutation(sid);
         rebalance_replica_sets(ctx);
         generate_next_configuration(ctx);
     }
@@ -974,7 +972,7 @@ coordinator :: checkpoint(replicant_state_machine_context* ctx)
     std::vector<server_id> sids;
     servers_in_configuration(&sids);
     m_checkpoint_stable_barrier.new_version(m_checkpoint, sids);
-    check_checkpoint_stable_condition(ctx);
+    check_checkpoint_stable_condition(ctx, true);
 }
 
 void
@@ -989,7 +987,7 @@ coordinator :: checkpoint_stable(replicant_state_machine_context* ctx,
     }
 
     m_checkpoint_stable_barrier.pass(number, sid);
-    check_checkpoint_stable_condition(ctx);
+    check_checkpoint_stable_condition(ctx, false);
     generate_response(ctx, COORD_SUCCESS);
 }
 
@@ -2012,7 +2010,7 @@ coordinator :: prioritized_transfer_subset(std::vector<transfer>* transfers)
     std::vector<server_id> seen;
     std::vector<transfer> tmp_transfers(m_transfers);
     transfer_sorter ts(this);
-    std::sort(tmp_transfers.begin(), tmp_transfers.end(), ts);
+    std::stable_sort(tmp_transfers.begin(), tmp_transfers.end(), ts);
     transfers->clear();
     transfers->reserve(std::min(m_servers.size(), m_transfers.size()));
 
@@ -2078,10 +2076,8 @@ coordinator :: regions_in_space(space_ptr s, std::vector<region_id>* rids)
     }
 }
 
-#define OUTSTANDING_CHECKPOINTS 120
-
 void
-coordinator :: check_checkpoint_stable_condition(replicant_state_machine_context* ctx)
+coordinator :: check_checkpoint_stable_condition(replicant_state_machine_context* ctx, bool reissue)
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
     assert(m_checkpoint_stable_through <= m_checkpoint);
@@ -2100,8 +2096,28 @@ coordinator :: check_checkpoint_stable_condition(replicant_state_machine_context
     }
 
     bool gc = false;
+    uint64_t outstanding_checkpoints = 120;
 
-    while (m_checkpoint_gc_through + OUTSTANDING_CHECKPOINTS < m_checkpoint_stable_barrier.min_version())
+    if (m_intents.empty())
+    {
+        bool all_available = true;
+
+        for (size_t i = 0; i < m_servers.size(); ++i)
+        {
+            if (m_servers[i].state != server::AVAILABLE)
+            {
+                all_available = false;
+                break;
+            }
+        }
+
+        if (all_available)
+        {
+            outstanding_checkpoints = 1;
+        }
+    }
+
+    while (m_checkpoint_gc_through + outstanding_checkpoints < m_checkpoint_stable_barrier.min_version())
     {
         gc = true;
         replicant_state_machine_condition_broadcast(ctx, "checkpgc", &m_checkpoint_gc_through);
@@ -2112,9 +2128,8 @@ coordinator :: check_checkpoint_stable_condition(replicant_state_machine_context
         fprintf(log, "garbage collect <= checkpoint %" PRIu64 "\n", m_checkpoint_gc_through);
     }
 
+    assert(m_checkpoint_gc_through <= m_checkpoint_stable_through);
     assert(m_checkpoint_stable_through <= m_checkpoint);
-    assert(m_checkpoint_gc_through + OUTSTANDING_CHECKPOINTS <= m_checkpoint ||
-           m_checkpoint <= OUTSTANDING_CHECKPOINTS);
 
     if (stabilized)
     {
@@ -2141,5 +2156,10 @@ coordinator :: check_checkpoint_stable_condition(replicant_state_machine_context
         {
             generate_next_configuration(ctx);
         }
+    }
+
+    if (reissue && m_checkpoint_stable_through + 1 < m_checkpoint)
+    {
+        generate_next_configuration(ctx);
     }
 }
