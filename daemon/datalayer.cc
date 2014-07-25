@@ -134,8 +134,20 @@ datalayer :: initialize(const po6::pathname& path,
     {
         first_time = false;
 
-        if (rbacking != PACKAGE_VERSION &&
-            rbacking != "1.2.dev")
+        if (rbacking == "1.3.1" ||
+            rbacking == "1.3.0")
+        {
+            LOG(INFO) << "existing data was created with HyperDex "
+                      << rbacking << " but this is version "
+                      << PACKAGE_VERSION;
+            LOG(INFO) << "automatically upgrading to " << PACKAGE_VERSION;
+
+            if (!upgrade_13x_to_14())
+            {
+                return false;
+            }
+        }
+        else if (rbacking != PACKAGE_VERSION)
         {
             LOG(ERROR) << "could not restore from disk because "
                        << "the existing data was created by "
@@ -1241,6 +1253,110 @@ datalayer :: only_key_is_hyperdex_key()
     }
 
     return seen;
+}
+
+bool
+datalayer :: upgrade_13x_to_14()
+{
+    leveldb::WriteOptions wopts;
+    wopts.sync = true;
+
+    // first scan every key that starts with "a", making a map from region id to max seqid.
+    std::map<region_id, uint64_t> seq_ids;
+    leveldb::ReadOptions ropts;
+    ropts.fill_cache = false;
+    ropts.verify_checksums = true;
+    ropts.snapshot = NULL;
+    std::auto_ptr<leveldb::Iterator> it(m_db->NewIterator(ropts));
+    it->Seek(leveldb::Slice("a", 1));
+
+    while (it->Valid())
+    {
+        if (it->key().size() != sizeof(uint64_t) * 3 + 1 ||
+            it->key().data()[0] != 'a')
+        {
+            break;
+        }
+
+        const char* ptr = it->key().data();
+        uint64_t reg_id;
+        uint64_t seq_id;
+        uint64_t ri;
+        e::unpack64be(ptr + 1, &reg_id);
+        e::unpack64be(ptr + 9, &seq_id);
+        e::unpack64be(ptr + 17, &ri);
+
+        if (reg_id == ri)
+        {
+            seq_id = std::max(seq_ids[region_id(ri)], UINT64_MAX - seq_id);
+            seq_ids[region_id(ri)] = seq_id;
+        }
+
+        it->Next();
+    }
+
+    if (!it->status().ok())
+    {
+        LOG(ERROR) << "could not upgrade to 1.4: " << it->status().ToString();
+        return false;
+    }
+
+    // now write out versions for the regions that we saw
+    for (std::map<region_id, uint64_t>::iterator s = seq_ids.begin();
+            s != seq_ids.end(); ++s)
+    {
+        char vbacking[VERSION_BUF_SIZE];
+        uint64_t v = std::max(s->second, disk_version(s->first));
+        encode_version(s->first, roundup_version(v), vbacking);
+        leveldb::Status st = m_db->Put(wopts, leveldb::Slice(vbacking, VERSION_BUF_SIZE), leveldb::Slice());
+
+        if (!st.ok())
+        {
+            LOG(ERROR) << "could not upgrade to 1.4: " << st.ToString();
+            return false;
+        }
+    }
+
+    // only after those are on disk should we delete the original keys
+    it->Seek(leveldb::Slice("a", 1));
+
+    while (it->Valid())
+    {
+        if (it->key().size() == sizeof(uint64_t) * 3 + 1 ||
+            it->key().data()[0] != 'a')
+        {
+            break;
+        }
+
+        leveldb::Status st = m_db->Delete(wopts, it->key());
+
+        if (!st.ok())
+        {
+            LOG(ERROR) << "could not upgrade to 1.4: " << it->status().ToString();
+            return false;
+        }
+
+        it->Next();
+    }
+
+    if (!it->status().ok())
+    {
+        LOG(ERROR) << "could not upgrade to 1.4: " << it->status().ToString();
+        return false;
+    }
+
+    // finally mark the new version
+    leveldb::Slice k("hyperdex", 8);
+    leveldb::Slice v(PACKAGE_VERSION, STRLENOF(PACKAGE_VERSION));
+    leveldb::Status st = m_db->Put(wopts, k, v);
+
+    if (!st.ok())
+    {
+        LOG(ERROR) << "could not upgrade to 1.4: " << st.ToString();
+        return false;
+    }
+
+    return true;
 }
 
 void

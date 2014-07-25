@@ -177,6 +177,7 @@ class datalayer
         bool has_index_marker(const region_id& ri, const index_id& ii);
         // used on startup
         bool only_key_is_hyperdex_key();
+        bool upgrade_13x_to_14();
 
     private:
         class index_state;
