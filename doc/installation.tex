@@ -310,6 +310,13 @@ instead \texttt{make} will fail with an error message.
 
 Required Dependencies:
 
+As noted in the section above on installing from tarballs, you must have:
+
+libpopt-dev
+libgoogle-glog-dev
+libjson-c-dev
+libjson0-dev
+
 \begin{itemize}
 \item \href{http://www.gnu.org/software/autoconf/}{Autoconf} Used as part of
     the build system.  Required for all builds.
@@ -336,8 +343,11 @@ Required Dependencies:
     from markdown to man page format.
 \end{itemize}
 
-You'll need to build po6, e, BusyBee, HyperLevelDB Replicant, and HyperDex from
-Git, as the development version often introduces across repositories.
+You'll need to build po6, e, BusyBee, HyperLevelDB, Replicant, and HyperDex from
+Git, as the development version often introduces incompatible changes across
+repositories.
+
+Build and install the repos in the order listed above.
 
 For each of these repositories, you may build and install the code with:
 
