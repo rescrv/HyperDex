@@ -12,8 +12,6 @@ import "C"
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"runtime"
 )
 
@@ -76,39 +74,43 @@ func NewAdmin(ip string, port int) (*Admin, error) {
 			default:
 				// check if there are pending requests
 				// and only if there are, call hyperdex_client_loop
-				if len(admin.requests) > 0 {
-					var status C.enum_hyperdex_admin_returncode
-					ret := int64(C.hyperdex_admin_loop(admin.ptr, C.int(TIMEOUT), &status))
-					//log.Printf("hyperdex_client_loop(%X, %d, %X) -> %d\n", unsafe.Pointer(client.ptr), hyperdex_client_loop_timeout, unsafe.Pointer(&status), ret)
-					if ret < 0 {
-						panic(newInternalError(status, "Admin error"))
+				if len(admin.requests) == 0 {
+					continue
+				}
+
+				var status C.enum_hyperdex_admin_returncode
+				ret := int64(C.hyperdex_admin_loop(admin.ptr, C.int(TIMEOUT), &status))
+				if ret < 0 {
+					panic(newInternalError(status, "Admin error"))
+				}
+
+				// find processed request among pending requests
+				for i, req := range admin.requests {
+					if req.id != ret {
+						continue
 					}
-					// find processed request among pending requests
-					for i, req := range admin.requests {
-						if req.id == ret {
-							if status == C.HYPERDEX_ADMIN_SUCCESS {
-								switch *req.status {
-								case C.HYPERDEX_ADMIN_SUCCESS:
-									if req.success != nil {
-										req.success()
-									}
-								default:
-									if req.failure != nil {
-										req.failure(*req.status,
-											C.GoString(C.hyperdex_admin_error_message(admin.ptr)))
-									}
-								}
-							} else if req.failure != nil {
-								req.failure(status,
+
+					if status == C.HYPERDEX_ADMIN_SUCCESS {
+						switch *req.status {
+						case C.HYPERDEX_ADMIN_SUCCESS:
+							if req.success != nil {
+								req.success()
+							}
+						default:
+							if req.failure != nil {
+								req.failure(*req.status,
 									C.GoString(C.hyperdex_admin_error_message(admin.ptr)))
 							}
-							admin.requests = append(admin.requests[:i], admin.requests[i+1:]...)
 						}
+					} else if req.failure != nil {
+						req.failure(status,
+							C.GoString(C.hyperdex_admin_error_message(admin.ptr)))
 					}
+					admin.requests = append(admin.requests[:i], admin.requests[i+1:]...)
 				}
-				// prevent other goroutines from starving
-				runtime.Gosched()
 			}
+			// prevent other goroutines from starving
+			runtime.Gosched()
 		}
 		panic("Should not be reached: end of infinite loop")
 	}()
