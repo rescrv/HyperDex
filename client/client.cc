@@ -564,6 +564,11 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
         }
     }
 
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
     ERROR(NONEPENDING) << "no outstanding operations to process";
     return -1;
 }
