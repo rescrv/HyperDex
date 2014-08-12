@@ -1048,6 +1048,7 @@ func NewClient(host string, port int) (*Client, error, chan Error) {
 					} else if cIter.status == C.HYPERDEX_CLIENT_SEARCHDONE {
 						close(cIter.attrChan)
 						close(cIter.errChan)
+						delete(client.searches, reqid)
 					} else {
 						e := Error{Status(cIter.status),
 							C.GoString(C.hyperdex_client_error_message(client.ptr)),
