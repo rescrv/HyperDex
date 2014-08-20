@@ -120,6 +120,31 @@ hyperdex_client_create(const char* coordinator, uint16_t port)
     }
 }
 
+HYPERDEX_API hyperdex_client*
+hyperdex_client_create_conn_str(const char* conn_str)
+{
+    FAKE_STATUS;
+    SIGNAL_PROTECT_ERR(NULL);
+    try
+    {
+        return reinterpret_cast<hyperdex_client*>(new hyperdex::client(conn_str));
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        return NULL;
+    }
+    catch (std::bad_alloc& ba)
+    {
+        errno = ENOMEM;
+        return NULL;
+    }
+    catch (...)
+    {
+        return NULL;
+    }
+}
+
 HYPERDEX_API void
 hyperdex_client_destroy(hyperdex_client* client)
 {

@@ -59,6 +59,7 @@ class coordinator_link
 
     public:
         coordinator_link(const char* coordinator, uint16_t port);
+        coordinator_link(const char* conn_str);
         ~coordinator_link() throw ();
 
     public:

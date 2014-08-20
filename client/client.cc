@@ -96,6 +96,24 @@ client :: client(const char* coordinator, uint16_t port)
     m_gc.register_thread(&m_gc_ts);
 }
 
+client :: client(const char* conn_str)
+    : m_coord(conn_str)
+    , m_gc()
+    , m_gc_ts()
+    , m_busybee_mapper(m_coord.config())
+    , m_busybee(&m_gc, &m_busybee_mapper, busybee_generate_id())
+    , m_next_client_id(1)
+    , m_next_server_nonce(1)
+    , m_pending_ops()
+    , m_failed()
+    , m_yieldable()
+    , m_yielding()
+    , m_yielded()
+    , m_last_error()
+{
+    m_gc.register_thread(&m_gc_ts);
+}
+
 client :: ~client() throw ()
 {
     m_gc.deregister_thread(&m_gc_ts);

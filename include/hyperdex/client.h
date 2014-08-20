@@ -105,6 +105,8 @@ enum hyperdex_client_returncode
 
 struct hyperdex_client*
 hyperdex_client_create(const char* coordinator, uint16_t port);
+struct hyperdex_client*
+hyperdex_client_create_conn_str(const char* conn_str);
 void
 hyperdex_client_destroy(struct hyperdex_client* client);
 

@@ -91,6 +91,7 @@ generate_test_tarball('doc', [
     ('test/sh/doc.async-ops.sh', 'test/doc.async-ops.py'),
     ('test/sh/doc.atomic-ops.sh', 'test/doc.atomic-ops.py'),
     ('test/sh/doc.data-types.sh', 'test/doc.data-types.py'),
+    ('test/sh/doc.documents.sh', 'test/doc.documents.py'),
     ('test/sh/doc.quick-start.sh', 'test/doc.quick-start.py'),
 ])
 
