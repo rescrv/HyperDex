@@ -53,6 +53,7 @@ class client
 {
     public:
         client(const char* coordinator, uint16_t port);
+        client(const char* conn_str);
         ~client() throw ();
 
     public:

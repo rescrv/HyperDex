@@ -350,6 +350,8 @@ enum hyperdex_client_returncode
 
 struct hyperdex_client*
 hyperdex_client_create(const char* coordinator, uint16_t port);
+struct hyperdex_client*
+hyperdex_client_create_conn_str(const char* conn_str);
 void
 hyperdex_client_destroy(struct hyperdex_client* client);
 
@@ -471,6 +473,31 @@ hyperdex_client_create(const char* coordinator, uint16_t port)
     try
     {
         return reinterpret_cast<hyperdex_client*>(new hyperdex::client(coordinator, port));
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        return NULL;
+    }
+    catch (std::bad_alloc& ba)
+    {
+        errno = ENOMEM;
+        return NULL;
+    }
+    catch (...)
+    {
+        return NULL;
+    }
+}
+
+HYPERDEX_API hyperdex_client*
+hyperdex_client_create_conn_str(const char* conn_str)
+{
+    FAKE_STATUS;
+    SIGNAL_PROTECT_ERR(NULL);
+    try
+    {
+        return reinterpret_cast<hyperdex_client*>(new hyperdex::client(conn_str));
     }
     catch (po6::error& e)
     {

@@ -42,6 +42,18 @@ coordinator_link :: coordinator_link(const char* coordinator, uint16_t port)
 {
 }
 
+coordinator_link :: coordinator_link(const char* conn_str)
+    : m_repl(conn_str)
+    , m_config()
+    , m_state(NOTHING)
+    , m_id(-1)
+    , m_status(REPLICANT_GARBAGE)
+    , m_output(NULL)
+    , m_output_sz(0)
+    , m_pending_ids()
+{
+}
+
 coordinator_link :: ~coordinator_link() throw ()
 {
     reset();
