@@ -1047,6 +1047,7 @@ hyperdexexec_PROGRAMS += hyperdex-server-forget
 hyperdexexec_PROGRAMS += hyperdex-perf-counters
 hyperdexexec_PROGRAMS += hyperdex-set-read-only
 hyperdexexec_PROGRAMS += hyperdex-set-read-write
+hyperdexexec_PROGRAMS += hyperdex-set-fault-tolerance
 hyperdexexec_PROGRAMS += hyperdex-wait-until-stable
 hyperdexexec_PROGRAMS += hyperdex-backup
 hyperdexexec_PROGRAMS += hyperdex-backup-manager
@@ -1068,6 +1069,7 @@ dist_man_MANS += man/hyperdex-server-forget.1
 dist_man_MANS += man/hyperdex-perf-counters.1
 dist_man_MANS += man/hyperdex-set-read-only.1
 dist_man_MANS += man/hyperdex-set-read-write.1
+dist_man_MANS += man/hyperdex-set-fault-tolerance.1
 dist_man_MANS += man/hyperdex-wait-until-stable.1
 dist_man_MANS += man/hyperdex-backup.1
 dist_man_MANS += man/hyperdex-backup-manager.1
@@ -1231,6 +1233,15 @@ hyperdex_set_read_write_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-set-read-write.1: man/hyperdex-set-read-write.1.h2m tools/set-read-write.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-set-read-write$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-read-write$(EXEEXT)
+
+# hyperdex-set-fault-tolerance
+EXTRA_DIST += man/hyperdex-set-fault-tolerance.1.md
+EXTRA_DIST += man/hyperdex-set-fault-tolerance.1.h2m
+hyperdex_set_fault_tolerance_SOURCES = tools/set-fault-tolerance.cc
+hyperdex_set_fault_tolerance_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-set-fault-tolerance.1: man/hyperdex-set-fault-tolerance.1.h2m tools/set-fault-tolerance.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-set-fault-tolerance$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-fault-tolerance$(EXEEXT)
 
 # hyperdex-wait-until-stable
 EXTRA_DIST += man/hyperdex-wait-until-stable.1.md

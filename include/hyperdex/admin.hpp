@@ -61,6 +61,9 @@ class Admin
             { return hyperdex_admin_read_only(m_adm, ro, status); }
         int64_t wait_until_stable(enum hyperdex_admin_returncode* status)
             { return hyperdex_admin_wait_until_stable(m_adm, status); }
+        int64_t fault_tolerance(const char* space, uint64_t ft,
+                                enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_fault_tolerance(m_adm, space, ft, status); }
         int validate_space(const char* description,
                            enum hyperdex_admin_returncode* status)
             { return hyperdex_admin_validate_space(m_adm, description, status); }

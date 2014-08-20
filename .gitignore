@@ -72,6 +72,7 @@
 /hyperdex-server-offline
 /hyperdex-server-online
 /hyperdex-server-register
+/hyperdex-set-fault-tolerance
 /hyperdex-set-read-only
 /hyperdex-set-read-write
 /hyperdex-show-config
