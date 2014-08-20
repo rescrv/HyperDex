@@ -284,12 +284,12 @@ hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_in_state.cc
 hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_out_state.cc
 hyperdex_daemon_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
 hyperdex_daemon_LDADD =
-hyperdex_daemon_LDADD += $(E_LIBS)
-hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
-hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(REPLICANT_LIBS)
+hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
+hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
+hyperdex_daemon_LDADD += $(E_LIBS)
 hyperdex_daemon_LDADD += $(JSON_LIBS)
-hyperdex_daemon_LDADD += -lpopt -lglog -lpthread
+hyperdex_daemon_LDADD += -lpopt -lglog -lrt -lpthread
 man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-daemon$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-daemon$(EXEEXT)
@@ -342,16 +342,16 @@ libhyperdex_coordinator_la_SOURCES += coordinator/replica_sets.cc
 libhyperdex_coordinator_la_SOURCES += coordinator/server_barrier.cc
 libhyperdex_coordinator_la_SOURCES += coordinator/symtable.c
 libhyperdex_coordinator_la_SOURCES += coordinator/transitions.cc
-# libhyperdex_coordinator_la_LIBADD =
-# libhyperdex_coordinator_la_LIBADD += $(E_LIBS)
+libhyperdex_coordinator_la_LIBADD =
+libhyperdex_coordinator_la_LIBADD += $(E_LIBS)
 
 EXTRA_DIST += man/hyperdex-coordinator.1.md
 EXTRA_DIST += man/hyperdex-coordinator.1.h2m
 hyperdex_coordinator_SOURCES = tools/coordinator.cc
 hyperdex_coordinator_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(AM_CPPFLAGS) $(CPPFLAGS)
 hyperdex_coordinator_LDADD =
-hyperdex_coordinator_LDADD += $(E_LIBS)
 hyperdex_coordinator_LDADD += $(BUSYBEE_LIBS)
+hyperdex_coordinator_LDADD += $(E_LIBS)
 hyperdex_coordinator_LDADD += -lpopt
 man/hyperdex-coordinator.1: man/hyperdex-coordinator.1.h2m tools/coordinator.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-coordinator$(EXEEXT)
@@ -436,9 +436,9 @@ libhyperdex_client_la_SOURCES += client/pending_search_describe.cc
 libhyperdex_client_la_SOURCES += client/pending_sorted_search.cc
 libhyperdex_client_la_SOURCES += client/util.cc
 libhyperdex_client_la_LIBADD =
-libhyperdex_client_la_LIBADD += $(E_LIBS)
-libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(REPLICANT_LIBS)
+libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
+libhyperdex_client_la_LIBADD += $(E_LIBS)
 libhyperdex_client_la_LIBADD += $(JSON_LIBS)
 
 client/keyop_info.cc: client/keyop_info.gperf client/keyop_info.h
@@ -528,9 +528,9 @@ libhyperdex_admin_la_SOURCES += admin/pending_string.cc
 libhyperdex_admin_la_SOURCES += admin/raw_backup.cc
 libhyperdex_admin_la_SOURCES += admin/yieldable.cc
 libhyperdex_admin_la_LIBADD =
-libhyperdex_admin_la_LIBADD += $(E_LIBS)
-libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
+libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
+libhyperdex_admin_la_LIBADD += $(E_LIBS)
 libhyperdex_admin_la_LIBADD += $(JSON_LIBS)
 
 ################################################################################
