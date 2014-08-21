@@ -82,6 +82,14 @@ fi
 AC_SUBST([JNI_CPPFLAGS], [${JNI_CPPFLAGS}])
 
 # Checks for libraries.
+AC_CHECK_LIB([rt], [clock_gettime], [needs_lrt=yes], [needs_lrt=no])
+
+if test x"${needs_lrt}" = xyes; then
+    AC_SUBST([LRT_LDFLAGS], ["-lrt"])
+else
+    AC_SUBST([LRT_LDFLAGS], [""])
+fi
+
 if test x"${enable_all_components}" = xyes -o \
         x"${enable_tools}" = xyes -o \
         x"${enable_coordinator}" = xyes -o \
