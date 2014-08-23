@@ -27,8 +27,18 @@
 
 #define __STDC_LIMIT_MACROS
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 // json-c
+#if HAVE_JSON_H
 #include <json/json.h>
+#elif HAVE_JSON_C_H
+#include <json-c/json.h>
+#else
+#error no suitable json.h found
+#endif
 
 // e
 #include <e/endian.h>
