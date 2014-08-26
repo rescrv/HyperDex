@@ -82,7 +82,7 @@ class state_hash_table<K, T, H>::state_reference
         void lock(state_hash_table* sht, e::intrusive_ptr<T> state);
         void unlock();
         bool locked();
-        T* get();
+        T* get() { return m_state.get(); }
 
     private:
         bool m_locked;
