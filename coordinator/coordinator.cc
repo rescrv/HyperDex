@@ -2007,7 +2007,8 @@ coordinator :: transfer_sorter :: operator () (const transfer& lhs, const transf
 void
 coordinator :: prioritized_transfer_subset(std::vector<transfer>* transfers)
 {
-    std::vector<server_id> seen;
+    std::vector<server_id> seen_src;
+    std::vector<server_id> seen_dst;
     std::vector<transfer> tmp_transfers(m_transfers);
     transfer_sorter ts(this);
     std::stable_sort(tmp_transfers.begin(), tmp_transfers.end(), ts);
@@ -2016,11 +2017,13 @@ coordinator :: prioritized_transfer_subset(std::vector<transfer>* transfers)
 
     for (size_t i = 0; i < tmp_transfers.size(); ++i)
     {
-        if (std::find(seen.begin(), seen.end(), tmp_transfers[i].src) == seen.end() &&
-            std::find(seen.begin(), seen.end(), tmp_transfers[i].dst) == seen.end())
+        // if the src is not the dst of a transfer, and the dst is not a src of
+        // a transfer, then add the transfer
+        if (std::find(seen_dst.begin(), seen_dst.end(), tmp_transfers[i].src) == seen_dst.end() &&
+            std::find(seen_src.begin(), seen_src.end(), tmp_transfers[i].dst) == seen_src.end())
         {
-            seen.push_back(tmp_transfers[i].src);
-            seen.push_back(tmp_transfers[i].dst);
+            seen_src.push_back(tmp_transfers[i].src);
+            seen_dst.push_back(tmp_transfers[i].dst);
             transfers->push_back(tmp_transfers[i]);
         }
     }
