@@ -122,7 +122,7 @@ key_state :: unlock()
 bool
 key_state :: finished()
 {
-    return m_committable.empty() && m_blocked.empty() && m_deferred.empty();
+    return m_committable.empty() && m_blocked.empty() && m_deferred.empty() && m_changes.empty();
 }
 
 void
@@ -625,6 +625,7 @@ key_state :: reset()
     m_committable.clear();
     m_blocked.clear();
     m_deferred.clear();
+    m_changes.clear();
     assert(finished());
     CHECK_INVARIANTS();
 }
