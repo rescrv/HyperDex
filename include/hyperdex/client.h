@@ -431,14 +431,14 @@ hyperdex_client_cond_map_remove(struct hyperdex_client* client,
                                 enum hyperdex_client_returncode* status);
 
 int64_t
-hyperdex_client_json_atomic_add(struct hyperdex_client* client,
+hyperdex_client_map_atomic_add(struct hyperdex_client* client,
                                const char* space,
                                const char* key, size_t key_sz,
                                const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                enum hyperdex_client_returncode* status);
 
 int64_t
-hyperdex_client_map_atomic_add(struct hyperdex_client* client,
+hyperdex_client_document_atomic_add(struct hyperdex_client* client,
                                const char* space,
                                const char* key, size_t key_sz,
                                const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
