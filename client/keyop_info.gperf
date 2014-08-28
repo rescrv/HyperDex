@@ -54,7 +54,7 @@ cond_map_add,            false, true,  false,  hyperdex::FUNC_MAP_ADD
 map_remove,              false, true,  false,  hyperdex::FUNC_MAP_REMOVE
 cond_map_remove,         false, true,  false,  hyperdex::FUNC_MAP_REMOVE
 map_atomic_add,          false, true,  false,  hyperdex::FUNC_NUM_ADD
-json_atomic_add,         false, true,  false,  hyperdex::FUNC_NUM_ADD
+document_atomic_add,     false, true,  false,  hyperdex::FUNC_NUM_ADD
 cond_map_atomic_add,     false, true,  false,  hyperdex::FUNC_NUM_ADD
 map_atomic_sub,          false, true,  false,  hyperdex::FUNC_NUM_SUB
 cond_map_atomic_sub,     false, true,  false,  hyperdex::FUNC_NUM_SUB
