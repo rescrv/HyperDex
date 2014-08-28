@@ -109,8 +109,30 @@ datatype_document :: apply(const e::slice& old_value,
     for (size_t i = 0; i < funcs_sz; ++i)
     {
         const funcall* func = funcs + i;
-        assert(check_args(*func));
-        new_value = func->arg1;
+
+        switch(func->name)
+        {
+        case FUNC_SET:
+            assert(check_args(*func));
+            new_value = func->arg1;
+            break;
+        case FUNC_NUM_ADD:
+        {
+            const char* fieldname = reinterpret_cast<const char*>(func->arg1.data());
+            std::cout << fieldname << std::endl;
+
+            std::vector<char>* scratch = NULL;
+            e::slice *value = NULL;
+            hyperdatatype *datatype = NULL;
+
+            bool success = parse_path(fieldname, NULL, old_value, HYPERDATATYPE_DOCUMENT, datatype, scratch, value);
+            assert(success);
+
+            break;
+        }
+        default:
+            abort();
+        }
     }
 
     memmove(writeto, new_value.data(), new_value.size());

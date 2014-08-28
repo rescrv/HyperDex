@@ -54,13 +54,14 @@ class datatype_document : public datatype_info
                                     const e::slice& value);
 
     public:
-        bool parse_path(const char* path,
-                        const char* const end,
-                        const e::slice& document,
-                        hyperdatatype hint,
-                        hyperdatatype* type,
-                        std::vector<char>* scratch,
-                        e::slice* value);
+        // Parse for a specific keyname in a document
+        bool parse_path(const char* path, // the path from root to the subtree/leaf
+                        const char* const end,  // ??
+                        const e::slice& document, // the whole document
+                        hyperdatatype hint, // possible datatpe of the result
+                        hyperdatatype* type, // OUT: the datatype of the result
+                        std::vector<char>* scratch, // OUT: ??
+                        e::slice* value); // OUT: the resulting content/value
 };
 
 END_HYPERDEX_NAMESPACE
