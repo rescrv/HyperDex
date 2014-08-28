@@ -77,7 +77,9 @@ class datatype_map : public datatype_info
                          const funcall* func); // XXX don't fail?
 
     private:
+        // Datatype of the keys
         datatype_info* m_k;
+        // Datatype of the values
         datatype_info* m_v;
 };
 

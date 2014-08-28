@@ -128,12 +128,15 @@ datatype_map :: apply(const e::slice& old_value,
                       const funcall* funcs, size_t funcs_sz,
                       uint8_t* writeto)
 {
+    // Initialize map with the compare operator of the key's datatype
     map_t map(m_k->compare_less());
+
     const uint8_t* ptr = old_value.data();
     const uint8_t* end = old_value.data() + old_value.size();
     e::slice key;
     e::slice val;
 
+    // Read previous data into the map
     while (ptr < end)
     {
         bool stepped;
@@ -152,6 +155,7 @@ datatype_map :: apply(const e::slice& old_value,
         switch (funcs[i].name)
         {
             case FUNC_SET:
+                // Discard current content and insert a new key-value-pair
                 map.clear();
                 ptr = funcs[i].arg1.data();
                 end = funcs[i].arg1.data() + funcs[i].arg1.size();
@@ -183,6 +187,7 @@ datatype_map :: apply(const e::slice& old_value,
             case FUNC_NUM_AND:
             case FUNC_NUM_OR:
             case FUNC_NUM_XOR:
+                // This function is a composite of several subfunctions
                 if (!apply_inner(&map, &scratch[i], funcs + i))
                 {
                     return NULL;
@@ -223,6 +228,7 @@ datatype_map :: apply_inner(map_t* m,
         old_value = it->second;
     }
 
+    // Create new writebuffer (old content + new key + new value)
     *scratch = new uint8_t[old_value.size() + sizeof(uint32_t) + func->arg1.size()];
     uint8_t* writeto = m_v->apply(old_value, func, 1, scratch->get());
 
@@ -231,9 +237,10 @@ datatype_map :: apply_inner(map_t* m,
         return false;
     }
 
-    //writeto = m_v->write(scratch->get(), e::slice(scratch->get(), writeto - scratch->get()));
+    // we're done with that subfunction
+    // extract only the part that was written to as value
     (*m)[func->arg2] = e::slice(scratch->get(), writeto - scratch->get());
-    return writeto;
+    return true;
 }
 
 bool
