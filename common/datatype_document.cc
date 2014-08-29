@@ -110,6 +110,8 @@ datatype_document :: apply(const e::slice& old_value,
     {
         const funcall* func = funcs + i;
 
+        std::cout << func->name << std::endl;
+
         switch(func->name)
         {
         case FUNC_SET:
