@@ -82,6 +82,7 @@ class state_hash_table<K, T, H>::state_reference
         void lock(state_hash_table* sht, e::intrusive_ptr<T> state);
         void unlock();
         bool locked();
+        T* get() { return m_state.get(); }
 
     private:
         bool m_locked;
@@ -297,7 +298,7 @@ state_hash_table<K, T, H> :: iterator :: operator * ()
 {
     assert(valid());
     assert(m_sr.locked());
-    return m_iter->second.get();
+    return m_sr.get();
 }
 
 template <typename K, typename T, uint64_t (*H)(const K& k)>
@@ -306,7 +307,7 @@ state_hash_table<K, T, H> :: iterator :: operator -> ()
 {
     assert(valid());
     assert(m_sr.locked());
-    return m_iter->second.get();
+    return m_sr.get();
 }
 
 template <typename K, typename T, uint64_t (*H)(const K& k)>
