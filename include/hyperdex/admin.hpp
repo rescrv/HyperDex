@@ -95,6 +95,10 @@ class Admin
             { return hyperdex_admin_server_forget(m_adm, token, status); }
         int64_t server_kill(uint64_t token, enum hyperdex_admin_returncode* status)
             { return hyperdex_admin_server_kill(m_adm, token, status); }
+        int64_t server_color0(uint64_t token, enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_server_color0(m_adm, token, status); }
+        int64_t server_color1(uint64_t token, enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_server_color1(m_adm, token, status); }
         int64_t backup(const char* name, enum hyperdex_admin_returncode* status, const char** backups)
             { return hyperdex_admin_backup(m_adm, name, status, backups); }
         int64_t enable_perf_counters(enum hyperdex_admin_returncode* status,

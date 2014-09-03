@@ -67,6 +67,8 @@
 /hyperdex-raw-backup
 /hyperdex-rm-index
 /hyperdex-rm-space
+/hyperdex-server-color0
+/hyperdex-server-color1
 /hyperdex-server-forget
 /hyperdex-server-kill
 /hyperdex-server-offline

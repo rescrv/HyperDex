@@ -164,6 +164,16 @@ hyperdex_admin_server_kill(struct hyperdex_admin* admin,
                            enum hyperdex_admin_returncode* status);
 
 int64_t
+hyperdex_admin_server_color0(struct hyperdex_admin* admin,
+                             uint64_t token,
+                             enum hyperdex_admin_returncode* status);
+
+int64_t
+hyperdex_admin_server_color1(struct hyperdex_admin* admin,
+                             uint64_t token,
+                             enum hyperdex_admin_returncode* status);
+
+int64_t
 hyperdex_admin_backup(struct hyperdex_admin* admin,
                       const char* backup,
                       enum hyperdex_admin_returncode* status,

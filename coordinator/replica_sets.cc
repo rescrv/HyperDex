@@ -27,84 +27,19 @@
 
 // STL
 #include <algorithm>
+#include <map>
+#include <set>
+#include <tr1/random>
 
 // HyperDex
 #include "coordinator/replica_sets.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlarger-than="
+
 using hyperdex::replica_set;
 using hyperdex::server;
 using hyperdex::server_id;
-
-namespace
-{
-
-void
-_small_replica_sets(uint64_t, uint64_t,
-                    const std::vector<server_id>& permutation,
-                    const std::vector<server_id>& servers,
-                    std::vector<server_id>* replica_storage,
-                    std::vector<replica_set>* replica_sets)
-{
-    for (size_t i = 0; i < permutation.size(); ++i)
-    {
-        size_t repls = 0;
-        size_t start = replica_storage->size();
-
-        for (size_t j = 0; j < permutation.size(); ++j)
-        {
-            size_t idx = (i + j) % permutation.size();
-
-            if (std::binary_search(servers.begin(),
-                                   servers.end(),
-                                   permutation[idx]))
-            {
-                replica_storage->push_back(permutation[idx]);
-                ++repls;
-            }
-        }
-
-        replica_sets->push_back(replica_set(start, repls, replica_storage));
-    }
-}
-
-void
-_permutation_replica_sets(uint64_t R, uint64_t P,
-                          const std::vector<server_id>& permutation,
-                          const std::vector<server_id>& servers,
-                          std::vector<server_id>* replica_storage,
-                          std::vector<replica_set>* replica_sets)
-{
-    for (size_t n = 0; n < permutation.size(); ++n)
-    {
-        for (size_t p = 1; p <= P; ++p)
-        {
-            if (n + p * (R - 1) >= permutation.size())
-            {
-                break;
-            }
-
-            size_t repls = 0;
-            size_t start = replica_storage->size();
-
-            for (size_t r = 0; r < R; ++r)
-            {
-                size_t idx = n + p * r;
-
-                if (std::binary_search(servers.begin(),
-                                       servers.end(),
-                                       permutation[idx]))
-                {
-                    replica_storage->push_back(permutation[idx]);
-                    ++repls;
-                }
-            }
-
-            replica_sets->push_back(replica_set(start, repls, replica_storage));
-        }
-    }
-}
-
-} // namespace
 
 replica_set :: replica_set()
     : m_start(0)
@@ -150,35 +85,184 @@ replica_set :: operator = (const replica_set& rhs)
     return *this;
 }
 
+namespace
+{
+
+struct permute_generator
+{
+    permute_generator() : m_ung() { m_ung.seed(0xdeadbeef); }
+    size_t operator () (const size_t& x) { return m_ung() % x; }
+    private:
+        std::tr1::mt19937 m_ung;
+};
+
+struct scatter_width_comparator
+{
+    scatter_width_comparator(std::map<server_id, uint64_t>* scatter_widths)
+        : m_scatter_widths(scatter_widths) {}
+    scatter_width_comparator(scatter_width_comparator& other)
+        : m_scatter_widths(other.m_scatter_widths) {}
+    scatter_width_comparator& operator = (scatter_width_comparator&);
+    bool operator () (const server_id& lhs, const server_id& rhs)
+    {
+        return (*m_scatter_widths)[lhs] < (*m_scatter_widths)[rhs];
+    }
+    private:
+        std::map<server_id, uint64_t>* m_scatter_widths;
+};
+
+std::pair<server_id, server_id>
+collocated_pair(const server_id& a, const server_id& b)
+{
+    if (a < b)
+    {
+        return std::make_pair(a, b);
+    }
+    else
+    {
+        return std::make_pair(b, a);
+    }
+}
+
+} // namespace
+
 void
-hyperdex :: compute_replica_sets(uint64_t R, uint64_t P,
-                                 const std::vector<server_id>& permutation,
+hyperdex :: compute_replica_sets(uint64_t S,
                                  const std::vector<server>& _servers,
                                  std::vector<server_id>* replica_storage,
                                  std::vector<replica_set>* replica_sets)
 {
-    assert(R > 0);
     replica_storage->clear();
     replica_sets->clear();
 
+    // Find the set of available servers to pick from
     std::vector<server_id> servers;
+    std::map<server_id, unsigned> colors;
 
     for (size_t i = 0; i < _servers.size(); ++i)
     {
         if (_servers[i].state == server::AVAILABLE)
         {
             servers.push_back(_servers[i].id);
+            colors[_servers[i].id] = _servers[i].color;
         }
     }
 
     std::sort(servers.begin(), servers.end());
+    std::vector<server_id> permutation(servers);
+    size_t progress = replica_sets->size() + 1;
+    std::map<server_id, uint64_t> scatter_widths;
+    std::set<std::pair<server_id, server_id> > collocated;
+    permute_generator pg;
+    scatter_width_comparator swc(&scatter_widths);
 
-    if (permutation.size() <= R)
+    for (size_t i = 0; i < servers.size(); ++i)
     {
-        _small_replica_sets(R, P, permutation, servers, replica_storage, replica_sets);
+        collocated.insert(collocated_pair(servers[i], servers[i]));
     }
-    else
+
+    // until we stop creating replica sets
+    while (progress != replica_sets->size())
     {
-        _permutation_replica_sets(R, P, permutation, servers, replica_storage, replica_sets);
+        progress = replica_sets->size();
+
+        // for each server
+        for (size_t i = 0; i < servers.size(); ++i)
+        {
+            // scatter width sufficient
+            if (scatter_widths[servers[i]] >= S)
+            {
+                continue;
+            }
+
+            // try to increase the scatter width
+            // do a random permutation and stable sort according to sw
+            std::random_shuffle(permutation.begin(), permutation.end(), pg);
+            std::stable_sort(permutation.begin(), permutation.end(), swc);
+
+            // now get the list of servers that are candidates for this one
+            std::vector<server_id> candidates;
+
+            for (size_t j = 0; j < permutation.size(); ++j)
+            {
+                if (collocated.find(collocated_pair(servers[i], permutation[j])) != collocated.end())
+                {
+                    continue;
+                }
+
+                bool no_conflicts = true;
+
+                for (size_t k = 0; k < candidates.size(); ++k)
+                {
+                    if (collocated.find(collocated_pair(candidates[k], permutation[j])) != collocated.end())
+                    {
+                        no_conflicts = false;
+                    }
+                }
+
+                if (no_conflicts)
+                {
+                    candidates.push_back(permutation[j]);
+                }
+            }
+
+            if (candidates.size() < 3)
+            {
+                continue;
+            }
+
+            size_t start = replica_storage->size();
+            replica_sets->push_back(replica_set(start, 3, replica_storage));
+            size_t color0 = 0;
+            size_t color1 = 0;
+
+            for (size_t j = 0; j < candidates.size(); ++j)
+            {
+                if (colors[candidates[j]] == 0)
+                {
+                    ++color0;
+                }
+                if (colors[candidates[j]] == 1)
+                {
+                    ++color1;
+                }
+            }
+
+            if (color0 >= 2 && color1 >= 1)
+            {
+                for (size_t j = 0; j < candidates.size() &&
+                        start + 2 > replica_storage->size(); ++j)
+                {
+                    if (colors[candidates[j]] == 0)
+                    {
+                        replica_storage->push_back(candidates[j]);
+                    }
+                }
+
+                for (size_t j = 0; j < candidates.size() &&
+                        start + 3 > replica_storage->size(); ++j)
+                {
+                    if (colors[candidates[j]] == 1)
+                    {
+                        replica_storage->push_back(candidates[j]);
+                    }
+                }
+            }
+            else
+            {
+                for (size_t j = 0; j < candidates.size() &&
+                        start + 3 > replica_storage->size(); ++j)
+                {
+                    replica_storage->push_back(candidates[j]);
+                }
+            }
+
+            assert(replica_storage->size() == start + 3);
+            collocated.insert(collocated_pair((*replica_storage)[start + 0], (*replica_storage)[start + 1]));
+            collocated.insert(collocated_pair((*replica_storage)[start + 0], (*replica_storage)[start + 2]));
+            collocated.insert(collocated_pair((*replica_storage)[start + 1], (*replica_storage)[start + 2]));
+        }
     }
 }
+
+#pragma GCC diagnostic pop

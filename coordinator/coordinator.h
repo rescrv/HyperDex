@@ -88,6 +88,10 @@ class coordinator
                            const server_id& sid);
         void server_suspect(replicant_state_machine_context* ctx,
                             const server_id& sid);
+        void server_color0(replicant_state_machine_context* ctx,
+                           const server_id& sid);
+        void server_color1(replicant_state_machine_context* ctx,
+                           const server_id& sid);
         void report_disconnect(replicant_state_machine_context* ctx,
                                const server_id& sid, uint64_t version);
 

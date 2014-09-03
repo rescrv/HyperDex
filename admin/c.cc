@@ -295,6 +295,28 @@ hyperdex_admin_server_kill(struct hyperdex_admin* _adm,
 }
 
 HYPERDEX_API int64_t
+hyperdex_admin_server_color0(struct hyperdex_admin* _adm,
+                             uint64_t token,
+                             enum hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->server_color0(token, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_server_color1(struct hyperdex_admin* _adm,
+                             uint64_t token,
+                             enum hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->server_color1(token, status);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_admin_backup(struct hyperdex_admin* _adm,
                       const char* backup,
                       enum hyperdex_admin_returncode* status,

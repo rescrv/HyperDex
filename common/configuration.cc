@@ -881,7 +881,8 @@ configuration :: dump() const
         out << "server "
             << m_servers[i].id.get() << " "
             << m_servers[i].bind_to << " "
-            << server::to_string(m_servers[i].state) << "\n";
+            << server::to_string(m_servers[i].state) << " "
+            << "color" << (unsigned)m_servers[i].color << "\n";
     }
 
     for (size_t w = 0; w < m_spaces.size(); ++w)

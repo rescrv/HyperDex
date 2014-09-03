@@ -566,6 +566,62 @@ admin :: server_kill(uint64_t token, enum hyperdex_admin_returncode* status)
 }
 
 int64_t
+admin :: server_color0(uint64_t token, enum hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "kill server");
+    char buf[sizeof(uint64_t)];
+    e::pack64be(token, buf);
+    int64_t cid = m_coord.rpc("server_color0", buf, sizeof(uint64_t),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
+admin :: server_color1(uint64_t token, enum hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "kill server");
+    char buf[sizeof(uint64_t)];
+    e::pack64be(token, buf);
+    int64_t cid = m_coord.rpc("server_color1", buf, sizeof(uint64_t),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
 admin :: backup(const char* name, enum hyperdex_admin_returncode* status, const char** backups)
 {
     if (!maintain_coord_connection(status))

@@ -1044,6 +1044,8 @@ hyperdexexec_PROGRAMS += hyperdex-server-online
 hyperdexexec_PROGRAMS += hyperdex-server-offline
 hyperdexexec_PROGRAMS += hyperdex-server-kill
 hyperdexexec_PROGRAMS += hyperdex-server-forget
+hyperdexexec_PROGRAMS += hyperdex-server-color0
+hyperdexexec_PROGRAMS += hyperdex-server-color1
 hyperdexexec_PROGRAMS += hyperdex-perf-counters
 hyperdexexec_PROGRAMS += hyperdex-set-read-only
 hyperdexexec_PROGRAMS += hyperdex-set-read-write
@@ -1206,6 +1208,14 @@ hyperdex_server_kill_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-server-kill.1: man/hyperdex-server-kill.1.h2m tools/server-kill.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-kill$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-kill$(EXEEXT)
+
+# hyperdex-server-color0
+hyperdex_server_color0_SOURCES = tools/server-color0.cc
+hyperdex_server_color0_LDADD = libhyperdex-admin.la -lpopt
+
+# hyperdex-server-color1
+hyperdex_server_color1_SOURCES = tools/server-color1.cc
+hyperdex_server_color1_LDADD = libhyperdex-admin.la -lpopt
 
 # hyperdex-perf-counters
 EXTRA_DIST += man/hyperdex-perf-counters.1.md

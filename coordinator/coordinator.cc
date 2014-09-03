@@ -255,7 +255,8 @@ coordinator :: fault_tolerance(replicant_state_machine_context* ctx,
 
     R = ft + 1;
     P = s->predecessor_width;
-    compute_replica_sets(R, P, m_permutation, m_servers,
+    (void)R;
+    compute_replica_sets(P, m_servers,
                          &replica_storage,
                          &replica_sets);
 
@@ -536,6 +537,57 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
                      sid.get(), server::to_string(srv->state),
                      server::to_string(server::NOT_AVAILABLE));
         srv->state = server::NOT_AVAILABLE;
+        rebalance_replica_sets(ctx);
+        generate_next_configuration(ctx);
+    }
+
+    return generate_response(ctx, COORD_SUCCESS);
+}
+
+void
+coordinator :: server_color0(replicant_state_machine_context* ctx,
+                             const server_id& sid)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    server* srv = get_server(sid);
+
+    if (!srv)
+    {
+        fprintf(log, "cannot color0 server(%" PRIu64 ") because "
+                     "the server doesn't exist\n", sid.get());
+        return generate_response(ctx, hyperdex::COORD_NOT_FOUND);
+    }
+
+    if (srv->color != 0)
+    {
+        fprintf(log, "changing server(%" PRIu64 ") from color%s to color0\n", sid.get(), srv->color);
+        srv->color = 0;
+        rebalance_replica_sets(ctx);
+        generate_next_configuration(ctx);
+    }
+
+    return generate_response(ctx, COORD_SUCCESS);
+}
+
+void
+coordinator :: server_color1(replicant_state_machine_context* ctx,
+                             const server_id& sid)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    server* srv = get_server(sid);
+
+
+    if (!srv)
+    {
+        fprintf(log, "cannot color1 server(%" PRIu64 ") because "
+                     "the server doesn't exist\n", sid.get());
+        return generate_response(ctx, hyperdex::COORD_NOT_FOUND);
+    }
+
+    if (srv->color != 1)
+    {
+        fprintf(log, "changing server(%" PRIu64 ") from color%s to color1\n", sid.get(), srv->color);
+        srv->color = 1;
         rebalance_replica_sets(ctx);
         generate_next_configuration(ctx);
     }
@@ -1374,7 +1426,7 @@ coordinator :: rebalance_replica_sets(replicant_state_machine_context* ctx)
         {
             R = spaces[i]->fault_tolerance + 1;
             P = spaces[i]->predecessor_width;
-            compute_replica_sets(R, P, m_permutation, m_servers,
+            compute_replica_sets(P, m_servers,
                                  &replica_storage,
                                  &replica_sets);
         }
@@ -1397,7 +1449,8 @@ coordinator :: initial_space_layout(replicant_state_machine_context* ctx,
     uint64_t P = s->predecessor_width;
     std::vector<server_id> replica_storage;
     std::vector<replica_set> replica_sets;
-    compute_replica_sets(R, P, m_permutation, m_servers,
+    (void)R;
+    compute_replica_sets(P, m_servers,
                          &replica_storage,
                          &replica_sets);
     setup_intents(ctx, replica_sets, s, true);

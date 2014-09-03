@@ -55,6 +55,7 @@ server :: server()
     : state(KILLED)
     , id()
     , bind_to()
+    , color(0)
 {
 }
 
@@ -62,6 +63,7 @@ server :: server(const server_id& sid)
     : state(ASSIGNED)
     , id(sid)
     , bind_to()
+    , color(0)
 {
 }
 
@@ -75,14 +77,14 @@ e::buffer::packer
 hyperdex :: operator << (e::buffer::packer lhs, const server& rhs)
 {
     uint8_t s = static_cast<uint8_t>(rhs.state);
-    return lhs << s << rhs.id << rhs.bind_to;
+    return lhs << s << rhs.id << rhs.bind_to << rhs.color;
 }
 
 e::unpacker
 hyperdex :: operator >> (e::unpacker lhs, server& rhs)
 {
     uint8_t s;
-    lhs = lhs >> s >> rhs.id >> rhs.bind_to;
+    lhs = lhs >> s >> rhs.id >> rhs.bind_to >> rhs.color;
     rhs.state = static_cast<server::state_t>(s);
     return lhs;
 }
@@ -92,5 +94,6 @@ hyperdex :: pack_size(const server& p)
 {
     return sizeof(uint8_t)
          + sizeof(uint64_t)
-         + pack_size(p.bind_to);
+         + pack_size(p.bind_to)
+         + sizeof(uint8_t);
 }

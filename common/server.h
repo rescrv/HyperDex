@@ -58,6 +58,7 @@ class server
         state_t state;
         server_id id;
         po6::net::location bind_to;
+        uint8_t color;
 };
 
 bool
