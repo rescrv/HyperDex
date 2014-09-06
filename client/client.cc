@@ -582,9 +582,35 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
         }
     }
 
-    if (!maintain_coord_connection(status))
+    uint64_t sid_num;
+    std::auto_ptr<e::buffer> msg;
+    m_busybee.set_timeout(timeout);
+    busybee_returncode rc = m_busybee.recv(&sid_num, &msg);
+
+    switch (rc)
     {
-        return -1;
+        case BUSYBEE_SUCCESS:
+        case BUSYBEE_TIMEOUT:
+            break;
+        case BUSYBEE_INTERRUPTED:
+            ERROR(INTERRUPTED) << "signal received";
+            return -1;
+        case BUSYBEE_DISRUPTED:
+            handle_disruption(server_id(sid_num));
+            break;
+        case BUSYBEE_EXTERNAL:
+            if (!maintain_coord_connection(status))
+            {
+                return -1;
+            }
+            break;
+        BUSYBEE_ERROR_CASE(POLLFAILED);
+        BUSYBEE_ERROR_CASE(ADDFDFAIL);
+        BUSYBEE_ERROR_CASE(SHUTDOWN);
+        default:
+            ERROR(INTERNAL) << "internal error: BusyBee unexpectedly returned "
+                            << (unsigned) rc << ": please file a bug";
+            return -1;
     }
 
     ERROR(NONEPENDING) << "no outstanding operations to process";
