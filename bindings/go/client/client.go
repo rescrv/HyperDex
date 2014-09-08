@@ -1068,7 +1068,7 @@ func (client *innerClient) runForever(errChan chan Error) {
 }
 
 func NewClient(host string, port int) (*Client, error, chan Error) {
-	numClients := runtime.NumCPU()
+	numClients := runtime.GOMAXPROCS(-1) // use client app's current settings, -1 will not mutate
 	clients := make([]*innerClient, 0, numClients)
 	for i := 0; i < numClients; i++ {
 		C_client := C.hyperdex_client_create(C.CString(host), C.uint16_t(port))
