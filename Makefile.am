@@ -698,8 +698,8 @@ bindings_python_hyperdex_client_la_LDFLAGS = -module -avoid-version -export-symb
 bindings/python/hyperdex/client.c: bindings/python/hyperdex/client.pyx
 	$(pyx_verbose)cython bindings/python/hyperdex/client.pyx
 
-bindings/python/hyperdex/client.so$(EXEEXT): bindings/python/hyperdex/client.la
-	$(LN_S) -f ${abs_top_builddir}/bindings/python/hyperdex/.libs/client.so$(EXEEXT) $@
+bindings/python/hyperdex/client.so: bindings/python/hyperdex/client.la
+	$(LN_S) -f ${abs_top_builddir}/bindings/python/hyperdex/.libs/client.so $@
 
 EXTRA_DIST += bindings/python/hyperdex/admin.pyx
 bindings_python_hyperdex_admin_la_SOURCES = bindings/python/hyperdex/admin.c
@@ -717,8 +717,8 @@ bindings_python_hyperdex_admin_la_LDFLAGS = -module -avoid-version -export-symbo
 bindings/python/hyperdex/admin.c: bindings/python/hyperdex/admin.pyx
 	$(pyx_verbose)cython bindings/python/hyperdex/admin.pyx
 
-bindings/python/hyperdex/admin.so$(EXEEXT): bindings/python/hyperdex/admin.la
-	$(LN_S) -f ${abs_top_builddir}/bindings/python/hyperdex/.libs/admin.so$(EXEEXT) $@
+bindings/python/hyperdex/admin.so: bindings/python/hyperdex/admin.la
+	$(LN_S) -f ${abs_top_builddir}/bindings/python/hyperdex/.libs/admin.so $@
 
 link-python: bindings/python/hyperdex/client.so bindings/python/hyperdex/admin.so
 
