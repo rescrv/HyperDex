@@ -1,4 +1,12 @@
 struct hyperdex_client_keyop_info;
+#if defined __GNUC_STDC_INLINE__
+#undef __GNUC_STDC_INLINE__
+#endif
+#if defined __GNUC_GNU_INLINE__
+#undef __GNUC_GNU_INLINE__
+#endif
+extern "C"
+{
 %struct-type
 %language=ANSI-C
 %define hash-function-name _hyperdex_client_keyop_info_hash
@@ -74,6 +82,7 @@ cond_map_string_prepend, false, true,  false,  hyperdex::FUNC_STRING_PREPEND
 map_string_append,       false, true,  false,  hyperdex::FUNC_STRING_APPEND
 cond_map_string_append,  false, true,  false,  hyperdex::FUNC_STRING_APPEND
 %%
+}
 const struct hyperdex_client_keyop_info*
 hyperdex_client_keyop_info_lookup(const char* str, unsigned int len)
 {

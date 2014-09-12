@@ -10,6 +10,7 @@ import "C"
 import "unsafe"
 import "reflect"
 import "fmt"
+import "runtime"
 import "sync"
 
 const (
@@ -115,11 +116,10 @@ type cIterator struct {
 }
 
 type Client struct {
-	ptr       *C.struct_hyperdex_client
-	mutex     sync.Mutex
-	ops       map[int64]chan Error
-	searches  map[int64]*cIterator
-	closeChan chan bool
+	counter uint64
+	mutex   sync.Mutex
+	clients []*innerClient
+	errChan chan Error
 }
 
 func (client *Client) convertCString(arena *C.struct_hyperdex_ds_arena, s string, cs **C.char) {
@@ -637,7 +637,7 @@ func (client *Client) convertMaxmin(arena *C.struct_hyperdex_ds_arena, maxmin st
 	return
 }
 
-func (client *Client) buildAttributes(_attrs *C.struct_hyperdex_client_attribute, _attrs_sz C.size_t) (attributes Attributes, err error) {
+func (client *innerClient) buildAttributes(_attrs *C.struct_hyperdex_client_attribute, _attrs_sz C.size_t) (attributes Attributes, err error) {
 	var attrs []C.struct_hyperdex_client_attribute
 	h := (*reflect.SliceHeader)(unsafe.Pointer(&attrs))
 	h.Data = uintptr(unsafe.Pointer(_attrs))
@@ -994,80 +994,105 @@ func (client *Client) buildAttributes(_attrs *C.struct_hyperdex_client_attribute
 	return
 }
 
-func NewClient(host string, port int) (*Client, error, chan Error) {
-	C_client := C.hyperdex_client_create(C.CString(host), C.uint16_t(port))
-	if C_client == nil {
-		return nil, fmt.Errorf("Could not create HyperDex client (host=%s, port=%d)", host, port), nil
+type innerClient struct {
+	ptr       *C.struct_hyperdex_client
+	mutex     sync.Mutex
+	ops       map[int64]chan Error
+	searches  map[int64]*cIterator
+	closeChan chan bool
+}
+
+func innerClientFinalizer(c *innerClient) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	C.hyperdex_client_destroy(c.ptr)
+	for _, val := range c.ops {
+		close(val)
 	}
+	for _, val := range c.searches {
+		close(val.attrChan)
+		close(val.errChan)
+	}
+}
 
-	client := &Client{C_client, sync.Mutex{}, map[int64]chan Error{}, map[int64]*cIterator{}, make(chan bool, 1)}
-	errChan := make(chan Error, 16)
-
-	go func() {
-		for {
-			select {
-			case <-client.closeChan:
-				client.mutex.Lock()
-				C.hyperdex_client_destroy(client.ptr)
-				for _, val := range client.ops {
-					close(val)
-				}
-				client.mutex.Unlock()
-				close(errChan)
-				return
-			default:
-				C.hyperdex_client_block(client.ptr, 250)
-				var loop_status C.enum_hyperdex_client_returncode
-				client.mutex.Lock()
-				reqid := int64(C.hyperdex_client_loop(client.ptr, 0, &loop_status))
-				if reqid < 0 && loop_status == TIMEOUT {
-					// pass
-				} else if reqid < 0 && loop_status == NONEPENDING {
-					// pass
-				} else if reqid < 0 {
-					e := Error{Status(loop_status),
-						C.GoString(C.hyperdex_client_error_message(client.ptr)),
-						C.GoString(C.hyperdex_client_error_location(client.ptr))}
-					errChan <- e
-				} else if c, ok := (client.ops)[reqid]; ok {
-					e := Error{Status(loop_status),
-						C.GoString(C.hyperdex_client_error_message(client.ptr)),
-						C.GoString(C.hyperdex_client_error_location(client.ptr))}
-					c <- e
-					delete(client.ops, reqid)
-				} else if cIter, ok := client.searches[reqid]; ok {
-					if cIter.status == C.HYPERDEX_CLIENT_SUCCESS {
-						attrs, er := client.buildAttributes(cIter.attrs, cIter.attrs_sz)
-						if er != nil {
-							e := Error{Status(SERVERERROR), er.Error(), ""}
-							cIter.errChan <- e
-						} else {
-							cIter.attrChan <- attrs
-						}
-						C.hyperdex_client_destroy_attrs(cIter.attrs, cIter.attrs_sz)
-					} else if cIter.status == C.HYPERDEX_CLIENT_SEARCHDONE {
-						close(cIter.attrChan)
-						close(cIter.errChan)
-						delete(client.searches, reqid)
-					} else {
-						e := Error{Status(cIter.status),
-							C.GoString(C.hyperdex_client_error_message(client.ptr)),
-							C.GoString(C.hyperdex_client_error_location(client.ptr))}
+func (client *innerClient) runForever(errChan chan Error) {
+	for {
+		select {
+		case <-client.closeChan:
+			return
+		default:
+			C.hyperdex_client_block(client.ptr, 250)
+			var loop_status C.enum_hyperdex_client_returncode
+			client.mutex.Lock()
+			reqid := int64(C.hyperdex_client_loop(client.ptr, 0, &loop_status))
+			if reqid < 0 && loop_status == TIMEOUT {
+				// pass
+			} else if reqid < 0 && loop_status == NONEPENDING {
+				// pass
+			} else if reqid < 0 {
+				e := Error{Status(loop_status),
+					C.GoString(C.hyperdex_client_error_message(client.ptr)),
+					C.GoString(C.hyperdex_client_error_location(client.ptr))}
+				errChan <- e
+			} else if c, ok := (client.ops)[reqid]; ok {
+				e := Error{Status(loop_status),
+					C.GoString(C.hyperdex_client_error_message(client.ptr)),
+					C.GoString(C.hyperdex_client_error_location(client.ptr))}
+				c <- e
+				delete(client.ops, reqid)
+			} else if cIter, ok := client.searches[reqid]; ok {
+				if cIter.status == C.HYPERDEX_CLIENT_SUCCESS {
+					attrs, er := client.buildAttributes(cIter.attrs, cIter.attrs_sz)
+					if er != nil {
+						e := Error{Status(SERVERERROR), er.Error(), ""}
 						cIter.errChan <- e
+					} else {
+						cIter.attrChan <- attrs
 					}
+					C.hyperdex_client_destroy_attrs(cIter.attrs, cIter.attrs_sz)
+				} else if cIter.status == C.HYPERDEX_CLIENT_SEARCHDONE {
+					close(cIter.attrChan)
+					close(cIter.errChan)
+					delete(client.searches, reqid)
+				} else {
+					e := Error{Status(cIter.status),
+						C.GoString(C.hyperdex_client_error_message(client.ptr)),
+						C.GoString(C.hyperdex_client_error_location(client.ptr))}
+					cIter.errChan <- e
 				}
-				client.mutex.Unlock()
 			}
+			client.mutex.Unlock()
 		}
-		panic("Should not be reached: end of infinite loop")
-	}()
+	}
+	panic("Should not be reached: end of infinite loop")
+}
 
+func NewClient(host string, port int) (*Client, error, chan Error) {
+	numClients := runtime.NumCPU()
+	clients := make([]*innerClient, 0, numClients)
+	for i := 0; i < numClients; i++ {
+		C_client := C.hyperdex_client_create(C.CString(host), C.uint16_t(port))
+		if C_client == nil {
+			return nil, fmt.Errorf("Could not create HyperDex client (host=%s, port=%d)", host, port), nil
+		}
+		client := &innerClient{C_client, sync.Mutex{}, map[int64]chan Error{}, map[int64]*cIterator{}, make(chan bool, 1)}
+		runtime.SetFinalizer(client, innerClientFinalizer)
+		clients = append(clients, client)
+	}
+	errChan := make(chan Error, 16)
+	client := &Client{0, sync.Mutex{}, clients, errChan}
+	for i := 0; i < len(clients); i++ {
+		go clients[i].runForever(errChan)
+	}
 	return client, nil, errChan
 }
 
 // For every call to NewClient, there must be a call to Destroy.
 func (client *Client) Destroy() {
-	close(client.closeChan)
+	for i := 0; i < len(client.clients); i++ {
+		close(client.clients[i].closeChan)
+	}
+	close(client.errChan)
 }
 
 // Begin Automatically Generated Code
@@ -1084,22 +1109,26 @@ func (client *Client) AsynccallSpacenameKeyStatusAttributes(stub func(client *C.
 	var c_attrs_sz C.size_t
 	done := make(chan Error)
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_key, c_key_sz, &c_status, &c_attrs, &c_attrs_sz)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_key, c_key_sz, &c_status, &c_attrs, &c_attrs_sz)
 	if reqid >= 0 {
-		client.ops[reqid] = done
+		inner.ops[reqid] = done
 	} else {
 		err = Error{Status(c_status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid >= 0 {
 		err = <-done
 		err.Status = Status(c_status)
 	}
 	if c_status == SUCCESS {
 		var er error
-		attrs, er = client.buildAttributes(c_attrs, c_attrs_sz)
+		attrs, er = inner.buildAttributes(c_attrs, c_attrs_sz)
 		if er != nil {
 			err = Error{Status(SERVERERROR), er.Error(), ""}
 		}
@@ -1124,22 +1153,26 @@ func (client *Client) AsynccallSpacenameKeyAttributenamesStatusAttributes(stub f
 	var c_attrs_sz C.size_t
 	done := make(chan Error)
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_key, c_key_sz, c_attrnames, c_attrnames_sz, &c_status, &c_attrs, &c_attrs_sz)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_key, c_key_sz, c_attrnames, c_attrnames_sz, &c_status, &c_attrs, &c_attrs_sz)
 	if reqid >= 0 {
-		client.ops[reqid] = done
+		inner.ops[reqid] = done
 	} else {
 		err = Error{Status(c_status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid >= 0 {
 		err = <-done
 		err.Status = Status(c_status)
 	}
 	if c_status == SUCCESS {
 		var er error
-		attrs, er = client.buildAttributes(c_attrs, c_attrs_sz)
+		attrs, er = inner.buildAttributes(c_attrs, c_attrs_sz)
 		if er != nil {
 			err = Error{Status(SERVERERROR), er.Error(), ""}
 		}
@@ -1162,15 +1195,19 @@ func (client *Client) AsynccallSpacenameKeyAttributesStatus(stub func(client *C.
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_key, c_key_sz, c_attrs, c_attrs_sz, &c_status)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_key, c_key_sz, c_attrs, c_attrs_sz, &c_status)
 	if reqid >= 0 {
-		client.ops[reqid] = done
+		inner.ops[reqid] = done
 	} else {
 		err = Error{Status(c_status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid >= 0 {
 		err = <-done
 		err.Status = Status(c_status)
@@ -1195,15 +1232,19 @@ func (client *Client) AsynccallSpacenameKeyPredicatesAttributesStatus(stub func(
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_key, c_key_sz, c_checks, c_checks_sz, c_attrs, c_attrs_sz, &c_status)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_key, c_key_sz, c_checks, c_checks_sz, c_attrs, c_attrs_sz, &c_status)
 	if reqid >= 0 {
-		client.ops[reqid] = done
+		inner.ops[reqid] = done
 	} else {
 		err = Error{Status(c_status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid >= 0 {
 		err = <-done
 		err.Status = Status(c_status)
@@ -1222,15 +1263,19 @@ func (client *Client) AsynccallSpacenameKeyStatus(stub func(client *C.struct_hyp
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_key, c_key_sz, &c_status)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_key, c_key_sz, &c_status)
 	if reqid >= 0 {
-		client.ops[reqid] = done
+		inner.ops[reqid] = done
 	} else {
 		err = Error{Status(c_status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid >= 0 {
 		err = <-done
 		err.Status = Status(c_status)
@@ -1252,15 +1297,19 @@ func (client *Client) AsynccallSpacenameKeyPredicatesStatus(stub func(client *C.
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_key, c_key_sz, c_checks, c_checks_sz, &c_status)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_key, c_key_sz, c_checks, c_checks_sz, &c_status)
 	if reqid >= 0 {
-		client.ops[reqid] = done
+		inner.ops[reqid] = done
 	} else {
 		err = Error{Status(c_status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid >= 0 {
 		err = <-done
 		err.Status = Status(c_status)
@@ -1282,15 +1331,19 @@ func (client *Client) AsynccallSpacenameKeyMapattributesStatus(stub func(client 
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_key, c_key_sz, c_mapattrs, c_mapattrs_sz, &c_status)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_key, c_key_sz, c_mapattrs, c_mapattrs_sz, &c_status)
 	if reqid >= 0 {
-		client.ops[reqid] = done
+		inner.ops[reqid] = done
 	} else {
 		err = Error{Status(c_status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid >= 0 {
 		err = <-done
 		err.Status = Status(c_status)
@@ -1315,15 +1368,19 @@ func (client *Client) AsynccallSpacenameKeyPredicatesMapattributesStatus(stub fu
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_key, c_key_sz, c_checks, c_checks_sz, c_mapattrs, c_mapattrs_sz, &c_status)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_key, c_key_sz, c_checks, c_checks_sz, c_mapattrs, c_mapattrs_sz, &c_status)
 	if reqid >= 0 {
-		client.ops[reqid] = done
+		inner.ops[reqid] = done
 	} else {
 		err = Error{Status(c_status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid >= 0 {
 		err = <-done
 		err.Status = Status(c_status)
@@ -1345,15 +1402,19 @@ func (client *Client) IteratorSpacenamePredicatesStatusAttributes(stub func(clie
 	errs = c_iter.errChan
 	var err Error
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_checks, c_checks_sz, &c_iter.status, &c_iter.attrs, &c_iter.attrs_sz)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_checks, c_checks_sz, &c_iter.status, &c_iter.attrs, &c_iter.attrs_sz)
 	if reqid >= 0 {
-		client.searches[reqid] = &c_iter
+		inner.searches[reqid] = &c_iter
 	} else {
 		err = Error{Status(c_iter.status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid < 0 {
 		errs <- err
 		close(attrs)
@@ -1374,15 +1435,19 @@ func (client *Client) AsynccallSpacenamePredicatesStatusDescription(stub func(cl
 	var c_description *C.char
 	done := make(chan Error)
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_checks, c_checks_sz, &c_status, &c_description)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_checks, c_checks_sz, &c_status, &c_description)
 	if reqid >= 0 {
-		client.ops[reqid] = done
+		inner.ops[reqid] = done
 	} else {
 		err = Error{Status(c_status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid >= 0 {
 		err = <-done
 		err.Status = Status(c_status)
@@ -1413,15 +1478,19 @@ func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttribut
 	errs = c_iter.errChan
 	var err Error
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_checks, c_checks_sz, c_sort_by, c_limit, c_maxmin, &c_iter.status, &c_iter.attrs, &c_iter.attrs_sz)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_checks, c_checks_sz, c_sort_by, c_limit, c_maxmin, &c_iter.status, &c_iter.attrs, &c_iter.attrs_sz)
 	if reqid >= 0 {
-		client.searches[reqid] = &c_iter
+		inner.searches[reqid] = &c_iter
 	} else {
 		err = Error{Status(c_iter.status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid < 0 {
 		errs <- err
 		close(attrs)
@@ -1441,15 +1510,19 @@ func (client *Client) AsynccallSpacenamePredicatesStatus(stub func(client *C.str
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_checks, c_checks_sz, &c_status)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_checks, c_checks_sz, &c_status)
 	if reqid >= 0 {
-		client.ops[reqid] = done
+		inner.ops[reqid] = done
 	} else {
 		err = Error{Status(c_status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid >= 0 {
 		err = <-done
 		err.Status = Status(c_status)
@@ -1469,15 +1542,19 @@ func (client *Client) AsynccallSpacenamePredicatesStatusCount(stub func(client *
 	var c_count C.uint64_t
 	done := make(chan Error)
 	client.mutex.Lock()
-	reqid := stub(client.ptr, c_space, c_checks, c_checks_sz, &c_status, &c_count)
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_checks, c_checks_sz, &c_status, &c_count)
 	if reqid >= 0 {
-		client.ops[reqid] = done
+		inner.ops[reqid] = done
 	} else {
 		err = Error{Status(c_status),
-			C.GoString(C.hyperdex_client_error_message(client.ptr)),
-			C.GoString(C.hyperdex_client_error_location(client.ptr))}
+			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
-	client.mutex.Unlock()
+	inner.mutex.Unlock()
 	if reqid >= 0 {
 		err = <-done
 		err.Status = Status(c_status)
