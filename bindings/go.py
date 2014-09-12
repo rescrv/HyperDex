@@ -154,9 +154,12 @@ def generate_worker_asynccall(call, x):
     for arg in x.args_in:
         for p, n in arg.args:
             func += '\tvar c_{0} {1}\n'.format(n, CGoIfy(p))
+    func += '\tvar er error\n'
     for arg in x.args_in:
         args = ', '.join(['&c_' + n for p, n in arg.args])
-        func += '\tclient.convert{0}(arena, {1}, {2})\n'.format(GoIfy(arg.__name__), arg_name(arg), args)
+        func += '\ter = client.convert{0}(arena, {1}, {2})\n'.format(GoIfy(arg.__name__), arg_name(arg), args)
+        func += '\tif er != nil {\n\t\terr = Error{Status(WRONGTYPE), er.Error(), ""}\n'
+        func += '\t\treturn\n\t}\n'
     for arg in x.args_out:
         for p, n in arg.args:
             func += '\tvar c_{0} {1}\n'.format(n, CGoIfy(p))
@@ -195,9 +198,13 @@ def generate_worker_iterator(call, x):
     for arg in x.args_in:
         for p, n in arg.args:
             func += '\tvar c_{0} {1}\n'.format(n, CGoIfy(p))
+    func += '\tvar er error\n'
     for arg in x.args_in:
         args = ', '.join(['&c_' + n for p, n in arg.args])
-        func += '\tclient.convert{0}(arena, {1}, {2})\n'.format(GoIfy(arg.__name__), arg_name(arg), args)
+        func += '\ter = client.convert{0}(arena, {1}, {2})\n'.format(GoIfy(arg.__name__), arg_name(arg), args)
+        func += '\tif er != nil {\n\t\terr := Error{Status(WRONGTYPE), er.Error(), ""}\n'
+        func += '\t\terrs<-err\n\t\tclose(attrs)\n\t\tclose(errs)\n'
+        func += '\t\treturn\n\t}\n'
     func += '\tvar c_iter cIterator\n'
     func += '\tc_iter = cIterator{C.HYPERDEX_CLIENT_GARBAGE, nil, 0, make(chan Attributes, 10), make(chan Error, 10)}\n'
     func += '\tattrs = c_iter.attrChan\n'

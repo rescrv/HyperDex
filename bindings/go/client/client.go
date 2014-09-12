@@ -132,8 +132,9 @@ func (client *Client) convertCString(arena *C.struct_hyperdex_ds_arena, s string
 	}
 }
 
-func (client *Client) convertSpacename(arena *C.struct_hyperdex_ds_arena, spacename string, space **C.char) {
+func (client *Client) convertSpacename(arena *C.struct_hyperdex_ds_arena, spacename string, space **C.char) error {
 	client.convertCString(arena, spacename, space)
+	return nil
 }
 
 // Return the number of bytes of a string
@@ -479,7 +480,10 @@ func (client *Client) convertType(arena *C.struct_hyperdex_ds_arena, val Value) 
 	case reflect.String:
 		k, k_sz, dt, err = client.convertString(arena, v.String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+
 		k, k_sz, dt, err = client.convertInt(arena, v.Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+		k, k_sz, dt, err = client.convertInt(arena, int64(v.Uint()))
 	case reflect.Float32, reflect.Float64:
 		k, k_sz, dt, err = client.convertFloat(arena, v.Float())
 	case reflect.Slice:
@@ -501,11 +505,11 @@ func (client *Client) convertType(arena *C.struct_hyperdex_ds_arena, val Value) 
 	return
 }
 
-func (client *Client) convertKey(arena *C.struct_hyperdex_ds_arena, key Value, k **C.char, k_sz *C.size_t) (err Error) {
+func (client *Client) convertKey(arena *C.struct_hyperdex_ds_arena, key Value, k **C.char, k_sz *C.size_t) (err error) {
 	var er error
-	*k, *k_sz, _, er = client.convertType(arena, key)
+	*k, *k_sz, _, err = client.convertType(arena, key)
 	if er != nil {
-		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		err = fmt.Errorf("could not convert key to HyperDex type: %s", err.Error())
 	}
 	return
 }
@@ -1102,8 +1106,17 @@ func (client *Client) AsynccallSpacenameKeyStatusAttributes(stub func(client *C.
 	var c_space *C.char
 	var c_key *C.char
 	var c_key_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertKey(arena, key, &c_key, &c_key_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertKey(arena, key, &c_key, &c_key_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
 	var c_status C.enum_hyperdex_client_returncode
 	var c_attrs *C.struct_hyperdex_client_attribute
 	var c_attrs_sz C.size_t
@@ -1145,9 +1158,22 @@ func (client *Client) AsynccallSpacenameKeyAttributenamesStatusAttributes(stub f
 	var c_key_sz C.size_t
 	var c_attrnames **C.char
 	var c_attrnames_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertKey(arena, key, &c_key, &c_key_sz)
-	client.convertAttributenames(arena, attributenames, &c_attrnames, &c_attrnames_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertKey(arena, key, &c_key, &c_key_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertAttributenames(arena, attributenames, &c_attrnames, &c_attrnames_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
 	var c_status C.enum_hyperdex_client_returncode
 	var c_attrs *C.struct_hyperdex_client_attribute
 	var c_attrs_sz C.size_t
@@ -1189,9 +1215,22 @@ func (client *Client) AsynccallSpacenameKeyAttributesStatus(stub func(client *C.
 	var c_key_sz C.size_t
 	var c_attrs *C.struct_hyperdex_client_attribute
 	var c_attrs_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertKey(arena, key, &c_key, &c_key_sz)
-	client.convertAttributes(arena, attributes, &c_attrs, &c_attrs_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertKey(arena, key, &c_key, &c_key_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertAttributes(arena, attributes, &c_attrs, &c_attrs_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
@@ -1225,10 +1264,27 @@ func (client *Client) AsynccallSpacenameKeyPredicatesAttributesStatus(stub func(
 	var c_checks_sz C.size_t
 	var c_attrs *C.struct_hyperdex_client_attribute
 	var c_attrs_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertKey(arena, key, &c_key, &c_key_sz)
-	client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
-	client.convertAttributes(arena, attributes, &c_attrs, &c_attrs_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertKey(arena, key, &c_key, &c_key_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertAttributes(arena, attributes, &c_attrs, &c_attrs_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
@@ -1258,8 +1314,17 @@ func (client *Client) AsynccallSpacenameKeyStatus(stub func(client *C.struct_hyp
 	var c_space *C.char
 	var c_key *C.char
 	var c_key_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertKey(arena, key, &c_key, &c_key_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertKey(arena, key, &c_key, &c_key_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
@@ -1291,9 +1356,22 @@ func (client *Client) AsynccallSpacenameKeyPredicatesStatus(stub func(client *C.
 	var c_key_sz C.size_t
 	var c_checks *C.struct_hyperdex_client_attribute_check
 	var c_checks_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertKey(arena, key, &c_key, &c_key_sz)
-	client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertKey(arena, key, &c_key, &c_key_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
@@ -1325,9 +1403,22 @@ func (client *Client) AsynccallSpacenameKeyMapattributesStatus(stub func(client 
 	var c_key_sz C.size_t
 	var c_mapattrs *C.struct_hyperdex_client_map_attribute
 	var c_mapattrs_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertKey(arena, key, &c_key, &c_key_sz)
-	client.convertMapattributes(arena, mapattributes, &c_mapattrs, &c_mapattrs_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertKey(arena, key, &c_key, &c_key_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertMapattributes(arena, mapattributes, &c_mapattrs, &c_mapattrs_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
@@ -1361,10 +1452,27 @@ func (client *Client) AsynccallSpacenameKeyPredicatesMapattributesStatus(stub fu
 	var c_checks_sz C.size_t
 	var c_mapattrs *C.struct_hyperdex_client_map_attribute
 	var c_mapattrs_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertKey(arena, key, &c_key, &c_key_sz)
-	client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
-	client.convertMapattributes(arena, mapattributes, &c_mapattrs, &c_mapattrs_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertKey(arena, key, &c_key, &c_key_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertMapattributes(arena, mapattributes, &c_mapattrs, &c_mapattrs_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
@@ -1394,8 +1502,23 @@ func (client *Client) IteratorSpacenamePredicatesStatusAttributes(stub func(clie
 	var c_space *C.char
 	var c_checks *C.struct_hyperdex_client_attribute_check
 	var c_checks_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err := Error{Status(WRONGTYPE), er.Error(), ""}
+		errs <- err
+		close(attrs)
+		close(errs)
+		return
+	}
+	er = client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	if er != nil {
+		err := Error{Status(WRONGTYPE), er.Error(), ""}
+		errs <- err
+		close(attrs)
+		close(errs)
+		return
+	}
 	var c_iter cIterator
 	c_iter = cIterator{C.HYPERDEX_CLIENT_GARBAGE, nil, 0, make(chan Attributes, 10), make(chan Error, 10)}
 	attrs = c_iter.attrChan
@@ -1429,8 +1552,17 @@ func (client *Client) AsynccallSpacenamePredicatesStatusDescription(stub func(cl
 	var c_space *C.char
 	var c_checks *C.struct_hyperdex_client_attribute_check
 	var c_checks_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
 	var c_status C.enum_hyperdex_client_returncode
 	var c_description *C.char
 	done := make(chan Error)
@@ -1467,11 +1599,47 @@ func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttribut
 	var c_sort_by *C.char
 	var c_limit C.uint64_t
 	var c_maxmin C.int
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
-	client.convertSortby(arena, sortby, &c_sort_by)
-	client.convertLimit(arena, limit, &c_limit)
-	client.convertMaxmin(arena, maxmin, &c_maxmin)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err := Error{Status(WRONGTYPE), er.Error(), ""}
+		errs <- err
+		close(attrs)
+		close(errs)
+		return
+	}
+	er = client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	if er != nil {
+		err := Error{Status(WRONGTYPE), er.Error(), ""}
+		errs <- err
+		close(attrs)
+		close(errs)
+		return
+	}
+	er = client.convertSortby(arena, sortby, &c_sort_by)
+	if er != nil {
+		err := Error{Status(WRONGTYPE), er.Error(), ""}
+		errs <- err
+		close(attrs)
+		close(errs)
+		return
+	}
+	er = client.convertLimit(arena, limit, &c_limit)
+	if er != nil {
+		err := Error{Status(WRONGTYPE), er.Error(), ""}
+		errs <- err
+		close(attrs)
+		close(errs)
+		return
+	}
+	er = client.convertMaxmin(arena, maxmin, &c_maxmin)
+	if er != nil {
+		err := Error{Status(WRONGTYPE), er.Error(), ""}
+		errs <- err
+		close(attrs)
+		close(errs)
+		return
+	}
 	var c_iter cIterator
 	c_iter = cIterator{C.HYPERDEX_CLIENT_GARBAGE, nil, 0, make(chan Attributes, 10), make(chan Error, 10)}
 	attrs = c_iter.attrChan
@@ -1505,8 +1673,17 @@ func (client *Client) AsynccallSpacenamePredicatesStatus(stub func(client *C.str
 	var c_space *C.char
 	var c_checks *C.struct_hyperdex_client_attribute_check
 	var c_checks_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
 	var c_status C.enum_hyperdex_client_returncode
 	done := make(chan Error)
 	client.mutex.Lock()
@@ -1536,8 +1713,17 @@ func (client *Client) AsynccallSpacenamePredicatesStatusCount(stub func(client *
 	var c_space *C.char
 	var c_checks *C.struct_hyperdex_client_attribute_check
 	var c_checks_sz C.size_t
-	client.convertSpacename(arena, spacename, &c_space)
-	client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	if er != nil {
+		err = Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
 	var c_status C.enum_hyperdex_client_returncode
 	var c_count C.uint64_t
 	done := make(chan Error)
