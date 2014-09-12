@@ -241,6 +241,7 @@ search_manager :: next(const server_id& from,
                        uint64_t search_id)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
     id sid(ri, from, search_id);
     e::intrusive_ptr<state> st;
 
@@ -260,7 +261,7 @@ search_manager :: next(const server_id& from,
         std::vector<e::slice> val;
         uint64_t ver;
         datalayer::reference tmp;
-        m_daemon->m_data.get_from_iterator(ri, st->iter.get(), &key, &val, &ver, &tmp);
+        m_daemon->m_data.get_from_iterator(ri, sc, st->iter.get(), &key, &val, &ver, &tmp);
         size_t sz = HYPERDEX_HEADER_SIZE_VC
                   + sizeof(uint64_t)
                   + pack_size(key)
@@ -454,7 +455,7 @@ search_manager :: sorted_search(const server_id& from,
     while (iter->valid())
     {
         top_n.push_back(_sorted_search_item(&params));
-        m_daemon->m_data.get_from_iterator(ri, iter.get(), &top_n.back().key, &top_n.back().value, &top_n.back().version, &top_n.back().ref);
+        m_daemon->m_data.get_from_iterator(ri, *sc, iter.get(), &top_n.back().key, &top_n.back().value, &top_n.back().version, &top_n.back().ref);
         std::push_heap(top_n.begin(), top_n.end());
 
         if (top_n.size() > limit)
@@ -496,6 +497,7 @@ search_manager :: group_keyop(const server_id& from,
                               network_msgtype resp)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
     std::stable_sort(checks->begin(), checks->end());
     datalayer::returncode rc = datalayer::SUCCESS;
     datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
@@ -525,7 +527,7 @@ search_manager :: group_keyop(const server_id& from,
         std::vector<e::slice> val;
         uint64_t ver;
         datalayer::reference tmp;
-        m_daemon->m_data.get_from_iterator(ri, iter.get(), &key, &val, &ver, &tmp);
+        m_daemon->m_data.get_from_iterator(ri, *sc, iter.get(), &key, &val, &ver, &tmp);
         size_t sz = HYPERDEX_HEADER_SIZE_SV // SV because we imitate a client
                   + sizeof(uint64_t)
                   + pack_size(key)

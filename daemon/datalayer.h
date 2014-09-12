@@ -153,6 +153,7 @@ class datalayer
         bool backup(const e::slice& name);
         // get the object pointed to by the iterator
         returncode get_from_iterator(const region_id& ri,
+                                     const schema& sc,
                                      iterator* iter,
                                      e::slice* key,
                                      std::vector<e::slice>* value,
