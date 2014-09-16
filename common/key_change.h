@@ -36,6 +36,7 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
+// A (pending) change to an entry in the database
 class key_change
 {
     public:
@@ -45,6 +46,8 @@ class key_change
 
     public:
         bool validate(const schema& sc) const;
+
+        // Check if a key change can be peformed
         network_returncode check(const schema& sc,
                                  bool has_old_value,
                                  const std::vector<e::slice>* old_value) const;
@@ -54,10 +57,20 @@ class key_change
 
     public:
         e::slice key;
+
+        // Will this entry be removed?
         bool erase;
+
+        // Keychange should fail if there is no previous value
         bool fail_if_not_found;
+
+        // Keychange should fail if there is a previous value
         bool fail_if_found;
+
+        // Checks to be performed before key change
         std::vector<attribute_check> checks;
+
+        // The actual keychange is stored here
         std::vector<funcall> funcs;
 };
 

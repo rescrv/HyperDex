@@ -95,8 +95,8 @@ datatype_document :: validate(const e::slice& value)
 bool
 datatype_document :: check_args(const funcall& func)
 {
-    return func.arg1_datatype == HYPERDATATYPE_DOCUMENT &&
-           validate(func.arg1) && func.name == FUNC_SET;
+    //return func.arg1_datatype == HYPERDATATYPE_DOCUMENT && validate(func.arg1) && func.name == FUNC_SET;
+    return func.arg1_datatype == HYPERDATATYPE_DOCUMENT && validate(func.arg1);
 }
 
 uint8_t*
@@ -109,8 +109,6 @@ datatype_document :: apply(const e::slice& old_value,
     for (size_t i = 0; i < funcs_sz; ++i)
     {
         const funcall* func = funcs + i;
-
-        std::cout << func->name << std::endl;
 
         switch(func->name)
         {

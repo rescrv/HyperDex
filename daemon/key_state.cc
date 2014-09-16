@@ -391,6 +391,9 @@ key_state :: get_latest(bool* has_old_value,
     CHECK_INVARIANTS();
     *old_version = 0;
 
+    // We try to pick the highest version of the key we know of here
+    // We know that the pending and commitable operations are sorted so we only look at their back
+
     if (!m_blocked.empty() && m_blocked.back()->this_version() > *old_version)
     {
         *has_old_value = m_blocked.back()->has_value();

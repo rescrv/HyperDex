@@ -75,6 +75,7 @@ key_change :: check(const schema& sc,
 
     if (!has_old_value && kc->erase)
     {
+        // cannot erase if there is no old value
         nrc = NET_NOTFOUND;
     }
     else if (!has_old_value && kc->fail_if_not_found)
