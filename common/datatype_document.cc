@@ -160,13 +160,19 @@ void datatype_document :: atomic_add(const char* key, json_object* parent, json_
         lh_table* data_children = json_object_get_object(data);
         lh_table* input_children = json_object_get_object(input);
 
-        lh_entry* data_it = data_children->head;
         lh_entry* input_it = input_children->head;
 
-        while(data_it != NULL)
+        while(input_it != NULL)
         {
-            assert(input_it != NULL);
-            //assert(data_it->k == input_it->k);
+            lh_entry* data_it = data_children->head;
+
+            // Find the corresponding entry in the original data
+            while(data_it != NULL && strcmp((char*)data_it->k, (char*)input_it->k) != 0)
+            {
+                data_it = data_it->next;
+            }
+
+            assert(data_it != NULL);
 
             atomic_add((const char*)data_it->k, data, (json_object*)data_it->v, (json_object*)input_it->v);
 
