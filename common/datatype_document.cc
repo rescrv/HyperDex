@@ -31,6 +31,9 @@
 #include "config.h"
 #endif
 
+// HyperDex
+#include "common/datatype_document.h"
+
 // json-c
 #if HAVE_JSON_H
 #include <json/json.h>
@@ -44,8 +47,6 @@
 #include <e/endian.h>
 #include <e/guard.h>
 
-// HyperDex
-#include "common/datatype_document.h"
 
 using hyperdex::datatype_info;
 using hyperdex::datatype_document;
@@ -118,16 +119,20 @@ datatype_document :: apply(const e::slice& old_value,
             break;
         case FUNC_NUM_ADD:
         {
-            const char* fieldname = reinterpret_cast<const char*>(func->arg1.data());
-            std::cout << fieldname << std::endl;
+            json_object *input = to_json(func->arg1);
 
-            std::vector<char>* scratch = NULL;
-            e::slice *value = NULL;
-            hyperdatatype *datatype = NULL;
+            if(!input) {
+                // this should have been caught by validate()
+                abort();
+            }
 
-            bool success = parse_path(fieldname, NULL, old_value, HYPERDATATYPE_DOCUMENT, datatype, scratch, value);
-            assert(success);
+            e::guard gobj = e::makeguard(json_object_put, input);
+            gobj.use_variable();
 
+            json_object *data = to_json(old_value);
+
+            atomic_add(NULL, NULL, data, input);
+            new_value = json_object_to_json_string(data);
             break;
         }
         default:
@@ -137,6 +142,56 @@ datatype_document :: apply(const e::slice& old_value,
 
     memmove(writeto, new_value.data(), new_value.size());
     return writeto + new_value.size();
+}
+
+void datatype_document :: atomic_add(const char* key, json_object* parent, json_object* data, json_object* input) const
+{
+    json_type type = json_object_get_type(data);
+
+    if(!json_object_is_type(input, type)) {
+        // wrong type...
+        abort();
+    }
+
+    switch(type)
+    {
+    case json_type_object:
+    {
+        lh_table* data_children = json_object_get_object(data);
+        lh_table* input_children = json_object_get_object(input);
+
+        lh_entry* data_it = data_children->head;
+        lh_entry* input_it = input_children->head;
+
+        while(data_it != NULL)
+        {
+            assert(input_it != NULL);
+            //assert(data_it->k == input_it->k);
+
+            atomic_add((const char*)data_it->k, data, (json_object*)data_it->v, (json_object*)input_it->v);
+
+            data_it = data_it->next;
+            input_it = input_it->next;
+        }
+
+        break;
+    }
+    case json_type_int:
+    {
+        assert(key != NULL);
+        assert(parent != NULL);
+
+        int64_t data_val = json_object_get_int64(data);
+        int64_t input_val = json_object_get_int64(input);
+
+        json_object* new_val = json_object_new_int64(data_val + input_val);
+        json_object_object_add(parent, key, new_val);
+        break;
+    }
+    default:
+        // unknown json type...
+        abort();
+    }
 }
 
 bool
@@ -182,14 +237,7 @@ datatype_document :: document_check(const attribute_check& check,
     return passes_attribute_check(type, new_check, value);
 }
 
-bool
-datatype_document :: parse_path(const char* path,
-                                const char* const end,
-                                const e::slice& doc,
-                                hyperdatatype hint,
-                                hyperdatatype* type,
-                                std::vector<char>* scratch,
-                                e::slice* value)
+json_object* datatype_document :: to_json(const e::slice& doc) const
 {
     json_tokener* tok = json_tokener_new();
 
@@ -205,17 +253,37 @@ datatype_document :: parse_path(const char* path,
 
     if (!obj)
     {
+        return NULL;
+    }
+
+    if (json_tokener_get_error(tok) != json_tokener_success ||
+        tok->char_offset != static_cast<ssize_t>(doc.size()))
+    {
+        assert(json_object_put(obj) == 0);
+        return NULL;
+    }
+
+    return obj;
+}
+
+bool
+datatype_document :: parse_path(const char* path,
+                                const char* const end,
+                                const e::slice& doc,
+                                hyperdatatype hint,
+                                hyperdatatype* type,
+                                std::vector<char>* scratch,
+                                e::slice* value)
+{
+    json_object* obj = to_json(doc);
+
+    if(!obj)
+    {
         return false;
     }
 
     e::guard gobj = e::makeguard(json_object_put, obj);
     gobj.use_variable();
-
-    if (json_tokener_get_error(tok) != json_tokener_success ||
-        tok->char_offset != static_cast<ssize_t>(doc.size()))
-    {
-        return false;
-    }
 
     json_object* parent = obj;
 

@@ -32,6 +32,8 @@
 #include "namespace.h"
 #include "common/datatype_info.h"
 
+class json_object;
+
 BEGIN_HYPERDEX_NAMESPACE
 
 class datatype_document : public datatype_info
@@ -62,6 +64,12 @@ class datatype_document : public datatype_info
                         hyperdatatype* type, // OUT: the datatype of the result
                         std::vector<char>* scratch, // OUT: ??
                         e::slice* value); // OUT: the resulting content/value
+
+    private:
+        // Convert raw data into a json object
+        json_object* to_json(const e::slice& slice) const;
+
+        void atomic_add(const char* key, json_object* parent, json_object* data, json_object* input) const;
 };
 
 END_HYPERDEX_NAMESPACE
