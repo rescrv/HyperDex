@@ -622,23 +622,23 @@ func (client *Client) convertMapattributes(arena *C.struct_hyperdex_ds_arena, ma
 	return
 }
 
-func (client *Client) convertSortby(arena *C.struct_hyperdex_ds_arena, attr string, out **C.char) (err Error) {
+func (client *Client) convertSortby(arena *C.struct_hyperdex_ds_arena, attr string, out **C.char) error {
 	client.convertCString(arena, attr, out)
-	return
+	return nil
 }
 
-func (client *Client) convertLimit(arena *C.struct_hyperdex_ds_arena, limit uint64, out *C.uint64_t) (err Error) {
+func (client *Client) convertLimit(arena *C.struct_hyperdex_ds_arena, limit uint32, out *C.uint64_t) error {
 	*out = C.uint64_t(limit)
-	return
+	return nil
 }
 
-func (client *Client) convertMaxmin(arena *C.struct_hyperdex_ds_arena, maxmin string, out *C.int) (err Error) {
+func (client *Client) convertMaxmin(arena *C.struct_hyperdex_ds_arena, maxmin string, out *C.int) error {
 	if maxmin == "max" || maxmin == "maximum" {
 		*out = 1
 	} else {
 		*out = 0
 	}
-	return
+	return nil
 }
 
 func (client *innerClient) buildAttributes(_attrs *C.struct_hyperdex_client_attribute, _attrs_sz C.size_t) (attributes Attributes, err error) {
@@ -1503,6 +1503,10 @@ func (client *Client) IteratorSpacenamePredicatesStatusAttributes(stub func(clie
 	var c_checks *C.struct_hyperdex_client_attribute_check
 	var c_checks_sz C.size_t
 	var er error
+	var c_iter cIterator
+	c_iter = cIterator{C.HYPERDEX_CLIENT_GARBAGE, nil, 0, make(chan Attributes, 10), make(chan Error, 10)}
+	attrs = c_iter.attrChan
+	errs = c_iter.errChan
 	er = client.convertSpacename(arena, spacename, &c_space)
 	if er != nil {
 		err := Error{Status(WRONGTYPE), er.Error(), ""}
@@ -1519,10 +1523,6 @@ func (client *Client) IteratorSpacenamePredicatesStatusAttributes(stub func(clie
 		close(errs)
 		return
 	}
-	var c_iter cIterator
-	c_iter = cIterator{C.HYPERDEX_CLIENT_GARBAGE, nil, 0, make(chan Attributes, 10), make(chan Error, 10)}
-	attrs = c_iter.attrChan
-	errs = c_iter.errChan
 	var err Error
 	client.mutex.Lock()
 	inner := client.clients[client.counter%uint64(len(client.clients))]
@@ -1590,7 +1590,7 @@ func (client *Client) AsynccallSpacenamePredicatesStatusDescription(stub func(cl
 	return
 }
 
-func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttributes(stub func(client *C.struct_hyperdex_client, c_space *C.char, c_checks *C.struct_hyperdex_client_attribute_check, c_checks_sz C.size_t, c_sort_by *C.char, c_limit C.uint64_t, c_maxmin C.int, c_status *C.enum_hyperdex_client_returncode, c_attrs **C.struct_hyperdex_client_attribute, c_attrs_sz *C.size_t) int64, spacename string, predicates []Predicate, sortby string, limit uint64, maxmin string) (attrs chan Attributes, errs chan Error) {
+func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttributes(stub func(client *C.struct_hyperdex_client, c_space *C.char, c_checks *C.struct_hyperdex_client_attribute_check, c_checks_sz C.size_t, c_sort_by *C.char, c_limit C.uint64_t, c_maxmin C.int, c_status *C.enum_hyperdex_client_returncode, c_attrs **C.struct_hyperdex_client_attribute, c_attrs_sz *C.size_t) int64, spacename string, predicates []Predicate, sortby string, limit uint32, maxmin string) (attrs chan Attributes, errs chan Error) {
 	arena := C.hyperdex_ds_arena_create()
 	defer C.hyperdex_ds_arena_destroy(arena)
 	var c_space *C.char
@@ -1600,6 +1600,10 @@ func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttribut
 	var c_limit C.uint64_t
 	var c_maxmin C.int
 	var er error
+	var c_iter cIterator
+	c_iter = cIterator{C.HYPERDEX_CLIENT_GARBAGE, nil, 0, make(chan Attributes, 10), make(chan Error, 10)}
+	attrs = c_iter.attrChan
+	errs = c_iter.errChan
 	er = client.convertSpacename(arena, spacename, &c_space)
 	if er != nil {
 		err := Error{Status(WRONGTYPE), er.Error(), ""}
@@ -1640,10 +1644,6 @@ func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttribut
 		close(errs)
 		return
 	}
-	var c_iter cIterator
-	c_iter = cIterator{C.HYPERDEX_CLIENT_GARBAGE, nil, 0, make(chan Attributes, 10), make(chan Error, 10)}
-	attrs = c_iter.attrChan
-	errs = c_iter.errChan
 	var err Error
 	client.mutex.Lock()
 	inner := client.clients[client.counter%uint64(len(client.clients))]
@@ -2209,7 +2209,7 @@ func (client *Client) SearchDescribe(spacename string, predicates []Predicate) (
 func stub_sorted_search(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, sort_by *C.char, limit C.uint64_t, maxmin C.int, status *C.enum_hyperdex_client_returncode, attrs **C.struct_hyperdex_client_attribute, attrs_sz *C.size_t) int64 {
 	return int64(C.hyperdex_client_sorted_search(client, space, checks, checks_sz, sort_by, limit, maxmin, status, attrs, attrs_sz))
 }
-func (client *Client) SortedSearch(spacename string, predicates []Predicate, sortby string, limit uint64, maxmin string) (attrs chan Attributes, errs chan Error) {
+func (client *Client) SortedSearch(spacename string, predicates []Predicate, sortby string, limit uint32, maxmin string) (attrs chan Attributes, errs chan Error) {
 	return client.IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttributes(stub_sorted_search, spacename, predicates, sortby, limit, maxmin)
 }
 

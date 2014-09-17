@@ -53,7 +53,7 @@ def GOTYPEOF(x):
     elif x == bindings.SortBy:
         return 'string'
     elif x == bindings.Limit:
-        return 'uint64'
+        return 'uint32'
     elif x == bindings.MaxMin:
         return 'string'
     print x
@@ -199,16 +199,16 @@ def generate_worker_iterator(call, x):
         for p, n in arg.args:
             func += '\tvar c_{0} {1}\n'.format(n, CGoIfy(p))
     func += '\tvar er error\n'
+    func += '\tvar c_iter cIterator\n'
+    func += '\tc_iter = cIterator{C.HYPERDEX_CLIENT_GARBAGE, nil, 0, make(chan Attributes, 10), make(chan Error, 10)}\n'
+    func += '\tattrs = c_iter.attrChan\n'
+    func += '\terrs = c_iter.errChan\n'
     for arg in x.args_in:
         args = ', '.join(['&c_' + n for p, n in arg.args])
         func += '\ter = client.convert{0}(arena, {1}, {2})\n'.format(GoIfy(arg.__name__), arg_name(arg), args)
         func += '\tif er != nil {\n\t\terr := Error{Status(WRONGTYPE), er.Error(), ""}\n'
         func += '\t\terrs<-err\n\t\tclose(attrs)\n\t\tclose(errs)\n'
         func += '\t\treturn\n\t}\n'
-    func += '\tvar c_iter cIterator\n'
-    func += '\tc_iter = cIterator{C.HYPERDEX_CLIENT_GARBAGE, nil, 0, make(chan Attributes, 10), make(chan Error, 10)}\n'
-    func += '\tattrs = c_iter.attrChan\n'
-    func += '\terrs = c_iter.errChan\n'
     stub_args, stub_args_list = generate_stub_args(x, in_prefix='c_', out_prefix='&c_iter.')
     func += '\tvar err Error\n'
     func += '\tclient.mutex.Lock()\n'
