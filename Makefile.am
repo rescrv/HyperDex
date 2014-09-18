@@ -1335,17 +1335,17 @@ maint_lib_check_SOURCES = maint/lib-check.c
 maint_lib_check_LDADD = -ldl
 
 maintainer-generate:
-	python bindings/c.py
-	python bindings/java.py
-	python bindings/nodejs.py
-	python bindings/python.py
-	python bindings/ruby.py
-	python maint/generate-replication-shell-stubs.py
-	python maint/generate-search-shell-stubs.py
-	python maint/generate-doc-shell-stubs.py
-	python maint/generate-bindings-tests.py
-	python test/doc-extract.py python doc/quick-start.tex test/doc.quick-start.py
-	python test/doc-extract.py python doc/data-types.tex test/doc.data-types.py
-	python test/doc-extract.py python doc/async-ops.tex test/doc.async-ops.py
-	python test/doc-extract.py python doc/atomic-ops.tex test/doc.atomic-ops.py
-	python test/doc-extract.py python doc/documents.tex test/doc.documents.py
+	python2 bindings/c.py
+	python2 bindings/java.py
+	python2 bindings/nodejs.py
+	python2 bindings/python.py
+	python2 bindings/ruby.py
+	python2 maint/generate-replication-shell-stubs.py
+	python2 maint/generate-search-shell-stubs.py
+	python2 maint/generate-doc-shell-stubs.py
+	python2 maint/generate-bindings-tests.py
+	python2 test/doc-extract.py python doc/quick-start.tex test/doc.quick-start.py
+	python2 test/doc-extract.py python doc/data-types.tex test/doc.data-types.py
+	python2 test/doc-extract.py python doc/async-ops.tex test/doc.async-ops.py
+	python2 test/doc-extract.py python doc/atomic-ops.tex test/doc.atomic-ops.py
+	python2 test/doc-extract.py python doc/documents.tex test/doc.documents.py

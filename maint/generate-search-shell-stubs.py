@@ -2,7 +2,7 @@ import os
 
 template = '''#!/bin/sh
 SPACE="{space} create {daemons} partitions tolerate {ft} failures"
-exec python "${{HYPERDEX_SRCDIR}}"/test/runner.py --daemons={daemons} --space="${{SPACE}}" -- \\
+exec python2 "${{HYPERDEX_SRCDIR}}"/test/runner.py --daemons={daemons} --space="${{SPACE}}" -- \\
      "${{HYPERDEX_BUILDDIR}}"/test/search-stress-test --quiet -h {{HOST}} -p {{PORT}} -k {keytype}
 '''
 
