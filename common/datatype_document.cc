@@ -96,8 +96,16 @@ datatype_document :: validate(const e::slice& value)
 bool
 datatype_document :: check_args(const funcall& func)
 {
-    //return func.arg1_datatype == HYPERDATATYPE_DOCUMENT && validate(func.arg1) && func.name == FUNC_SET;
-    return func.arg1_datatype == HYPERDATATYPE_DOCUMENT && validate(func.arg1);
+    if(func.name == FUNC_SET) {
+        // set (or replace with) a new document
+        return func.arg1_datatype == HYPERDATATYPE_DOCUMENT && validate(func.arg1);
+    } else if(func.name == FUNC_NUM_ADD) {
+        // they second argument is a path to the field we want to manipulate
+        // (the path is represented as a string)
+        return func.arg2_datatype == HYPERDATATYPE_STRING && validate(func.arg1) && validate(func.arg2);
+    } else {
+        return false;
+    }
 }
 
 uint8_t*

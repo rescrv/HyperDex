@@ -97,20 +97,33 @@ datatype_map :: validate(const e::slice& map)
 bool
 datatype_map :: check_args(const funcall& func)
 {
-    return ((func.arg1_datatype == datatype() ||
-             func.arg1_datatype == HYPERDATATYPE_MAP_GENERIC) &&
-            validate(func.arg1) && func.name == FUNC_SET) ||
-           (func.arg1_datatype == m_v->datatype() &&
-            func.arg2_datatype == m_k->datatype() &&
-            m_v->validate(func.arg1) &&
+    // depending on the operation the arguments may differ
+    // we must ensure that they match
+
+    // set needs a whole map as an argument
+    if(func.name == FUNC_SET)
+    {
+        return (func.arg1_datatype == datatype() ||
+             func.arg1_datatype == HYPERDATATYPE_MAP_GENERIC)
+             && validate(func.arg1);
+    }
+    // inserting a new element needs a key/value-pair
+    else if(func.name == FUNC_MAP_ADD)
+    {
+        return m_v->validate(func.arg1) &&
             m_k->validate(func.arg2) &&
-            func.name == FUNC_MAP_ADD) ||
-           (func.arg1_datatype == m_k->datatype() &&
-            m_k->validate(func.arg1) &&
-            func.name == FUNC_MAP_REMOVE) ||
-           (func.arg2_datatype == m_k->datatype() &&
-            m_k->validate(func.arg2) &&
-            (func.name == FUNC_STRING_APPEND ||
+            func.arg1_datatype == m_v->datatype() &&
+            func.arg2_datatype == m_k->datatype();
+    }
+    // Remove only needs a key
+    else if(func.name == FUNC_MAP_REMOVE)
+    {
+        return m_k->validate(func.arg1) && func.arg1_datatype == m_k->datatype();
+    }
+    // Other operations embed their arguments in the second datatype
+    else if(func.arg2_datatype == m_k->datatype())
+    {
+        bool allowedOperation = (func.name == FUNC_STRING_APPEND ||
              func.name == FUNC_STRING_PREPEND ||
              func.name == FUNC_NUM_ADD ||
              func.name == FUNC_NUM_SUB ||
@@ -119,8 +132,17 @@ datatype_map :: check_args(const funcall& func)
              func.name == FUNC_NUM_MOD ||
              func.name == FUNC_NUM_AND ||
              func.name == FUNC_NUM_OR ||
-             func.name == FUNC_NUM_XOR) &&
-            m_v->check_args(func));
+             func.name == FUNC_NUM_XOR);
+
+        return m_k->validate(func.arg2)
+             && allowedOperation
+             && m_v->check_args(func);
+    }
+    else
+    {
+        // maybe call abort() here?
+        return false;
+    }
 }
 
 uint8_t*
