@@ -441,7 +441,7 @@ int64_t
 hyperdex_client_document_atomic_add(struct hyperdex_client* client,
                                const char* space,
                                const char* key, size_t key_sz,
-			       const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                               const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz,
                                enum hyperdex_client_returncode* status);
 
 int64_t

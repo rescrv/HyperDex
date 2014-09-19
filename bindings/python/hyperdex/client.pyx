@@ -196,7 +196,7 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_document_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_document_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
@@ -304,6 +304,7 @@ ctypedef int64_t asynccall__spacename_key_predicates_attributes__status_fptr(hyp
 ctypedef int64_t asynccall__spacename_key__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_key_predicates__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_key_mapattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+ctypedef int64_t asynccall__spacename_key_docattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_key_predicates_mapattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
 ctypedef int64_t iterator__spacename_predicates__status_attributes_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 ctypedef int64_t asynccall__spacename_predicates__status_description_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const char** description)
@@ -864,28 +865,31 @@ cdef hyperdex_python_client_iterator_encode_status_attributes(Iterator it):
     else:
         raise HyperDexClientException(it.status, hyperdex_client_error_message(it.client.client))
 
-
+# Json can be represented natively in Python
+# However, we add a wrapper class to distinguish dictionaries from documents
 cdef class Document:
+    cdef dict _doc
 
-    cdef bytes _doc
-
+    # Create from either a dict (native representation) or a string
     def __init__(self, doc):
-        if not isinstance(doc, str) and not isinstance(doc, bytes):
-            self._doc = json.dumps(doc)
-        else:
+        if isinstance(doc, str):
+            self._doc = json.loads(doc)
+        elif isinstance(doc, dict):
             self._doc = doc
+        else:
+            raise ValueError("Document must either be a dict or a string")
 
     def __len__(self):
-        return len(self._doc)
+        return len(str(self))
 
     def doc(self):
         return self._doc
 
     def __str__(self):
-        return 'Document(%s)' % self._doc
+        return 'Document(' + json.dumps(self._doc) + ')'
 
     def __repr__(self):
-        return 'Document(%s)' % self._doc
+        return str(self)
 
 
 cdef class Predicate:
@@ -1120,13 +1124,74 @@ cdef class Client:
                                                 &_checks[0][i].value_sz,
                                                 &_checks[0][i].datatype)
 
-    cdef convert_mapattributes(self, hyperdex_ds_arena* arena, mapattrs,
+    # Calculates the amount of map attributes that will be created from this document
+    # Note: This doesn't do any type checking
+    cdef flatten_document_calc_attr_size(self, dict attrs):
+            length = 0
+
+            for name, value in attrs.iteritems():
+                if isinstance(value, dict):
+                    length += self.flatten_document_calc_attr_size(value)
+                elif isinstance(value, Document):
+                    length += self.flatten_document_calc_attr_size(value.doc())
+                else:
+                    length += 1
+
+            return length
+
+    # Converts a (sub)document into mapattributes
+    # Note: Raises an exception when
+    cdef flatten_document_inner(self, hyperdex_ds_arena* arena, i, path,
+                                dict doc, hyperdex_client_map_attribute* mapattrs):
+        for name, value in doc.iteritems():
+            if isinstance(value, dict):
+                subpath = path + "." + name
+                i = self.flatten_document_inner(arena, i, subpath, value, mapattrs)
+
+            elif isinstance(value, int):
+                mapattrs[i].attr = name
+                hyperdex_python_client_convert_type(arena, path,
+                                                    &mapattrs[i].map_key,
+                                                    &mapattrs[i].map_key_sz,
+                                                    &mapattrs[i].map_key_datatype)
+                hyperdex_python_client_convert_type(arena, value,
+                                                    &mapattrs[i].value,
+                                                    &mapattrs[i].value_sz,
+                                                    &mapattrs[i].value_datatype)
+                i += 1
+            else:
+                raise ValueError("Can only flatten documents, where all values are integers.")
+
+        return i
+
+    # Convert from a pythonic document representation into a flat representation
+    # This should only be used for functions that modify (parts of) a document
+    cdef flatten_document(self, hyperdex_ds_arena* arena, dict attrs,
+                               hyperdex_client_map_attribute** _mapattrs, size_t* _mapattrs_sz):
+        length = self.flatten_document_calc_attr_size(attrs)
+        _mapattrs[0] = hyperdex_ds_allocate_map_attribute(arena, length)
+        if _mapattrs[0] == NULL:
+            raise MemoryError()
+
+        i = 0
+
+        # This is (supposed to be) a dictionary of fieldname-dictionary pairs
+        for name, document in attrs.iteritems():
+            i = self.flatten_document_inner(arena, i, "$", document.doc(), _mapattrs[0])
+
+        assert(length == i)
+        _mapattrs_sz[0] = length
+
+    # Convert from a python dictionary into a list of map attributes
+    cdef convert_mapattributes(self, hyperdex_ds_arena* arena, dict mapattrs,
                                hyperdex_client_map_attribute** _mapattrs, size_t* _mapattrs_sz):
         length = sum([len(v) for k, v in mapattrs.iteritems()])
         _mapattrs[0] = hyperdex_ds_allocate_map_attribute(arena, length)
         if _mapattrs[0] == NULL:
             raise MemoryError()
         i = 0
+
+        # This is actually a dictionary of dictionaries
         for name, mapvalue in mapattrs.iteritems():
             for k, v in mapvalue.iteritems():
                 assert i < length
@@ -1267,6 +1332,23 @@ cdef class Client:
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
         self.convert_predicates(d.arena, predicates, &in_checks, &in_checks_sz);
         d.reqid = f(self.client, in_space, in_key, in_key_sz, in_checks, in_checks_sz, &d.status);
+        if d.reqid < 0:
+            raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
+        d.encode_return = hyperdex_python_client_deferred_encode_status
+        self.ops[d.reqid] = d
+        return d
+
+    cdef asynccall__spacename_key_document__status(self, asynccall__spacename_key_docattributes__status_fptr f, bytes spacename, key, dict attributes):
+        cdef Deferred d = Deferred(self)
+        cdef const char* in_space
+        cdef const char* in_key
+        cdef size_t in_key_sz
+        cdef hyperdex_client_map_attribute* in_mapattrs
+        cdef size_t in_mapattrs_sz
+        self.convert_spacename(d.arena, spacename, &in_space);
+        self.convert_key(d.arena, key, &in_key, &in_key_sz);
+        self.flatten_document(d.arena, attributes, &in_mapattrs, &in_mapattrs_sz);
+        d.reqid = f(self.client, in_space, in_key, in_key_sz, in_mapattrs, in_mapattrs_sz, &d.status);
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status
@@ -1607,9 +1689,9 @@ cdef class Client:
         return self.async_map_atomic_add(spacename, key, mapattributes).wait()
 
     def async_document_atomic_add(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_document_atomic_add, spacename, key, attributes)
-    def document_atomic_add(self, bytes spacename, key, dict mapattributes):
-        return self.async_document_atomic_add(spacename, key, mapattributes).wait()
+        return self.asynccall__spacename_key_document__status(hyperdex_client_document_atomic_add, spacename, key, attributes)
+    def document_atomic_add(self, bytes spacename, key, dict attributes):
+        return self.async_document_atomic_add(spacename, key, attributes).wait()
 
     def async_cond_map_atomic_add(self, bytes spacename, key, dict predicates, dict mapattributes):
         return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_add, spacename, key, predicates, mapattributes)

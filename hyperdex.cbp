@@ -28,6 +28,74 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="bindings/c/admin-testcompile.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/c/client-testcompile.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/cc/admin-testcompile.cc" />
+		<Unit filename="bindings/cc/client-testcompile.cc" />
+		<Unit filename="bindings/java/org/hyperdex/client/ByteString.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Client.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Deferred.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/GreaterEqual.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/GreaterThan.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/HyperDexClientException.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Iterator.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/LengthEquals.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/LengthGreaterEqual.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/LengthLessEqual.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/LessEqual.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/LessThan.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Operation.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Predicate.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Range.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Regex.java" />
+		<Unit filename="bindings/java/org/hyperdex/ycsb/HyperDex.java" />
+		<Unit filename="bindings/java/org_hyperdex_client_Client.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/java/org_hyperdex_client_Client.definitions.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/java/org_hyperdex_client_Client.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_Deferred.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_GreaterEqual.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_GreaterThan.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_Iterator.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_LengthEquals.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_LengthGreaterEqual.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_LengthLessEqual.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_LessEqual.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_LessThan.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_Range.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_Regex.h" />
+		<Unit filename="bindings/node.js/client.cc" />
+		<Unit filename="bindings/node.js/client.declarations.cc" />
+		<Unit filename="bindings/node.js/client.definitions.cc" />
+		<Unit filename="bindings/node.js/client.prototypes.cc" />
+		<Unit filename="bindings/python/hyperdex/admin.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/python/hyperdex/client.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/ruby/admin.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/ruby/client.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/ruby/definitions.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/ruby/hyperdex.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/ruby/prototypes.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="client/c.cc" />
 		<Unit filename="client/client.cc" />
 		<Unit filename="client/client.h" />
@@ -207,6 +275,13 @@
 		<Unit filename="daemon/state_transfer_manager_transfer_out_state.h" />
 		<Unit filename="daemon/test/identifier_collector.cc" />
 		<Unit filename="daemon/test/identifier_generator.cc" />
+		<Unit filename="include/hyperdex.h" />
+		<Unit filename="include/hyperdex/admin.h" />
+		<Unit filename="include/hyperdex/admin.hpp" />
+		<Unit filename="include/hyperdex/client.h" />
+		<Unit filename="include/hyperdex/client.hpp" />
+		<Unit filename="include/hyperdex/datastructures.h" />
+		<Unit filename="include/hyperdex/hyperspace_builder.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />
