@@ -148,7 +148,8 @@ datatype_document :: apply(const e::slice& old_value,
             const e::slice& key = funcs[i].arg2;
             const e::slice& val = funcs[i].arg1;
 
-            std::string path(reinterpret_cast<const char*>(key.data()) + '\0');
+            std::string path(key.c_str());
+
             // cut off the "$."
             std::string relpath = path.substr(2);
 
@@ -196,8 +197,6 @@ void datatype_document :: atomic_add(const char* key, json_object* parent, json_
             childname = path.substr(0, pos);
             subpath = path.substr(pos+1);
         }
-
-        std::cout << childname << "." << subpath << std::endl;
 
         lh_entry* data_it = data_children->head;
 

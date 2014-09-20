@@ -1152,7 +1152,7 @@ cdef class Client:
                 i = self.flatten_document_inner(arena, i, keyname, subpath, value, mapattrs)
 
             elif isinstance(value, int):
-                fullpath = path + "." + name
+                fullpath = path + "." + name + "\0"
                 mapattrs[i].attr = keyname
 
                 hyperdex_python_client_convert_type(arena, fullpath,
@@ -1210,7 +1210,7 @@ cdef class Client:
                                                     &_mapattrs[0][i].value_sz,
                                                     &_mapattrs[0][i].value_datatype)
                 i += 1
-        _mapattrs_sz[0] = i
+        _mapattrs_sz[0] = i + 1
 
     cdef convert_attributenames(self, hyperdex_ds_arena* arena, attributenames,
                                 const char*** _attributenames, size_t* _attributenames_sz):
