@@ -1210,7 +1210,7 @@ cdef class Client:
                                                     &_mapattrs[0][i].value_sz,
                                                     &_mapattrs[0][i].value_datatype)
                 i += 1
-        _mapattrs_sz[0] = i + 1
+        _mapattrs_sz[0] = i
 
     cdef convert_attributenames(self, hyperdex_ds_arena* arena, attributenames,
                                 const char*** _attributenames, size_t* _attributenames_sz):

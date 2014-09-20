@@ -200,6 +200,8 @@ void datatype_document :: atomic_add(const char* key, json_object* parent, json_
 
         lh_entry* data_it = data_children->head;
 
+        std::cout << childname << "." << subpath << std::endl;
+
         // Find the corresponding entry in the original data
         while(data_it != NULL)
         {
