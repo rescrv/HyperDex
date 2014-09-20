@@ -487,7 +487,7 @@ cdef hyperdex_python_client_convert_type(hyperdex_ds_arena* arena, x,
         return hyperdex_python_client_convert_map(arena, x, value, value_sz, datatype)
     elif isinstance(x, Document):
         datatype[0] = HYPERDATATYPE_DOCUMENT
-        return hyperdex_python_client_convert_string(arena, x.doc(), value, value_sz, &_datatype)
+        return hyperdex_python_client_convert_string(arena, x.inner_str(), value, value_sz, &_datatype)
     else:
         raise TypeError("Cannot convert object to a HyperDex type")
 
@@ -880,13 +880,16 @@ cdef class Document:
             raise ValueError("Document must either be a dict or a string")
 
     def __len__(self):
-        return len(str(self))
+        return len(self.inner_str())
 
     def doc(self):
         return self._doc
 
+    def inner_str(self):
+        return json.dumps(self._doc)
+
     def __str__(self):
-        return 'Document(' + json.dumps(self._doc) + ')'
+        return 'Document(' + self.inner_str() + ')'
 
     def __repr__(self):
         return str(self)
@@ -1141,16 +1144,18 @@ cdef class Client:
 
     # Converts a (sub)document into mapattributes
     # Note: Raises an exception when
-    cdef flatten_document_inner(self, hyperdex_ds_arena* arena, i, path,
+    cdef flatten_document_inner(self, hyperdex_ds_arena* arena, i, keyname, path,
                                 dict doc, hyperdex_client_map_attribute* mapattrs):
         for name, value in doc.iteritems():
             if isinstance(value, dict):
                 subpath = path + "." + name
-                i = self.flatten_document_inner(arena, i, subpath, value, mapattrs)
+                i = self.flatten_document_inner(arena, i, keyname, subpath, value, mapattrs)
 
             elif isinstance(value, int):
-                mapattrs[i].attr = name
-                hyperdex_python_client_convert_type(arena, path,
+                fullpath = path + "." + name
+                mapattrs[i].attr = keyname
+
+                hyperdex_python_client_convert_type(arena, fullpath,
                                                     &mapattrs[i].map_key,
                                                     &mapattrs[i].map_key_sz,
                                                     &mapattrs[i].map_key_datatype)
@@ -1177,7 +1182,7 @@ cdef class Client:
 
         # This is (supposed to be) a dictionary of fieldname-dictionary pairs
         for name, document in attrs.iteritems():
-            i = self.flatten_document_inner(arena, i, "$", document.doc(), _mapattrs[0])
+            i = self.flatten_document_inner(arena, i, name, "$", document.doc(), _mapattrs[0])
 
         assert(length == i)
         _mapattrs_sz[0] = length

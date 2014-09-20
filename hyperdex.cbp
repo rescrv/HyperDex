@@ -16,12 +16,12 @@
 					<Add option="-g" />
 				</Compiler>
 				<MakeCommands>
-					<Build command="$make -f $makefile $target" />
+					<Build command="$make  -j4 -f $makefile $target" />
 					<CompileFile command="$make -f $makefile $file" />
 					<Clean command="$make -f $makefile clean" />
 					<DistClean command="$make -f $makefile distclean$target" />
 					<AskRebuildNeeded command="$make -q -f $makefile $target" />
-					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
+					<SilentBuild command="$make  -j4 -f $makefile $target &gt; $(CMD_NULL)" />
 				</MakeCommands>
 			</Target>
 		</Build>
@@ -80,6 +80,9 @@
 		</Unit>
 		<Unit filename="bindings/python/hyperdex/client.c">
 			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/python/hyperdex/client.pyx">
+			<Option compile="1" />
 		</Unit>
 		<Unit filename="bindings/ruby/admin.c">
 			<Option compilerVar="CC" />

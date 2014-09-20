@@ -33,6 +33,8 @@
 
 // HyperDex
 #include "common/datatype_document.h"
+#include "common/datatype_string.h"
+#include "common/datatype_int64.h"
 
 // json-c
 #if HAVE_JSON_H
@@ -94,16 +96,30 @@ datatype_document :: validate(const e::slice& value)
 }
 
 bool
+datatype_document :: check_path(uint16_t attr, const std::string& path) const
+{
+    //TODO implement me
+    return true;
+}
+
+bool
 datatype_document :: check_args(const funcall& func)
 {
-    if(func.name == FUNC_SET) {
+    if(func.name == FUNC_SET)
+    {
         // set (or replace with) a new document
         return func.arg1_datatype == HYPERDATATYPE_DOCUMENT && validate(func.arg1);
-    } else if(func.name == FUNC_NUM_ADD) {
+    }
+    else if(func.name == FUNC_NUM_ADD)
+    {
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
-        return func.arg2_datatype == HYPERDATATYPE_STRING && validate(func.arg1) && validate(func.arg2);
-    } else {
+        return func.arg1_datatype == HYPERDATATYPE_INT64 && func.arg2_datatype == HYPERDATATYPE_STRING
+                && check_path(func.attr, std::string(func.arg2.c_str()));
+    }
+    else
+    {
+        // Unsupported operation
         return false;
     }
 }
@@ -122,24 +138,25 @@ datatype_document :: apply(const e::slice& old_value,
         switch(func->name)
         {
         case FUNC_SET:
+        {
             assert(check_args(*func));
             new_value = func->arg1;
             break;
+        }
         case FUNC_NUM_ADD:
         {
-            json_object *input = to_json(func->arg1);
+            const e::slice& key = funcs[i].arg2;
+            const e::slice& val = funcs[i].arg1;
 
-            if(!input) {
-                // this should have been caught by validate()
-                abort();
-            }
+            std::string path(reinterpret_cast<const char*>(key.data()) + '\0');
+            // cut off the "$."
+            std::string relpath = path.substr(2);
 
-            e::guard gobj = e::makeguard(json_object_put, input);
-            gobj.use_variable();
+            const int64_t addval = static_cast<const int64_t>(*val.data());
 
             json_object *data = to_json(old_value);
+            atomic_add(NULL, NULL, data, relpath, addval);
 
-            atomic_add(NULL, NULL, data, input);
             new_value = json_object_to_json_string(data);
             break;
         }
@@ -152,53 +169,58 @@ datatype_document :: apply(const e::slice& old_value,
     return writeto + new_value.size();
 }
 
-void datatype_document :: atomic_add(const char* key, json_object* parent, json_object* data, json_object* input) const
+void datatype_document :: atomic_add(const char* key, json_object* parent, json_object* data, const std::string& path, const int64_t addval) const
 {
     json_type type = json_object_get_type(data);
-
-    if(!json_object_is_type(input, type)) {
-        // wrong type...
-        abort();
-    }
 
     switch(type)
     {
     case json_type_object:
     {
         lh_table* data_children = json_object_get_object(data);
-        lh_table* input_children = json_object_get_object(input);
 
-        lh_entry* input_it = input_children->head;
+        // the child is the direct child
+        // subpath is the subtree of that child (if any)
+        std::string childname;
+        std::string subpath;
+        int pos = path.find(".");
 
-        while(input_it != NULL)
+        if(pos == std::string::npos)
         {
-            lh_entry* data_it = data_children->head;
-
-            // Find the corresponding entry in the original data
-            while(data_it != NULL && strcmp((char*)data_it->k, (char*)input_it->k) != 0)
-            {
-                data_it = data_it->next;
-            }
-
-            assert(data_it != NULL);
-
-            atomic_add((const char*)data_it->k, data, (json_object*)data_it->v, (json_object*)input_it->v);
-
-            data_it = data_it->next;
-            input_it = input_it->next;
+            // we're at the end of the tree
+            subpath = "";
+            childname = path;
+        }
+        else
+        {
+            childname = path.substr(0, pos);
+            subpath = path.substr(pos+1);
         }
 
+        std::cout << childname << "." << subpath << std::endl;
+
+        lh_entry* data_it = data_children->head;
+
+        // Find the corresponding entry in the original data
+        while(data_it != NULL && std::string((const char*)data_it->k) == childname)
+        {
+            data_it = data_it->next;
+        }
+
+        assert(data_it != NULL);
+
+        atomic_add((const char*)data_it->k, data, (json_object*)data_it->v, subpath, addval);
         break;
     }
     case json_type_int:
     {
         assert(key != NULL);
         assert(parent != NULL);
+        assert(path == "");
 
         int64_t data_val = json_object_get_int64(data);
-        int64_t input_val = json_object_get_int64(input);
 
-        json_object* new_val = json_object_new_int64(data_val + input_val);
+        json_object* new_val = json_object_new_int64(data_val + addval);
         json_object_object_add(parent, key, new_val);
         break;
     }

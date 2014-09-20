@@ -69,7 +69,11 @@ class datatype_document : public datatype_info
         // Convert raw data into a json object
         json_object* to_json(const e::slice& slice) const;
 
-        void atomic_add(const char* key, json_object* parent, json_object* data, json_object* input) const;
+        void atomic_add(const char* key, json_object* parent, json_object* data,
+                        const std::string& path, const int64_t addval) const;
+
+        // Check if this is a valid path in the document
+        bool check_path(uint16_t atrr, const std::string& path) const;
 };
 
 END_HYPERDEX_NAMESPACE
