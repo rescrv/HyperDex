@@ -202,13 +202,18 @@ void datatype_document :: atomic_add(const char* key, json_object* parent, json_
         lh_entry* data_it = data_children->head;
 
         // Find the corresponding entry in the original data
-        while(data_it != NULL && std::string((const char*)data_it->k) == childname)
+        while(data_it != NULL)
         {
-            data_it = data_it->next;
+            if(std::string((const char*)data_it->k) == childname)
+                break; // we found it!
+            else
+                data_it = data_it->next;
         }
 
+        // we should have caught this in validate()
         assert(data_it != NULL);
 
+        // proceed with the subtree
         atomic_add((const char*)data_it->k, data, (json_object*)data_it->v, subpath, addval);
         break;
     }
