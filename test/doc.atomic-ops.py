@@ -217,17 +217,14 @@ True
 True
 >>> c.get('alldatatypes', 'somekey')
 {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': '->mapvalue<-'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 2}}
-
->>> Document = hyperdex.client.Document
 >>> a.add_space('''
 ... space people
 ... key k
 ... attributes
 ...    document info''')
 True
-
+>>> Document = hyperdex.client.Document
 >>> c.put('people', 'john doe', {'info' : Document( {'gender' : 'male', 'age' : 21, 'likes' : ['cornell', 'python']} )})
 True
-
->>> c.document_atomic_add('people', 'john doe', {'info' : Document( {'age' : 1} )})
+>>> c.document_atomic_add('people', 'john doe', {'info' : Document({'age' : 1})})
 True
