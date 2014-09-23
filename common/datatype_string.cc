@@ -48,19 +48,19 @@ datatype_string :: ~datatype_string() throw ()
 }
 
 hyperdatatype
-datatype_string :: datatype()
+datatype_string :: datatype() const
 {
     return HYPERDATATYPE_STRING;
 }
 
 bool
-datatype_string :: validate(const e::slice&)
+datatype_string :: validate(const e::slice&) const
 {
     return true;
 }
 
 bool
-datatype_string :: check_args(const funcall& func)
+datatype_string :: check_args(const funcall& func) const
 {
     return func.arg1_datatype == HYPERDATATYPE_STRING &&
            validate(func.arg1) &&

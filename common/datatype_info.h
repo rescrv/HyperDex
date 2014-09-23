@@ -40,6 +40,8 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
+class key_change;
+
 class datatype_info
 {
     public:
@@ -51,9 +53,9 @@ class datatype_info
 
     // all types must implement these
     public:
-        virtual hyperdatatype datatype() = 0;
-        virtual bool validate(const e::slice& value) = 0;
-        virtual bool check_args(const funcall& func) = 0;
+        virtual hyperdatatype datatype() const = 0;
+        virtual bool validate(const e::slice& value) const = 0;
+        virtual bool check_args(const funcall& func) const = 0;
         virtual uint8_t* apply(const e::slice& old_value,
                                const funcall* funcs, size_t funcs_sz,
                                uint8_t* writeto) = 0;
@@ -93,6 +95,10 @@ class datatype_info
         // must handle the case where elem/writeto overlap
         virtual uint8_t* write(uint8_t* writeto,
                                const e::slice& elem);
+
+    // override these if the type has requirements on the old value for certain operations
+    public:
+        virtual bool validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values) const;
 
     // override these if the type can be compared
     public:

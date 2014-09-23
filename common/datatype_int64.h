@@ -41,9 +41,9 @@ class datatype_int64 : public datatype_info
         virtual ~datatype_int64() throw ();
 
     public:
-        virtual hyperdatatype datatype();
-        virtual bool validate(const e::slice& value);
-        virtual bool check_args(const funcall& func);
+        virtual hyperdatatype datatype() const;
+        virtual bool validate(const e::slice& value) const;
+        virtual bool check_args(const funcall& func) const;
         virtual uint8_t* apply(const e::slice& old_value,
                                const funcall* funcs, size_t funcs_sz,
                                uint8_t* writeto);

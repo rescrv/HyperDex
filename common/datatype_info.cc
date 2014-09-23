@@ -244,6 +244,12 @@ datatype_info :: document()
 }
 
 bool
+datatype_info :: validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values) const
+{
+    return true;
+}
+
+bool
 datatype_info :: document_check(const attribute_check&,
                                 const e::slice&)
 {

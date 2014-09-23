@@ -52,13 +52,13 @@ datatype_map :: ~datatype_map() throw ()
 }
 
 hyperdatatype
-datatype_map :: datatype()
+datatype_map :: datatype() const
 {
     return CREATE_CONTAINER2(HYPERDATATYPE_MAP_GENERIC, m_k->datatype(), m_v->datatype());
 }
 
 bool
-datatype_map :: validate(const e::slice& map)
+datatype_map :: validate(const e::slice& map) const
 {
     const uint8_t* ptr = map.data();
     const uint8_t* end = map.data() + map.size();
@@ -95,7 +95,7 @@ datatype_map :: validate(const e::slice& map)
 }
 
 bool
-datatype_map :: check_args(const funcall& func)
+datatype_map :: check_args(const funcall& func) const
 {
     // depending on the operation the arguments may differ
     // we must ensure that they match

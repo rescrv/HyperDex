@@ -43,9 +43,10 @@ class datatype_document : public datatype_info
         virtual ~datatype_document() throw ();
 
     public:
-        virtual hyperdatatype datatype();
-        virtual bool validate(const e::slice& value);
-        virtual bool check_args(const funcall& func);
+        virtual hyperdatatype datatype() const;
+        virtual bool validate(const e::slice& value) const;
+        virtual bool validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values) const;
+        virtual bool check_args(const funcall& func) const;
         virtual uint8_t* apply(const e::slice& old_value,
                                const funcall* funcs, size_t funcs_sz,
                                uint8_t* writeto);
@@ -72,8 +73,9 @@ class datatype_document : public datatype_info
         void atomic_add(const char* key, json_object* parent, json_object* data,
                         const std::string& path, const int64_t addval) const;
 
-        // Check if this is a valid path in the document
-        bool check_path(uint16_t atrr, const std::string& path) const;
+        // Traverse a path to the last node
+        // Returns NULL if the node doesn't exist
+        json_object* traverse_path(const json_object* root, const std::string& path) const;
 };
 
 END_HYPERDEX_NAMESPACE

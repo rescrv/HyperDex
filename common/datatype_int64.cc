@@ -70,19 +70,19 @@ datatype_int64 :: ~datatype_int64() throw ()
 }
 
 hyperdatatype
-datatype_int64 :: datatype()
+datatype_int64 :: datatype() const
 {
     return HYPERDATATYPE_INT64;
 }
 
 bool
-datatype_int64 :: validate(const e::slice& value)
+datatype_int64 :: validate(const e::slice& value) const
 {
     return value.size() == sizeof(int64_t) || value.empty();
 }
 
 bool
-datatype_int64 :: check_args(const funcall& func)
+datatype_int64 :: check_args(const funcall& func) const
 {
     return func.arg1_datatype == HYPERDATATYPE_INT64 &&
            validate(func.arg1) &&

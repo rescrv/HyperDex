@@ -49,19 +49,19 @@ datatype_float :: ~datatype_float() throw ()
 }
 
 hyperdatatype
-datatype_float :: datatype()
+datatype_float :: datatype() const
 {
     return HYPERDATATYPE_FLOAT;
 }
 
 bool
-datatype_float :: validate(const e::slice& value)
+datatype_float :: validate(const e::slice& value) const
 {
     return value.size() == sizeof(double) || value.empty();
 }
 
 bool
-datatype_float :: check_args(const funcall& func)
+datatype_float :: check_args(const funcall& func) const
 {
     return func.arg1_datatype == HYPERDATATYPE_FLOAT &&
            validate(func.arg1) &&

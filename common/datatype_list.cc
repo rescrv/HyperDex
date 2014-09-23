@@ -53,13 +53,13 @@ datatype_list :: ~datatype_list() throw ()
 }
 
 hyperdatatype
-datatype_list :: datatype()
+datatype_list :: datatype() const
 {
     return CREATE_CONTAINER(HYPERDATATYPE_LIST_GENERIC, m_elem->datatype());
 }
 
 bool
-datatype_list :: validate(const e::slice& list)
+datatype_list :: validate(const e::slice& list) const
 {
     const uint8_t* ptr = list.data();
     const uint8_t* end = list.data() + list.size();
@@ -77,7 +77,7 @@ datatype_list :: validate(const e::slice& list)
 }
 
 bool
-datatype_list :: check_args(const funcall& func)
+datatype_list :: check_args(const funcall& func) const
 {
     return ((func.arg1_datatype == datatype() ||
              func.arg1_datatype == HYPERDATATYPE_LIST_GENERIC) &&
