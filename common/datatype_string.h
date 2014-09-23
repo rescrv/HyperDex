@@ -49,23 +49,23 @@ class datatype_string : public datatype_info
                                uint8_t* writeto);
 
     public:
-        virtual bool hashable();
+        virtual bool hashable() const;
         virtual uint64_t hash(const e::slice& value);
-        virtual bool indexable();
+        virtual bool indexable() const;
 
     public:
-        virtual bool has_length();
+        virtual bool has_length() const;
         virtual uint64_t length(const e::slice& value);
-        virtual bool has_regex();
+        virtual bool has_regex() const;
         virtual bool regex(const e::slice& regex,
                            const e::slice& value);
-        virtual bool containable();
+        virtual bool containable() const;
         virtual bool step(const uint8_t** ptr,
                           const uint8_t* end,
                           e::slice* elem);
         virtual uint8_t* write(uint8_t* writeto,
                                const e::slice& elem);
-        virtual bool comparable();
+        virtual bool comparable() const;
         virtual int compare(const e::slice& lhs, const e::slice& rhs);
         virtual compares_less compare_less();
 };

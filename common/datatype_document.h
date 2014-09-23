@@ -52,7 +52,7 @@ class datatype_document : public datatype_info
                                uint8_t* writeto);
 
     public:
-        virtual bool document();
+        virtual bool document() const;
         virtual bool document_check(const attribute_check& check,
                                     const e::slice& value);
 

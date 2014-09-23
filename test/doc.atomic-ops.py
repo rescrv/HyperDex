@@ -224,7 +224,9 @@ True
 ...    document info''')
 True
 >>> Document = hyperdex.client.Document
->>> c.put('people', 'john doe', {'info' : Document( {'gender' : 'male', 'age' : 21, 'likes' : ['cornell', 'python']} )})
+>>> c.put('people', 'Jane Doe', {'info' : Document( {'gender' : 'female', 'age' : 21, 'likes' : ['cornell', 'python']} )})
 True
->>> c.document_atomic_add('people', 'john doe', {'info' : Document({'age' : 1})})
+>>> c.document_atomic_add('people', 'Jane Doe', {'info' : Document({'age' : 1})})
 True
+>>> c.document_atomic_add('people', 'Jane Doe', {'info' : Document({'gender' : 1})})
+False

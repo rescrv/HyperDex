@@ -185,7 +185,9 @@ datatype_document :: apply(const e::slice& old_value,
 
             std::string path(key.c_str());
 
-            // cut off the "$."
+            // make sure this is an absolute path
+            // in the future we might add support for relative paths
+            assert(path.substr(0,2) == "$.");
             std::string relpath = path.substr(2);
 
             const int64_t addval = static_cast<const int64_t>(*val.data());
@@ -270,7 +272,7 @@ void datatype_document :: atomic_add(const char* key, json_object* root, json_ob
 }
 
 bool
-datatype_document :: document()
+datatype_document :: document() const
 {
     return true;
 }

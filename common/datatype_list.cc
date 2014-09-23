@@ -159,13 +159,13 @@ datatype_list :: apply(const e::slice& old_value,
 }
 
 bool
-datatype_list :: indexable()
+datatype_list :: indexable() const
 {
     return m_elem->indexable();
 }
 
 bool
-datatype_list :: has_length()
+datatype_list :: has_length() const
 {
     return true;
 }
@@ -190,13 +190,13 @@ datatype_list :: length(const e::slice& list)
 }
 
 bool
-datatype_list :: has_contains()
+datatype_list :: has_contains() const
 {
     return true;
 }
 
 hyperdatatype
-datatype_list :: contains_datatype()
+datatype_list :: contains_datatype() const
 {
     return m_elem->datatype();
 }

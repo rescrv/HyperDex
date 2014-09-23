@@ -127,7 +127,7 @@ datatype_string :: apply(const e::slice& old_value,
 }
 
 bool
-datatype_string :: hashable()
+datatype_string :: hashable() const
 {
     return true;
 }
@@ -139,13 +139,13 @@ datatype_string :: hash(const e::slice& value)
 }
 
 bool
-datatype_string :: indexable()
+datatype_string :: indexable() const
 {
     return true;
 }
 
 bool
-datatype_string :: has_length()
+datatype_string :: has_length() const
 {
     return true;
 }
@@ -157,7 +157,7 @@ datatype_string :: length(const e::slice& value)
 }
 
 bool
-datatype_string :: has_regex()
+datatype_string :: has_regex() const
 {
     return true;
 }
@@ -170,7 +170,7 @@ datatype_string :: regex(const e::slice& r,
 }
 
 bool
-datatype_string :: containable()
+datatype_string :: containable() const
 {
     return true;
 }
@@ -202,7 +202,7 @@ datatype_string :: write(uint8_t* writeto,
 }
 
 bool
-datatype_string :: comparable()
+datatype_string :: comparable() const
 {
     return true;
 }

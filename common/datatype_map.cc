@@ -266,13 +266,13 @@ datatype_map :: apply_inner(map_t* m,
 }
 
 bool
-datatype_map :: indexable()
+datatype_map :: indexable() const
 {
     return m_k->indexable();
 }
 
 bool
-datatype_map :: has_length()
+datatype_map :: has_length() const
 {
     return true;
 }
@@ -301,13 +301,13 @@ datatype_map :: length(const e::slice& map)
 }
 
 bool
-datatype_map :: has_contains()
+datatype_map :: has_contains() const
 {
     return true;
 }
 
 hyperdatatype
-datatype_map :: contains_datatype()
+datatype_map :: contains_datatype() const
 {
     return m_k->datatype();
 }

@@ -131,7 +131,7 @@ datatype_float :: apply(const e::slice& old_value,
 }
 
 bool
-datatype_float :: hashable()
+datatype_float :: hashable() const
 {
     return true;
 }
@@ -152,13 +152,13 @@ datatype_float :: hash(const e::slice& value)
 }
 
 bool
-datatype_float :: indexable()
+datatype_float :: indexable() const
 {
     return true;
 }
 
 bool
-datatype_float :: containable()
+datatype_float :: containable() const
 {
     return true;
 }
@@ -187,7 +187,7 @@ datatype_float :: write(uint8_t* writeto,
 }
 
 bool
-datatype_float :: comparable()
+datatype_float :: comparable() const
 {
     return true;
 }

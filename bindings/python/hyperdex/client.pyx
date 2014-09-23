@@ -196,7 +196,6 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_document_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
@@ -304,7 +303,6 @@ ctypedef int64_t asynccall__spacename_key_predicates_attributes__status_fptr(hyp
 ctypedef int64_t asynccall__spacename_key__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_key_predicates__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_key_mapattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-ctypedef int64_t asynccall__spacename_key_docattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_key_predicates_mapattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
 ctypedef int64_t iterator__spacename_predicates__status_attributes_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 ctypedef int64_t asynccall__spacename_predicates__status_description_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const char** description)
@@ -1343,23 +1341,6 @@ cdef class Client:
         self.ops[d.reqid] = d
         return d
 
-    cdef asynccall__spacename_key_document__status(self, asynccall__spacename_key_docattributes__status_fptr f, bytes spacename, key, dict attributes):
-        cdef Deferred d = Deferred(self)
-        cdef const char* in_space
-        cdef const char* in_key
-        cdef size_t in_key_sz
-        cdef hyperdex_client_map_attribute* in_mapattrs
-        cdef size_t in_mapattrs_sz
-        self.convert_spacename(d.arena, spacename, &in_space);
-        self.convert_key(d.arena, key, &in_key, &in_key_sz);
-        self.flatten_document(d.arena, attributes, &in_mapattrs, &in_mapattrs_sz);
-        d.reqid = f(self.client, in_space, in_key, in_key_sz, in_mapattrs, in_mapattrs_sz, &d.status);
-        if d.reqid < 0:
-            raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
-        d.encode_return = hyperdex_python_client_deferred_encode_status
-        self.ops[d.reqid] = d
-        return d
-
     cdef asynccall__spacename_key_mapattributes__status(self, asynccall__spacename_key_mapattributes__status_fptr f, bytes spacename, key, dict mapattributes):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
@@ -1692,11 +1673,6 @@ cdef class Client:
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_add, spacename, key, mapattributes)
     def map_atomic_add(self, bytes spacename, key, dict mapattributes):
         return self.async_map_atomic_add(spacename, key, mapattributes).wait()
-
-    def async_document_atomic_add(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_document__status(hyperdex_client_document_atomic_add, spacename, key, attributes)
-    def document_atomic_add(self, bytes spacename, key, dict attributes):
-        return self.async_document_atomic_add(spacename, key, attributes).wait()
 
     def async_cond_map_atomic_add(self, bytes spacename, key, dict predicates, dict mapattributes):
         return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_add, spacename, key, predicates, mapattributes)

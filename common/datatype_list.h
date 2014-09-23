@@ -52,13 +52,13 @@ class datatype_list : public datatype_info
                                uint8_t* writeto);
 
     public:
-        virtual bool indexable();
+        virtual bool indexable() const;
 
     public:
-        virtual bool has_length();
+        virtual bool has_length() const;
         virtual uint64_t length(const e::slice& value);
-        virtual bool has_contains();
-        virtual hyperdatatype contains_datatype();
+        virtual bool has_contains() const;
+        virtual hyperdatatype contains_datatype() const;
         virtual bool contains(const e::slice& value, const e::slice& needle);
 
     private:

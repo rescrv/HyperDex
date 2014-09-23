@@ -448,15 +448,23 @@ Now, we can insert data into this table.
 
 \begin{pythoncode}
 >>> Document = hyperdex.client.Document
->>> c.put('people', 'john doe', {'info' : Document( {'gender' : 'male', 'age' : 21, 'likes' : ['cornell', 'python']} )})
+>>> c.put('people', 'Jane Doe', {'info' : Document( {'gender' : 'female', 'age' : 21, 'likes' : ['cornell', 'python']} )})
 True
 \end{pythoncode}
 
-We might now want to modify the information of this person without rewriting the whole document. For example, it might be John Doe's birthday and we want to increment the age. Fortunately, atomic operations also work on this kind of data. Hyperdex is able to add up two documents as long as the argument is a subset of the original data and only has numerical values.
+We might now want to modify the information of this person without rewriting the whole document. For example, it might be Jane Doe's birthday and we want to increment the age.
+Fortunately, atomic operations also work on this kind of data. Hyperdex is able to add up two documents as long as the argument is a subset of the original data and only has numerical values.
 
 \begin{pythoncode}
->>> c.document_atomic_add('people', 'john doe', {'info' : Document({'age' : 1})})
+>>> c.document_atomic_add('people', 'Jane Doe', {'info' : Document({'age' : 1})})
 True
+\end{pythoncode}
+
+HyperDex will also prevent you from adding to non-numeric fields.
+
+\begin{pythoncode}
+>>> c.document_atomic_add('people', 'Jane Doe', {'info' : Document({'gender' : 1})})
+False
 \end{pythoncode}
 
 HyperDex's atomic operations are extensive and very expressive. And they are

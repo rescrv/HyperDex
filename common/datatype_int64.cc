@@ -173,7 +173,7 @@ datatype_int64 :: apply(const e::slice& old_value,
 }
 
 bool
-datatype_int64 :: hashable()
+datatype_int64 :: hashable() const
 {
     return true;
 }
@@ -186,13 +186,13 @@ datatype_int64 :: hash(const e::slice& value)
 }
 
 bool
-datatype_int64 :: indexable()
+datatype_int64 :: indexable() const
 {
     return true;
 }
 
 bool
-datatype_int64 :: containable()
+datatype_int64 :: containable() const
 {
     return true;
 }
@@ -221,7 +221,7 @@ datatype_int64 :: write(uint8_t* writeto,
 }
 
 bool
-datatype_int64 :: comparable()
+datatype_int64 :: comparable() const
 {
     return true;
 }

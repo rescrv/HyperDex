@@ -26,6 +26,6 @@ True
 >>> print [x for x in c.search('profiles', {'profile.name': 'John Doe'})]
 [{'username': 'jd', 'profile': Document({"www": "http://example.org", "friends":
 ["John Smith"], "name": "John Doe", "email": "doe@example.org"})}]
->>> print [x for x in c.search('profiles', {'profile.name': hyperdex.client.Regex('John Doe')})]
+>>> print [x for x in c.search('profiles', {'profile.name': hyperdex.client.Regex('John')})]
 [{'username': 'jd', 'profile': Document({"www": "http://example.org", "friends":
 ["John Smith"], "name": "John Doe", "email": "doe@example.org"})}]
