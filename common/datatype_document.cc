@@ -348,16 +348,6 @@ datatype_document :: traverse_path(const json_object* parent, const std::string&
 {
     assert(parent != NULL);
 
-    const char* ptr = path.c_str();
-    const char* end = path.c_str() + path.size();
-
-    // Iterate until we hit the last nested object.  For example, if the
-    // starting document is {foo: {bar: {baz: 5}}}, we'll break out of this loop
-    // when parent=5 and path="baz"
-    //
-    // If the requested path is not found, we break;
-    // the child is the direct child
-    // subpath is the subtree of that child (if any)
     std::string childname;
     std::string subpath;
     int pos = path.find(".");
