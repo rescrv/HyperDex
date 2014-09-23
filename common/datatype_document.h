@@ -70,8 +70,7 @@ class datatype_document : public datatype_info
         // Convert raw data into a json object
         json_object* to_json(const e::slice& slice) const;
 
-        void atomic_add(const char* key, json_object* parent, json_object* data,
-                        const std::string& path, const int64_t addval) const;
+        void atomic_add(json_object* data, const std::string& path, const int64_t addval) const;
 
         // Traverse a path to the last node
         // Returns NULL if the node doesn't exist

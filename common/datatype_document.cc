@@ -193,7 +193,7 @@ datatype_document :: apply(const e::slice& old_value,
             const int64_t addval = static_cast<const int64_t>(*val.data());
 
             json_object *data = to_json(old_value);
-            atomic_add(NULL, NULL, data, relpath, addval);
+            atomic_add(data, relpath, addval);
 
             new_value = json_object_to_json_string(data);
             break;
@@ -207,68 +207,37 @@ datatype_document :: apply(const e::slice& old_value,
     return writeto + new_value.size();
 }
 
-void datatype_document :: atomic_add(const char* key, json_object* root, json_object* data, const std::string& path, const int64_t addval) const
+void datatype_document :: atomic_add(json_object* root, const std::string& path, const int64_t addval) const
 {
-    json_type type = json_object_get_type(data);
+    json_object* obj = traverse_path(root, path);
 
-    switch(type)
+    if(!obj)
     {
-    case json_type_object:
-    {
-        lh_table* data_children = json_object_get_object(data);
-
-        // the child is the direct child
-        // subpath is the subtree of that child (if any)
-        std::string childname;
-        std::string subpath;
-        int pos = path.find(".");
-
-        if(pos == std::string::npos)
-        {
-            // we're at the end of the tree
-            subpath = "";
-            childname = path;
-        }
-        else
-        {
-            childname = path.substr(0, pos);
-            subpath = path.substr(pos+1);
-        }
-
-        lh_entry* data_it = data_children->head;
-
-        // Find the corresponding entry in the original data
-        while(data_it != NULL)
-        {
-            if(std::string((const char*)data_it->k) == childname)
-                break; // we found it!
-            else
-                data_it = data_it->next;
-        }
-
-        // we should have caught this in validate()
-        assert(data_it != NULL);
-
-        // proceed with the subtree
-        atomic_add((const char*)data_it->k, data, (json_object*)data_it->v, subpath, addval);
-        break;
-    }
-    case json_type_int:
-    {
-        assert(key != NULL);
-        assert(root != NULL);
-        assert(path == "");
-
-        int64_t data_val = json_object_get_int64(data);
-
-        json_object* new_val = json_object_new_int64(data_val + addval);
-        json_object_object_add(root, key, new_val);
-        break;
-    }
-    default:
-        // unknown json type...
         abort();
     }
+
+    int pos = path.find_last_of(".");
+    std::string child_name;
+    json_object *parent;
+
+    if(pos == std::string::npos)
+    {
+        parent = root;
+        child_name = path;
+    }
+    else
+    {
+        std::string parent_path = path.substr(0, pos);
+        child_name = path.substr(pos);
+
+        // Apperantly, there is no easier way in json-c to get the parent
+        parent = traverse_path(root, parent_path);
+    }
+
+    int64_t data_val = json_object_get_int64(obj);
+
+    json_object* new_val = json_object_new_int64(data_val + addval);
+    json_object_object_add(parent, child_name.c_str(), new_val);
 }
 
 bool
