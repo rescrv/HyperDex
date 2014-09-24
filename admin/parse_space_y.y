@@ -77,6 +77,13 @@ yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, const char* ms
 %token <str> IDENTIFIER
 %token <num> NUMBER
 %token STRING
+%token TIMESTAMP
+%token SECOND
+%token MINUTE
+%token HOUR
+%token DAY
+%token WEEK
+%token MONTH
 %token INT64
 %token FLOAT
 %token DOCUMENT
@@ -139,6 +146,12 @@ type : STRING                        { $$ = HYPERDATATYPE_STRING; }
      | INT64                         { $$ = HYPERDATATYPE_INT64; }
      | FLOAT                         { $$ = HYPERDATATYPE_FLOAT; }
      | DOCUMENT                      { $$ = HYPERDATATYPE_DOCUMENT; }
+     | TIMESTAMP '(' SECOND ')'      { $$ = HYPERDATATYPE_TIMESTAMP_SECOND; }
+     | TIMESTAMP '(' MINUTE ')'      { $$ = HYPERDATATYPE_TIMESTAMP_MINUTE; }
+     | TIMESTAMP '(' HOUR ')'        { $$ = HYPERDATATYPE_TIMESTAMP_HOUR; }
+     | TIMESTAMP '(' DAY ')'         { $$ = HYPERDATATYPE_TIMESTAMP_DAY; }
+     | TIMESTAMP '(' WEEK ')'        { $$ = HYPERDATATYPE_TIMESTAMP_WEEK; }
+     | TIMESTAMP '(' MONTH ')'       { $$ = HYPERDATATYPE_TIMESTAMP_MONTH; }
      | LIST '(' STRING ')'           { $$ = HYPERDATATYPE_LIST_STRING; }
      | LIST '(' INT64 ')'            { $$ = HYPERDATATYPE_LIST_INT64; }
      | LIST '(' FLOAT ')'            { $$ = HYPERDATATYPE_LIST_FLOAT; }
