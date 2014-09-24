@@ -33,8 +33,10 @@
 #include "common/datatype_info.h"
 
 class json_object;
+class json_path;
 
 BEGIN_HYPERDEX_NAMESPACE
+
 
 class datatype_document : public datatype_info
 {
@@ -70,11 +72,11 @@ class datatype_document : public datatype_info
         // Convert raw data into a json object
         json_object* to_json(const e::slice& slice) const;
 
-        void atomic_add(json_object* data, const std::string& path, const int64_t addval) const;
+        void atomic_add(json_object* data, const json_path& path, const int64_t addval) const;
 
         // Traverse a path to the last node
         // Returns NULL if the node doesn't exist
-        json_object* traverse_path(const json_object* root, const std::string& path) const;
+        json_object* traverse_path(const json_object* root, const json_path& path) const;
 };
 
 END_HYPERDEX_NAMESPACE

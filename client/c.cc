@@ -874,7 +874,7 @@ hyperdex_client_document_atomic_add(struct hyperdex_client* _cl,
     C_WRAP_EXCEPT(
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_atomic_add), strlen(XSTR(document_atomic_add)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, NULL, 0, status);
+    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, docattrs, docattrs_sz, status);
     );
 }
 

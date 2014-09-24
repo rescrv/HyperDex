@@ -54,6 +54,89 @@
 using hyperdex::datatype_info;
 using hyperdex::datatype_document;
 
+#define ABSOLUTE "$."
+
+// This class represents a flat json path
+// e.g '$.cornell.cs.systems'
+class json_path
+{
+public:
+    json_path(const char* cstr)
+        : path(cstr)
+    {}
+
+    json_path(const std::string& str = "")
+        : path(str)
+    {}
+
+    bool is_relative() const
+    {
+        return (path.substr(0,2) == ABSOLUTE);
+    }
+
+    bool empty() const
+    {
+        return str().size() == 0;
+    }
+
+    void make_relative()
+    {
+        if(!is_relative())
+            return;
+
+        path =  path.substr(strlen(ABSOLUTE));
+    }
+
+    // Does this path have a subtree?
+    // If not is is just the name of a single element
+    bool has_subtree() const
+    {
+        return path.find(".") != std::string::npos;
+    }
+
+    // Split path at the first .
+    bool split(std::string& root_name, json_path& subtree) const
+    {
+        int pos = path.find('.');
+
+        if(pos == std::string::npos)
+        {
+            return false;
+        }
+
+        root_name = path.substr(0, pos);
+        subtree.path = path.substr(pos+1);
+
+        return true;
+    }
+
+    // Split path at the last '.'
+    // i.e. Retrieve last element in the path
+    bool split_reverse(json_path& parent_path, std::string& child_name) const
+    {
+        int pos = path.find_last_of('.');
+
+        if(pos == std::string::npos)
+        {
+            return false;
+        }
+
+        parent_path.path = path.substr(0, pos);
+        child_name = path.substr(pos+1);
+
+        return true;
+    }
+
+    // Get a string representation of the path
+    const std::string& str() const
+    {
+        return path;
+    }
+
+private:
+    std::string path;
+};
+
 datatype_document :: datatype_document()
 {
 }
@@ -115,7 +198,10 @@ datatype_document :: validate_old_values(const key_change& kc, const std::vector
         // Arugment 2 must be the path
         // otherwise, check_args should have caught this
         assert(func.arg2_datatype == HYPERDATATYPE_STRING);
-        json_object* obj = traverse_path(root, func.arg2.c_str());
+
+        json_path path(func.arg2.c_str());
+        path.make_relative();
+        json_object* obj = traverse_path(root, path);
 
         if(!obj)
         {
@@ -178,17 +264,13 @@ datatype_document :: apply(const e::slice& old_value,
             const e::slice& key = funcs[i].arg2;
             const e::slice& val = funcs[i].arg1;
 
-            std::string path(key.c_str());
-
-            // make sure this is an absolute path
-            // in the future we might add support for relative paths
-            assert(path.substr(0,2) == "$.");
-            std::string relpath = path.substr(2);
+            json_path path(key.c_str());
+            path.make_relative();
 
             const int64_t addval = static_cast<const int64_t>(*val.data());
 
             json_object *data = to_json(old_value);
-            atomic_add(data, relpath, addval);
+            atomic_add(data, path.str(), addval);
 
             new_value = json_object_to_json_string(data);
             break;
@@ -202,30 +284,26 @@ datatype_document :: apply(const e::slice& old_value,
     return writeto + new_value.size();
 }
 
-void datatype_document :: atomic_add(json_object* root, const std::string& path, const int64_t addval) const
+void datatype_document :: atomic_add(json_object* root, const json_path& path, const int64_t addval) const
 {
     json_object* obj = traverse_path(root, path);
     assert(obj != NULL);
 
-    int pos = path.find_last_of(".");
     std::string child_name;
-    std::string parent_name;
     json_object *parent;
 
-    if(pos == std::string::npos)
+    if(path.has_subtree())
     {
-        parent = root;
+        json_path parent_path;
+        path.split_reverse(parent_path, child_name);
 
-        parent_name = "$";
-        child_name = path;
+        // Apperantly, there is no easier way in json-c to get the parent
+        parent = traverse_path(root, parent_path.str());
     }
     else
     {
-        parent_name = path.substr(0, pos);
-        child_name = path.substr(pos);
-
-        // Apperantly, there is no easier way in json-c to get the parent
-        parent = traverse_path(root, parent_name);
+        parent = root;
+        child_name = path.str();
     }
 
     int64_t data_val = json_object_get_int64(obj);
@@ -307,24 +385,21 @@ json_object* datatype_document :: to_json(const e::slice& doc) const
 }
 
 json_object*
-datatype_document :: traverse_path(const json_object* parent, const std::string& path) const
+datatype_document :: traverse_path(const json_object* parent, const json_path& path) const
 {
     assert(parent != NULL);
 
     std::string childname;
-    std::string subpath;
-    int pos = path.find(".");
+    json_path subpath;
 
-    if(pos == std::string::npos)
+    if(!path.has_subtree())
     {
         // we're at the end of the tree
-        subpath = "";
-        childname = path;
+        childname = path.str();
     }
     else
     {
-        childname = path.substr(0, pos);
-        subpath = path.substr(pos+1);
+        path.split(childname, subpath);
     }
 
     // json_object_object_get_ex also checks if parent is an object
@@ -336,7 +411,7 @@ datatype_document :: traverse_path(const json_object* parent, const std::string&
         return NULL;
     }
 
-    if(subpath == "")
+    if(subpath.empty())
     {
         return child;
     }
