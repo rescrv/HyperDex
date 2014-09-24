@@ -88,6 +88,8 @@ hyperdex :: apply_funcs(const schema& sc,
                         std::auto_ptr<e::buffer>* backing,
                         std::vector<e::slice>* new_value)
 {
+    assert(funcs.size() > 0);
+
     // Figure out the size of the new buffer
     size_t sz = key.size();
 

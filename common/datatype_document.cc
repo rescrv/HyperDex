@@ -97,40 +97,35 @@ datatype_document :: validate(const e::slice& value) const
 }
 
 bool
-datatype_document :: validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values) const
+datatype_document :: validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values, const funcall& func) const
 {
-    for(std::vector<funcall>::const_iterator it = kc.funcs.begin(); it != kc.funcs.end(); ++it)
+    // we only need to check old values for atomic operations
+    if(func.name == FUNC_NUM_ADD)
     {
-        const funcall& func = *it;
+        json_object* root = to_json(old_values[0]);
 
-        // we only need to check old values for atomic operations
-        if(func.name == FUNC_NUM_ADD)
+        if(!root)
         {
-            json_object* root = to_json(old_values[0]);
+            return false;
+        }
 
-            if(!root)
-            {
-                return false;
-            }
+        e::guard gobj = e::makeguard(json_object_put, root);
+        gobj.use_variable();
 
-            e::guard gobj = e::makeguard(json_object_put, root);
-            gobj.use_variable();
+        // Arugment 2 must be the path
+        // otherwise, check_args should have caught this
+        assert(func.arg2_datatype == HYPERDATATYPE_STRING);
+        json_object* obj = traverse_path(root, func.arg2.c_str());
 
-            // Arugment 2 must be the path
-            // otherwise, check_args should have caught this
-            assert(func.arg2_datatype == HYPERDATATYPE_STRING);
-            json_object* obj = traverse_path(root, func.arg2.c_str());
+        if(!obj)
+        {
+            return false;
+        }
 
-            if(!obj)
-            {
-                return false;
-            }
-
-            if(json_object_get_type(obj) != json_type_int)
-            {
-                // we can only add integers
-                return false;
-            }
+        if(json_object_get_type(obj) != json_type_int)
+        {
+            // we can only add integers
+            return false;
         }
     }
 
@@ -210,28 +205,27 @@ datatype_document :: apply(const e::slice& old_value,
 void datatype_document :: atomic_add(json_object* root, const std::string& path, const int64_t addval) const
 {
     json_object* obj = traverse_path(root, path);
-
-    if(!obj)
-    {
-        abort();
-    }
+    assert(obj != NULL);
 
     int pos = path.find_last_of(".");
     std::string child_name;
+    std::string parent_name;
     json_object *parent;
 
     if(pos == std::string::npos)
     {
         parent = root;
+
+        parent_name = "$";
         child_name = path;
     }
     else
     {
-        std::string parent_path = path.substr(0, pos);
+        parent_name = path.substr(0, pos);
         child_name = path.substr(pos);
 
         // Apperantly, there is no easier way in json-c to get the parent
-        parent = traverse_path(root, parent_path);
+        parent = traverse_path(root, parent_name);
     }
 
     int64_t data_val = json_object_get_int64(obj);

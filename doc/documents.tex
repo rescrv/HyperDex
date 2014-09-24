@@ -87,7 +87,8 @@ you can do a search on \code{profile.name} to retrieve all such objects:
 
 \begin{pythoncode}
 >>> print [x for x in c.search('profiles', {'profile.name': 'John Doe'})]
-[{'username': 'jsmith1', 'profile': Document({"name": "John Smith"})}, {'username': 'jd', 'profile': Document({"www": "http://example.org", "friends": ["John Smith"], "name": "John Doe", "email": "doe@example.org"})}]
+[{'username': 'jd', 'profile': Document({"www": "http://example.org", "friends":
+["John Smith"], "name": "John Doe", "email": "doe@example.org"})}]
 \end{pythoncode}
 
 You can even do HyperDex's more-complex queries.  For example, to find everyone
@@ -96,8 +97,7 @@ this:
 
 \begin{pythoncode}
 >>> print [x for x in c.search('profiles', {'profile.name': hyperdex.client.Regex('John')})]
-[{'username': 'jd', 'profile': Document({"www": "http://example.org", "friends":
-["John Smith"], "name": "John Doe", "email": "doe@example.org"})}]
+[{'username': 'jsmith1', 'profile': Document({"name": "John Smith"})}, {'username': 'jd', 'profile': Document({"www": "http://example.org", "friends": ["John Smith"], "name": "John Doe", "email": "doe@example.org"})}]
 \end{pythoncode}
 
 \section{Indexing Documents}

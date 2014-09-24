@@ -95,15 +95,21 @@ key_change :: check(const schema& sc,
         return NET_CMPFAIL;
     }
     // Sometimes an operation has specific requirements on the old value
-    else if (has_old_value && !datatype_info::lookup(sc.attrs[0].type)->validate_old_values(kc, *old_values))
+    else if (has_old_value)
     {
-        return NET_CMPFAIL;
+        for(std::vector<funcall>::const_iterator it = kc.funcs.begin(); it != kc.funcs.end(); ++it)
+        {
+            const funcall& func = *it;
+
+            if(!datatype_info::lookup(sc.attrs[func.attr].type)->validate_old_values(kc, *old_values, func))
+            {
+                return NET_CMPFAIL;
+            }
+        }
     }
-    else
-    {
-        // All check have passed
-        return NET_SUCCESS;
-    }
+
+    // All check have passed
+    return NET_SUCCESS;
 }
 
 key_change&

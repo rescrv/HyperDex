@@ -228,5 +228,7 @@ True
 True
 >>> c.document_atomic_add('people', 'Jane Doe', {'info' : Document({'age' : 1})})
 True
+>>> c.get('people', 'Jane Doe')
+{'info': Document( {'gender' : 'female', 'age' : 22, 'likes' : ['cornell', 'python']} )}
 >>> c.document_atomic_add('people', 'Jane Doe', {'info' : Document({'gender' : 1})})
 False

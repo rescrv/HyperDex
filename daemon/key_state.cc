@@ -480,6 +480,7 @@ key_state :: step_state_machine_changes(replication_manager* rm,
     op->set_continuous();
     op->set_client(dkc->from, dkc->nonce);
     m_deferred.push_back(op);
+
     return true;
 }
 
