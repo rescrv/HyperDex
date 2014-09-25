@@ -50,94 +50,8 @@
 #include <e/endian.h>
 #include <e/guard.h>
 
-
 using hyperdex::datatype_info;
 using hyperdex::datatype_document;
-
-#define ABSOLUTE "$."
-
-// This class represents a flat json path
-// e.g '$.cornell.cs.systems'
-class json_path
-{
-public:
-    json_path(const char* cstr)
-        : path(cstr)
-    {}
-
-    json_path(const std::string& str = "")
-        : path(str)
-    {}
-
-    bool is_relative() const
-    {
-        return (path.substr(0,2) == ABSOLUTE);
-    }
-
-    bool empty() const
-    {
-        return str().size() == 0;
-    }
-
-    void make_relative()
-    {
-        if(!is_relative())
-        {
-            return;
-        }
-
-        path =  path.substr(strlen(ABSOLUTE));
-    }
-
-    // Does this path have a subtree?
-    // If not is is just the name of a single element
-    bool has_subtree() const
-    {
-        return path.find(".") != std::string::npos;
-    }
-
-    // Split path at the first .
-    bool split(std::string& root_name, json_path& subtree) const
-    {
-        int pos = path.find('.');
-
-        if(pos == std::string::npos)
-        {
-            return false;
-        }
-
-        root_name = path.substr(0, pos);
-        subtree.path = path.substr(pos+1);
-
-        return true;
-    }
-
-    // Split path at the last '.'
-    // i.e. Retrieve last element in the path
-    bool split_reverse(json_path& parent_path, std::string& child_name) const
-    {
-        int pos = path.find_last_of('.');
-
-        if(pos == std::string::npos)
-        {
-            return false;
-        }
-
-        parent_path.path = path.substr(0, pos);
-        child_name = path.substr(pos+1);
-
-        return true;
-    }
-
-    // Get a string representation of the path
-    const std::string& str() const
-    {
-        return path;
-    }
-
-private:
-    std::string path;
-};
 
 datatype_document :: datatype_document()
 {
@@ -329,37 +243,47 @@ bool
 datatype_document :: document_check(const attribute_check& check,
                                     const e::slice& doc)
 {
+    // a check that compares the whole document with another document
     if (check.datatype == HYPERDATATYPE_DOCUMENT)
     {
         return check.predicate == HYPERPREDICATE_EQUALS &&
                check.value == doc;
     }
-
-    const char* path = reinterpret_cast<const char*>(check.value.data());
-    size_t path_sz = strnlen(path, check.value.size());
-
-    if (path_sz >= check.value.size())
+    // we compare/evaluate one value of the document
+    else
     {
-        return false;
+        // Search for a \0-character and cut the string of after that point
+        const char* cstr = reinterpret_cast<const char*>(check.value.data());
+        size_t path_sz = strnlen(cstr, check.value.size());
+
+        // If we don't find a null character we terminate
+        // because there is no value following the path information
+        // so check.value should be in the following form: <path>\0<value>
+        if(path_sz >= check.value.size())
+        {
+            return false;
+        }
+
+        json_path path(std::string(cstr, path_sz));
+
+        hyperdatatype hint = CONTAINER_ELEM(check.datatype);
+        hyperdatatype type;
+        std::vector<char> scratch;
+        e::slice value;
+
+        if (!extract_value(path, doc, hint, &type, &scratch, &value))
+        {
+            return false;
+        }
+
+        attribute_check new_check;
+        new_check.attr      = check.attr;
+        new_check.value     = check.value;
+        new_check.datatype  = check.datatype;
+        new_check.predicate = check.predicate;
+        new_check.value.advance(path.size() + 1);
+        return passes_attribute_check(type, new_check, value);
     }
-
-    hyperdatatype hint = CONTAINER_ELEM(check.datatype);
-    hyperdatatype type;
-    std::vector<char> scratch;
-    e::slice value;
-
-    if (!parse_path(path, path + path_sz, doc, hint, &type, &scratch, &value))
-    {
-        return false;
-    }
-
-    attribute_check new_check;
-    new_check.attr      = check.attr;
-    new_check.value     = check.value;
-    new_check.datatype  = check.datatype;
-    new_check.predicate = check.predicate;
-    new_check.value.advance(path_sz + 1);
-    return passes_attribute_check(type, new_check, value);
 }
 
 json_object* datatype_document :: to_json(const e::slice& doc) const
@@ -429,8 +353,7 @@ datatype_document :: traverse_path(const json_object* parent, const json_path& p
 }
 
 bool
-datatype_document :: parse_path(const char* path,
-                                const char* const end,
+datatype_document :: extract_value(const json_path& path,
                                 const e::slice& doc,
                                 hyperdatatype hint,
                                 hyperdatatype* type,

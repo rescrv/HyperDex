@@ -203,11 +203,10 @@ index_document :: parse_path(const index* idx,
                              std::vector<char>* scratch,
                              e::slice* value)
 {
-    const char* path = reinterpret_cast<const char*>(idx->extra.data());
-    const char* const end = path + idx->extra.size();
+    json_path path(idx->extra.c_str());
     hyperdatatype type;
 
-    if (m_di.parse_path(path, end, document, HYPERDATATYPE_GENERIC, &type, scratch, value))
+    if (m_di.extract_value(path, document, HYPERDATATYPE_GENERIC, &type, scratch, value))
     {
         if (type == HYPERDATATYPE_STRING)
         {

@@ -31,12 +31,11 @@
 // HyperDex
 #include "namespace.h"
 #include "common/datatype_info.h"
+#include "common/json_path.h"
 
 class json_object;
-class json_path;
 
 BEGIN_HYPERDEX_NAMESPACE
-
 
 class datatype_document : public datatype_info
 {
@@ -59,14 +58,14 @@ class datatype_document : public datatype_info
                                     const e::slice& value);
 
     public:
-        // Parse for a specific keyname in a document
-        bool parse_path(const char* path, // the path from root to the subtree/leaf
-                        const char* const end,  // the end of the path string
+        // Retrieve value in a json document by traversing it
+        // Will allocate a buffer for the data and a slice referencing it
+        bool extract_value(const json_path& path,
                         const e::slice& document, // the whole document
                         hyperdatatype hint, // possible datatpe of the result
                         hyperdatatype* type, // OUT: the datatype of the result
-                        std::vector<char>* scratch, // OUT: ??
-                        e::slice* value); // OUT: the resulting content/value
+                        std::vector<char>* scratch, // OUT: the resulting content/value
+                        e::slice* value); // OUT: slice to easier access the content of the scratch
 
     private:
         // Convert raw data into a json object
