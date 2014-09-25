@@ -232,3 +232,7 @@ True
 {'info': Document({"gender": "female", "age": 22, "likes": ["cornell", "python"]})}
 >>> c.document_atomic_add('people', 'Jane Doe', {'info' : Document({'gender' : 1})})
 False
+>>> c.document_atomic_add('people', 'Jane Doe', {'info' : Document({'children' : 1})})
+True
+>>> c.get('people', 'Jane Doe')
+{'info': Document({"gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}

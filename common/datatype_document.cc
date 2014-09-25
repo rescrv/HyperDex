@@ -82,7 +82,9 @@ public:
     void make_relative()
     {
         if(!is_relative())
+        {
             return;
+        }
 
         path =  path.substr(strlen(ABSOLUTE));
     }
@@ -205,10 +207,10 @@ datatype_document :: validate_old_values(const key_change& kc, const std::vector
 
         if(!obj)
         {
-            return false;
+            // new child will be created...
+            return true;
         }
-
-        if(json_object_get_type(obj) != json_type_int)
+        else if(json_object_get_type(obj) != json_type_int)
         {
             // we can only add integers
             return false;
@@ -270,7 +272,7 @@ datatype_document :: apply(const e::slice& old_value,
             const int64_t addval = static_cast<const int64_t>(*val.data());
 
             json_object *data = to_json(old_value);
-            atomic_add(data, path.str(), addval);
+            atomic_add(data, path, addval);
 
             new_value = json_object_to_json_string(data);
             break;
@@ -286,9 +288,6 @@ datatype_document :: apply(const e::slice& old_value,
 
 void datatype_document :: atomic_add(json_object* root, const json_path& path, const int64_t addval) const
 {
-    json_object* obj = traverse_path(root, path);
-    assert(obj != NULL);
-
     std::string child_name;
     json_object *parent;
 
@@ -298,7 +297,7 @@ void datatype_document :: atomic_add(json_object* root, const json_path& path, c
         path.split_reverse(parent_path, child_name);
 
         // Apperantly, there is no easier way in json-c to get the parent
-        parent = traverse_path(root, parent_path.str());
+        parent = traverse_path(root, parent_path);
     }
     else
     {
@@ -306,7 +305,15 @@ void datatype_document :: atomic_add(json_object* root, const json_path& path, c
         child_name = path.str();
     }
 
-    int64_t data_val = json_object_get_int64(obj);
+    int64_t data_val = 0;
+    json_object* obj = traverse_path(root, path);
+
+    // if object doesnt exist, just create it
+    // TODO: we might also create the parent
+    if(obj)
+    {
+        data_val = json_object_get_int64(obj);
+    }
 
     json_object* new_val = json_object_new_int64(data_val + addval);
     json_object_object_add(parent, child_name.c_str(), new_val);

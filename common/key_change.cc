@@ -89,7 +89,7 @@ key_change :: check(const schema& sc,
     {
         return NET_CMPFAIL;
     }
-    // The attribut checks are needed for cond_put and friends
+    // The attribute checks are needed for cond_put and friends
     else if (has_old_value && passes_attribute_checks(sc, kc.checks, key, *old_values) < kc.checks.size())
     {
         return NET_CMPFAIL;

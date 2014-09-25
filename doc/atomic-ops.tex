@@ -469,6 +469,15 @@ HyperDex will also prevent you from adding to non-numeric fields.
 False
 \end{pythoncode}
 
+You can also add new values using this method.
+
+\begin{pythoncode}
+>>> c.document_atomic_add('people', 'Jane Doe', {'info' : Document({'children' : 1})})
+True
+>>> c.get('people', 'Jane Doe')
+{'info': Document({"gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}
+\end{pythoncode}
+
 HyperDex's atomic operations are extensive and very expressive. And they are
 guaranteed to be applied in the same order on all replicas, so the state of the
 object you are operating on is guaranteed to be the same, regardless of
