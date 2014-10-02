@@ -39,8 +39,6 @@ class datatype_timestamp : public datatype_info
         virtual uint64_t hash(const e::slice& value);
 
     public:
-        virtual bool has_length();
-        virtual uint64_t length(const e::slice& value);
         virtual bool containable();
         virtual bool step(const uint8_t** ptr,
                           const uint8_t* end,

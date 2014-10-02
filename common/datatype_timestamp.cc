@@ -1,3 +1,10 @@
+#include "common/datatype_timestamp.h"
+
+// e
+#include <e/endian.h>
+#include <e/safe_math.h>
+
+#include "cityhash/city.h"
 
 using hyperdex::datatype_info;
 using hyperdex::datatype_timestamp;
@@ -9,26 +16,46 @@ namespace {
 int64_t
 unpack(const e::slice& value)
 {
-  assert(validate(value));
+  assert(value.size() == sizeof(int64_t) || value.empty());
 
   if (value.empty()) {
     return 0;
   }
 
   int64_t timestamp;
-  e::unpack64le(value.data(),&number);
+  e::unpack64le(value.data(),&timestamp);
 
   return timestamp;
 }
 }
+
 datatype_timestamp::datatype_timestamp(enum timestamp_interval interval) {
-  this.interval = interval;
+  this->interval = interval;
+}
+
+datatype_timestamp :: ~datatype_timestamp() throw ()
+{
 }
 
 hyperdatatype
 datatype_timestamp::datatype()
 {
-    return HYPERDATATYPE_TIMESTAMP;
+  switch(this->interval)
+  {
+    case SECOND:
+      return HYPERDATATYPE_TIMESTAMP_SECOND;
+    case MINUTE:
+      return HYPERDATATYPE_TIMESTAMP_MINUTE;
+    case HOUR:
+      return HYPERDATATYPE_TIMESTAMP_HOUR;
+    case DAY:
+      return HYPERDATATYPE_TIMESTAMP_DAY;
+    case WEEK:
+      return HYPERDATATYPE_TIMESTAMP_WEEK;
+    case MONTH:
+      return HYPERDATATYPE_TIMESTAMP_MONTH;
+
+  }
 }
 bool
 datatype_timestamp::validate(const e::slice& value) {
@@ -39,7 +66,7 @@ datatype_timestamp::validate(const e::slice& value) {
 bool
 datatype_timestamp::check_args(const funcall& func)
 {
-  return func.name == FUNC_SET && func.arg1_datatype == HYPERDATATYPE_TIMESTAMP && validate(func.arg1);
+  return func.name == FUNC_SET && func.arg1_datatype == this->datatype() && validate(func.arg1);
 }
 
 uint8_t*
@@ -55,7 +82,7 @@ datatype_timestamp::apply(const e::slice& old_value,
       abort();
     }
 
-    timestamp = unpack(func.arg1);
+    timestamp = unpack(func->arg1);
   }
 
   return e::pack64le(timestamp,writeto);
@@ -95,12 +122,42 @@ const char * interval_to_string(enum timestamp_interval in)
   };
 }
 
+int64_t remove_disregarded_bits(int64_t val, int64_t scale) {
+      int64_t extra_bits = val % scale;
+      val -= extra_bits;
+      // fill extra bits with the least significant interesting bits
+      val += (val / scale) % scale;
+      return val;
+}
+
 uint64_t
 datatype_timestamp::hash(const e::slice& value) {
 
   //TODO better hash
-  std::cout << "Hashing with "<<interval_to_string(this.interval) << "\n";
-  return CityHash64(value.data(),value.size());
+  //std::cout << "Hashing with "<<interval_to_string(this->interval) << "\n";
+  int64_t interesting_bits = 1;
+  int64_t timestamp = unpack(value);
+  switch(this->interval){
+    case SECOND:
+      break;
+    case MINUTE:
+      interesting_bits *= 60;
+      timestamp = remove_disregarded_bits(timestamp,interesting_bits);
+    case HOUR:
+      interesting_bits *= 60 *60;
+      timestamp = remove_disregarded_bits(timestamp,interesting_bits);
+    case DAY:
+      interesting_bits *= 24 * 60 * 60;
+      timestamp = remove_disregarded_bits(timestamp,interesting_bits);
+    case WEEK:
+      interesting_bits *= 7 * 24 * 60 * 60;
+      timestamp = remove_disregarded_bits(timestamp,interesting_bits);
+    case MONTH:
+     interesting_bits *= 30 * 7 * 24 * 60 * 60;
+      timestamp = remove_disregarded_bits(timestamp,interesting_bits);
+  };
+
+  return CityHash64((const char*)&timestamp,sizeof(int64_t));
 
 }
 
