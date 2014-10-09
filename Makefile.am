@@ -352,8 +352,7 @@ hyperdex_coordinator_LDADD =
 hyperdex_coordinator_LDADD += $(BUSYBEE_LIBS)
 hyperdex_coordinator_LDADD += $(E_LIBS)
 hyperdex_coordinator_LDADD += -lpopt
-man/hyperdex-coordinator.1: man/hyperdex-coordinator.1.h2m tools/coordinator.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-coordinator$(EXEEXT)
+man/hyperdex-coordinator.1: man/hyperdex-coordinator.1.h2m | hyperdex-coordinator${EXEEXT}
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-coordinator$(EXEEXT)
 
 ################################################################################
