@@ -32,7 +32,7 @@ AM_CFLAGS    = -fvisibility=hidden $(WANAL_CFLAGS)
 AM_CXXFLAGS  = -fvisibility=hidden -fvisibility-inlines-hidden $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(SPARSEHASH_CFLAGS) $(WANAL_CXXFLAGS)
 AM_MAKEFLAGS = --no-print-directory
 AM_YFLAGS = -d
-HELP2MAN_FLAGS = --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
+HELP2MAN_FLAGS = --no-discard-stderr --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
 TESTS_ENVIRONMENT = . $(abs_top_srcdir)/test/env.sh "${abs_top_srcdir}" "${abs_top_builddir}" "${VERSION}";
 
 hyperdexexecdir = $(libexecdir)/$(PACKAGE)-$(VERSION)
