@@ -167,6 +167,7 @@
 		<Unit filename="common/ids.h" />
 		<Unit filename="common/index.cc" />
 		<Unit filename="common/index.h" />
+		<Unit filename="common/json_path.h" />
 		<Unit filename="common/key_change.cc" />
 		<Unit filename="common/key_change.h" />
 		<Unit filename="common/macros.h" />
