@@ -31,6 +31,9 @@
 // HyperDex
 #include "namespace.h"
 #include "common/datatype_info.h"
+#include "common/json_path.h"
+
+class json_object;
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -41,26 +44,38 @@ class datatype_document : public datatype_info
         virtual ~datatype_document() throw ();
 
     public:
-        virtual hyperdatatype datatype();
-        virtual bool validate(const e::slice& value);
-        virtual bool check_args(const funcall& func);
+        virtual hyperdatatype datatype() const;
+        virtual bool validate(const e::slice& value) const;
+        virtual bool validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values, const funcall& func) const;
+        virtual bool check_args(const funcall& func) const;
         virtual uint8_t* apply(const e::slice& old_value,
                                const funcall* funcs, size_t funcs_sz,
                                uint8_t* writeto);
 
     public:
-        virtual bool document();
+        virtual bool document() const;
         virtual bool document_check(const attribute_check& check,
                                     const e::slice& value);
 
     public:
-        bool parse_path(const char* path,
-                        const char* const end,
-                        const e::slice& document,
-                        hyperdatatype hint,
-                        hyperdatatype* type,
-                        std::vector<char>* scratch,
-                        e::slice* value);
+        // Retrieve value in a json document by traversing it
+        // Will allocate a buffer for the data and a slice referencing it
+        bool extract_value(const json_path& path,
+                        const e::slice& document, // the whole document
+                        hyperdatatype hint, // possible datatpe of the result
+                        hyperdatatype* type, // OUT: the datatype of the result
+                        std::vector<char>* scratch, // OUT: the resulting content/value
+                        e::slice* value); // OUT: slice to easier access the content of the scratch
+
+    private:
+        // Convert raw data into a json object
+        json_object* to_json(const e::slice& slice) const;
+
+        void atomic_add(json_object* data, const json_path& path, const int64_t addval) const;
+
+        // Traverse a path to the last node
+        // Returns NULL if the node doesn't exist
+        json_object* traverse_path(const json_object* root, const json_path& path) const;
 };
 
 END_HYPERDEX_NAMESPACE

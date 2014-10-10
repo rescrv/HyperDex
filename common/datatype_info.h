@@ -40,6 +40,8 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
+class key_change;
+
 class datatype_info
 {
     public:
@@ -51,42 +53,42 @@ class datatype_info
 
     // all types must implement these
     public:
-        virtual hyperdatatype datatype() = 0;
-        virtual bool validate(const e::slice& value) = 0;
-        virtual bool check_args(const funcall& func) = 0;
+        virtual hyperdatatype datatype() const = 0;
+        virtual bool validate(const e::slice& value) const = 0;
+        virtual bool check_args(const funcall& func) const = 0;
         virtual uint8_t* apply(const e::slice& old_value,
                                const funcall* funcs, size_t funcs_sz,
                                uint8_t* writeto) = 0;
 
     // override these if the type is hashable
     public:
-        virtual bool hashable();
+        virtual bool hashable() const;
         virtual uint64_t hash(const e::slice& value);
 
     // override these if the type is indexable
     public:
-        virtual bool indexable();
+        virtual bool indexable() const;
 
     // override these if the type has a "length"
     public:
-        virtual bool has_length();
+        virtual bool has_length() const;
         virtual uint64_t length(const e::slice& value);
 
     // override these if the type can be matched with regexes
     public:
-        virtual bool has_regex();
+        virtual bool has_regex() const;
         virtual bool regex(const e::slice& regex,
                            const e::slice& value);
 
     // override these if the type can be matched with "contains"
     public:
-        virtual bool has_contains();
-        virtual hyperdatatype contains_datatype();
+        virtual bool has_contains() const;
+        virtual hyperdatatype contains_datatype() const;
         virtual bool contains(const e::slice& value, const e::slice& needle);
 
     // override these if the type will be used within containers
     public:
-        virtual bool containable();
+        virtual bool containable() const;
         virtual bool step(const uint8_t** ptr,
                           const uint8_t* end,
                           e::slice* elem);
@@ -94,9 +96,13 @@ class datatype_info
         virtual uint8_t* write(uint8_t* writeto,
                                const e::slice& elem);
 
+    // override these if the type has requirements on the old value for certain operations
+    public:
+        virtual bool validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values, const funcall& func) const;
+
     // override these if the type can be compared
     public:
-        virtual bool comparable();
+        virtual bool comparable() const;
         virtual int compare(const e::slice& lhs, const e::slice& rhs);
         typedef bool (*compares_less)(const e::slice& lhs, const e::slice& rhs);
         virtual compares_less compare_less();
@@ -110,7 +116,7 @@ class datatype_info
     // possibly a non-document type.  It's easy to create a sample value/check
     // and pass that to the attribute checks instead.
     public:
-        virtual bool document();
+        virtual bool document() const;
         virtual bool document_check(const attribute_check& check,
                                     const e::slice& value);
 };

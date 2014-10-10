@@ -125,7 +125,7 @@ datatype_info :: ~datatype_info() throw ()
 }
 
 bool
-datatype_info :: hashable()
+datatype_info :: hashable() const
 {
     return false;
 }
@@ -138,13 +138,13 @@ datatype_info :: hash(const e::slice&)
 }
 
 bool
-datatype_info :: indexable()
+datatype_info :: indexable() const
 {
     return false;
 }
 
 bool
-datatype_info :: has_length()
+datatype_info :: has_length() const
 {
     return false;
 }
@@ -157,7 +157,7 @@ datatype_info :: length(const e::slice&)
 }
 
 bool
-datatype_info :: has_regex()
+datatype_info :: has_regex() const
 {
     return false;
 }
@@ -171,13 +171,13 @@ datatype_info :: regex(const e::slice&,
 }
 
 bool
-datatype_info :: has_contains()
+datatype_info :: has_contains() const
 {
     return false;
 }
 
 hyperdatatype
-datatype_info :: contains_datatype()
+datatype_info :: contains_datatype() const
 {
     // if you see an abort here, you overrode "has_contains", but not this method
     abort();
@@ -191,7 +191,7 @@ datatype_info :: contains(const e::slice&, const e::slice&)
 }
 
 bool
-datatype_info :: containable()
+datatype_info :: containable() const
 {
     return false;
 }
@@ -216,7 +216,7 @@ datatype_info :: write(uint8_t*,
 }
 
 bool
-datatype_info :: comparable()
+datatype_info :: comparable() const
 {
     return false;
 }
@@ -238,9 +238,15 @@ datatype_info :: compare_less()
 }
 
 bool
-datatype_info :: document()
+datatype_info :: document() const
 {
     return false;
+}
+
+bool
+datatype_info :: validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values, const funcall& func) const
+{
+    return true;
 }
 
 bool

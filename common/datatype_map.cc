@@ -52,13 +52,13 @@ datatype_map :: ~datatype_map() throw ()
 }
 
 hyperdatatype
-datatype_map :: datatype()
+datatype_map :: datatype() const
 {
     return CREATE_CONTAINER2(HYPERDATATYPE_MAP_GENERIC, m_k->datatype(), m_v->datatype());
 }
 
 bool
-datatype_map :: validate(const e::slice& map)
+datatype_map :: validate(const e::slice& map) const
 {
     const uint8_t* ptr = map.data();
     const uint8_t* end = map.data() + map.size();
@@ -95,22 +95,35 @@ datatype_map :: validate(const e::slice& map)
 }
 
 bool
-datatype_map :: check_args(const funcall& func)
+datatype_map :: check_args(const funcall& func) const
 {
-    return ((func.arg1_datatype == datatype() ||
-             func.arg1_datatype == HYPERDATATYPE_MAP_GENERIC) &&
-            validate(func.arg1) && func.name == FUNC_SET) ||
-           (func.arg1_datatype == m_v->datatype() &&
-            func.arg2_datatype == m_k->datatype() &&
-            m_v->validate(func.arg1) &&
+    // depending on the operation the arguments may differ
+    // we must ensure that they match
+
+    // set needs a whole map as an argument
+    if(func.name == FUNC_SET)
+    {
+        return (func.arg1_datatype == datatype() ||
+             func.arg1_datatype == HYPERDATATYPE_MAP_GENERIC)
+             && validate(func.arg1);
+    }
+    // inserting a new element needs a key/value-pair
+    else if(func.name == FUNC_MAP_ADD)
+    {
+        return m_v->validate(func.arg1) &&
             m_k->validate(func.arg2) &&
-            func.name == FUNC_MAP_ADD) ||
-           (func.arg1_datatype == m_k->datatype() &&
-            m_k->validate(func.arg1) &&
-            func.name == FUNC_MAP_REMOVE) ||
-           (func.arg2_datatype == m_k->datatype() &&
-            m_k->validate(func.arg2) &&
-            (func.name == FUNC_STRING_APPEND ||
+            func.arg1_datatype == m_v->datatype() &&
+            func.arg2_datatype == m_k->datatype();
+    }
+    // Remove only needs a key
+    else if(func.name == FUNC_MAP_REMOVE)
+    {
+        return m_k->validate(func.arg1) && func.arg1_datatype == m_k->datatype();
+    }
+    // Other operations embed their arguments in the second datatype
+    else if(func.arg2_datatype == m_k->datatype())
+    {
+        bool allowedOperation = (func.name == FUNC_STRING_APPEND ||
              func.name == FUNC_STRING_PREPEND ||
              func.name == FUNC_NUM_ADD ||
              func.name == FUNC_NUM_SUB ||
@@ -119,8 +132,17 @@ datatype_map :: check_args(const funcall& func)
              func.name == FUNC_NUM_MOD ||
              func.name == FUNC_NUM_AND ||
              func.name == FUNC_NUM_OR ||
-             func.name == FUNC_NUM_XOR) &&
-            m_v->check_args(func));
+             func.name == FUNC_NUM_XOR);
+
+        return m_k->validate(func.arg2)
+             && allowedOperation
+             && m_v->check_args(func);
+    }
+    else
+    {
+        // maybe call abort() here?
+        return false;
+    }
 }
 
 uint8_t*
@@ -128,12 +150,15 @@ datatype_map :: apply(const e::slice& old_value,
                       const funcall* funcs, size_t funcs_sz,
                       uint8_t* writeto)
 {
+    // Initialize map with the compare operator of the key's datatype
     map_t map(m_k->compare_less());
+
     const uint8_t* ptr = old_value.data();
     const uint8_t* end = old_value.data() + old_value.size();
     e::slice key;
     e::slice val;
 
+    // Read previous data into the map
     while (ptr < end)
     {
         bool stepped;
@@ -152,6 +177,7 @@ datatype_map :: apply(const e::slice& old_value,
         switch (funcs[i].name)
         {
             case FUNC_SET:
+                // Discard current content and insert a new key-value-pair
                 map.clear();
                 ptr = funcs[i].arg1.data();
                 end = funcs[i].arg1.data() + funcs[i].arg1.size();
@@ -183,6 +209,7 @@ datatype_map :: apply(const e::slice& old_value,
             case FUNC_NUM_AND:
             case FUNC_NUM_OR:
             case FUNC_NUM_XOR:
+                // This function is a composite of several subfunctions
                 if (!apply_inner(&map, &scratch[i], funcs + i))
                 {
                     return NULL;
@@ -223,6 +250,7 @@ datatype_map :: apply_inner(map_t* m,
         old_value = it->second;
     }
 
+    // Create new writebuffer (old content + new key + new value)
     *scratch = new uint8_t[old_value.size() + sizeof(uint32_t) + func->arg1.size()];
     uint8_t* writeto = m_v->apply(old_value, func, 1, scratch->get());
 
@@ -231,19 +259,20 @@ datatype_map :: apply_inner(map_t* m,
         return false;
     }
 
-    //writeto = m_v->write(scratch->get(), e::slice(scratch->get(), writeto - scratch->get()));
+    // we're done with that subfunction
+    // extract only the part that was written to as value
     (*m)[func->arg2] = e::slice(scratch->get(), writeto - scratch->get());
-    return writeto;
+    return true;
 }
 
 bool
-datatype_map :: indexable()
+datatype_map :: indexable() const
 {
     return m_k->indexable();
 }
 
 bool
-datatype_map :: has_length()
+datatype_map :: has_length() const
 {
     return true;
 }
@@ -272,13 +301,13 @@ datatype_map :: length(const e::slice& map)
 }
 
 bool
-datatype_map :: has_contains()
+datatype_map :: has_contains() const
 {
     return true;
 }
 
 hyperdatatype
-datatype_map :: contains_datatype()
+datatype_map :: contains_datatype() const
 {
     return m_k->datatype();
 }

@@ -54,13 +54,13 @@ datatype_set :: ~datatype_set() throw ()
 }
 
 hyperdatatype
-datatype_set :: datatype()
+datatype_set :: datatype() const
 {
     return CREATE_CONTAINER(HYPERDATATYPE_SET_GENERIC, m_elem->datatype());
 }
 
 bool
-datatype_set :: validate(const e::slice& set)
+datatype_set :: validate(const e::slice& set) const
 {
     const uint8_t* ptr = set.data();
     const uint8_t* end = set.data() + set.size();
@@ -91,7 +91,7 @@ datatype_set :: validate(const e::slice& set)
 }
 
 bool
-datatype_set :: check_args(const funcall& func)
+datatype_set :: check_args(const funcall& func) const
 {
     return ((func.arg1_datatype == datatype() ||
              func.arg1_datatype == HYPERDATATYPE_SET_GENERIC) &&
@@ -196,13 +196,13 @@ datatype_set :: apply(const e::slice& old_value,
 }
 
 bool
-datatype_set :: indexable()
+datatype_set :: indexable() const
 {
     return m_elem->indexable();
 }
 
 bool
-datatype_set :: has_length()
+datatype_set :: has_length() const
 {
     return true;
 }
@@ -227,13 +227,13 @@ datatype_set :: length(const e::slice& set)
 }
 
 bool
-datatype_set :: has_contains()
+datatype_set :: has_contains() const
 {
     return true;
 }
 
 hyperdatatype
-datatype_set :: contains_datatype()
+datatype_set :: contains_datatype() const
 {
     return m_elem->datatype();
 }
