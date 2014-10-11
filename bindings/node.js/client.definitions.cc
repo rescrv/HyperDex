@@ -859,6 +859,12 @@ HyperDexClient :: document_atomic_add(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: document_string_prepend(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_prepend, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: map_atomic_add(const v8::Arguments& args)
 {
     return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_add, args);

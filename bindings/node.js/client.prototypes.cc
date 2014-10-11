@@ -72,6 +72,7 @@ NODE_SET_PROTOTYPE_METHOD(tpl, "cond_map_add", HyperDexClient::cond_map_add);
 NODE_SET_PROTOTYPE_METHOD(tpl, "map_remove", HyperDexClient::map_remove);
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_map_remove", HyperDexClient::cond_map_remove);
 NODE_SET_PROTOTYPE_METHOD(tpl, "document_atomic_add", HyperDexClient::document_atomic_add);
+NODE_SET_PROTOTYPE_METHOD(tpl, "document_string_prepend", HyperDexClient::document_string_prepend);
 NODE_SET_PROTOTYPE_METHOD(tpl, "map_atomic_add", HyperDexClient::map_atomic_add);
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_map_atomic_add", HyperDexClient::cond_map_atomic_add);
 NODE_SET_PROTOTYPE_METHOD(tpl, "map_atomic_sub", HyperDexClient::map_atomic_sub);

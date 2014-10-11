@@ -130,6 +130,38 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
             return false;
         }
     }
+    else if(func.name == FUNC_STRING_APPEND ||
+            func.name == FUNC_STRING_PREPEND)
+    {
+        json_object* root = to_json(old_values[0]);
+
+        if(!root)
+        {
+            return false;
+        }
+
+        e::guard gobj = e::makeguard(json_object_put, root);
+        gobj.use_variable();
+
+        // Arugment 2 must be the path
+        // otherwise, check_args should have caught this
+        assert(func.arg2_datatype == HYPERDATATYPE_STRING);
+
+        json_path path(func.arg2.c_str());
+        path.make_relative();
+        json_object* obj = traverse_path(root, path);
+
+        if(!obj)
+        {
+            // new child will be created...
+            return true;
+        }
+        else if(json_object_get_type(obj) != json_type_string)
+        {
+            // we can only add integers
+            return false;
+        }
+    }
 
     // No check failed
     return true;
@@ -148,6 +180,12 @@ datatype_document :: check_args(const funcall& func) const
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
         return func.arg1_datatype == HYPERDATATYPE_INT64 && func.arg2_datatype == HYPERDATATYPE_STRING;
+    }
+    else if(func.name == FUNC_STRING_APPEND || func.name == FUNC_STRING_PREPEND)
+    {
+        // they second argument is a path to the field we want to manipulate
+        // (the path is represented as a string)
+        return func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
     else
     {
@@ -175,6 +213,32 @@ datatype_document :: apply(const e::slice& old_value,
             new_value = func->arg1;
             break;
         }
+        case FUNC_STRING_PREPEND:
+        {
+            const e::slice& key = funcs[i].arg2;
+            const e::slice& val = funcs[i].arg1;
+
+            json_path path(key.c_str());
+            path.make_relative();
+
+            const std::string str(val.c_str());
+            std::cout << "val: " << str << std::endl;
+
+            json_object *root = to_json(old_value);
+
+            json_object *parent, *obj;
+            std::string obj_name;
+
+            get_end(root, path, parent, obj, obj_name);
+
+            std::string old_val = obj ? json_object_get_string(obj) : "";
+
+            json_object* new_elem = json_object_new_string((str + old_val).c_str());
+            json_object_object_add(parent, obj_name.c_str(), new_elem);
+
+            new_value = json_object_to_json_string(root);
+            break;
+        }
         case FUNC_NUM_ADD:
         {
             const e::slice& key = funcs[i].arg2;
@@ -185,15 +249,23 @@ datatype_document :: apply(const e::slice& old_value,
 
             const int64_t addval = static_cast<const int64_t>(*val.data());
 
-            json_object *data = to_json(old_value);
-            atomic_add(data, path, addval);
+            json_object *root = to_json(old_value);
 
-            new_value = json_object_to_json_string(data);
+            json_object *parent, *obj;
+            std::string obj_name;
+
+            get_end(root, path, parent, obj, obj_name);
+
+            int64_t old_val = obj ? json_object_get_int64(obj) : 0;
+
+            json_object* new_elem = json_object_new_int64(old_val + addval);
+            json_object_object_add(parent, obj_name.c_str(), new_elem);
+
+            new_value = json_object_to_json_string(root);
             break;
         }
         case FUNC_FAIL:
         case FUNC_STRING_APPEND:
-        case FUNC_STRING_PREPEND:
         case FUNC_NUM_SUB:
         case FUNC_NUM_MUL:
         case FUNC_NUM_DIV:
@@ -218,37 +290,25 @@ datatype_document :: apply(const e::slice& old_value,
     return writeto + new_value.size();
 }
 
-void datatype_document :: atomic_add(json_object* root, const json_path& path, const int64_t addval) const
+void datatype_document :: get_end(const json_object* root, const json_path& path,
+                                json_object*& parent, json_object*& obj, std::string& obj_name) const
 {
-    std::string child_name;
-    json_object *parent;
-
+    // TODO create the parent if it doesn't exist
     if(path.has_subtree())
     {
         json_path parent_path;
-        path.split_reverse(parent_path, child_name);
+        path.split_reverse(parent_path, obj_name);
 
         // Apperantly, there is no easier way in json-c to get the parent
         parent = traverse_path(root, parent_path);
     }
     else
     {
-        parent = root;
-        child_name = path.str();
+        parent = const_cast<json_object*>(root);
+        obj_name = path.str();
     }
 
-    int64_t data_val = 0;
-    json_object* obj = traverse_path(root, path);
-
-    // if object doesnt exist, just create it
-    // TODO: we might also create the parent
-    if(obj)
-    {
-        data_val = json_object_get_int64(obj);
-    }
-
-    json_object* new_val = json_object_new_int64(data_val + addval);
-    json_object_object_add(parent, child_name.c_str(), new_val);
+    obj = traverse_path(root, path);
 }
 
 bool
