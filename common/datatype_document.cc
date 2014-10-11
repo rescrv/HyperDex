@@ -100,7 +100,15 @@ bool
 datatype_document :: validate_old_values(const std::vector<e::slice>& old_values, const funcall& func) const
 {
     // we only need to check old values for atomic operations
-    if(func.name == FUNC_NUM_ADD)
+    switch(func.name)
+    {
+    case FUNC_NUM_ADD:
+    case FUNC_NUM_AND:
+    case FUNC_NUM_MOD:
+    case FUNC_NUM_MUL:
+    case FUNC_NUM_SUB:
+    case FUNC_NUM_XOR:
+    case FUNC_NUM_OR:
     {
         json_object* root = to_json(old_values[0]);
 
@@ -125,14 +133,16 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
             // new child will be created...
             return true;
         }
-        else if(json_object_get_type(obj) != json_type_int)
+        else if(json_object_get_type(obj) != json_type_int
+            && json_object_get_type(obj) != json_type_double)
         {
             // we can only add integers
             return false;
         }
+        break;
     }
-    else if(func.name == FUNC_STRING_APPEND ||
-            func.name == FUNC_STRING_PREPEND)
+    case FUNC_STRING_APPEND:
+    case FUNC_STRING_PREPEND:
     {
         json_object* root = to_json(old_values[0]);
 
@@ -162,6 +172,21 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
             // we can only add integers
             return false;
         }
+        break;
+    }
+    case FUNC_FAIL:
+    case FUNC_SET:
+    case FUNC_NUM_DIV:
+    case FUNC_LIST_LPUSH:
+    case FUNC_LIST_RPUSH:
+    case FUNC_SET_ADD:
+    case FUNC_SET_REMOVE:
+    case FUNC_SET_INTERSECT:
+    case FUNC_SET_UNION:
+    case FUNC_MAP_ADD:
+    case FUNC_MAP_REMOVE:
+    default:
+        break;
     }
 
     // No check failed
@@ -182,10 +207,15 @@ datatype_document :: check_args(const funcall& func) const
     case FUNC_NUM_SUB:
     case FUNC_NUM_MUL:
     case FUNC_NUM_DIV:
+    case FUNC_NUM_XOR:
+    case FUNC_NUM_AND:
+    case FUNC_NUM_OR:
+    case FUNC_NUM_MOD:
     {
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
-        return func.arg1_datatype == HYPERDATATYPE_INT64 && func.arg2_datatype == HYPERDATATYPE_STRING;
+        return (func.arg1_datatype == HYPERDATATYPE_INT64 || func.arg1_datatype == HYPERDATATYPE_FLOAT)
+            && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
     case FUNC_STRING_APPEND:
     case FUNC_STRING_PREPEND:
@@ -195,10 +225,6 @@ datatype_document :: check_args(const funcall& func) const
         return func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
     case FUNC_FAIL:
-    case FUNC_NUM_MOD:
-    case FUNC_NUM_AND:
-    case FUNC_NUM_XOR:
-    case FUNC_NUM_OR:
     case FUNC_LIST_LPUSH:
     case FUNC_LIST_RPUSH:
     case FUNC_SET_ADD:
@@ -207,6 +233,7 @@ datatype_document :: check_args(const funcall& func) const
     case FUNC_SET_UNION:
     case FUNC_MAP_ADD:
     case FUNC_MAP_REMOVE:
+    default:
     {
         // Unsupported operation
         return false;
@@ -281,6 +308,10 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_NUM_SUB:
         case FUNC_NUM_DIV:
         case FUNC_NUM_MUL:
+        case FUNC_NUM_XOR:
+        case FUNC_NUM_OR:
+        case FUNC_NUM_AND:
+        case FUNC_NUM_MOD:
         {
             json_path path(funcs[i].arg2.c_str());
             path.make_relative();
@@ -313,6 +344,26 @@ datatype_document :: apply(const e::slice& old_value,
             {
                 success = e::safe_mul(number, arg, &number);
             }
+            else if(func->name == FUNC_NUM_MOD)
+            {
+                number = number % arg;
+                success = true;
+            }
+            else if(func->name == FUNC_NUM_XOR)
+            {
+                number = number ^ arg;
+                success = true;
+            }
+            else if(func->name == FUNC_NUM_AND)
+            {
+                number = number & arg;
+                success = true;
+            }
+            else if(func->name == FUNC_NUM_OR)
+            {
+                number = number | arg;
+                success = true;
+            }
 
             if(success)
             {
@@ -328,10 +379,6 @@ datatype_document :: apply(const e::slice& old_value,
             break;
         }
         case FUNC_FAIL:
-        case FUNC_NUM_MOD:
-        case FUNC_NUM_AND:
-        case FUNC_NUM_XOR:
-        case FUNC_NUM_OR:
         case FUNC_LIST_LPUSH:
         case FUNC_LIST_RPUSH:
         case FUNC_SET_ADD:
@@ -340,6 +387,7 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_SET_UNION:
         case FUNC_MAP_ADD:
         case FUNC_MAP_REMOVE:
+        default:
             abort();
         }
     }
