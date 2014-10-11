@@ -196,6 +196,7 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_document_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_document_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
@@ -1151,9 +1152,12 @@ cdef class Client:
                 subpath = path + "." + name
                 i = self.flatten_document(arena, i, keyname, subpath, value, mapattrs)
 
-            elif isinstance(value, int):
+            else:
                 fullpath = path + "." + name + "\0"
                 mapattrs[i].attr = keyname
+
+                if isinstance(value, str):
+                        value = value + "\0"
 
                 hyperdex_python_client_convert_type(arena, fullpath,
                                                     &mapattrs[i].map_key,
@@ -1164,8 +1168,6 @@ cdef class Client:
                                                     &mapattrs[i].value_sz,
                                                     &mapattrs[i].value_datatype)
                 i += 1
-            else:
-                raise ValueError("Can only flatten documents, where all values are integers.")
 
         return i
 
@@ -1692,6 +1694,11 @@ cdef class Client:
         return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_add, spacename, key, docattributes)
     def document_atomic_add(self, bytes spacename, key, dict docattributes):
         return self.async_document_atomic_add(spacename, key, docattributes).wait()
+
+    def async_document_string_prepend(self, bytes spacename, key, dict docattributes):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_prepend, spacename, key, docattributes)
+    def document_string_prepend(self, bytes spacename, key, dict docattributes):
+        return self.async_document_string_prepend(spacename, key, docattributes).wait()
 
     def async_map_atomic_add(self, bytes spacename, key, dict mapattributes):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_add, spacename, key, mapattributes)

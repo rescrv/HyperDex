@@ -44,8 +44,8 @@ public:
         : path(cstr)
     {}
 
-    json_path(const std::string& str = "")
-        : path(str)
+    json_path(const std::string& path_ = "")
+        : path(path_)
     {}
 
     bool is_relative() const
@@ -83,7 +83,7 @@ public:
     // Split path at the first .
     bool split(std::string& root_name, json_path& subtree) const
     {
-        int pos = path.find('.');
+        size_t pos = path.find('.');
 
         if(pos == std::string::npos)
         {
@@ -100,7 +100,7 @@ public:
     // i.e. Retrieve last element in the path
     bool split_reverse(json_path& parent_path, std::string& child_name) const
     {
-        int pos = path.find_last_of('.');
+        size_t pos = path.find_last_of('.');
 
         if(pos == std::string::npos)
         {

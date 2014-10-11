@@ -78,7 +78,7 @@ public class Client
     }
 
     /* utilities */
-    public Operation loop()
+    public Operation loop() throws HyperDexClientException
     {
         long ret = inner_loop();
         Operation o = ops.get(ret);
@@ -98,7 +98,7 @@ public class Client
     private native void _create(String host, int port);
     private native void _destroy();
     /* utilities */
-    private native long inner_loop();
+    private native long inner_loop() throws HyperDexClientException;
     private void add_op(long l, Operation op)
     {
         ops.put(l, op);
@@ -370,6 +370,12 @@ public class Client
     public Boolean document_atomic_add(String spacename, Object key, Object docattributes) throws HyperDexClientException
     {
         return (Boolean) async_document_atomic_add(spacename, key, docattributes).waitForIt();
+    }
+
+    public native Deferred async_document_string_prepend(String spacename, Object key, Object docattributes) throws HyperDexClientException;
+    public Boolean document_string_prepend(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    {
+        return (Boolean) async_document_string_prepend(spacename, key, docattributes).waitForIt();
     }
 
     public native Deferred async_map_atomic_add(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
