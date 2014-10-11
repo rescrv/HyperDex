@@ -244,7 +244,7 @@ datatype_info :: document() const
 }
 
 bool
-datatype_info :: validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values, const funcall& func) const
+datatype_info :: validate_old_values(const std::vector<e::slice>&, const funcall&) const
 {
     return true;
 }

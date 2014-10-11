@@ -96,7 +96,7 @@ datatype_document :: validate(const e::slice& value) const
 }
 
 bool
-datatype_document :: validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values, const funcall& func) const
+datatype_document :: validate_old_values(const std::vector<e::slice>& old_values, const funcall& func) const
 {
     // we only need to check old values for atomic operations
     if(func.name == FUNC_NUM_ADD)
@@ -191,6 +191,24 @@ datatype_document :: apply(const e::slice& old_value,
             new_value = json_object_to_json_string(data);
             break;
         }
+        case FUNC_FAIL:
+        case FUNC_STRING_APPEND:
+        case FUNC_STRING_PREPEND:
+        case FUNC_NUM_SUB:
+        case FUNC_NUM_MUL:
+        case FUNC_NUM_DIV:
+        case FUNC_NUM_MOD:
+        case FUNC_NUM_AND:
+        case FUNC_NUM_XOR:
+        case FUNC_NUM_OR:
+        case FUNC_LIST_LPUSH:
+        case FUNC_LIST_RPUSH:
+        case FUNC_SET_ADD:
+        case FUNC_SET_INTERSECT:
+        case FUNC_SET_REMOVE:
+        case FUNC_SET_UNION:
+        case FUNC_MAP_ADD:
+        case FUNC_MAP_REMOVE:
         default:
             abort();
         }

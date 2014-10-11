@@ -101,7 +101,7 @@ key_change :: check(const schema& sc,
         {
             const funcall& func = *it;
 
-            if(!datatype_info::lookup(sc.attrs[func.attr].type)->validate_old_values(kc, *old_values, func))
+            if(!datatype_info::lookup(sc.attrs[func.attr].type)->validate_old_values(*old_values, func))
             {
                 return NET_CMPFAIL;
             }
