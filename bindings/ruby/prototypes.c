@@ -117,6 +117,8 @@ rb_define_method(class_client, "async_document_atomic_add", hyperdex_ruby_client
 rb_define_method(class_client, "document_atomic_add", hyperdex_ruby_client_wait_document_atomic_add, 3);
 rb_define_method(class_client, "async_document_string_prepend", hyperdex_ruby_client_document_string_prepend, 3);
 rb_define_method(class_client, "document_string_prepend", hyperdex_ruby_client_wait_document_string_prepend, 3);
+rb_define_method(class_client, "async_document_string_append", hyperdex_ruby_client_document_string_append, 3);
+rb_define_method(class_client, "document_string_append", hyperdex_ruby_client_wait_document_string_append, 3);
 rb_define_method(class_client, "async_map_atomic_add", hyperdex_ruby_client_map_atomic_add, 3);
 rb_define_method(class_client, "map_atomic_add", hyperdex_ruby_client_wait_map_atomic_add, 3);
 rb_define_method(class_client, "async_cond_map_atomic_add", hyperdex_ruby_client_cond_map_atomic_add, 4);

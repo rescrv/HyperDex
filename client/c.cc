@@ -893,6 +893,20 @@ hyperdex_client_document_string_prepend(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_document_string_append(struct hyperdex_client* _cl,
+                                       const char* space,
+                                       const char* key, size_t key_sz,
+                                       const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz,
+                                       enum hyperdex_client_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_string_append), strlen(XSTR(document_string_append)));
+    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, docattrs, docattrs_sz, status);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_map_atomic_add(struct hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,

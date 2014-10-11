@@ -49,6 +49,7 @@
 // e
 #include <e/endian.h>
 #include <e/guard.h>
+#include <e/safe_math.h>
 
 using hyperdex::datatype_info;
 using hyperdex::datatype_document;
@@ -170,27 +171,46 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
 bool
 datatype_document :: check_args(const funcall& func) const
 {
-    if(func.name == FUNC_SET)
+    switch(func.name)
+    {
+    case FUNC_SET:
     {
         // set (or replace with) a new document
         return func.arg1_datatype == HYPERDATATYPE_DOCUMENT && validate(func.arg1);
     }
-    else if(func.name == FUNC_NUM_ADD)
+    case FUNC_NUM_ADD:
+    case FUNC_NUM_SUB:
+    case FUNC_NUM_MUL:
+    case FUNC_NUM_DIV:
     {
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
         return func.arg1_datatype == HYPERDATATYPE_INT64 && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
-    else if(func.name == FUNC_STRING_APPEND || func.name == FUNC_STRING_PREPEND)
+    case FUNC_STRING_APPEND:
+    case FUNC_STRING_PREPEND:
     {
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
         return func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
-    else
+    case FUNC_FAIL:
+    case FUNC_NUM_MOD:
+    case FUNC_NUM_AND:
+    case FUNC_NUM_XOR:
+    case FUNC_NUM_OR:
+    case FUNC_LIST_LPUSH:
+    case FUNC_LIST_RPUSH:
+    case FUNC_SET_ADD:
+    case FUNC_SET_INTERSECT:
+    case FUNC_SET_REMOVE:
+    case FUNC_SET_UNION:
+    case FUNC_MAP_ADD:
+    case FUNC_MAP_REMOVE:
     {
         // Unsupported operation
         return false;
+    }
     }
 }
 
@@ -209,11 +229,19 @@ datatype_document :: apply(const e::slice& old_value,
         {
         case FUNC_SET:
         {
-            assert(check_args(*func));
-            new_value = func->arg1;
+            if(func->arg1.size() == 0)
+            {
+                // set a valid default value
+                new_value = "{}";
+            }
+            else
+            {
+                new_value = func->arg1;
+            }
             break;
         }
         case FUNC_STRING_PREPEND:
+        case FUNC_STRING_APPEND:
         {
             const e::slice& key = funcs[i].arg2;
             const e::slice& val = funcs[i].arg1;
@@ -222,7 +250,6 @@ datatype_document :: apply(const e::slice& old_value,
             path.make_relative();
 
             const std::string str(val.c_str());
-            std::cout << "val: " << str << std::endl;
 
             json_object *root = to_json(old_value);
 
@@ -233,21 +260,32 @@ datatype_document :: apply(const e::slice& old_value,
 
             std::string old_val = obj ? json_object_get_string(obj) : "";
 
-            json_object* new_elem = json_object_new_string((str + old_val).c_str());
+            std::string new_str;
+
+            if(func->name == FUNC_STRING_APPEND)
+            {
+                new_str = old_val + str;
+            }
+            else
+            {
+                new_str = str + old_val;
+            }
+
+            json_object* new_elem = json_object_new_string(new_str.c_str());
             json_object_object_add(parent, obj_name.c_str(), new_elem);
 
             new_value = json_object_to_json_string(root);
             break;
         }
         case FUNC_NUM_ADD:
+        case FUNC_NUM_SUB:
+        case FUNC_NUM_DIV:
+        case FUNC_NUM_MUL:
         {
-            const e::slice& key = funcs[i].arg2;
-            const e::slice& val = funcs[i].arg1;
-
-            json_path path(key.c_str());
+            json_path path(funcs[i].arg2.c_str());
             path.make_relative();
 
-            const int64_t addval = static_cast<const int64_t>(*val.data());
+            const int64_t arg = *reinterpret_cast<const int64_t*>(funcs[i].arg1.data());
 
             json_object *root = to_json(old_value);
 
@@ -256,19 +294,40 @@ datatype_document :: apply(const e::slice& old_value,
 
             get_end(root, path, parent, obj, obj_name);
 
-            int64_t old_val = obj ? json_object_get_int64(obj) : 0;
+            int64_t number = obj ? json_object_get_int64(obj) : 0;
+            bool success = false;
 
-            json_object* new_elem = json_object_new_int64(old_val + addval);
-            json_object_object_add(parent, obj_name.c_str(), new_elem);
+            if(func->name == FUNC_NUM_ADD)
+            {
+                success = e::safe_add(number, arg, &number);
+            }
+            else if(func->name == FUNC_NUM_SUB)
+            {
+                success = e::safe_sub(number, arg, &number);
+            }
+            else if(func->name == FUNC_NUM_DIV)
+            {
+                success = e::safe_div(number, arg, &number);
+            }
+            else if(func->name == FUNC_NUM_MUL)
+            {
+                success = e::safe_mul(number, arg, &number);
+            }
 
-            new_value = json_object_to_json_string(root);
+            if(success)
+            {
+                json_object* new_elem = json_object_new_int64(number);
+                json_object_object_add(parent, obj_name.c_str(), new_elem);
+
+                new_value = json_object_to_json_string(root);
+            }
+            else
+            {
+                return NULL;
+            }
             break;
         }
         case FUNC_FAIL:
-        case FUNC_STRING_APPEND:
-        case FUNC_NUM_SUB:
-        case FUNC_NUM_MUL:
-        case FUNC_NUM_DIV:
         case FUNC_NUM_MOD:
         case FUNC_NUM_AND:
         case FUNC_NUM_XOR:
@@ -281,7 +340,6 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_SET_UNION:
         case FUNC_MAP_ADD:
         case FUNC_MAP_REMOVE:
-        default:
             abort();
         }
     }

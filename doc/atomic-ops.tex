@@ -433,6 +433,7 @@ True
 {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': '->mapvalue<-'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 2}}
 \end{pythoncode}
 
+\subsection{Atomic Operations on Documents}
 Note that Hyperdex also supports atomic operations on documents. To do this, we first have to create a space that has a field of the type document.
 
 \begin{pythoncode}
@@ -486,6 +487,16 @@ True
 >>> c.get('people', 'jane')
 {'info': Document({"name": "Dr. Jane Doe", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}
 \end{pythoncode}
+
+Similarly, we can append text. 
+
+\begin{pythoncode}
+>>> c.document_string_append('people', 'jane', {'info' : Document({'name' : ', Jr.'})})
+True
+>>> c.get('people', 'jane')
+{'info': Document({"name": "Dr. Jane Doe, Jr.", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}
+\end{pythoncode}
+
 
 
 HyperDex's atomic operations are extensive and very expressive. And they are

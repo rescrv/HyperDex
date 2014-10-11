@@ -240,3 +240,7 @@ True
 True
 >>> c.get('people', 'jane')
 {'info': Document({"name": "Dr. Jane Doe", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}
+>>> c.document_string_append('people', 'jane', {'info' : Document({'name' : ', Jr.'})})
+True
+>>> c.get('people', 'jane')
+{'info': Document({"name": "Dr. Jane Doe, Jr.", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}

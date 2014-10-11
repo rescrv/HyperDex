@@ -88,6 +88,7 @@ static v8::Handle<v8::Value> map_remove(const v8::Arguments& args);
 static v8::Handle<v8::Value> cond_map_remove(const v8::Arguments& args);
 static v8::Handle<v8::Value> document_atomic_add(const v8::Arguments& args);
 static v8::Handle<v8::Value> document_string_prepend(const v8::Arguments& args);
+static v8::Handle<v8::Value> document_string_append(const v8::Arguments& args);
 static v8::Handle<v8::Value> map_atomic_add(const v8::Arguments& args);
 static v8::Handle<v8::Value> cond_map_atomic_add(const v8::Arguments& args);
 static v8::Handle<v8::Value> map_atomic_sub(const v8::Arguments& args);
