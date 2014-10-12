@@ -8,7 +8,7 @@ def to_objectset(xs):
     return set([frozenset(x.items()) for x in xs])
 
 def assertEquals(actual, expected):
-	if not (actual is expected):
+	if not (actual == expected):
 		print "AssertEquals failed"
 		print "Should be: " + str(expected) + ", but was " + str(actual) + "."
 			
@@ -16,10 +16,12 @@ def assertEquals(actual, expected):
 
 Document = hyperdex.client.Document
 
+assertEquals(Document({}), Document({}))
+
 #assert c.put('kv', 'k', {}) == True
 #assert c.get('kv', 'k') == {'v': Document({})}
 assert c.put('kv', 'k',  {'v': Document({'a': 'b', 'c': {'d' : 1, 'e': 'f' }})}) == True
-assertEquals(c.get('kv', 'k'), {'v': Document({'a': 'b', 'c': {'d' : 1, 'e': 'f' }})})
+assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 1, 'e': 'f' }}))
 assert c.document_atomic_add('kv', 'k',  {'v': Document({'a': 1})}) == False
 assertEquals(c.get('kv', 'k'), {'v': Document({'a': 'b', 'c': {'d' : 1, 'e': 'f' }})})
 assert c.document_atomic_add('kv', 'k',  {'v': Document({'c': {'d' : 5}})}) == False

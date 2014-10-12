@@ -896,6 +896,14 @@ cdef class Document:
     def __repr__(self):
         return str(self)
 
+    def __richcmp__(self, other, int op):
+        if op == 2:
+            return self.doc() == other.doc()
+        elif op == 3:
+            return self.doc() != other.doc()
+        else:
+            raise TypeError('No ordering is possible for Documents.')
+
 
 cdef class Predicate:
 
