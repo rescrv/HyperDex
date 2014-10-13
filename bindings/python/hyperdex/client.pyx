@@ -870,7 +870,7 @@ cdef hyperdex_python_client_iterator_encode_status_attributes(Iterator it):
 # Json can be represented natively in Python
 # However, we add a wrapper class to distinguish dictionaries from documents
 cdef class Document:
-    cdef dict _doc
+    cdef _doc
 
     # Create from either a dict (native representation) or a string
     def __init__(self, doc):
@@ -878,8 +878,10 @@ cdef class Document:
             self._doc = json.loads(doc)
         elif isinstance(doc, dict):
             self._doc = doc
+        elif isinstance(doc, list):
+            self._doc = doc
         else:
-            raise ValueError("Document must either be a dict or a string")
+            raise ValueError("Input must either be a document (dict or list) or a string")
 
     def __len__(self):
         return len(self.inner_str())

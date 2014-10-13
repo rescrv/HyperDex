@@ -1,6 +1,9 @@
 #!/usr/bin/env python2
 import sys
 import hyperdex.client
+import json
+import os
+
 from hyperdex.client import LessEqual, GreaterEqual, LessThan, GreaterThan, Range, Regex, LengthEquals, LengthLessEqual, LengthGreaterEqual
 c = hyperdex.client.Client(sys.argv[1], int(sys.argv[2]))
 
@@ -34,3 +37,13 @@ assert c.document_string_append('kv', 'k',  {'v': Document({'k' : {'l': 'm'}})})
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'xbx', 'c': {'d' : 11, 'e': 'zfz', 'g': 3}, 'k' : {'l' : 'm'}}))
 assert c.document_atomic_add('kv', 'k',  {'v': Document({'k' : {'a': {'b' : {'c' : {'d' : 1}}}}})}) == True
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'xbx', 'c': {'d' : 11, 'e': 'zfz', 'g': 3}, 'k' : {'a': {'b' : {'c' : {'d' : 1}}}, 'l' : 'm'}}))
+
+#Arrays
+assert c.put('kv', 'k', {'v': Document(['a', 'b', 'c'])}) == True
+assertEquals(c.get('kv', 'k')['v'], Document(['a', 'b', 'c']))
+
+# Test loading a big json file
+json_file = open(os.getcwd() + '/test/test-data/big.json')
+data = json.load(json_file)
+assert c.put('kv', 'k2', {'v': Document(data)}) == True
+assertEquals(c.get('kv', 'k2')['v'], Document(data))
