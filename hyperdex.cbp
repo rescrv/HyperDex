@@ -286,6 +286,7 @@
 		<Unit filename="include/hyperdex/client.hpp" />
 		<Unit filename="include/hyperdex/datastructures.h" />
 		<Unit filename="include/hyperdex/hyperspace_builder.h" />
+		<Unit filename="test/samples/big.json" />
 		<Extensions>
 			<code_completion />
 			<debugger />
