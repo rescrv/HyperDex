@@ -980,6 +980,78 @@ hyperdex_ruby_client_wait_document_atomic_add(VALUE self, VALUE spacename, VALUE
 }
 
 static VALUE
+hyperdex_ruby_client_document_atomic_sub(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_sub, self, spacename, key, docattributes);
+}
+VALUE
+hyperdex_ruby_client_wait_document_atomic_sub(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    VALUE deferred = hyperdex_ruby_client_document_atomic_sub(self, spacename, key, docattributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
+hyperdex_ruby_client_document_atomic_mul(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_mul, self, spacename, key, docattributes);
+}
+VALUE
+hyperdex_ruby_client_wait_document_atomic_mul(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    VALUE deferred = hyperdex_ruby_client_document_atomic_mul(self, spacename, key, docattributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
+hyperdex_ruby_client_document_atomic_div(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_div, self, spacename, key, docattributes);
+}
+VALUE
+hyperdex_ruby_client_wait_document_atomic_div(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    VALUE deferred = hyperdex_ruby_client_document_atomic_div(self, spacename, key, docattributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
+hyperdex_ruby_client_document_atomic_mod(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_mod, self, spacename, key, docattributes);
+}
+VALUE
+hyperdex_ruby_client_wait_document_atomic_mod(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    VALUE deferred = hyperdex_ruby_client_document_atomic_mod(self, spacename, key, docattributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
+hyperdex_ruby_client_document_atomic_xor(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_xor, self, spacename, key, docattributes);
+}
+VALUE
+hyperdex_ruby_client_wait_document_atomic_xor(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    VALUE deferred = hyperdex_ruby_client_document_atomic_xor(self, spacename, key, docattributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
+hyperdex_ruby_client_document_atomic_or(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_or, self, spacename, key, docattributes);
+}
+VALUE
+hyperdex_ruby_client_wait_document_atomic_or(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
+{
+    VALUE deferred = hyperdex_ruby_client_document_atomic_or(self, spacename, key, docattributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
 hyperdex_ruby_client_document_string_prepend(VALUE self, VALUE spacename, VALUE key, VALUE docattributes)
 {
     return hyperdex_ruby_client_asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_prepend, self, spacename, key, docattributes);

@@ -37,10 +37,39 @@ assert c.document_string_append('kv', 'k',  {'v': Document({'k' : {'l': 'm'}})})
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'xbx', 'c': {'d' : 11, 'e': 'zfz', 'g': 3}, 'k' : {'l' : 'm'}}))
 assert c.document_atomic_add('kv', 'k',  {'v': Document({'k' : {'a': {'b' : {'c' : {'d' : 1}}}}})}) == True
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'xbx', 'c': {'d' : 11, 'e': 'zfz', 'g': 3}, 'k' : {'a': {'b' : {'c' : {'d' : 1}}}, 'l' : 'm'}}))
+assert c.document_atomic_sub('kv', 'k',  {'v': Document({'k' : {'a': {'b' : {'c' : {'d' : 5}}}}})}) == True
+assertEquals(c.get('kv', 'k')['v'], Document({'a': 'xbx', 'c': {'d' : 11, 'e': 'zfz', 'g': 3}, 'k' : {'a': {'b' : {'c' : {'d' : -4}}}, 'l' : 'm'}}))
 
-#Arrays
-assert c.put('kv', 'k', {'v': Document(['a', 'b', 'c'])}) == True
-assertEquals(c.get('kv', 'k')['v'], Document(['a', 'b', 'c']))
+
+# More exotic operations
+assert c.put('kv', 'k3',  {'v': Document({'a': 'b', 'c': {'d' : 100, 'e': 'f', 'g': 5 }})}) == True
+assertEquals(c.get('kv', 'k3')['v'], Document({'a': 'b', 'c': {'d' : 100, 'e': 'f', 'g': 5 }}))
+assert c.document_atomic_mod('kv', 'k3', {'v': Document({'c' : {'d' : 10000}})})
+assertEquals(c.get('kv', 'k3')['v'], Document({'a': 'b', 'c': {'d' : 100, 'e': 'f', 'g': 5 }}))
+assert c.document_atomic_mod('kv', 'k3', {'v': Document({'c' : {'d' : 22}})})
+assertEquals(c.get('kv', 'k3')['v'], Document({'a': 'b', 'c': {'d' : 12, 'e': 'f', 'g': 5 }}))
+assert c.document_atomic_xor('kv', 'k3', {'v': Document({'c' : {'g' : 4}})})
+assertEquals(c.get('kv', 'k3')['v'], Document({'a': 'b', 'c': {'d' : 12, 'e': 'f', 'g': 1 }}))
+assert c.document_atomic_or('kv', 'k3', {'v': Document({'c' : {'g' : 4}})})
+assertEquals(c.get('kv', 'k3')['v'], Document({'a': 'b', 'c': {'d' : 12, 'e': 'f', 'g': 5 }}))
+
+# Multiply and divide
+assert c.put('kv', 'k4',  {'v': Document({'a': 200})}) == True
+assertEquals(c.get('kv', 'k4')['v'], Document({ 'a': 200 }))
+assert c.document_atomic_div('kv', 'k4', {'v': Document({'a' : 1})}) == True
+assertEquals(c.get('kv', 'k4')['v'], Document({ 'a': 200 }))
+assert c.document_atomic_div('kv', 'k4', {'v': Document({'a' : 2})}) == True
+assertEquals(c.get('kv', 'k4')['v'], Document({ 'a': 100 }))
+assert c.document_atomic_mul('kv', 'k4', {'v': Document({'a' : 4})}) == True
+assertEquals(c.get('kv', 'k4')['v'], Document({ 'a': 400 }))
+assert c.document_atomic_mul('kv', 'k4', {'v': Document({'a' : 1})}) == True
+assertEquals(c.get('kv', 'k4')['v'], Document({ 'a': 400 }))
+assert c.document_atomic_mul('kv', 'k4', {'v': Document({'a' : 0})}) == True
+assertEquals(c.get('kv', 'k4')['v'], Document({ 'a': 0 }))
+
+#Lists
+assert c.put('kv', 'k5', {'v': Document(['a', 'b', 'c'])}) == True
+assertEquals(c.get('kv', 'k5')['v'], Document(['a', 'b', 'c']))
 
 # Test loading a big json file
 json_file = open(os.getcwd() + '/test/test-data/big.json')
