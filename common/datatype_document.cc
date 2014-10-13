@@ -273,7 +273,7 @@ datatype_document :: apply(const e::slice& old_value,
             json_path path(key.c_str());
             path.make_relative();
 
-            const std::string str(val.c_str());
+            const std::string arg(val.c_str());
             root = root ? root : to_json(old_value);
 
             json_object *parent, *obj;
@@ -281,22 +281,18 @@ datatype_document :: apply(const e::slice& old_value,
 
             get_end(root, path, parent, obj, obj_name);
 
-            std::string old_val = obj ? json_object_get_string(obj) : "";
-
-            std::string new_str;
-
-            std::cout << str << "|" << old_val << std::endl;
+            std::string str = obj ? json_object_get_string(obj) : "";
 
             if(func->name == FUNC_STRING_APPEND)
             {
-                new_str = old_val + str;
+                str = str + arg;
             }
             else
             {
-                new_str = str + old_val;
+                str = arg + str;
             }
 
-            json_object* new_elem = json_object_new_string(new_str.c_str());
+            json_object* new_elem = json_object_new_string(str.c_str());
             json_object_object_add(parent, obj_name.c_str(), new_elem);
             break;
         }
@@ -397,13 +393,14 @@ datatype_document :: apply(const e::slice& old_value,
     return writeto + new_value.size();
 }
 
-void datatype_document :: get_end(const json_object* root, const json_path& path,
+void
+datatype_document :: get_end(const json_object* root, const json_path& path,
                                 json_object*& parent, json_object*& obj, std::string& obj_name) const
 {
-    // TODO create the parent if it doesn't exist
+    json_path parent_path;
+
     if(path.has_subtree())
     {
-        json_path parent_path;
         path.split_reverse(parent_path, obj_name);
 
         // Apperantly, there is no easier way in json-c to get the parent
@@ -413,6 +410,19 @@ void datatype_document :: get_end(const json_object* root, const json_path& path
     {
         parent = const_cast<json_object*>(root);
         obj_name = path.str();
+    }
+
+    if(!parent)
+    {
+        // Recursively build the path
+        // This might be a little inefficent but should rarely be needed
+        json_object *grandparent = NULL;
+        std::string parent_name_;
+        get_end(root, parent_path, grandparent, parent, parent_name_);
+
+        assert(grandparent != NULL);
+        parent = json_object_new_object();
+        json_object_object_add(grandparent, parent_name_.c_str(), parent);
     }
 
     obj = traverse_path(root, path);
