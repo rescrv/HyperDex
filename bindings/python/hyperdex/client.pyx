@@ -896,7 +896,7 @@ cdef class Document:
     def __repr__(self):
         return str(self)
 
-    def __richcmp__(self, other, int op):
+    def __richcmp__(Document self, Document other not None, int op):
         if op == 2:
             return self.doc() == other.doc()
         elif op == 3:
