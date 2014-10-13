@@ -34,6 +34,7 @@ AM_MAKEFLAGS = --no-print-directory
 AM_YFLAGS = -d
 HELP2MAN_FLAGS = --no-discard-stderr --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
 TESTS_ENVIRONMENT = . $(abs_top_srcdir)/test/env.sh "${abs_top_srcdir}" "${abs_top_builddir}" "${VERSION}";
+AM_DISTCHECK_CONFIGURE_FLAGS = --enable-python-bindings --enable-java-bindings --enable-ruby-bindings
 
 hyperdexexecdir = $(libexecdir)/$(PACKAGE)-$(VERSION)
 hyperdexheaderdir = $(includedir)/hyperdex
