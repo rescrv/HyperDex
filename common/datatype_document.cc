@@ -248,6 +248,11 @@ datatype_document :: apply(const e::slice& old_value,
 {
     e::slice new_value = old_value;
 
+    // To support multiple updates on the same document
+    // we reuse the json object
+    // This should also save some parsing time
+    json_object* root = NULL;
+
     for (size_t i = 0; i < funcs_sz; ++i)
     {
         const funcall* func = funcs + i;
@@ -256,15 +261,7 @@ datatype_document :: apply(const e::slice& old_value,
         {
         case FUNC_SET:
         {
-            if(func->arg1.size() == 0)
-            {
-                // set a valid default value
-                new_value = "{}";
-            }
-            else
-            {
-                new_value = func->arg1;
-            }
+            new_value = func->arg1;
             break;
         }
         case FUNC_STRING_PREPEND:
@@ -277,8 +274,7 @@ datatype_document :: apply(const e::slice& old_value,
             path.make_relative();
 
             const std::string str(val.c_str());
-
-            json_object *root = to_json(old_value);
+            root = root ? root : to_json(old_value);
 
             json_object *parent, *obj;
             std::string obj_name;
@@ -288,6 +284,8 @@ datatype_document :: apply(const e::slice& old_value,
             std::string old_val = obj ? json_object_get_string(obj) : "";
 
             std::string new_str;
+
+            std::cout << str << "|" << old_val << std::endl;
 
             if(func->name == FUNC_STRING_APPEND)
             {
@@ -300,8 +298,6 @@ datatype_document :: apply(const e::slice& old_value,
 
             json_object* new_elem = json_object_new_string(new_str.c_str());
             json_object_object_add(parent, obj_name.c_str(), new_elem);
-
-            new_value = json_object_to_json_string(root);
             break;
         }
         case FUNC_NUM_ADD:
@@ -318,7 +314,7 @@ datatype_document :: apply(const e::slice& old_value,
 
             const int64_t arg = *reinterpret_cast<const int64_t*>(funcs[i].arg1.data());
 
-            json_object *root = to_json(old_value);
+            root = root ? root : to_json(old_value);
 
             json_object *parent, *obj;
             std::string obj_name;
@@ -369,11 +365,10 @@ datatype_document :: apply(const e::slice& old_value,
             {
                 json_object* new_elem = json_object_new_int64(number);
                 json_object_object_add(parent, obj_name.c_str(), new_elem);
-
-                new_value = json_object_to_json_string(root);
             }
             else
             {
+                json_object_put(root);
                 return NULL;
             }
             break;
@@ -390,6 +385,12 @@ datatype_document :: apply(const e::slice& old_value,
         default:
             abort();
         }
+    }
+
+    if(root)
+    {
+        new_value = json_object_to_json_string(root);
+        //json_object_put(root);
     }
 
     memmove(writeto, new_value.data(), new_value.size());

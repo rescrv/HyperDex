@@ -16,17 +16,17 @@ def assertEquals(actual, expected):
 
 Document = hyperdex.client.Document
 
-assertEquals(Document({}), Document({}))
-
-#assert c.put('kv', 'k', {}) == True
-#assert c.get('kv', 'k') == {'v': Document({})}
-assert c.put('kv', 'k',  {'v': Document({'a': 'b', 'c': {'d' : 1, 'e': 'f' }})}) == True
-assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 1, 'e': 'f' }}))
+assert c.put('kv', 'k', {'v': Document({})}) == True
+assertEquals(c.get('kv', 'k')['v'], Document({}))
+assert c.put('kv', 'k',  {'v': Document({'a': 'b', 'c': {'d' : 1, 'e': 'f', 'g': -2 }})}) == True
+assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 1, 'e': 'f', 'g': -2 }}))
 assert c.document_atomic_add('kv', 'k',  {'v': Document({'a': 1})}) == False
-assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 1, 'e': 'f' }}))
+assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 1, 'e': 'f', 'g': -2 }}))
 assert c.document_atomic_add('kv', 'k',  {'v': Document({'c': {'d' : 5}})}) == True
-assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 6, 'e': 'f' }}))
-assert c.document_string_prepend('kv', 'k',  {'v': Document({'a': 'x', 'd' : {'e': 'zf'}})}) == True
-assertEquals(c.get('kv', 'k')['v'], Document({'xa': 'b', 'c': {'d' : 6, 'e': 'zf' }}))
-assert c.document_string_append('kv', 'k',  {'v': Document({'a': 'x', 'd' : {'e': 'zf'}})}) == True
-assertEquals(c.get('kv', 'k')['v'], Document({'xax': 'x', 'd' : {'e': 'zfz'}}))
+assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 6, 'e': 'f', 'g': -2 }}))
+assert c.document_atomic_add('kv', 'k',  {'v': Document({'c': {'d' : 5, 'g': 5}})}) == True
+assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 11, 'e': 'f' , 'g': 3}}))
+assert c.document_string_prepend('kv', 'k',  {'v': Document({'a': 'x', 'c' : {'e': 'z'}})}) == True
+assertEquals(c.get('kv', 'k')['v'], Document({'a': 'xb', 'c': {'d' : 11, 'e': 'zf', 'g': 3}}))
+assert c.document_string_append('kv', 'k',  {'v': Document({'a': 'x', 'c' : {'e': 'z'}})}) == True
+assertEquals(c.get('kv', 'k')['v'], Document({'a': 'xbx', 'c': {'d' : 11, 'e': 'zfz', 'g': 3}}))
