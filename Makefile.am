@@ -131,6 +131,7 @@ noinst_HEADERS += common/hyperspace.h
 noinst_HEADERS += common/ordered_encoding.h
 noinst_HEADERS += common/ids.h
 noinst_HEADERS += common/index.h
+noinst_HEADERS += common/json_path.h
 noinst_HEADERS += common/key_change.h
 noinst_HEADERS += common/macros.h
 noinst_HEADERS += common/mapper.h
