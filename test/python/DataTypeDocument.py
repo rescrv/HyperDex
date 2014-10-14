@@ -3,6 +3,7 @@ import sys
 import hyperdex.client
 import json
 import os
+import testlib
 
 from hyperdex.client import LessEqual, GreaterEqual, LessThan, GreaterThan, Range, Regex, LengthEquals, LengthLessEqual, LengthGreaterEqual
 c = hyperdex.client.Client(sys.argv[1], int(sys.argv[2]))
@@ -10,14 +11,8 @@ c = hyperdex.client.Client(sys.argv[1], int(sys.argv[2]))
 def to_objectset(xs):
     return set([frozenset(x.items()) for x in xs])
 
-def assertEquals(actual, expected):
-	if not actual == expected:
-		print "AssertEquals failed"
-		print "Should be: " + str(expected) + ", but was " + str(actual) + "."
-
-		assert False
-
 Document = hyperdex.client.Document
+assertEquals = testlib.assertEquals
 
 assert c.put('kv', 'k', {'v': Document({})}) == True
 assertEquals(c.get('kv', 'k')['v'], Document({}))
