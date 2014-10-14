@@ -81,6 +81,7 @@ cdef extern from "hyperdex/admin.h":
     int64_t hyperdex_admin_dump_config(hyperdex_admin* admin, hyperdex_admin_returncode* status, const char** config)
     int64_t hyperdex_admin_enable_perf_counters(hyperdex_admin* admin, hyperdex_admin_returncode* status, hyperdex_admin_perf_counter* pc)
     void hyperdex_admin_disable_perf_counters(hyperdex_admin* admin)
+    int64_t hyperdex_admin_list_spaces(hyperdex_admin* admin, hyperdex_admin_returncode* status, const char** spaces)
     int64_t hyperdex_admin_loop(hyperdex_admin* admin, int timeout, hyperdex_admin_returncode* status) nogil
 
 import collections
@@ -318,6 +319,17 @@ cdef class Admin:
 
     def rm_space(self, space):
         return self.async_rm_space(space).wait()
+
+    def list_spaces(self):
+        cdef hyperdex_admin_returncode _status = HYPERDEX_ADMIN_GARBAGE
+        cdef const char* _spaces = NULL
+
+        hyperdex_admin_list_spaces(self._admin, &_status, &_spaces)
+
+        if _status < 0:
+            raise HyperDexAdminException(self._status)
+
+        return _spaces
 
     def enable_perf_counters(self):
         cdef hyperdex_admin_returncode rc
