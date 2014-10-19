@@ -18,6 +18,8 @@ AC_CONFIG_SRCDIR([include/hyperdex.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
+AC_DEFINE([CPP_INCDIRS], [""], ["Include directories for dependencies"])
+
 # Components that influence other checks
 AC_ARG_ENABLE([all-components], [AS_HELP_STRING([--enable-all-components],
               [enable building all components @<:@default: yes@:>@])],
@@ -111,8 +113,10 @@ if test x"${enable_all_components}" = xyes -o \
         x"${enable_client}" = xyes -o \
         x"${enable_daemon}" = xyes; then
     AC_CHECK_LIB([json], [json_object_get_double], [needs_json=yes], [needs_json=no])
+    AC_CHECK_LIB([bson-1.0], [bson_init], [needs_bson=yes], [needs_bson=no])
     AC_CHECK_LIB([json-c], [json_object_get_double], [needs_json_c=yes], [needs_json_c=no])
 fi
+
 if test x"${needs_json}" = xyes; then
     AC_SUBST([JSON_LIBS], ["-ljson"])
 elif test  x"${needs_json_c}" = xyes; then
@@ -122,6 +126,17 @@ else
 -------------------------------------------------
 HyperDex relies upon the libjson library.
 Please install libjson to continue.
+-------------------------------------------------])
+fi
+
+if test x"${needs_bson}" = xyes; then
+    AC_SUBST([BSON_LIBS], ["-lbson-1.0"])
+    AC_SUBST([CPP_INCDIRS], ["-I/usr/local/include/libbson-1.0"])
+else
+    AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the libbson library.
+Please install libbson to continue.
 -------------------------------------------------])
 fi
 
@@ -156,6 +171,7 @@ HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
 fi
+
 if test x"${enable_all_components}" = xyes -o \
         x"${enable_client}" = xyes -o \
         x"${enable_daemon}" = xyes; then
@@ -170,10 +186,10 @@ elif test x"${needs_json_c_h}" = xyes; then
     AC_DEFINE([HAVE_JSON_C_H], [1], [Define to 1 if json-c/json.h exists.])
 else
     AC_MSG_ERROR([
--------------------------------------------------
+--------------------------------------------------
 HyperDex relies upon the libjson library.
 Please install libjson to continue.
--------------------------------------------------])
+--------------------------------------------------])
 fi
 
 # Checks for typedefs, structures, and compiler characteristics.

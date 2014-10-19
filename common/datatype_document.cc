@@ -46,6 +46,8 @@
 #error no suitable json.h found
 #endif
 
+#include <bson.h>
+
 // e
 #include <e/endian.h>
 #include <e/guard.h>
