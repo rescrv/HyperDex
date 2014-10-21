@@ -308,7 +308,6 @@ json_object* datatype_document :: to_json(const e::slice& doc) const
     if (json_tokener_get_error(tok) != json_tokener_success ||
         tok->char_offset != static_cast<ssize_t>(doc.size()))
     {
-        assert(json_object_put(obj) == 0);
         return NULL;
     }
 
