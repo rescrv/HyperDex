@@ -342,6 +342,9 @@ hyperdex_ds_unpack_document(const char* value, size_t value_sz, char** outstr, s
         return 0;
     }
 
+    std::cout << value << std::endl;
+    std::cout <<  reinterpret_cast<const uint8_t*>(value) << std::endl;
+
     bson_t *b;
 
     if(!bson_init_static(b, reinterpret_cast<const uint8_t*>(value), value_sz))

@@ -255,6 +255,7 @@ datatype_document :: apply(const e::slice& old_value,
     // we reuse the json object
     // This should also save some parsing time
     json_object* root = NULL;
+    bson_t *bson_root = NULL;
 
     for (size_t i = 0; i < funcs_sz; ++i)
     {
@@ -267,16 +268,13 @@ datatype_document :: apply(const e::slice& old_value,
             bson_t *b;
             bson_error_t error;
 
-            b = bson_new_from_json (func->arg1.data(), -1, &error);
+            bson_root = bson_new_from_json (func->arg1.data(), -1, &error);
 
-            if (!b) {
+            //TODO needs to be caught by validation
+            if (!bson_root) {
                 printf ("Error: %s\n", error.message);
                 abort();
             }
-
-            new_value = reinterpret_cast<const char*>(bson_get_data(b));
-            std::cout << "New value:" << new_value.c_str() << std::endl;
-            bson_free(b);
             break;
         }
         case FUNC_STRING_PREPEND:
@@ -398,14 +396,21 @@ datatype_document :: apply(const e::slice& old_value,
         }
     }
 
+    if(bson_root)
+    {
+        new_value = reinterpret_cast<const char*>(bson_get_data(bson_root));
+        memmove(writeto, new_value.data(), new_value.size());
+        bson_free(bson_root);
+        return writeto + new_value.size();
+    }
+
     if(root)
     {
         new_value = json_object_to_json_string(root);
-        //json_object_put(root);
+        memmove(writeto, new_value.data(), new_value.size());
+        json_object_put(root);
+        return writeto + new_value.size();
     }
-
-    memmove(writeto, new_value.data(), new_value.size());
-    return writeto + new_value.size();
 }
 
 void
