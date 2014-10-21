@@ -42,6 +42,9 @@
 // e
 #include <e/endian.h>
 
+// bson
+#include <bson.h>
+
 // HyperDex
 #include <hyperdex/datastructures.h>
 #include "common/datatype_info.h"
@@ -327,6 +330,28 @@ HYPERDEX_API void
 hyperdex_ds_pack_int(int64_t num, char* buf)
 {
     e::pack64le(num, buf);
+}
+
+HYPERDEX_API int
+hyperdex_ds_unpack_document(const char* value, size_t value_sz, char** outstr, size_t* outsize)
+{
+    if (value_sz == 0)
+    {
+        *outstr = "{}";
+        *outsize = strlen("{}");
+        return 0;
+    }
+
+    bson_t *b;
+
+    if(!bson_init_static(b, reinterpret_cast<const uint8_t*>(value), value_sz))
+    {
+        return -1;
+    }
+
+    *outstr = bson_as_json(b, outsize);
+    bson_free(b);
+    return 0;
 }
 
 HYPERDEX_API int

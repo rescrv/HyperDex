@@ -251,6 +251,7 @@ cdef extern from "hyperdex/datastructures.h":
     hyperdex_client_attribute_check* hyperdex_ds_allocate_attribute_check(hyperdex_ds_arena* arena, size_t sz)
     hyperdex_client_map_attribute* hyperdex_ds_allocate_map_attribute(hyperdex_ds_arena* arena, size_t sz)
 
+    int hyperdex_ds_unpack_document(char* buf, size_t buf_sz, char** outstr, size_t* outsize)
     int hyperdex_ds_unpack_int(char* buf, size_t buf_sz, int64_t* num)
     int hyperdex_ds_unpack_float(char* buf, size_t buf_sz, double* num)
 
@@ -500,9 +501,17 @@ cdef hyperdex_python_client_convert_type(hyperdex_ds_arena* arena, x,
         raise TypeError("Cannot convert object to a HyperDex type")
 
 
+cdef hyperdex_python_client_build_document(const char* value, size_t value_sz):
+    cdef char* cstr = NULL
+    cdef size_t outsize = 0
+
+    if hyperdex_ds_unpack_document(value, value_sz, &cstr, &outsize) < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed attributes")
+
+    return Document(cstr[:outsize])
+
 cdef hyperdex_python_client_build_string(const char* value, size_t value_sz):
     return value[:value_sz]
-
 
 cdef hyperdex_python_client_build_int(const char* value, size_t value_sz):
     cdef int64_t i = 0
@@ -786,7 +795,7 @@ cdef hyperdex_python_client_build_attributes(const hyperdex_client_attribute* at
         elif attrs[i].datatype == HYPERDATATYPE_FLOAT:
             val = hyperdex_python_client_build_float(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_DOCUMENT:
-            val = Document(hyperdex_python_client_build_string(attrs[i].value, attrs[i].value_sz))
+            val = hyperdex_python_client_build_document(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_LIST_STRING:
             val = hyperdex_python_client_build_list_string(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_LIST_INT64:
@@ -881,7 +890,12 @@ cdef class Document:
     # Create from either a dict (native representation) or a string
     def __init__(self, doc):
         if isinstance(doc, str):
-            self._doc = json.loads(doc)
+            print doc
+
+            if len(doc) is 0:
+                self._doc = {}
+            else:
+                self._doc = json.loads(doc)
         elif isinstance(doc, dict):
             self._doc = doc
         elif isinstance(doc, list):

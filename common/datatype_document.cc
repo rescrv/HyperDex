@@ -264,7 +264,19 @@ datatype_document :: apply(const e::slice& old_value,
         {
         case FUNC_SET:
         {
-            new_value = func->arg1;
+            bson_t *b;
+            bson_error_t error;
+
+            b = bson_new_from_json (func->arg1.data(), -1, &error);
+
+            if (!b) {
+                printf ("Error: %s\n", error.message);
+                abort();
+            }
+
+            new_value = reinterpret_cast<const char*>(bson_get_data(b));
+            std::cout << "New value:" << new_value.c_str() << std::endl;
+            bson_free(b);
             break;
         }
         case FUNC_STRING_PREPEND:
