@@ -73,29 +73,10 @@ datatype_document :: datatype() const
 bool
 datatype_document :: validate(const e::slice& value) const
 {
-    json_tokener* tok = json_tokener_new();
+    return true;
 
-    if (!tok)
-    {
-        throw std::bad_alloc();
-    }
-
-    const char* data = reinterpret_cast<const char*>(value.data());
-    json_object* obj = json_tokener_parse_ex(tok, data, value.size());
-    bool retval = obj && json_tokener_get_error(tok) == json_tokener_success
-                      && tok->char_offset == (ssize_t)value.size();
-
-    if (obj)
-    {
-        json_object_put(obj);
-    }
-
-    if (tok)
-    {
-        json_tokener_free(tok);
-    }
-
-    return retval;
+    bson_t b;
+    return bson_init_static(&b, reinterpret_cast<const uint8_t*>(value.cdata()), value.size());
 }
 
 bool
@@ -112,68 +93,38 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
     case FUNC_NUM_XOR:
     case FUNC_NUM_OR:
     {
-        json_object* root = to_json(old_values[0]);
+        bson_t b;
+        bson_init_static(&b, old_values[0].data(), old_values[0].size());
 
-        if(!root)
+        bson_iter_t iter, baz;
+        assert(bson_iter_init (&iter, &b));
+
+        if (bson_iter_find_descendant (&iter, func.arg2.c_str(), &baz))
         {
-            return false;
+            return (bson_iter_type(&baz) == BSON_TYPE_INT64 || bson_iter_type(&baz) == BSON_TYPE_INT32);
         }
-
-        e::guard gobj = e::makeguard(json_object_put, root);
-        gobj.use_variable();
-
-        // Arugment 2 must be the path
-        // otherwise, check_args should have caught this
-        assert(func.arg2_datatype == HYPERDATATYPE_STRING);
-
-        json_path path(func.arg2.c_str());
-        path.make_relative();
-        json_object* obj = traverse_path(root, path);
-
-        if(!obj)
+        else
         {
-            // check if a new child can be created
-            json_path child_path;
-            return (json_object_get_type(get_last_elem_in_path(root, path, child_path)) == json_type_object);
-        }
-        else if(json_object_get_type(obj) != json_type_int
-            && json_object_get_type(obj) != json_type_double)
-        {
-            // we can only add integers
-            return false;
+            return true;
         }
         break;
     }
     case FUNC_STRING_APPEND:
     case FUNC_STRING_PREPEND:
     {
-        json_object* root = to_json(old_values[0]);
+        bson_t b;
+        bson_init_static(&b, old_values[0].data(), old_values[0].size());
 
-        if(!root)
+        bson_iter_t iter, baz;
+        assert(bson_iter_init (&iter, &b));
+
+        if (bson_iter_find_descendant (&iter, func.arg2.c_str(), &baz))
         {
-            return false;
+            return (bson_iter_type(&baz) == BSON_TYPE_UTF8);
         }
-
-        e::guard gobj = e::makeguard(json_object_put, root);
-        gobj.use_variable();
-
-        // Arugment 2 must be the path
-        // otherwise, check_args should have caught this
-        assert(func.arg2_datatype == HYPERDATATYPE_STRING);
-
-        json_path path(func.arg2.c_str());
-        path.make_relative();
-        json_object* obj = traverse_path(root, path);
-
-        if(!obj)
+        else
         {
-            // new child will be created...
             return true;
-        }
-        else if(json_object_get_type(obj) != json_type_string)
-        {
-            // we can only add integers
-            return false;
         }
         break;
     }
@@ -280,33 +231,29 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_STRING_PREPEND:
         case FUNC_STRING_APPEND:
         {
-            const e::slice& key = funcs[i].arg2;
-            const e::slice& val = funcs[i].arg1;
+            std::string arg = func->arg1.c_str();
+            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
 
-            json_path path(key.c_str());
-            path.make_relative();
+            bson_iter_t iter, baz;
+            assert(bson_iter_init (&iter, bson_root));
 
-            const std::string arg(val.c_str());
-            root = root ? root : to_json(old_value);
-
-            json_object *parent, *obj;
-            std::string obj_name;
-
-            get_end(root, path, parent, obj, obj_name);
-
-            std::string str = obj ? json_object_get_string(obj) : "";
-
-            if(func->name == FUNC_STRING_APPEND)
+            bool success = false;
+            if (bson_iter_find_descendant (&iter, func->arg2.c_str(), &baz))
             {
-                str = str + arg;
-            }
-            else
-            {
-                str = arg + str;
-            }
+                size_t length = 0;
+                std::string str = bson_iter_utf8(&baz, &length);
 
-            json_object* new_elem = json_object_new_string(str.c_str());
-            json_object_object_add(parent, obj_name.c_str(), new_elem);
+                if(func->name == FUNC_STRING_APPEND)
+                {
+                    str = str + arg;
+                }
+                else
+                {
+                    str = arg + str;
+                }
+
+                bson_iter_overwrite_utf8(&baz, str.c_str());
+            }
             break;
         }
         case FUNC_NUM_ADD:
@@ -318,69 +265,63 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_NUM_AND:
         case FUNC_NUM_MOD:
         {
-            json_path path(funcs[i].arg2.c_str());
-            path.make_relative();
+            int64_t arg = reinterpret_cast<const int64_t*>(func->arg1.data())[0];
 
-            const int64_t arg = *reinterpret_cast<const int64_t*>(funcs[i].arg1.data());
+            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
 
-            root = root ? root : to_json(old_value);
+            bson_iter_t iter, baz;
+            assert(bson_iter_init (&iter, bson_root));
 
-            json_object *parent, *obj;
-            std::string obj_name;
-
-            get_end(root, path, parent, obj, obj_name);
-
-            int64_t number = obj ? json_object_get_int64(obj) : 0;
             bool success = false;
+            if (bson_iter_find_descendant (&iter, func->arg2.c_str(), &baz))
+            {
+                int64_t number = bson_iter_int64(&baz);
 
-            if(func->name == FUNC_NUM_ADD)
-            {
-                success = e::safe_add(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_SUB)
-            {
-                success = e::safe_sub(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_DIV)
-            {
-                success = e::safe_div(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_MUL)
-            {
-                success = e::safe_mul(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_MOD)
-            {
-                number = number % arg;
-                success = true;
-            }
-            else if(func->name == FUNC_NUM_XOR)
-            {
-                number = number ^ arg;
-                success = true;
-            }
-            else if(func->name == FUNC_NUM_AND)
-            {
-                number = number & arg;
-                success = true;
-            }
-            else if(func->name == FUNC_NUM_OR)
-            {
-                number = number | arg;
-                success = true;
-            }
+                if(func->name == FUNC_NUM_ADD)
+                {
+                    success = e::safe_add(number, arg, &number);
+                }
+                else if(func->name == FUNC_NUM_SUB)
+                {
+                    success = e::safe_sub(number, arg, &number);
+                }
+                else if(func->name == FUNC_NUM_DIV)
+                {
+                    success = e::safe_div(number, arg, &number);
+                }
+                else if(func->name == FUNC_NUM_MUL)
+                {
+                    success = e::safe_mul(number, arg, &number);
+                }
+                else if(func->name == FUNC_NUM_MOD)
+                {
+                    number = number % arg;
+                    success = true;
+                }
+                else if(func->name == FUNC_NUM_XOR)
+                {
+                    number = number ^ arg;
+                    success = true;
+                }
+                else if(func->name == FUNC_NUM_AND)
+                {
+                    number = number & arg;
+                    success = true;
+                }
+                else if(func->name == FUNC_NUM_OR)
+                {
+                    number = number | arg;
+                    success = true;
+                }
 
-            if(success)
-            {
-                json_object* new_elem = json_object_new_int64(number);
-                json_object_object_add(parent, obj_name.c_str(), new_elem);
+                std::cout << number << std::endl;
+                bson_iter_overwrite_int64(&baz, number);
             }
             else
             {
-                json_object_put(root);
-                return NULL;
+                abort();
             }
-            break;
+        break;
         }
         case FUNC_FAIL:
         case FUNC_LIST_LPUSH:
@@ -398,10 +339,12 @@ datatype_document :: apply(const e::slice& old_value,
 
     if(bson_root)
     {
-        new_value = reinterpret_cast<const char*>(bson_get_data(bson_root));
-        memmove(writeto, new_value.data(), new_value.size());
+        size_t len = bson_root->len;
+        const uint8_t* data = bson_get_data(bson_root);
+
+        memmove(writeto, data, len);
         bson_free(bson_root);
-        return writeto + new_value.size();
+        return writeto + len;
     }
 
     if(root)

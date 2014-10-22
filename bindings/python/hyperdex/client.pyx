@@ -1180,11 +1180,19 @@ cdef class Client:
                                 dict doc, hyperdex_client_map_attribute* mapattrs):
         for name, value in doc.iteritems():
             if isinstance(value, dict):
-                subpath = path + "." + name
+                if path is "":
+                    subpath = name
+                else:
+                    subpath = path + "." + name
+
                 i = self.flatten_document(arena, i, keyname, subpath, value, mapattrs)
 
             else:
-                fullpath = path + "." + name + "\0"
+                if path is "":
+                    fullpath = name + "\0"
+                else:
+                    fullpath = path + "." + name + "\0"
+
                 mapattrs[i].attr = keyname
 
                 if isinstance(value, str):
@@ -1215,7 +1223,7 @@ cdef class Client:
 
         # This is (supposed to be) a dictionary of fieldname-dictionary pairs
         for name, document in attrs.iteritems():
-            i = self.flatten_document(arena, i, name, "$", document.doc(), _mapattrs[0])
+            i = self.flatten_document(arena, i, name, "", document.doc(), _mapattrs[0])
 
         assert(length == i)
         _mapattrs_sz[0] = length
