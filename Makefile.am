@@ -1307,14 +1307,7 @@ EXTRA_DIST += doc/api/node.js/window-pattern.js
 EXTRA_DIST += doc/api/ruby/hello-world-async-loop.rb
 EXTRA_DIST += doc/api/ruby/hello-world-async-wait.rb
 EXTRA_DIST += doc/api/ruby/hello-world.rb
-
-CLEANFILES += doc/HyperDex-$(VERSION).pdf
-
-doc/HyperDex-$(VERSION).pdf:
-	sphinx-build -d ${abs_top_builddir}/doc/_build -b latex ${abs_top_srcdir}/doc ${abs_top_builddir}/doc/_build/latex
-	make -C ${abs_top_builddir}/doc/_build/latex all-pdf
-	cp ${abs_top_builddir}/doc/_build/latex/HyperDex.pdf doc/HyperDex-$(VERSION).pdf
-	rm -r ${abs_top_builddir}/doc/_build
+EXTRA_DIST += doc/install/centos6-packages.sh
 
 ################################################################################
 ################################## Maintenance #################################
