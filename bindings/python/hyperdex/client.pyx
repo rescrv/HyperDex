@@ -936,6 +936,35 @@ cdef class Timestamp:
             return HYPERDATATYPE_TIMESTAMP_WEEK
         elif _interval == "Month":
             return HYPERDATATYPE_TIMESTAMP_MONTH
+cdef class Second(Timestamp):
+
+    def __init__(self,time):
+        Timestamp.__init__(self,time,"Second")
+cdef class Minute(Timestamp):
+
+    def __init__(self,time):
+        Timestamp.__init__(self,time,"Minute")
+
+cdef class Hour(Timestamp):
+
+    def __init__(self,time):
+        Timestamp.__init__(self,time,"Hour")
+
+cdef class Day(Timestamp):
+
+    def __init__(self,time):
+        Timestamp.__init__(self,time,"Day")
+
+cdef class Week(Timestamp):
+
+    def __init__(self,time):
+        Timestamp.__init__(self,time,"Week")
+
+cdef class Month(Timestamp):
+
+    def __init__(self,time):
+        Timestamp.__init__(self,time,"Month")
+
 
 cdef class Predicate:
 

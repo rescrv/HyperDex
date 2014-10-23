@@ -91,7 +91,7 @@ datatype_timestamp::apply(const e::slice& old_value,
 bool
 datatype_timestamp::hashable()
 {
-  return true;
+    return true;
 }
 
 const char * INTERVAL_SECOND_STRING = "SECOND";
@@ -103,23 +103,23 @@ const char * INTERVAL_MONTH_STRING = "MONTH";
 
 const char * interval_to_string(enum timestamp_interval in)
 {
-  switch(in)
-  {
+    switch(in)
+    {
     case SECOND:
-      return INTERVAL_SECOND_STRING;
+        return INTERVAL_SECOND_STRING;
     case MINUTE:
-      return INTERVAL_MINUTE_STRING;
+        return INTERVAL_MINUTE_STRING;
     case HOUR:
-      return INTERVAL_HOUR_STRING;
+        return INTERVAL_HOUR_STRING;
     case DAY:
-      return INTERVAL_DAY_STRING;
+        return INTERVAL_DAY_STRING;
     case WEEK:
-      return INTERVAL_WEEK_STRING;
+        return INTERVAL_WEEK_STRING;
     case MONTH:
-      return INTERVAL_MONTH_STRING;
+        return INTERVAL_MONTH_STRING;
     default:
-      abort();
-  };
+        abort();
+    };
 }
 
 int64_t remove_disregarded_bits(int64_t val, int64_t scale, int64_t * extra) {
@@ -134,37 +134,37 @@ int64_t remove_disregarded_bits(int64_t val, int64_t scale, int64_t * extra) {
 uint64_t
 datatype_timestamp::hash(const e::slice& value) {
 
-  //TODO better hash
-  //std::cout << "Hashing with "<<interval_to_string(this->interval) << "\n";
-  int64_t interesting_bits = 1;
-  int64_t extra;
-  int64_t timestamp = unpack(value);
-  switch(this->interval){
+    //TODO better hash
+    //std::cout << "Hashing with "<<interval_to_string(this->interval) << "\n";
+    int64_t interesting_bits = 1;
+    int64_t extra;
+    int64_t timestamp = unpack(value);
+    switch(this->interval){
     case SECOND:
-      break;
+        break;
     case MINUTE:
-      interesting_bits *= 60;
-      timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
-      break;
+        interesting_bits *= 60;
+        timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
+        break;
     case HOUR:
-      interesting_bits *= 60 *60;
-      timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
-      break;
+        interesting_bits *= 60 *60;
+        timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
+        break;
     case DAY:
-      interesting_bits *= 24 * 60 * 60;
-      timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
-      break;
+        interesting_bits *= 24 * 60 * 60;
+        timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
+        break;
     case WEEK:
-      interesting_bits *= 7 * 24 * 60 * 60;
-      timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
-      break;
+        interesting_bits *= 7 * 24 * 60 * 60;
+        timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
+        break;
     case MONTH:
-     interesting_bits *= 30 * 7 * 24 * 60 * 60;
-      timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
-      break;
-  };
+        interesting_bits *= 30 * 7 * 24 * 60 * 60;
+        timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
+        break;
+    };
 
-  return CityHash64((const char*)&timestamp,sizeof(int64_t));
+    return CityHash64((const char*)&timestamp,sizeof(int64_t))+extra;
 
 }
 
