@@ -11,5 +11,4 @@ gpgcheck=1
 EOF
 
 rpm --import http://fedora.hyperdex.org/hyperdex.gpg.key
-yum install -y epel-release
 yum install -y hyperdex
