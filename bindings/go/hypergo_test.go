@@ -229,13 +229,13 @@ func TestCondPut(t *testing.T) {
 
 	putSomething(client, t)
 
-	/* this test failing, momentarily omit
+	// this test failing, why?
 	value := 214.15
 
 	err2 := client.CondPut("profiles", KEY, []Predicate{Predicate{
 		Attr:      "profile_views",
 		Value:     124312141241,
-		Predicate: LESS_EQUAL,
+		Predicate: EQUALS,
 	}},
 		Attributes{"height": value},
 	)
@@ -253,8 +253,6 @@ func TestCondPut(t *testing.T) {
 	if obj["height"].(float64) == value {
 		t.Fatal("The value shouldn't be set because the conditions did not hold")
 	}
-
-	*/
 
 }
 
