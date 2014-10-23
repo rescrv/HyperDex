@@ -3,7 +3,7 @@ package hyperdex
 import (
 	"testing"
 
-	. "github.com/glycerine/HyperDex/bindings/go/client"
+	. "github.com/rescrv/HyperDex/bindings/go/client"
 )
 
 const (
