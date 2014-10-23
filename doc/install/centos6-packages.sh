@@ -12,4 +12,6 @@ EOF
 
 rpm --import http://centos.hyperdex.org/hyperdex.gpg.key
 yum install -y epel-release
+yum clean all
+yum check-update
 yum install -y hyperdex
