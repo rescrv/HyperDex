@@ -1,4 +1,4 @@
-package hypergo
+package hyperdex
 
 import "testing"
 
