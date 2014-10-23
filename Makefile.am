@@ -1311,6 +1311,8 @@ EXTRA_DIST += doc/install/centos6-packages.sh
 EXTRA_DIST += doc/install/centos7-packages.sh
 EXTRA_DIST += doc/install/debian7-packages.sh
 EXTRA_DIST += doc/install/fedora20-packages.sh
+EXTRA_DIST += doc/install/ubuntu12.04-packages.sh
+EXTRA_DIST += doc/install/ubuntu14.04-packages.sh
 
 ################################################################################
 ################################## Maintenance #################################
