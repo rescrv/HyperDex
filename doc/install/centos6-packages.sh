@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 cat >> /etc/yum.conf << EOF
 [hyperdex]
 name=hyperdex
