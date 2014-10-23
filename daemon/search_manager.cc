@@ -208,6 +208,7 @@ search_manager :: start(const server_id& from,
                      << from << " but the search is already in progress";
         return;
     }
+    std::cout << "HASH: starting search\n";
 
     e::intrusive_ptr<state> st = new state(ri, msg, checks);
     std::stable_sort(st->checks.begin(), st->checks.end());
@@ -218,6 +219,7 @@ search_manager :: start(const server_id& from,
     switch (rc)
     {
         case datalayer::SUCCESS:
+            std::cout << "SUCCESS\n";
             break;
         case datalayer::NOT_FOUND:
         case datalayer::BAD_ENCODING:

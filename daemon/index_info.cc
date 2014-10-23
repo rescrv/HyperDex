@@ -32,6 +32,7 @@
 #include "daemon/index_info.h"
 #include "daemon/index_int64.h"
 #include "daemon/index_list.h"
+#include "daemon/index_timestamp.h"
 #include "daemon/index_map.h"
 #include "daemon/index_set.h"
 #include "daemon/index_string.h"
@@ -43,11 +44,23 @@ using hyperdex::index_info;
 static hyperdex::index_encoding_string e_string;
 static hyperdex::index_encoding_int64 e_int64;
 static hyperdex::index_encoding_float e_float;
+static hyperdex::index_encoding_timestamp e_timestamp_second(SECOND);
+static hyperdex::index_encoding_timestamp e_timestamp_minute(MINUTE);
+static hyperdex::index_encoding_timestamp e_timestamp_hour(HOUR);
+static hyperdex::index_encoding_timestamp e_timestamp_day(DAY);
+static hyperdex::index_encoding_timestamp e_timestamp_week(WEEK);
+static hyperdex::index_encoding_timestamp e_timestamp_month(MONTH);
 
 static hyperdex::index_string i_string;
 static hyperdex::index_int64 i_int64;
 static hyperdex::index_float i_float;
 static hyperdex::index_document i_document;
+static hyperdex::index_timestamp i_timestamp_second(SECOND);
+static hyperdex::index_timestamp i_timestamp_minute(MINUTE);
+static hyperdex::index_timestamp i_timestamp_hour(HOUR);
+static hyperdex::index_timestamp i_timestamp_day(DAY);
+static hyperdex::index_timestamp i_timestamp_week(WEEK);
+static hyperdex::index_timestamp i_timestamp_month(MONTH);
 static hyperdex::index_list i_list_string(HYPERDATATYPE_STRING);
 static hyperdex::index_list i_list_int64(HYPERDATATYPE_INT64);
 static hyperdex::index_list i_list_float(HYPERDATATYPE_FLOAT);
@@ -75,6 +88,18 @@ index_encoding :: lookup(hyperdatatype datatype)
             return &e_int64;
         case HYPERDATATYPE_FLOAT:
             return &e_float;
+        case HYPERDATATYPE_TIMESTAMP_SECOND:
+            return &e_timestamp_second;
+        case HYPERDATATYPE_TIMESTAMP_MINUTE:
+            return &e_timestamp_minute;
+        case HYPERDATATYPE_TIMESTAMP_HOUR:
+            return &e_timestamp_hour;
+        case HYPERDATATYPE_TIMESTAMP_DAY:
+            return &e_timestamp_day;
+        case HYPERDATATYPE_TIMESTAMP_WEEK:
+            return &e_timestamp_week;
+        case HYPERDATATYPE_TIMESTAMP_MONTH:
+            return &e_timestamp_month;
         case HYPERDATATYPE_GENERIC:
         case HYPERDATATYPE_DOCUMENT:
         case HYPERDATATYPE_LIST_GENERIC:
@@ -123,6 +148,18 @@ index_info :: lookup(hyperdatatype datatype)
             return &i_int64;
         case HYPERDATATYPE_FLOAT:
             return &i_float;
+        case HYPERDATATYPE_TIMESTAMP_SECOND:
+            return &i_timestamp_second;
+        case HYPERDATATYPE_TIMESTAMP_MINUTE:
+            return &i_timestamp_minute;
+        case HYPERDATATYPE_TIMESTAMP_HOUR:
+            return &i_timestamp_hour;
+        case HYPERDATATYPE_TIMESTAMP_DAY:
+            return &i_timestamp_day;
+        case HYPERDATATYPE_TIMESTAMP_WEEK:
+            return &i_timestamp_week;
+        case HYPERDATATYPE_TIMESTAMP_MONTH:
+            return &i_timestamp_month;
         case HYPERDATATYPE_DOCUMENT:
             return &i_document;
         case HYPERDATATYPE_LIST_STRING:
