@@ -127,6 +127,12 @@ hyperdex_admin_list_spaces(struct hyperdex_admin* admin,
                            const char** spaces);
 
 int64_t
+hyperdex_admin_list_indexes(struct hyperdex_admin* admin,
+                            const char* space,
+                            enum hyperdex_admin_returncode* status,
+                            const char** indexes);
+
+int64_t
 hyperdex_admin_add_index(struct hyperdex_admin* admin,
                          const char* space,
                          const char* attribute,

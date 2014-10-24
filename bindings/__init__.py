@@ -80,6 +80,8 @@ class SpaceDescription(object):
     args = (('const char*', 'description'),)
 class SpaceList(object):
     args = (('const char*', 'spaces'),)
+class IndexList(object):
+    args = (('const char*', 'indexes'),)
 class Token(object):
     args = (('uint64_t', 'token'),)
 class Address(object):
@@ -192,6 +194,7 @@ Admin = [
     Method('rm_space', AsyncCall, (SpaceName,), (AdminStatus,)),
     Method('mv_space', AsyncCall, (SpaceNameSource, SpaceNameTarget), (AdminStatus,)),
     Method('list_spaces', AsyncCall, (), (AdminStatus, SpaceList)),
+    Method('list_indexes', AsyncCall, (SpaceName,), (AdminStatus, IndexList)),
     Method('add_index', AsyncCall, (SpaceName, AttributeName), (AdminStatus,)),
     Method('rm_index', AsyncCall, (IndexID,), (AdminStatus,)),
     Method('server_register', AsyncCall, (Token, Address), (AdminStatus,)),
