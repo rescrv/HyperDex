@@ -268,6 +268,47 @@ cdef class DeferredRmIndex:
         else:
             raise HyperDexAdminException(self._status)
 
+
+cdef class DeferredListSubspaces:
+    cdef Admin _admin
+    cdef int64_t _reqid
+    cdef hyperdex_admin_returncode _status
+    cdef const char* _cstr
+    cdef list _spaces
+    cdef bint _finished
+
+    def __cinit__(self, Admin admin, subspaces):
+        self._admin = admin
+        self._reqid = 0
+        self._status = HYPERDEX_ADMIN_GARBAGE
+        self._cstr = NULL
+        self._spaces = []
+        self._finished = False
+        self._reqid = hyperdex_admin_list_subspaces(self._admin._admin, subspaces, &self._status, &self._cstr)
+
+        if self._reqid < 0:
+            raise HyperDexAdminException(self._status)
+        self._admin._ops[self._reqid] = self
+
+    def _callback(self):
+        for entry in self._cstr.split('\n'):
+            if entry is not '':
+                self._spaces.append(entry)
+
+        self._finished = True
+        del self._admin._ops[self._reqid]
+
+    def wait(self):
+        while not self._finished and self._reqid > 0:
+            self._admin.loop()
+
+        self._finished = True
+
+        if self._status == HYPERDEX_ADMIN_SUCCESS:
+            return self._spaces
+        else:
+            raise HyperDexAdminException(self._status)
+
 cdef class DeferredListSpaces:
     cdef Admin _admin
     cdef int64_t _reqid
@@ -439,6 +480,12 @@ cdef class Admin:
 
     def list_spaces(self):
         return self.async_list_spaces().wait()
+
+    def async_list_subspaces(self, space):
+        return DeferredListSubspaces(self, space)
+
+    def list_subspaces(self, space):
+        return self.async_list_subspaces(space).wait()
 
     def enable_perf_counters(self):
         cdef hyperdex_admin_returncode rc

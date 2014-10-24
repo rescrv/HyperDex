@@ -117,18 +117,6 @@ hyperdex_admin_destroy(struct hyperdex_admin* admin)
 }
 
 HYPERDEX_API int64_t
-hyperdex_admin_list_subspaces(struct hyperdex_admin* _adm,
-                           const char* space,
-                           hyperdex_admin_returncode* status,
-                           const char** outstr)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->list_subspaces(space, status, outstr);
-    );
-}
-
-HYPERDEX_API int64_t
 hyperdex_admin_dump_config(struct hyperdex_admin* _adm,
                            hyperdex_admin_returncode* status,
                            const char** config)
@@ -224,6 +212,18 @@ hyperdex_admin_list_spaces(struct hyperdex_admin* _adm,
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
     return adm->list_spaces(status, spaces);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_list_subspaces(struct hyperdex_admin* _adm,
+                              const char* space,
+                              enum hyperdex_admin_returncode* status,
+                              const char** subspaces)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->list_subspaces(space, status, subspaces);
     );
 }
 

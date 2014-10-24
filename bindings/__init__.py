@@ -31,10 +31,8 @@ class Iterator: pass
 
 class StructClient(object):
     args = (('struct hyperdex_client*', 'client'),)
-
 class StructAdmin(object):
     args = (('struct hyperdex_admin*', 'admin'),)
-
 class SpaceName(object):
     args = (('const char*', 'space'),)
 class SpaceNameSource(object):
@@ -80,6 +78,8 @@ class SpaceDescription(object):
     args = (('const char*', 'description'),)
 class SpaceList(object):
     args = (('const char*', 'spaces'),)
+class SubspaceList(object):
+    args = (('const char*', 'subspaces'),)
 class Token(object):
     args = (('uint64_t', 'token'),)
 class Address(object):
@@ -192,8 +192,8 @@ Admin = [
     Method('rm_space', AsyncCall, (SpaceName,), (AdminStatus,)),
     Method('mv_space', AsyncCall, (SpaceNameSource, SpaceNameTarget), (AdminStatus,)),
     Method('list_spaces', AsyncCall, (), (AdminStatus, SpaceList)),
+    Method('list_subspaces', AsyncCall, (SpaceName,), (AdminStatus, SubspaceList)),
     Method('add_index', AsyncCall, (SpaceName, AttributeName), (AdminStatus,)),
-    Method('list_subspaces', AsyncCall, (SpaceName), (AdminStatus,)),
     Method('rm_index', AsyncCall, (IndexID,), (AdminStatus,)),
     Method('server_register', AsyncCall, (Token, Address), (AdminStatus,)),
     Method('server_online', AsyncCall, (Token,), (AdminStatus,)),
