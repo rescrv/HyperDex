@@ -1,14 +1,16 @@
-package hypergo
+package hyperdex
 
-/*
-#cgo LDFLAGS: -lhyperdex-admin
-#include "hyperdex/admin.h"
-*/
+// #cgo LDFLAGS: -lhyperdex-admin
+// #include <hyperdex/admin.h>
+// #include <hyperdex/client.h>
+// #include <hyperdex/datastructures.h>
 import "C"
 
 import (
 	"fmt"
 	"strings"
+
+	"github.com/rescrv/HyperDex/bindings/go/client"
 )
 
 // Admin APIs
@@ -133,4 +135,22 @@ func (admin *Admin) AsyncAddOrRemoveSpace(description string, funcName string) E
 	admin.requests = append(admin.requests, req)
 
 	return errCh
+}
+
+// Utility functions
+func newInternalError(status C.enum_hyperdex_client_returncode, msg string) error {
+	return client.Error{Status: client.Status(status), Message: msg}
+}
+
+// Convenience function for generating a callback
+
+func newInternalErrorForAdmin(status C.enum_hyperdex_admin_returncode, msg string) error {
+	return client.Error{Status: client.Status(status), Message: msg}
+}
+
+func errChannelFailureCallbackForAdmin(errCh chan error) func(C.enum_hyperdex_admin_returncode, string) {
+	return func(status C.enum_hyperdex_admin_returncode, msg string) {
+		errCh <- newInternalErrorForAdmin(status, msg)
+		close(errCh)
+	}
 }

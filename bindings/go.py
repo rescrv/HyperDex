@@ -48,6 +48,8 @@ def GOTYPEOF(x):
         return 'MapAttributes'
     elif x == bindings.AttributeNames:
         return 'AttributeNames'
+    elif x == bindings.DocAttributes:
+        return 'DocAttributes'
     elif x == bindings.Predicates:
         return '[]Predicate'
     elif x == bindings.SortBy:
