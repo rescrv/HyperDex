@@ -27,7 +27,9 @@ assertEquals(a.list_spaces(), [])
 
 # Test Indexing
 assertTrue(a.add_space('space test1 key key1 attributes a1, a2'))
-assertEquals(a.list_subspaces('test1'), ['key1'])
+subspaces = a.list_subspaces('test1')
+assertEquals(len(subspaces), 1)
+assertEquals(subspaces[0].attributes, ['key1'])
 assertEquals(a.list_indices('test1'), [])
 assertTrue(a.add_index('test1', 'a1'))
 indices = a.list_indices('test1')

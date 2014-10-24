@@ -97,6 +97,11 @@ class Index:
         self.identifier = int(identifier_)
         self.attribute = attribute_
 
+class Subspace:
+    def __init__(self, identifier_, attributes_):
+        self.identifier = int(identifier_)
+        self.attributes = attributes_
+
 class HyperDexAdminException(Exception):
     def __init__(self, status, attr=None):
         self._status = status
@@ -281,7 +286,7 @@ cdef class DeferredListSubspaces:
     cdef int64_t _reqid
     cdef hyperdex_admin_returncode _status
     cdef const char* _cstr
-    cdef list _spaces
+    cdef list _subspaces
     cdef bint _finished
 
     def __cinit__(self, Admin admin, subspaces):
@@ -289,7 +294,7 @@ cdef class DeferredListSubspaces:
         self._reqid = 0
         self._status = HYPERDEX_ADMIN_GARBAGE
         self._cstr = NULL
-        self._spaces = []
+        self._subspaces = []
         self._finished = False
         self._reqid = hyperdex_admin_list_subspaces(self._admin._admin, subspaces, &self._status, &self._cstr)
 
@@ -300,7 +305,9 @@ cdef class DeferredListSubspaces:
     def _callback(self):
         for entry in self._cstr.split('\n'):
             if entry is not '':
-                self._spaces.append(entry)
+                identifier, attrs_ = entry.split(':')
+                attrs = attrs_.split(',')
+                self._subspaces.append(Subspace(identifier, attrs))
 
         self._finished = True
         del self._admin._ops[self._reqid]
@@ -312,7 +319,7 @@ cdef class DeferredListSubspaces:
         self._finished = True
 
         if self._status == HYPERDEX_ADMIN_SUCCESS:
-            return self._spaces
+            return self._subspaces
         else:
             raise HyperDexAdminException(self._status)
 

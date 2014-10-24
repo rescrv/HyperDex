@@ -922,6 +922,8 @@ configuration :: list_subspaces(const char* space_name) const
 
     for(std::vector<subspace>::const_iterator it = s.subspaces.begin(); it != s.subspaces.end(); ++it)
     {
+        out << it->id.get() << ":";
+
         for(std::vector<uint16_t>::const_iterator it2 = it->attrs.begin(); it2 != it->attrs.end(); ++it2)
         {
             if(it2 != it->attrs.begin())
