@@ -9,7 +9,7 @@ assertFalse = testlib.assertFalse
 # Setup
 a = hyperdex.admin.Admin(sys.argv[1], int(sys.argv[2]))
 
-# Tests
+# Test Add/Remove
 assertEquals(a.list_spaces(), [])
 assertTrue(a.add_space('space test1 key key1 attributes a1, a2'))
 assertEquals(a.list_spaces(), ['test1'])
@@ -24,3 +24,12 @@ assertEquals(a.list_spaces(), ['test1', 'test3'])
 assertTrue(a.rm_space('test1'))
 assertTrue(a.rm_space('test3'))
 assertEquals(a.list_spaces(), [])
+
+# Test Indexing
+assertTrue(a.add_space('space test1 key key1 attributes a1, a2'))
+assertEquals(a.list_subspaces('test1'), ['key1'])
+assertEquals(a.list_indices('test1'), [])
+assertTrue(a.add_index('test1', 'a1'))
+assertEquals(a.list_indices('test1'), ['a1'])
+#assertTrue(a.rm_index('test1', 'a1'))
+assertTrue(a.rm_space('test1'))

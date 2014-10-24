@@ -63,6 +63,16 @@ public:
         return str().size();
     }
 
+    void append(const std::string elem)
+    {
+        if(empty())
+        {
+            path += "$";
+        }
+
+        path += "." + elem;
+    }
+
     void make_relative()
     {
         if(!is_relative())

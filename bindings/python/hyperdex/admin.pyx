@@ -81,6 +81,10 @@ cdef extern from "hyperdex/admin.h":
     int64_t hyperdex_admin_dump_config(hyperdex_admin* admin, hyperdex_admin_returncode* status, const char** config)
     int64_t hyperdex_admin_enable_perf_counters(hyperdex_admin* admin, hyperdex_admin_returncode* status, hyperdex_admin_perf_counter* pc)
     void hyperdex_admin_disable_perf_counters(hyperdex_admin* admin)
+    int64_t hyperdex_admin_add_index(hyperdex_admin* admin, const char* space, const char* attribute, hyperdex_admin_returncode* status)
+    int64_t hyperdex_admin_list_subspaces(hyperdex_admin* admin, const char* space, hyperdex_admin_returncode* status, const char** subspaces)
+    int64_t hyperdex_admin_list_indices(hyperdex_admin* admin, const char* space, hyperdex_admin_returncode* status, const char** indices)
+    int64_t hyperdex_admin_rm_index(hyperdex_admin* admin, uint64_t idxid, hyperdex_admin_returncode* status)
     int64_t hyperdex_admin_list_spaces(hyperdex_admin* admin, hyperdex_admin_returncode* status, const char** spaces)
     int64_t hyperdex_admin_loop(hyperdex_admin* admin, int timeout, hyperdex_admin_returncode* status) nogil
 
@@ -202,6 +206,148 @@ cdef class DeferredRmSpace:
         self._finished = True
         if self._status == HYPERDEX_ADMIN_SUCCESS:
             return True
+        else:
+            raise HyperDexAdminException(self._status)
+
+cdef class DeferredAddIndex:
+    cdef Admin _admin
+    cdef int64_t _reqid
+    cdef hyperdex_admin_returncode _status
+    cdef bint _finished
+
+    def __cinit__(self, Admin admin, bytes space, bytes attr):
+        self._admin = admin
+        self._reqid = 0
+        self._status = HYPERDEX_ADMIN_GARBAGE
+        self._finished = False
+        self._reqid = hyperdex_admin_add_index(self._admin._admin,
+                                              space, attr, &self._status)
+        if self._reqid < 0:
+            raise HyperDexAdminException(self._status)
+        self._admin._ops[self._reqid] = self
+
+    def _callback(self):
+        self._finished = True
+        del self._admin._ops[self._reqid]
+
+    def wait(self):
+        while not self._finished and self._reqid > 0:
+            self._admin.loop()
+        self._finished = True
+        if self._status == HYPERDEX_ADMIN_SUCCESS:
+            return True
+        else:
+            raise HyperDexAdminException(self._status)
+
+cdef class DeferredRmIndex:
+    cdef Admin _admin
+    cdef int64_t _reqid
+    cdef hyperdex_admin_returncode _status
+    cdef bint _finished
+
+    def __cinit__(self, Admin admin, int idxid):
+        self._admin = admin
+        self._reqid = 0
+        self._status = HYPERDEX_ADMIN_GARBAGE
+        self._finished = False
+        self._reqid = hyperdex_admin_rm_index(self._admin._admin,
+                                              idxid, &self._status)
+        if self._reqid < 0:
+            raise HyperDexAdminException(self._status)
+        self._admin._ops[self._reqid] = self
+
+    def _callback(self):
+        self._finished = True
+        del self._admin._ops[self._reqid]
+
+    def wait(self):
+        while not self._finished and self._reqid > 0:
+            self._admin.loop()
+        self._finished = True
+        if self._status == HYPERDEX_ADMIN_SUCCESS:
+            return True
+        else:
+            raise HyperDexAdminException(self._status)
+
+
+cdef class DeferredListSubspaces:
+    cdef Admin _admin
+    cdef int64_t _reqid
+    cdef hyperdex_admin_returncode _status
+    cdef const char* _cstr
+    cdef list _spaces
+    cdef bint _finished
+
+    def __cinit__(self, Admin admin, subspaces):
+        self._admin = admin
+        self._reqid = 0
+        self._status = HYPERDEX_ADMIN_GARBAGE
+        self._cstr = NULL
+        self._spaces = []
+        self._finished = False
+        self._reqid = hyperdex_admin_list_subspaces(self._admin._admin, subspaces, &self._status, &self._cstr)
+
+        if self._reqid < 0:
+            raise HyperDexAdminException(self._status)
+        self._admin._ops[self._reqid] = self
+
+    def _callback(self):
+        for entry in self._cstr.split('\n'):
+            if entry is not '':
+                self._spaces.append(entry)
+
+        self._finished = True
+        del self._admin._ops[self._reqid]
+
+    def wait(self):
+        while not self._finished and self._reqid > 0:
+            self._admin.loop()
+
+        self._finished = True
+
+        if self._status == HYPERDEX_ADMIN_SUCCESS:
+            return self._spaces
+        else:
+            raise HyperDexAdminException(self._status)
+
+
+cdef class DeferredListIndices:
+    cdef Admin _admin
+    cdef int64_t _reqid
+    cdef hyperdex_admin_returncode _status
+    cdef const char* _cstr
+    cdef list _spaces
+    cdef bint _finished
+
+    def __cinit__(self, Admin admin, space):
+        self._admin = admin
+        self._reqid = 0
+        self._status = HYPERDEX_ADMIN_GARBAGE
+        self._cstr = NULL
+        self._spaces = []
+        self._finished = False
+        self._reqid = hyperdex_admin_list_indices(self._admin._admin, space, &self._status, &self._cstr)
+
+        if self._reqid < 0:
+            raise HyperDexAdminException(self._status)
+        self._admin._ops[self._reqid] = self
+
+    def _callback(self):
+        for entry in self._cstr.split('\n'):
+            if entry is not '':
+                self._spaces.append(entry)
+
+        self._finished = True
+        del self._admin._ops[self._reqid]
+
+    def wait(self):
+        while not self._finished and self._reqid > 0:
+            self._admin.loop()
+
+        self._finished = True
+
+        if self._status == HYPERDEX_ADMIN_SUCCESS:
+            return self._spaces
         else:
             raise HyperDexAdminException(self._status)
 
@@ -359,11 +505,35 @@ cdef class Admin:
     def rm_space(self, space):
         return self.async_rm_space(space).wait()
 
+    def async_add_index(self, space, attr):
+        return DeferredAddIndex(self, space, attr)
+
+    def add_index(self, space, attr):
+        return self.async_add_index(space, attr).wait()
+
+    def async_rm_index(self, idxid):
+        return DeferredRmIndex(self, idxid)
+
+    def rm_index(self, space, attr):
+        return self.async_rm_index(space, attr).wait()
+
     def async_list_spaces(self):
         return DeferredListSpaces(self)
 
+    def list_indices(self, space):
+        return self.async_list_indices(space).wait()
+
+    def async_list_indices(self, space):
+        return DeferredListIndices(self, space)
+
     def list_spaces(self):
         return self.async_list_spaces().wait()
+
+    def async_list_subspaces(self, space):
+        return DeferredListSubspaces(self, space)
+
+    def list_subspaces(self, space):
+        return self.async_list_subspaces(space).wait()
 
     def enable_perf_counters(self):
         cdef hyperdex_admin_returncode rc

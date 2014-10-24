@@ -76,12 +76,15 @@ class admin
                          enum hyperdex_admin_returncode* status);
         int64_t add_index(const char* space, const char* attr,
                           enum hyperdex_admin_returncode* status);
-        int64_t list_indexes(const char* space, enum hyperdex_admin_returncode* status,
+        int64_t list_indices(const char* space, enum hyperdex_admin_returncode* status,
                             const char** spaces);
         int64_t rm_index(uint64_t idxid,
                          enum hyperdex_admin_returncode* status);
         int64_t list_spaces(enum hyperdex_admin_returncode* status,
                             const char** spaces);
+        int64_t list_subspaces(const char* space,
+                            enum hyperdex_admin_returncode* status,
+                            const char** subspaces);
         // manage servers
         int64_t server_register(uint64_t token, const char* address,
                                 enum hyperdex_admin_returncode* status);

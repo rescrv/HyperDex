@@ -130,8 +130,9 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
 
         if(!obj)
         {
-            // new child will be created...
-            return true;
+            // check if a new child can be created
+            json_path child_path;
+            return (json_object_get_type(get_last_elem_in_path(root, path, child_path)) == json_type_object);
         }
         else if(json_object_get_type(obj) != json_type_int
             && json_object_get_type(obj) != json_type_double)
@@ -543,6 +544,45 @@ datatype_document :: traverse_path(const json_object* parent, const json_path& p
     else
     {
         return traverse_path(child, subpath);
+    }
+}
+
+json_object*
+datatype_document :: get_last_elem_in_path(const json_object* parent, const json_path& path, json_path& child_path) const
+{
+    assert(parent != NULL);
+
+    std::string childname;
+    json_path subpath;
+
+    if(!path.has_subtree())
+    {
+        // we're at the end of the tree
+        childname = path.str();
+    }
+    else
+    {
+        path.split(childname, subpath);
+    }
+
+    child_path.append(childname);
+
+    // json_object_object_get_ex also checks if parent is an object
+    // for some reason this function want a non-const pointer
+    // let us hack around it...
+    json_object* child;
+    if (!json_object_object_get_ex(const_cast<json_object*>(parent), childname.c_str(), &child))
+    {
+        return const_cast<json_object*>(parent);
+    }
+
+    if(subpath.empty())
+    {
+        return child;
+    }
+    else
+    {
+        return get_last_elem_in_path(child, subpath, child_path);
     }
 }
 

@@ -35,7 +35,6 @@ assertEquals(c.get('kv', 'k')['v'], Document({'a': 'xbx', 'c': {'d' : 11, 'e': '
 assert c.document_atomic_sub('kv', 'k',  {'v': Document({'k' : {'a': {'b' : {'c' : {'d' : 5}}}}})}) == True
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'xbx', 'c': {'d' : 11, 'e': 'zfz', 'g': 3}, 'k' : {'a': {'b' : {'c' : {'d' : -4}}}, 'l' : 'm'}}))
 
-
 # More exotic operations
 assert c.put('kv', 'k3',  {'v': Document({'a': 'b', 'c': {'d' : 100, 'e': 'f', 'g': 5 }})}) == True
 assertEquals(c.get('kv', 'k3')['v'], Document({'a': 'b', 'c': {'d' : 100, 'e': 'f', 'g': 5 }}))
@@ -61,6 +60,15 @@ assert c.document_atomic_mul('kv', 'k4', {'v': Document({'a' : 1})}) == True
 assertEquals(c.get('kv', 'k4')['v'], Document({ 'a': 400 }))
 assert c.document_atomic_mul('kv', 'k4', {'v': Document({'a' : 0})}) == True
 assertEquals(c.get('kv', 'k4')['v'], Document({ 'a': 0 }))
+
+# Build a new subdocument
+assert c.put('kv', 'k6', {'v' : Document({'a' : 100})})
+assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 }))
+assert c.document_atomic_add('kv', 'k6',  {'v': Document({'a': {'b' :1}})}) == False
+assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 }))
+assert c.document_atomic_add('kv', 'k6',  {'v': Document({'c': {'b' :1}})}) == True
+assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 , 'c' : {'b' :1}}))
+
 
 #Lists
 assert c.put('kv', 'k5', {'v': Document(['a', 'b', 'c'])}) == True
