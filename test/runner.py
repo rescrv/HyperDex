@@ -93,7 +93,7 @@ class HyperDexCluster(object):
             stdout = open(os.path.join(cwd, 'hyperdex-test-runner.log'), 'w')
             proc = subprocess.Popen(cmd, stdout=stdout, stderr=subprocess.STDOUT, env=env, cwd=cwd)
             self.processes.append(proc)
-        time.sleep(1) # XXX use a barrier tool on cluster
+        time.sleep(0.5)
         for i in range(self.daemons):
             cmd = ['hyperdex', 'daemon', '-t', '1',
                    '--foreground', '--listen', '127.0.0.1', '--listen-port', str(2012 + i),
@@ -105,7 +105,7 @@ class HyperDexCluster(object):
             stdout = open(os.path.join(cwd, 'hyperdex-test-runner.log'), 'w')
             proc = subprocess.Popen(cmd, stdout=stdout, stderr=subprocess.STDOUT, env=env, cwd=cwd)
             self.processes.append(proc)
-        time.sleep(1) # XXX use a barrier tool on cluster
+        time.sleep(0.5)
 
     def cleanup(self):
         for i in range(self.coordinators):
@@ -120,7 +120,8 @@ class HyperDexCluster(object):
                 self.clean = False
         for p in reversed(self.processes):
             p.terminate()
-            time.sleep(1)
+        time.sleep(0.5)
+        for p in reversed(self.processes):
             p.kill()
             p.wait()
         if self.log_output:
@@ -151,9 +152,9 @@ def main(argv):
         hdc.setup()
         adm = hyperdex.admin.Admin('127.0.0.1', 1982)
         if args.space is not None:
-            time.sleep(1) # XXX use a barrier tool on cluster
+            time.sleep(0.5)
             adm.add_space(args.space)
-        time.sleep(1) # XXX use a barrier tool on cluster
+        adm.wait_until_stable()
         ctx = {'HOST': '127.0.0.1', 'PORT': 1982}
         cmd_args = [arg.format(**ctx) for arg in args.args]
         status = subprocess.call(cmd_args, stderr=subprocess.STDOUT)

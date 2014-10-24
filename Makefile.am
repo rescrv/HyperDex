@@ -34,6 +34,7 @@ AM_MAKEFLAGS = --no-print-directory
 AM_YFLAGS = -d
 HELP2MAN_FLAGS = --no-discard-stderr --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
 TESTS_ENVIRONMENT = . $(abs_top_srcdir)/test/env.sh "${abs_top_srcdir}" "${abs_top_builddir}" "${VERSION}";
+AM_DISTCHECK_CONFIGURE_FLAGS = --enable-python-bindings --enable-java-bindings --enable-ruby-bindings
 
 hyperdexexecdir = $(libexecdir)/$(PACKAGE)-$(VERSION)
 hyperdexheaderdir = $(includedir)/hyperdex
@@ -130,6 +131,7 @@ noinst_HEADERS += common/hyperspace.h
 noinst_HEADERS += common/ordered_encoding.h
 noinst_HEADERS += common/ids.h
 noinst_HEADERS += common/index.h
+noinst_HEADERS += common/json_path.h
 noinst_HEADERS += common/key_change.h
 noinst_HEADERS += common/macros.h
 noinst_HEADERS += common/mapper.h
@@ -1305,14 +1307,12 @@ EXTRA_DIST += doc/api/node.js/window-pattern.js
 EXTRA_DIST += doc/api/ruby/hello-world-async-loop.rb
 EXTRA_DIST += doc/api/ruby/hello-world-async-wait.rb
 EXTRA_DIST += doc/api/ruby/hello-world.rb
-
-CLEANFILES += doc/HyperDex-$(VERSION).pdf
-
-doc/HyperDex-$(VERSION).pdf:
-	sphinx-build -d ${abs_top_builddir}/doc/_build -b latex ${abs_top_srcdir}/doc ${abs_top_builddir}/doc/_build/latex
-	make -C ${abs_top_builddir}/doc/_build/latex all-pdf
-	cp ${abs_top_builddir}/doc/_build/latex/HyperDex.pdf doc/HyperDex-$(VERSION).pdf
-	rm -r ${abs_top_builddir}/doc/_build
+EXTRA_DIST += doc/install/centos6-packages.sh
+EXTRA_DIST += doc/install/centos7-packages.sh
+EXTRA_DIST += doc/install/debian7-packages.sh
+EXTRA_DIST += doc/install/fedora20-packages.sh
+EXTRA_DIST += doc/install/ubuntu12.04-packages.sh
+EXTRA_DIST += doc/install/ubuntu14.04-packages.sh
 
 ################################################################################
 ################################## Maintenance #################################

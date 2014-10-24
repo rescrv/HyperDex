@@ -1891,7 +1891,8 @@ coordinator :: check_stable_condition(replicant_state_machine_context* ctx)
         fprintf(log, "stable through version %" PRIu64 "\n", m_config_stable_barrier.min_version());
     }
 
-    while (m_config_stable_through < m_config_stable_barrier.min_version())
+    while (m_intents.empty() && m_deferred_init.empty() &&
+            m_config_stable_through < m_config_stable_barrier.min_version())
     {
         replicant_state_machine_condition_broadcast(ctx, "stable", &m_config_stable_through);
     }
