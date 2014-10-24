@@ -66,13 +66,13 @@ def arg_name(a):
 
 def return_type_async(args_out):
     if args_out == (bindings.Status,):
-        return 'err Error'
+        return 'err *Error'
     elif args_out == (bindings.Status, bindings.Attributes):
-        return 'attrs Attributes, err Error'
+        return 'attrs Attributes, err *Error'
     elif args_out == (bindings.Status, bindings.Description):
-        return 'desc string, err Error'
+        return 'desc string, err *Error'
     elif args_out == (bindings.Status, bindings.Count):
-        return 'count uint64, err Error'
+        return 'count uint64, err *Error'
     print args_out
     assert False
 
@@ -85,7 +85,7 @@ def return_value_async(args_out):
         ret += '\t\tvar er error\n'
         ret += '\t\tattrs, er = inner.buildAttributes(c_attrs, c_attrs_sz)\n'
         ret += '\t\tif er != nil {\n'
-        ret += '\t\t\terr = Error{Status(SERVERERROR), er.Error(), ""}\n'
+        ret += '\t\t\terr = &Error{Status(SERVERERROR), er.Error(), ""}\n'
         ret += '\t\t}\n'
         ret += '\t\tC.hyperdex_client_destroy_attrs(c_attrs, c_attrs_sz)\n'
         ret += '\t}\n'
@@ -160,7 +160,7 @@ def generate_worker_asynccall(call, x):
     for arg in x.args_in:
         args = ', '.join(['&c_' + n for p, n in arg.args])
         func += '\ter = client.convert{0}(arena, {1}, {2})\n'.format(GoIfy(arg.__name__), arg_name(arg), args)
-        func += '\tif er != nil {\n\t\terr = Error{Status(WRONGTYPE), er.Error(), ""}\n'
+        func += '\tif er != nil {\n\t\terr = &Error{Status(WRONGTYPE), er.Error(), ""}\n'
         func += '\t\treturn\n\t}\n'
     for arg in x.args_out:
         for p, n in arg.args:
@@ -176,14 +176,18 @@ def generate_worker_asynccall(call, x):
     func += '\tif reqid >= 0 {\n'
     func += '\t\tinner.ops[reqid] = done\n'
     func += '\t} else {\n'
-    func += '\t\terr = Error{Status(c_status),\n'
+    func += '\t\tif c_status != SUCCESS {\n'
+    func += '\t\terr = &Error{Status(c_status),\n'
     func += '\t\t            C.GoString(C.hyperdex_client_error_message(inner.ptr)),\n'
-    func += '\t\t            C.GoString(C.hyperdex_client_error_location(inner.ptr))}\n'
+    func += '\t\t            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}\n'
     func += '\t}\n'
     func += '\tinner.mutex.Unlock()\n'
     func += '\tif reqid >= 0 {\n'
-    func += '\t\terr = <-done\n'
-    func += '\t\terr.Status = Status(c_status)\n'
+    func += '\t\t rz := <-done\n'
+    func += '\t\t if c_status != SUCCESS {\n'
+    func += '\t\t    err = &rz\n'
+    func += '\t\t    err.Status = Status(c_status)\n'
+    func += '\t}\n'
     func += '\t}\n'
     func += return_value_async(x.args_out)
     func += '}\n'

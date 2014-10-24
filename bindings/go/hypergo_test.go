@@ -3,7 +3,7 @@ package hyperdex
 import (
 	"testing"
 
-	. "github.com/rescrv/HyperDex/bindings/go/client"
+	. "github.com/glycerine/HyperDex/bindings/go/client"
 )
 
 const (
@@ -49,7 +49,7 @@ func putSomething(client *Client, t *testing.T) {
 
 	err := client.Put("profiles", KEY, attrs)
 
-	if err.Status != SUCCESS {
+	if err != nil {
 		t.Fatal(err)
 	}
 }
@@ -62,7 +62,8 @@ func init() {
 
 	err = admin.RemoveSpace(`profiles`)
 	if err != nil {
-		if err.Error() != "Error 8777: cannot rm space: does not exist" {
+		if err.Error() != "Error 8777: cannot rm space: does not exist" &&
+			err.Error() != "unknown hyperdex_client_returncode: cannot rm space: does not exist" {
 			panic(err)
 		}
 	}
@@ -101,9 +102,9 @@ func TestGetPutDelete(t *testing.T) {
 
 	putSomething(client, t)
 
-	attr, err := client.Get("profiles", KEY)
-	if err.(Error).Status != SUCCESS {
-		t.Fatal(err)
+	attr, err5 := client.Get("profiles", KEY)
+	if err5 != nil {
+		t.Fatal(err5)
 	}
 
 	for key, value := range attr {
@@ -118,7 +119,7 @@ func TestGetPutDelete(t *testing.T) {
 		"name": "john",
 	})
 
-	if err2.Status != SUCCESS {
+	if err2 != nil {
 		t.Fatal(err2)
 	}
 
@@ -147,13 +148,13 @@ func TestGetPutDelete(t *testing.T) {
 
 	err3 := client.Del("profiles", KEY)
 
-	if err3.Status != SUCCESS {
+	if err3 != nil {
 		t.Fatal(err3)
 	}
 
 	//obj, err := client.Get("profiles", KEY)
 	_, err4 := client.Get("profiles", KEY)
-	if err4.Status == SUCCESS {
+	if err4 == nil {
 		t.Fatal("There should be an error.")
 	} else {
 		if err4.Status != NOTFOUND {
@@ -174,9 +175,9 @@ func TestAtomicAddSub(t *testing.T) {
 	}()
 
 	putSomething(client, t)
-	obj, err := client.Get("profiles", KEY)
-	if err.(Error).Status != SUCCESS {
-		t.Fatal(err)
+	obj, err7 := client.Get("profiles", KEY)
+	if err7 != nil {
+		t.Fatal(err7)
 	}
 
 	original := obj["height"].(float64)
@@ -185,13 +186,13 @@ func TestAtomicAddSub(t *testing.T) {
 	err2 := client.AtomicAdd("profiles", KEY, Attributes{
 		"height": delta,
 	})
-	if err2.Status != SUCCESS {
+	if err2 != nil {
 		t.Fatal(err2)
 	}
 
 	obj, err4 := client.Get("profiles", KEY)
 
-	if err4.Status != SUCCESS {
+	if err4 != nil {
 		t.Fatal(err4)
 	}
 
@@ -202,13 +203,13 @@ func TestAtomicAddSub(t *testing.T) {
 	err5 := client.AtomicSub("profiles", KEY, Attributes{
 		"height": delta,
 	})
-	if err5.Status != SUCCESS {
+	if err5 != nil {
 		t.Fatal(err5)
 	}
 
 	obj, err6 := client.Get("profiles", KEY)
 
-	if err6.Status != SUCCESS {
+	if err6 != nil {
 		t.Fatal(err6)
 	}
 
@@ -246,7 +247,7 @@ func TestCondPut(t *testing.T) {
 	}
 
 	obj, err3 := client.Get("profiles", KEY)
-	if err3.Status != SUCCESS {
+	if err3 != nil {
 		t.Fatal(err3)
 	}
 
@@ -267,7 +268,7 @@ func TestListOps(t *testing.T) {
 
 	// Test ListLPush and ListRPush
 	obj, err2 := client.Get(SPACE, KEY)
-	if err2.Status != SUCCESS {
+	if err2 != nil {
 		t.Fatal(err2)
 	}
 
@@ -278,19 +279,19 @@ func TestListOps(t *testing.T) {
 	err3 := client.ListLpush(SPACE, KEY, Attributes{
 		"ratings": floatToInsert,
 	})
-	if err3.Status != SUCCESS {
+	if err3 != nil {
 		t.Fatal(err3)
 	}
 
 	err4 := client.ListRpush(SPACE, KEY, Attributes{
 		"ratings": floatToInsert,
 	})
-	if err4.Status != SUCCESS {
+	if err4 != nil {
 		t.Fatal(err4)
 	}
 
 	obj, err5 := client.Get(SPACE, KEY)
-	if err5.Status != SUCCESS {
+	if err5 != nil {
 		t.Fatal(err5)
 	}
 
@@ -319,7 +320,7 @@ func TestSetOps(t *testing.T) {
 
 	// Test SetAdd
 	obj, err2 := client.Get(SPACE, KEY)
-	if err2.Status != SUCCESS {
+	if err2 != nil {
 		t.Fatal(err2)
 	}
 
@@ -330,7 +331,7 @@ func TestSetOps(t *testing.T) {
 	})
 
 	obj, err3 := client.Get(SPACE, KEY)
-	if err3.Status != SUCCESS {
+	if err3 != nil {
 		t.Fatal(err)
 	}
 
@@ -360,12 +361,12 @@ func TestSetOps(t *testing.T) {
 	err4 := client.SetIntersect(SPACE, KEY, Attributes{
 		"ages": newSet,
 	})
-	if err4.Status != SUCCESS {
+	if err4 != nil {
 		t.Fatal(err)
 	}
 
 	obj, err5 := client.Get(SPACE, KEY)
-	if err5.Status != SUCCESS {
+	if err5 != nil {
 		t.Fatal(err5)
 	}
 
@@ -395,7 +396,7 @@ func TestMapOps(t *testing.T) {
 	// Test MapAdd
 	//obj, err := client.Get(SPACE, KEY)
 	_, err2 := client.Get(SPACE, KEY)
-	if err2.Status != SUCCESS {
+	if err2 != nil {
 		t.Fatal(err2)
 	}
 

@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/rescrv/HyperDex/bindings/go/client"
+	"github.com/glycerine/HyperDex/bindings/go/client"
 )
 
 // CHANNEL_BUFFER_SIZE is the size of all the returned channels' buffer.

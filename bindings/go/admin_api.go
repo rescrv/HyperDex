@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/rescrv/HyperDex/bindings/go/client"
+	"github.com/glycerine/HyperDex/bindings/go/client"
 )
 
 // Admin APIs
