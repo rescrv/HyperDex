@@ -122,7 +122,13 @@ class configuration
 
     public:
         std::string dump() const;
+
+        // List all spaces separated by \n
         std::string list_spaces() const;
+
+        // List all suspaces of a space
+        // Attributes will be separated by a comma
+        // Spaces will be separated by a new line
         std::string list_subspaces(const char* space) const;
 
     public:

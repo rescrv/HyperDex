@@ -103,6 +103,8 @@ class Method(object):
         self.args_in = args_in
         self.args_out = args_out
 
+# NOTE: The commas here aren't redundant, because the parser expects lists of arguments
+
 Client = [
     Method('get', AsyncCall, (SpaceName, Key), (Status, Attributes)),
     Method('get_partial', AsyncCall, (SpaceName, Key, AttributeNames), (Status, Attributes)),
