@@ -152,6 +152,7 @@ def main(argv):
         hdc.setup()
         adm = hyperdex.admin.Admin('127.0.0.1', 1982)
         if args.space is not None:
+            time.sleep(0.5)
             adm.add_space(args.space)
         adm.wait_until_stable()
         ctx = {'HOST': '127.0.0.1', 'PORT': 1982}
