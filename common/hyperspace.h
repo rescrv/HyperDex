@@ -71,6 +71,8 @@ class space
         std::vector<subspace> subspaces;
         std::vector<index> indices;
 
+        const attribute& get_attribute(uint16_t index) const;
+
     private:
         friend e::buffer::packer operator << (e::buffer::packer, const space& s);
         friend e::unpacker operator >> (e::unpacker, space& s);
@@ -81,6 +83,11 @@ class space
         e::array_ptr<attribute> m_attrs;
 
 };
+
+inline const attribute& space::get_attribute(uint16_t index) const
+{
+    return m_attrs[index];
+}
 
 e::buffer::packer
 operator << (e::buffer::packer, const space& s);
