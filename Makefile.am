@@ -1307,12 +1307,12 @@ EXTRA_DIST += doc/api/node.js/window-pattern.js
 EXTRA_DIST += doc/api/ruby/hello-world-async-loop.rb
 EXTRA_DIST += doc/api/ruby/hello-world-async-wait.rb
 EXTRA_DIST += doc/api/ruby/hello-world.rb
-EXTRA_DIST += doc/install/centos6-packages.sh
-EXTRA_DIST += doc/install/centos7-packages.sh
+EXTRA_DIST += doc/install/centos-packages.sh
 EXTRA_DIST += doc/install/debian7-packages.sh
-EXTRA_DIST += doc/install/fedora20-packages.sh
+EXTRA_DIST += doc/install/fedora-packages.sh
 EXTRA_DIST += doc/install/ubuntu12.04-packages.sh
 EXTRA_DIST += doc/install/ubuntu14.04-packages.sh
+EXTRA_DIST += doc/install/ubuntu14.10-packages.sh
 
 ################################################################################
 ################################## Maintenance #################################
