@@ -891,6 +891,7 @@ configuration :: list_indices(const char* space_name) const
 
     for(std::vector<index>::const_iterator it = s.indices.begin(); it != s.indices.end(); ++it)
     {
+        out << it->id.get() << ":";
         out << s.get_attribute(it->attr).name;
         out << "\n";
     }

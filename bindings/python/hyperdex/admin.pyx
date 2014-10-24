@@ -91,6 +91,12 @@ cdef extern from "hyperdex/admin.h":
 import collections
 import struct
 
+# Dictionary that behaves like a C-struct
+class Index:
+    def __init__(self, identifier_, attribute_):
+        self.identifier = int(identifier_)
+        self.attribute = attribute_
+
 class HyperDexAdminException(Exception):
     def __init__(self, status, attr=None):
         self._status = status
@@ -316,7 +322,7 @@ cdef class DeferredListIndices:
     cdef int64_t _reqid
     cdef hyperdex_admin_returncode _status
     cdef const char* _cstr
-    cdef list _spaces
+    cdef list _indices
     cdef bint _finished
 
     def __cinit__(self, Admin admin, space):
@@ -324,7 +330,7 @@ cdef class DeferredListIndices:
         self._reqid = 0
         self._status = HYPERDEX_ADMIN_GARBAGE
         self._cstr = NULL
-        self._spaces = []
+        self._indices = []
         self._finished = False
         self._reqid = hyperdex_admin_list_indices(self._admin._admin, space, &self._status, &self._cstr)
 
@@ -335,7 +341,8 @@ cdef class DeferredListIndices:
     def _callback(self):
         for entry in self._cstr.split('\n'):
             if entry is not '':
-                self._spaces.append(entry)
+                id_, attr_ = entry.split(':')
+                self._indices.append(Index(id_, attr_))
 
         self._finished = True
         del self._admin._ops[self._reqid]
@@ -347,7 +354,7 @@ cdef class DeferredListIndices:
         self._finished = True
 
         if self._status == HYPERDEX_ADMIN_SUCCESS:
-            return self._spaces
+            return self._indices
         else:
             raise HyperDexAdminException(self._status)
 
@@ -514,8 +521,14 @@ cdef class Admin:
     def async_rm_index(self, idxid):
         return DeferredRmIndex(self, idxid)
 
-    def rm_index(self, space, attr):
-        return self.async_rm_index(space, attr).wait()
+    def rm_index(self, idxid):
+        if isinstance(idxid, Index):
+            idxid = idxid.identifier
+
+        if not isinstance(idxid, int):
+            raise ValueError("Index ID must be an integer (or an instance of Index)")
+
+        return self.async_rm_index(idxid).wait()
 
     def async_list_spaces(self):
         return DeferredListSpaces(self)

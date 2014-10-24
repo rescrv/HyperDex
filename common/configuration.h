@@ -132,8 +132,9 @@ class configuration
         std::string list_subspaces(const char* space) const;
 
         // List all indexes of a space
-        // Attributes will be separated by a comma
-        // Spaces will be separated by a new line
+        // Indices will be seperate by a new line
+        // The output for each index is:
+        // <id>:<attribute>
         std::string list_indices(const char* space) const;
 
     public:
