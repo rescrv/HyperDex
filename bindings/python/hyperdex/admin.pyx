@@ -82,6 +82,7 @@ cdef extern from "hyperdex/admin.h":
     int64_t hyperdex_admin_enable_perf_counters(hyperdex_admin* admin, hyperdex_admin_returncode* status, hyperdex_admin_perf_counter* pc)
     void hyperdex_admin_disable_perf_counters(hyperdex_admin* admin)
     int64_t hyperdex_admin_add_index(hyperdex_admin* admin, const char* space, const char* attribute, hyperdex_admin_returncode* status)
+    int64_t hyperdex_admin_list_subspaces(hyperdex_admin* admin, const char* space, hyperdex_admin_returncode* status, const char** subspaces)
     int64_t hyperdex_admin_rm_index(hyperdex_admin* admin, uint64_t idxid, hyperdex_admin_returncode* status)
     int64_t hyperdex_admin_list_spaces(hyperdex_admin* admin, hyperdex_admin_returncode* status, const char** spaces)
     int64_t hyperdex_admin_loop(hyperdex_admin* admin, int timeout, hyperdex_admin_returncode* status) nogil

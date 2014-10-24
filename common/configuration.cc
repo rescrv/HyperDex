@@ -869,6 +869,35 @@ configuration :: lookup_search(const char* space_name,
 }
 
 std::string
+configuration :: list_subspaces(const char* space_name) const
+{
+    std::ostringstream out;
+    size_t pos = -1;
+
+    for (size_t w = 0; w < m_spaces.size() && pos == -1; ++w)
+    {
+        if(strcmp(m_spaces[w].name, space_name) == 0)
+        {
+            pos = w;
+        }
+    }
+
+    if(pos < 0)
+    {
+        return "";
+    }
+
+    const space& s(m_spaces[pos]);
+
+    for(std::vector<subspace>::const_iterator it = s.subspaces.begin(); it != s.subspaces.end(); ++it)
+    {
+        out << s.id.get() << "\n";
+    }
+
+    return out.str();
+}
+
+std::string
 configuration :: dump() const
 {
     std::ostringstream out;

@@ -28,6 +28,42 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="admin/admin.cc" />
+		<Unit filename="admin/admin.h" />
+		<Unit filename="admin/backup_state_machine.cc" />
+		<Unit filename="admin/backup_state_machine.h" />
+		<Unit filename="admin/c.cc" />
+		<Unit filename="admin/constants.h" />
+		<Unit filename="admin/coord_rpc.cc" />
+		<Unit filename="admin/coord_rpc.h" />
+		<Unit filename="admin/coord_rpc_backup.cc" />
+		<Unit filename="admin/coord_rpc_backup.h" />
+		<Unit filename="admin/coord_rpc_generic.cc" />
+		<Unit filename="admin/coord_rpc_generic.h" />
+		<Unit filename="admin/hyperspace_builder.cc" />
+		<Unit filename="admin/hyperspace_builder_internal.h" />
+		<Unit filename="admin/multi_yieldable.cc" />
+		<Unit filename="admin/multi_yieldable.h" />
+		<Unit filename="admin/parse_space_l.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="admin/parse_space_y.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="admin/parse_space_y.h" />
+		<Unit filename="admin/partition.cc" />
+		<Unit filename="admin/partition.h" />
+		<Unit filename="admin/pending.cc" />
+		<Unit filename="admin/pending.h" />
+		<Unit filename="admin/pending_perf_counters.cc" />
+		<Unit filename="admin/pending_perf_counters.h" />
+		<Unit filename="admin/pending_raw_backup.cc" />
+		<Unit filename="admin/pending_raw_backup.h" />
+		<Unit filename="admin/pending_string.cc" />
+		<Unit filename="admin/pending_string.h" />
+		<Unit filename="admin/raw_backup.cc" />
+		<Unit filename="admin/yieldable.cc" />
+		<Unit filename="admin/yieldable.h" />
 		<Unit filename="bindings/c/admin-testcompile.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -287,6 +323,29 @@
 		<Unit filename="include/hyperdex/datastructures.h" />
 		<Unit filename="include/hyperdex/hyperspace_builder.h" />
 		<Unit filename="test/samples/big.json" />
+		<Unit filename="tools/add-index.cc" />
+		<Unit filename="tools/add-space.cc" />
+		<Unit filename="tools/backup-manager.cc" />
+		<Unit filename="tools/backup.cc" />
+		<Unit filename="tools/common.h" />
+		<Unit filename="tools/coordinator.cc" />
+		<Unit filename="tools/list-spaces.cc" />
+		<Unit filename="tools/mv-space.cc" />
+		<Unit filename="tools/perf-counters.cc" />
+		<Unit filename="tools/raw-backup.cc" />
+		<Unit filename="tools/rm-index.cc" />
+		<Unit filename="tools/rm-space.cc" />
+		<Unit filename="tools/server-forget.cc" />
+		<Unit filename="tools/server-kill.cc" />
+		<Unit filename="tools/server-offline.cc" />
+		<Unit filename="tools/server-online.cc" />
+		<Unit filename="tools/server-register.cc" />
+		<Unit filename="tools/set-fault-tolerance.cc" />
+		<Unit filename="tools/set-read-only.cc" />
+		<Unit filename="tools/set-read-write.cc" />
+		<Unit filename="tools/show-config.cc" />
+		<Unit filename="tools/validate-space.cc" />
+		<Unit filename="tools/wait-until-stable.cc" />
 		<Extensions>
 			<code_completion />
 			<debugger />

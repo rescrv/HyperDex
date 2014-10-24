@@ -123,6 +123,7 @@ class configuration
     public:
         std::string dump() const;
         std::string list_spaces() const;
+        std::string list_subspaces(const char* space) const;
 
     public:
         configuration& operator = (const configuration& rhs);

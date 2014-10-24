@@ -193,6 +193,7 @@ Admin = [
     Method('mv_space', AsyncCall, (SpaceNameSource, SpaceNameTarget), (AdminStatus,)),
     Method('list_spaces', AsyncCall, (), (AdminStatus, SpaceList)),
     Method('add_index', AsyncCall, (SpaceName, AttributeName), (AdminStatus,)),
+    Method('list_subspaces', AsyncCall, (SpaceName), (AdminStatus,)),
     Method('rm_index', AsyncCall, (IndexID,), (AdminStatus,)),
     Method('server_register', AsyncCall, (Token, Address), (AdminStatus,)),
     Method('server_online', AsyncCall, (Token,), (AdminStatus,)),

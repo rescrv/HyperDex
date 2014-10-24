@@ -80,6 +80,9 @@ class admin
                          enum hyperdex_admin_returncode* status);
         int64_t list_spaces(enum hyperdex_admin_returncode* status,
                             const char** spaces);
+        int64_t list_subspaces(const char* space,
+                            hyperdex_admin_returncode* status,
+                            const char** subspaces);
         // manage servers
         int64_t server_register(uint64_t token, const char* address,
                                 enum hyperdex_admin_returncode* status);
