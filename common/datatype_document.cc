@@ -46,8 +46,6 @@
 #error no suitable json.h found
 #endif
 
-#include <bson.h>
-
 // e
 #include <e/endian.h>
 #include <e/guard.h>
@@ -195,6 +193,89 @@ datatype_document :: check_args(const funcall& func) const
     }
 }
 
+bson_t*
+datatype_document :: replace_string(const bson_t* old_document, const json_path& path, const std::string& new_value,
+                                    bson_t* parent, bson_iter_t* iter) const
+{
+    // This should only happen at the root
+    // Added extra asserts to make sure
+    if(iter == NULL && parent == NULL)
+    {
+        if (!bson_iter_init (iter, old_document))
+        {
+            return NULL;
+        }
+
+        parent = bson_new();
+    }
+    else
+    {
+        assert(iter != NULL);
+        assert(parent != NULL);
+    }
+
+    bson_iter_next (iter);
+    assert(bson_iter_type(iter) == BSON_TYPE_DOCUMENT);
+
+    bson_t child;
+    bson_iter_t sub_iter;
+
+    std::string parent_name = bson_iter_key(iter);
+    bson_append_document_begin(parent, parent_name.c_str(), parent_name.size(), &child);
+    bson_iter_recurse(iter, &sub_iter);
+
+    while (bson_iter_next(&sub_iter))
+    {
+        bson_type_t type = bson_iter_type(&sub_iter);
+        std::string key = bson_iter_key(&sub_iter);
+
+        if(type == BSON_TYPE_INT64)
+        {
+            bson_append_int64(&child, key.c_str(), key.size(), bson_iter_int64(&sub_iter));
+        }
+        else if(type == BSON_TYPE_DOUBLE)
+        {
+            bson_append_double(&child, key.c_str(), key.size(), bson_iter_double(&sub_iter));
+        }
+        else if(type == BSON_TYPE_UTF8)
+        {
+            if(path.str() == key)
+            {
+                // We found it!
+                bson_append_utf8(&child, key.c_str(), key.size(), new_value.c_str(), new_value.size());
+            }
+            else
+            {
+                uint32_t len = 0;
+                const char* str = bson_iter_utf8(&sub_iter, &len);
+                bson_append_utf8(&child, key.c_str(), key.size(), str, len);
+            }
+        }
+        else if(type == BSON_TYPE_DOCUMENT)
+        {
+            json_path subpath;
+            std::string root_name;
+            if(path.has_subtree() && path.split(root_name, subpath)
+                && root_name == key)
+            {
+                replace_string(old_document, subpath, new_value, &child, &sub_iter);
+            }
+            else
+            {
+                // This is not the path you are looking for...
+                replace_string(old_document, "", new_value, &child, &sub_iter);
+            }
+        }
+        else
+        {
+            abort();
+        }
+    }
+
+    bson_append_document_end(parent, &child);
+    return parent;
+}
+
 uint8_t*
 datatype_document :: apply(const e::slice& old_value,
                            const funcall* funcs, size_t funcs_sz,
@@ -232,15 +313,17 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_STRING_APPEND:
         {
             std::string arg = func->arg1.c_str();
+            std::string path = func->arg2.c_str();
+
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
 
             bson_iter_t iter, baz;
             assert(bson_iter_init (&iter, bson_root));
 
             bool success = false;
-            if (bson_iter_find_descendant (&iter, func->arg2.c_str(), &baz))
+            if (bson_iter_find_descendant (&iter, path.c_str(), &baz))
             {
-                size_t length = 0;
+                uint32_t length = 0;
                 std::string str = bson_iter_utf8(&baz, &length);
 
                 if(func->name == FUNC_STRING_APPEND)
@@ -252,7 +335,10 @@ datatype_document :: apply(const e::slice& old_value,
                     str = arg + str;
                 }
 
-                bson_iter_overwrite_utf8(&baz, str.c_str());
+                bson_t* new_doc = replace_string(bson_root, path, str);
+
+                bson_free(bson_root);
+                new_doc = bson_root;
             }
             break;
         }
@@ -422,14 +508,13 @@ datatype_document :: document_check(const attribute_check& check,
             return false;
         }
 
-        json_path path(std::string(cstr, path_sz));
+        std::string path(std::string(cstr, path_sz));
 
-        hyperdatatype hint = CONTAINER_ELEM(check.datatype);
         hyperdatatype type;
         std::vector<char> scratch;
         e::slice value;
 
-        if (!extract_value(path, doc, hint, &type, &scratch, &value))
+        if (!extract_value(path, doc, &type, &scratch, &value))
         {
             return false;
         }
@@ -442,34 +527,6 @@ datatype_document :: document_check(const attribute_check& check,
         new_check.value.advance(path.size() + 1);
         return passes_attribute_check(type, new_check, value);
     }
-}
-
-json_object* datatype_document :: to_json(const e::slice& doc) const
-{
-    json_tokener* tok = json_tokener_new();
-
-    if (!tok)
-    {
-        throw std::bad_alloc();
-    }
-
-    e::guard gtok = e::makeguard(json_tokener_free, tok);
-    gtok.use_variable();
-    const char* data = reinterpret_cast<const char*>(doc.data());
-    json_object* obj = json_tokener_parse_ex(tok, data, doc.size());
-
-    if (!obj)
-    {
-        return NULL;
-    }
-
-    if (json_tokener_get_error(tok) != json_tokener_success ||
-        tok->char_offset != static_cast<ssize_t>(doc.size()))
-    {
-        return NULL;
-    }
-
-    return obj;
 }
 
 json_object*
@@ -549,32 +606,31 @@ datatype_document :: get_last_elem_in_path(const json_object* parent, const json
 }
 
 bool
-datatype_document :: extract_value(const json_path& path,
+datatype_document :: extract_value(const std::string& path,
                                 const e::slice& doc,
-                                hyperdatatype hint,
                                 hyperdatatype* type,
                                 std::vector<char>* scratch,
                                 e::slice* value)
 {
-    json_object* obj = to_json(doc);
+    bson_t b;
+    bson_iter_t iter, baz;
 
-    if(!obj)
+    bson_init_static(&b, doc.data(), doc.size());
+
+    if(!bson_iter_init (&iter, &b))
     {
         return false;
     }
 
-    e::guard gobj = e::makeguard(json_object_put, obj);
-    gobj.use_variable();
-
-    json_object* parent = traverse_path(obj, path);
-
-    if(!parent)
+    if(!bson_iter_find_descendant (&iter, path.c_str(), &baz))
     {
         return false;
     }
 
-    if (json_object_is_type(parent, json_type_double) ||
-        json_object_is_type(parent, json_type_int))
+    bson_type_t btype = bson_iter_type(&baz);
+
+    if (btype == BSON_TYPE_DOUBLE ||
+        btype == BSON_TYPE_INT64)
     {
         const size_t number_sz = sizeof(double) > sizeof(int64_t)
                                ? sizeof(double) : sizeof(int64_t);
@@ -584,9 +640,9 @@ datatype_document :: extract_value(const json_path& path,
             scratch->resize(number_sz);
         }
 
-        if (hint == HYPERDATATYPE_INT64)
+        if (btype == BSON_TYPE_INT64)
         {
-            int64_t i = json_object_get_int64(parent);
+            int64_t i = bson_iter_int64(&baz);
             e::pack64le(i, &(*scratch)[0]);
             *type = HYPERDATATYPE_INT64;
             *value = e::slice(&(*scratch)[0], sizeof(int64_t));
@@ -594,17 +650,17 @@ datatype_document :: extract_value(const json_path& path,
         }
         else
         {
-            double d = json_object_get_double(parent);
+            double d = bson_iter_double(&baz);
             e::packdoublele(d, &(*scratch)[0]);
             *type = HYPERDATATYPE_FLOAT;
             *value = e::slice(&(*scratch)[0], sizeof(double));
             return true;
         }
     }
-    else if (json_object_is_type(parent, json_type_string))
+    else if (btype == BSON_TYPE_UTF8)
     {
-        size_t str_sz = json_object_get_string_len(parent);
-        const char* str = json_object_get_string(parent);
+        uint32_t str_sz = 0;
+        const char* str = bson_iter_utf8(&baz, &str_sz);
 
         if (scratch->size() < str_sz)
         {
@@ -616,6 +672,9 @@ datatype_document :: extract_value(const json_path& path,
         *value = e::slice(&(*scratch)[0], str_sz);
         return true;
     }
-
-    return false;
+    else
+    {
+        // Unsupported BSON type
+        return false;
+    }
 }

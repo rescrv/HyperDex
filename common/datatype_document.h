@@ -35,6 +35,8 @@
 
 class json_object;
 
+#include <bson.h>
+
 BEGIN_HYPERDEX_NAMESPACE
 
 class datatype_document : public datatype_info
@@ -60,17 +62,13 @@ class datatype_document : public datatype_info
     public:
         // Retrieve value in a json document by traversing it
         // Will allocate a buffer for the data and a slice referencing it
-        bool extract_value(const json_path& path,
+        bool extract_value(const std::string& path,
                         const e::slice& document, // the whole document
-                        hyperdatatype hint, // possible datatpe of the result
                         hyperdatatype* type, // OUT: the datatype of the result
                         std::vector<char>* scratch, // OUT: the resulting content/value
                         e::slice* value); // OUT: slice to easier access the content of the scratch
 
     private:
-        // Convert raw data into a json object
-        json_object* to_json(const e::slice& slice) const;
-
         // Get the last element of a path (and its name and parent)
         void get_end(const json_object* root, const json_path& path,
                                 json_object*& parent, json_object*& obj, std::string& obj_name) const;
@@ -81,6 +79,10 @@ class datatype_document : public datatype_info
 
         // Go down the path as far as possible
         json_object* get_last_elem_in_path(const json_object* parent, const json_path& path, json_path& child_path) const;
+
+        // Create a new document where one string entry is replaced by a new value
+        bson_t* replace_string(const bson_t* old_document, const json_path& path, const std::string& new_val,
+                                bson_t* new_doc = NULL, bson_iter_t* iter = NULL) const;
 };
 
 END_HYPERDEX_NAMESPACE
