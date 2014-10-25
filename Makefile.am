@@ -1310,6 +1310,7 @@ EXTRA_DIST += doc/api/ruby/hello-world.rb
 EXTRA_DIST += doc/install/centos-packages.sh
 EXTRA_DIST += doc/install/debian7-packages.sh
 EXTRA_DIST += doc/install/fedora-packages.sh
+EXTRA_DIST += doc/install/linux-amd64.sh
 EXTRA_DIST += doc/install/ubuntu12.04-packages.sh
 EXTRA_DIST += doc/install/ubuntu14.04-packages.sh
 EXTRA_DIST += doc/install/ubuntu14.10-packages.sh
