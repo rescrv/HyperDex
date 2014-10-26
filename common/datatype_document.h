@@ -81,8 +81,9 @@ class datatype_document : public datatype_info
         json_object* get_last_elem_in_path(const json_object* parent, const json_path& path, json_path& child_path) const;
 
         // Create a new document where one string entry is replaced by a new value
-        bson_t* replace_string(const bson_t* old_document, const json_path& path, const std::string& new_val,
-                                bson_t* new_doc = NULL, bson_iter_t* iter = NULL) const;
+        bson_t* replace_string(const bson_t* old_document, const json_path& path, const std::string& new_val) const;
+        void replace_string_recurse(const json_path& path, const std::string& new_value,
+                                    bson_t* parent, bson_iter_t* iter) const;
 };
 
 END_HYPERDEX_NAMESPACE
