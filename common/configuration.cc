@@ -869,6 +869,76 @@ configuration :: lookup_search(const char* space_name,
 }
 
 std::string
+configuration :: list_indices(const char* space_name) const
+{
+    std::ostringstream out;
+    int32_t pos = -1;
+
+    for (size_t w = 0; w < m_spaces.size() && pos == -1; ++w)
+    {
+        if(strcmp(m_spaces[w].name, space_name) == 0)
+        {
+            pos = w;
+        }
+    }
+
+    if(pos < 0)
+    {
+        return "";
+    }
+
+    const space& s(m_spaces[pos]);
+
+    for(std::vector<index>::const_iterator it = s.indices.begin(); it != s.indices.end(); ++it)
+    {
+        out << it->id.get() << ":";
+        out << s.get_attribute(it->attr).name;
+        out << "\n";
+    }
+
+    return out.str();
+}
+
+std::string
+configuration :: list_subspaces(const char* space_name) const
+{
+    std::ostringstream out;
+    int32_t pos = -1;
+
+    for (size_t w = 0; w < m_spaces.size() && pos == -1; ++w)
+    {
+        if(strcmp(m_spaces[w].name, space_name) == 0)
+        {
+            pos = w;
+        }
+    }
+
+    if(pos < 0)
+    {
+        return "";
+    }
+
+    const space& s(m_spaces[pos]);
+
+    for(std::vector<subspace>::const_iterator it = s.subspaces.begin(); it != s.subspaces.end(); ++it)
+    {
+        out << it->id.get() << ":";
+
+        for(std::vector<uint16_t>::const_iterator it2 = it->attrs.begin(); it2 != it->attrs.end(); ++it2)
+        {
+            if(it2 != it->attrs.begin())
+                out << ",";
+
+            out << s.get_attribute(*it2).name;
+        }
+
+        out << "\n";
+    }
+
+    return out.str();
+}
+
+std::string
 configuration :: dump() const
 {
     std::ostringstream out;

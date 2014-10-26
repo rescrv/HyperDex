@@ -99,7 +99,6 @@ inline e::unpacker
 operator >> (e::unpacker up, server_barrier& ri)
 {
     typedef server_barrier::version_t version_t;
-    typedef server_barrier::version_list_t version_list_t;
     uint32_t x = 0;
     up = up >> x;
 
