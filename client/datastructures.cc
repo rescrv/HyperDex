@@ -335,25 +335,23 @@ hyperdex_ds_pack_int(int64_t num, char* buf)
 HYPERDEX_API int
 hyperdex_ds_unpack_document(const char* value, size_t value_sz, char** outstr, size_t* outsize)
 {
-    if (value_sz == 0)
+    // Either init an empty JSON document
+    // or convert from binary to JSON
+    if (value_sz == 0 || strcmp(value, "") == 0)
     {
         *outstr = "{}";
         *outsize = strlen("{}");
         return 0;
     }
 
-    std::cout << value << std::endl;
-    std::cout <<  reinterpret_cast<const uint8_t*>(value) << std::endl;
+    bson_t b;
 
-    bson_t *b;
-
-    if(!bson_init_static(b, reinterpret_cast<const uint8_t*>(value), value_sz))
+    if(!bson_init_static(&b, reinterpret_cast<const uint8_t*>(value), value_sz))
     {
         return -1;
     }
 
-    *outstr = bson_as_json(b, outsize);
-    bson_free(b);
+    *outstr = bson_as_json(&b, outsize);
     return 0;
 }
 
