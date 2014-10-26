@@ -13,6 +13,8 @@ def to_objectset(xs):
 
 Document = hyperdex.client.Document
 assertEquals = testlib.assertEquals
+assertFalse = testlib.assertFalse
+assertTrue = testlib.assertTrue
 
 assert c.put('kv', 'k', {'v': Document({})}) == True
 assertEquals(c.get('kv', 'k')['v'], Document({}))
@@ -62,20 +64,19 @@ assert c.document_atomic_mul('kv', 'k4', {'v': Document({'a' : 0})}) == True
 assertEquals(c.get('kv', 'k4')['v'], Document({ 'a': 0 }))
 
 # Build a new subdocument
-assert c.put('kv', 'k6', {'v' : Document({'a' : 100})})
+assertTrue(c.put('kv', 'k6', {'v' : Document({'a' : 100})}))
 assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 }))
-assert c.document_atomic_add('kv', 'k6',  {'v': Document({'a': {'b' :1}})}) == False
+assertFalse(c.document_atomic_add('kv', 'k6',  {'v': Document({'a': {'b' :1}})}))
 assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 }))
-assert c.document_atomic_add('kv', 'k6',  {'v': Document({'c': {'b' :1}})}) == True
+assertTrue(c.document_atomic_add('kv', 'k6',  {'v': Document({'c': {'b' :1}})}))
 assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 , 'c' : {'b' :1}}))
 
-
 #Lists
-assert c.put('kv', 'k5', {'v': Document(['a', 'b', 'c'])}) == True
+assertTrue(c.put('kv', 'k5', {'v': Document(['a', 'b', 'c'])}))
 assertEquals(c.get('kv', 'k5')['v'], Document(['a', 'b', 'c']))
 
 # Test loading a big json file
 json_file = open(os.getcwd() + '/test/test-data/big.json')
 data = json.load(json_file)
-assert c.put('kv', 'k2', {'v': Document(data)}) == True
+assertTrue(c.put('kv', 'k2', {'v': Document(data)}))
 assertEquals(c.get('kv', 'k2')['v'], Document(data))

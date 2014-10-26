@@ -333,14 +333,16 @@ hyperdex_ds_pack_int(int64_t num, char* buf)
 }
 
 HYPERDEX_API int
-hyperdex_ds_unpack_document(const char* value, size_t value_sz, char** outstr, size_t* outsize)
+hyperdex_ds_unpack_document(const char* value, size_t value_sz, const char** outstr, size_t* outsize)
 {
     // Either init an empty JSON document
     // or convert from binary to JSON
     if (value_sz == 0 || strcmp(value, "") == 0)
     {
-        *outstr = "{}";
-        *outsize = strlen("{}");
+        const std::string empty_doc = "{}";
+
+        *outstr = empty_doc.c_str();
+        *outsize = empty_doc.size();
         return 0;
     }
 

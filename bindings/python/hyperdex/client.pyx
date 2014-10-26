@@ -251,7 +251,7 @@ cdef extern from "hyperdex/datastructures.h":
     hyperdex_client_attribute_check* hyperdex_ds_allocate_attribute_check(hyperdex_ds_arena* arena, size_t sz)
     hyperdex_client_map_attribute* hyperdex_ds_allocate_map_attribute(hyperdex_ds_arena* arena, size_t sz)
 
-    int hyperdex_ds_unpack_document(char* buf, size_t buf_sz, char** outstr, size_t* outsize)
+    int hyperdex_ds_unpack_document(const char* buf, size_t buf_sz, const char** outstr, size_t* outsize)
     int hyperdex_ds_unpack_int(char* buf, size_t buf_sz, int64_t* num)
     int hyperdex_ds_unpack_float(char* buf, size_t buf_sz, double* num)
 
@@ -502,7 +502,7 @@ cdef hyperdex_python_client_convert_type(hyperdex_ds_arena* arena, x,
 
 
 cdef hyperdex_python_client_build_document(const char* value, size_t value_sz):
-    cdef char* cstr = NULL
+    cdef const char* cstr = NULL
     cdef size_t outsize = 0
 
     if hyperdex_ds_unpack_document(value, value_sz, &cstr, &outsize) < 0:
@@ -890,8 +890,6 @@ cdef class Document:
     # Create from either a dict (native representation) or a string
     def __init__(self, doc):
         if isinstance(doc, str):
-            print doc
-
             if len(doc) is 0:
                 self._doc = {}
             else:

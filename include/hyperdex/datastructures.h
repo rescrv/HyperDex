@@ -95,7 +95,7 @@ hyperdex_ds_unpack_float(const char* buf, size_t buf_sz, double* num);
 
 /* unpack a document (from binary to json) */
 int
-hyperdex_ds_unpack_document(const char* value, size_t value_sz, char** outstr, size_t* outsize);
+hyperdex_ds_unpack_document(const char* value, size_t value_sz, const char** outstr, size_t* outsize);
 
 /* copy strings/ints/floats */
 int
