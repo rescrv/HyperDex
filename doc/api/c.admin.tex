@@ -253,6 +253,68 @@ int64_t hyperdex_admin_list_spaces(struct hyperdex_admin* admin,
 \input{\topdir/api/fragments/c/admin/out_asynccall_spacelist}
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%% list_indices %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{list\_indices}}
+\label{api:c:list_indices}
+\index{list\_indices!C API}
+\input{\topdir/api/desc/list_indices}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_admin_list_indices(struct hyperdex_admin* admin,
+        const char* space,
+        enum hyperdex_admin_returncode* status,
+        const char** indexes);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_admin* admin}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_structadmin}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_spacename}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_admin\_returncode* status}\\
+\input{\topdir/api/fragments/c/admin/out_asynccall_adminstatus}
+\item \code{const char** indexes}\\
+\input{\topdir/api/fragments/c/admin/out_asynccall_indexlist}
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%% list_subspaces %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{list\_subspaces}}
+\label{api:c:list_subspaces}
+\index{list\_subspaces!C API}
+\input{\topdir/api/desc/list_subspaces}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_admin_list_subspaces(struct hyperdex_admin* admin,
+        const char* space,
+        enum hyperdex_admin_returncode* status,
+        const char** subspaces);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_admin* admin}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_structadmin}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/admin/in_asynccall_spacename}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_admin\_returncode* status}\\
+\input{\topdir/api/fragments/c/admin/out_asynccall_adminstatus}
+\item \code{const char** subspaces}\\
+\input{\topdir/api/fragments/c/admin/out_asynccall_subspacelist}
+\end{itemize}
+
 %%%%%%%%%%%%%%%%%%%% add_index %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{add\_index}}
