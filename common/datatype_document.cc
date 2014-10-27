@@ -92,18 +92,32 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
     case FUNC_NUM_XOR:
     case FUNC_NUM_OR:
     {
+        json_path path = func.arg2.c_str();
+
         bson_t b;
         bson_init_static(&b, old_values[0].data(), old_values[0].size());
 
         bson_iter_t iter, baz;
         assert(bson_iter_init (&iter, &b));
 
-        if (bson_iter_find_descendant (&iter, func.arg2.c_str(), &baz))
+        if (bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
         {
             return (bson_iter_type(&baz) == BSON_TYPE_INT64 || bson_iter_type(&baz) == BSON_TYPE_INT32);
         }
         else
         {
+            while(!path.empty() && path.has_subtree())
+            {
+                std::string child_name;
+                path.split_reverse(path, child_name);
+
+                bson_iter_init (&iter, &b);
+                if(bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
+                {
+                    return BSON_ITER_HOLDS_DOCUMENT(&baz);
+                }
+            }
+
             return true;
         }
         break;
@@ -111,18 +125,32 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
     case FUNC_STRING_APPEND:
     case FUNC_STRING_PREPEND:
     {
+        json_path path = func.arg2.c_str();
+
         bson_t b;
         bson_init_static(&b, old_values[0].data(), old_values[0].size());
 
         bson_iter_t iter, baz;
         assert(bson_iter_init (&iter, &b));
 
-        if (bson_iter_find_descendant (&iter, func.arg2.c_str(), &baz))
+        if (bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
         {
             return (bson_iter_type(&baz) == BSON_TYPE_UTF8);
         }
         else
         {
+            while(!path.empty() && path.has_subtree())
+            {
+                std::string child_name;
+                path.split_reverse(path, child_name);
+
+                bson_iter_init (&iter, &b);
+                if(bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
+                {
+                    return BSON_ITER_HOLDS_DOCUMENT(&baz);
+                }
+            }
+
             return true;
         }
         break;
@@ -251,20 +279,6 @@ datatype_document :: replace_int64_recurse(const json_path& path, const int64_t 
                 bson_append_int64(parent, key.c_str(), key.size(), bson_iter_int64(iter));
             }
         }
-        else if(type == BSON_TYPE_INT32)
-        {
-            bson_append_int32(parent, key.c_str(), key.size(), bson_iter_int32(iter));
-        }
-        else if(type == BSON_TYPE_DOUBLE)
-        {
-            bson_append_double(parent, key.c_str(), key.size(), bson_iter_double(iter));
-        }
-        else if(type == BSON_TYPE_UTF8)
-        {
-            uint32_t len = 0;
-            const char* str = bson_iter_utf8(iter, &len);
-            bson_append_utf8(parent, key.c_str(), key.size(), str, len);
-        }
         else if(type == BSON_TYPE_DOCUMENT)
         {
             json_path subpath;
@@ -289,6 +303,11 @@ datatype_document :: replace_int64_recurse(const json_path& path, const int64_t 
 
             bson_append_document_end(parent, child);
         }
+        else if(type == BSON_TYPE_ARRAY || type == BSON_TYPE_INT32 || type == BSON_TYPE_DOUBLE || type == BSON_TYPE_UTF8)
+        {
+            const bson_value_t *value = bson_iter_value(iter);
+            bson_append_value(parent, key.c_str(), key.size(), value);
+        }
         else
         {
             abort();
@@ -297,8 +316,10 @@ datatype_document :: replace_int64_recurse(const json_path& path, const int64_t 
 
     if(!found && !path.empty())
     {
+        std::cout << "a" << std::endl;
         if(path.has_subtree())
         {
+        std::cout << "b" << std::endl;
             json_path subpath;
             std::string root_name;
             path.split(root_name, subpath);
@@ -311,6 +332,7 @@ datatype_document :: replace_int64_recurse(const json_path& path, const int64_t 
         }
         else
         {
+        std::cout << "c" << std::endl;
             bson_append_int64(parent, path.str().c_str(), path.str().size(), new_value);
         }
     }
@@ -328,19 +350,7 @@ datatype_document :: replace_string_recurse(const json_path& path, const std::st
         bson_type_t type = bson_iter_type(iter);
         std::string key = bson_iter_key(iter);
 
-        if(type == BSON_TYPE_INT64)
-        {
-            bson_append_int64(parent, key.c_str(), key.size(), bson_iter_int64(iter));
-        }
-        else if(type == BSON_TYPE_INT32)
-        {
-            bson_append_int32(parent, key.c_str(), key.size(), bson_iter_int32(iter));
-        }
-        else if(type == BSON_TYPE_DOUBLE)
-        {
-            bson_append_double(parent, key.c_str(), key.size(), bson_iter_double(iter));
-        }
-        else if(type == BSON_TYPE_UTF8)
+        if(type == BSON_TYPE_UTF8)
         {
             if(path.str() == key)
             {
@@ -379,6 +389,11 @@ datatype_document :: replace_string_recurse(const json_path& path, const std::st
             }
 
             bson_append_document_end(parent, child);
+        }
+        else if(type == BSON_TYPE_ARRAY || type == BSON_TYPE_INT32 || type == BSON_TYPE_INT64 || type == BSON_TYPE_DOUBLE)
+        {
+            const bson_value_t *value = bson_iter_value(iter);
+            bson_append_value(parent, key.c_str(), key.size(), value);
         }
         else
         {

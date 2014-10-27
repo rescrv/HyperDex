@@ -102,9 +102,8 @@ public:
             return false;
         }
 
-        parent_path.path = path.substr(0, pos);
         child_name = path.substr(pos+1);
-
+        parent_path.path = path.substr(0, pos);
         return true;
     }
 
