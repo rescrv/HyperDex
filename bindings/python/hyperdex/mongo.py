@@ -51,13 +51,20 @@ class HyperSpace:
             return None
         else:
             return result['v'].doc()
+
+    def remove(self, key):
+        if not self.exists:
+            raise RuntimeError("Can't remove. Space doesn't exist yet")
+
+        return self.client.delete(self.name, key)
         
     def insert(self, value):
-        if value is None or value._id is None:
+        if value is None or value['_id'] is None:
+            #TODO auto generate id
             raise ValueError("Document is missing an id field")
         
         self.init()
-        return self.client.put(self.name, value._id, {'v' : self.Document(value)})
+        return self.client.put(self.name, value['_id'], {'v' : self.Document(value)})
         
     def list_keys(self):
         self.init()
