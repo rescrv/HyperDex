@@ -18,11 +18,11 @@ def createDoc(id, numElems):
 db = HyperDatabase(sys.argv[1], int(sys.argv[2]))
 
 # Run
-for n in range(100, 10000, 250):
+for n in range(500, 10000, 250):
         db.bench.insert(createDoc('myval', n))
 
         bench = Benchmark()
-        result = bench.run(functools.partial(db.bench.get, 'myval'), 1000)
+        result = bench.run(functools.partial(db.bench.atomic_add, 'myval', {'elem50' : 10}), 1000)
 
         # Print simple CSV
         print str(n) + ',' + str(result.averageTime)
