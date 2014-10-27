@@ -24,7 +24,7 @@ for n in range(100, 10000, 100):
         bench = Benchmark()
         result = bench.run(functools.partial(db.bench.get, 'myval'), 1000)
 
-        print "Num Elements: " + str(n)
-        print result.averageTime
+        # Print simple CSV
+        print str(n) + ',' + str(result.averageTime)
 
         db.bench.remove('myval')
