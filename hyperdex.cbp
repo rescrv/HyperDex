@@ -323,6 +323,29 @@
 		<Unit filename="include/hyperdex/datastructures.h" />
 		<Unit filename="include/hyperdex/hyperspace_builder.h" />
 		<Unit filename="test/samples/big.json" />
+		<Unit filename="tools/add-index.cc" />
+		<Unit filename="tools/add-space.cc" />
+		<Unit filename="tools/backup-manager.cc" />
+		<Unit filename="tools/backup.cc" />
+		<Unit filename="tools/common.h" />
+		<Unit filename="tools/coordinator.cc" />
+		<Unit filename="tools/list-spaces.cc" />
+		<Unit filename="tools/mv-space.cc" />
+		<Unit filename="tools/perf-counters.cc" />
+		<Unit filename="tools/raw-backup.cc" />
+		<Unit filename="tools/rm-index.cc" />
+		<Unit filename="tools/rm-space.cc" />
+		<Unit filename="tools/server-forget.cc" />
+		<Unit filename="tools/server-kill.cc" />
+		<Unit filename="tools/server-offline.cc" />
+		<Unit filename="tools/server-online.cc" />
+		<Unit filename="tools/server-register.cc" />
+		<Unit filename="tools/set-fault-tolerance.cc" />
+		<Unit filename="tools/set-read-only.cc" />
+		<Unit filename="tools/set-read-write.cc" />
+		<Unit filename="tools/show-config.cc" />
+		<Unit filename="tools/validate-space.cc" />
+		<Unit filename="tools/wait-until-stable.cc" />
 		<Extensions>
 			<code_completion />
 			<debugger />
