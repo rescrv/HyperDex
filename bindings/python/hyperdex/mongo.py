@@ -1,6 +1,21 @@
 import hyperdex.client
 import hyperdex.admin
 
+class HyperIterator:
+	def __init__(self, tuples):
+		self.tuples = tuples
+		self.pos = 0
+		
+	def hasNext(self):
+		return self.pos < len(self.tuples)
+		
+	def next(self):
+		if not hasNext:
+			raise RuntimeError('Cannot get next element. There is none!')
+			
+		self.pos += 1
+		return self.tuples[self.pos-1]
+
 class HyperSpace:
     Document = hyperdex.client.Document
     
@@ -21,6 +36,12 @@ class HyperSpace:
             
         self.admin.add_space('space ' + self.name + ' key k attributes document v')
         exists = True
+
+    def find(self):
+        self.init()
+        result = self.client.search(self.name, {})
+        
+        return HyperIterator(result)
         
     def get(self, key):
         self.init()
