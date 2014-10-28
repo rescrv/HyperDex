@@ -316,10 +316,8 @@ datatype_document :: replace_int64_recurse(const json_path& path, const int64_t 
 
     if(!found && !path.empty())
     {
-        std::cout << "a" << std::endl;
         if(path.has_subtree())
         {
-        std::cout << "b" << std::endl;
             json_path subpath;
             std::string root_name;
             path.split(root_name, subpath);
@@ -332,7 +330,6 @@ datatype_document :: replace_int64_recurse(const json_path& path, const int64_t 
         }
         else
         {
-        std::cout << "c" << std::endl;
             bson_append_int64(parent, path.str().c_str(), path.str().size(), new_value);
         }
     }
