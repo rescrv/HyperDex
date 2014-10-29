@@ -1,20 +1,21 @@
-import hyperdex.client
+from hyperdex.client import *
 import hyperdex.admin
 
 class HyperIterator:
-	def __init__(self, tuples):
-		self.tuples = tuples
-		self.pos = 0
+    def __init__(self, innerIter_):
+        self.innerIter = innerIter_
 		
-	def hasNext(self):
-		return self.pos < len(self.tuples)
+    def hasNext(self):
+        return self.innerIter.hasNext()
+        
+    def __iter__(self):
+        return self.innerIter
 		
-	def next(self):
-		if not hasNext:
-			raise RuntimeError('Cannot get next element. There is none!')
+    def next(self):
+        if not self.hasNext():
+            raise RuntimeError('Cannot get next element. There is none!')
 			
-		self.pos += 1
-		return self.tuples[self.pos-1]
+        return self.innerIter.next()['v'].doc()
 
 class HyperSpace:
     Document = hyperdex.client.Document
@@ -36,16 +37,55 @@ class HyperSpace:
             
         self.admin.add_space('space ' + self.name + ' key k attributes document v')
         exists = True
-
-    def find(self):
-        self.init()
-        result = self.client.search(self.name, {})
         
-        return HyperIterator(result)
+    # Convert from hyperdex to mongo conditions
+    def convert_conds(self, conditions):
+        if not isinstance(conditions, dict):
+            raise ValueError('Conditions must be a dict')
+        
+        result = {}
+		
+        for k, c in conditions.iteritems():
+            if not isinstance(c, dict):
+                raise ValueError('Wrong Type')
+				
+            hyperpreds = []
+				
+            for pred, val in c.iteritems():
+                if pred == '$lt':
+                    hyperpreds.append(LessThan(val))
+                elif pred == '$lte':
+                    hyperpreds.append(LessEquals(val))
+                elif pred == '$gt':
+					hyperpreds.append(GreaterThan(val))
+                elif pred == '$gte':
+					hyperpreds.append(GreaterEquals(val))
+                elif pred == '$eq':
+					hyperpreds.append(Equals(val))
+                else:
+					raise ValueError('Unknown Mongo Predicate: ' + pred)
+					
+            result['v.' + k] = hyperpreds
+			
+        return result
+
+    def find(self, conditions = {}):
+		self.init()
+		hyperconds = self.convert_conds(conditions)
+		result = self.client.search(self.name, hyperconds)
+		
+		return HyperIterator(result)
+        
+    def findOne(self, conditions = {}):
+		it = self.find(conditions)
+		
+		if not it.hasNext():
+			return None
+		else:
+			return it.next()
         
     def get(self, key):
         self.init()
-        result = self.client.get(self.name, key)
         
         if result == None:
             return None
