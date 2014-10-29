@@ -1484,6 +1484,26 @@ hyperdex_ruby_client_loop(VALUE self)
     }
 }
 
+static VALUE
+hyperdex_ruby_client_poll(VALUE self)
+{
+    struct hyperdex_client* client;
+    int64_t ret;
+
+    Data_Get_Struct(self, struct hyperdex_client, client);
+    ret = hyperdex_client_poll(client);
+
+    if (ret < 0)
+    {
+        hyperdex_ruby_client_throw_exception(HYPERDEX_CLIENT_EXCEPTION, "CAN'T HAPPEN: hyperdex_client_poll() failed! (please report a bug)");
+        return Qnil;
+    }
+    else
+    {
+        return LONG2NUM(ret);
+    }
+}
+
 #include "bindings/ruby/definitions.c"
 
 /********************************* Predicates *********************************/
@@ -1701,6 +1721,8 @@ Init_hyperdex_client()
     rb_define_alloc_func(class_client, hyperdex_ruby_client_alloc);
     rb_define_method(class_client, "initialize", hyperdex_ruby_client_init, 2);
     rb_define_method(class_client, "loop", hyperdex_ruby_client_loop, 0);
+    rb_define_method(class_client, "poll_fd", hyperdex_ruby_client_poll, 0);
+
     /* include the generated rb_define_* calls */
 #include "bindings/ruby/prototypes.c"
 
