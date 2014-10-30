@@ -281,6 +281,36 @@ hyperdex_client_cond_atomic_xor(struct hyperdex_client* client,
                                 enum hyperdex_client_returncode* status);
 
 int64_t
+hyperdex_client_atomic_min(struct hyperdex_client* client,
+                           const char* space,
+                           const char* key, size_t key_sz,
+                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_cond_atomic_min(struct hyperdex_client* client,
+                                const char* space,
+                                const char* key, size_t key_sz,
+                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_atomic_max(struct hyperdex_client* client,
+                           const char* space,
+                           const char* key, size_t key_sz,
+                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_cond_atomic_max(struct hyperdex_client* client,
+                                const char* space,
+                                const char* key, size_t key_sz,
+                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                enum hyperdex_client_returncode* status);
+
+int64_t
 hyperdex_client_string_prepend(struct hyperdex_client* client,
                                const char* space,
                                const char* key, size_t key_sz,
@@ -478,6 +508,20 @@ hyperdex_client_document_atomic_or(struct hyperdex_client* client,
                                    const char* key, size_t key_sz,
                                    const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz,
                                    enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_document_atomic_min(struct hyperdex_client* client,
+                                    const char* space,
+                                    const char* key, size_t key_sz,
+                                    const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz,
+                                    enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_document_atomic_max(struct hyperdex_client* client,
+                                    const char* space,
+                                    const char* key, size_t key_sz,
+                                    const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz,
+                                    enum hyperdex_client_returncode* status);
 
 int64_t
 hyperdex_client_document_string_prepend(struct hyperdex_client* client,

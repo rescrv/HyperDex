@@ -575,6 +575,64 @@ hyperdex_client_cond_atomic_xor(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_atomic_min(struct hyperdex_client* _cl,
+                           const char* space,
+                           const char* key, size_t key_sz,
+                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           enum hyperdex_client_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_min), strlen(XSTR(atomic_min)));
+    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_cond_atomic_min(struct hyperdex_client* _cl,
+                                const char* space,
+                                const char* key, size_t key_sz,
+                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                enum hyperdex_client_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_min), strlen(XSTR(cond_atomic_min)));
+    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_atomic_max(struct hyperdex_client* _cl,
+                           const char* space,
+                           const char* key, size_t key_sz,
+                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           enum hyperdex_client_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_max), strlen(XSTR(atomic_max)));
+    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_cond_atomic_max(struct hyperdex_client* _cl,
+                                const char* space,
+                                const char* key, size_t key_sz,
+                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                enum hyperdex_client_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_max), strlen(XSTR(cond_atomic_max)));
+    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_string_prepend(struct hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
@@ -958,6 +1016,34 @@ hyperdex_client_document_atomic_or(struct hyperdex_client* _cl,
     C_WRAP_EXCEPT(
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_atomic_or), strlen(XSTR(document_atomic_or)));
+    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, docattrs, docattrs_sz, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_document_atomic_min(struct hyperdex_client* _cl,
+                                    const char* space,
+                                    const char* key, size_t key_sz,
+                                    const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz,
+                                    enum hyperdex_client_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_atomic_min), strlen(XSTR(document_atomic_min)));
+    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, docattrs, docattrs_sz, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_document_atomic_max(struct hyperdex_client* _cl,
+                                    const char* space,
+                                    const char* key, size_t key_sz,
+                                    const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz,
+                                    enum hyperdex_client_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_atomic_max), strlen(XSTR(document_atomic_max)));
     return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, docattrs, docattrs_sz, status);
     );
 }

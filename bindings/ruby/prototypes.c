@@ -73,6 +73,14 @@ rb_define_method(class_client, "async_atomic_xor", hyperdex_ruby_client_atomic_x
 rb_define_method(class_client, "atomic_xor", hyperdex_ruby_client_wait_atomic_xor, 3);
 rb_define_method(class_client, "async_cond_atomic_xor", hyperdex_ruby_client_cond_atomic_xor, 4);
 rb_define_method(class_client, "cond_atomic_xor", hyperdex_ruby_client_wait_cond_atomic_xor, 4);
+rb_define_method(class_client, "async_atomic_min", hyperdex_ruby_client_atomic_min, 3);
+rb_define_method(class_client, "atomic_min", hyperdex_ruby_client_wait_atomic_min, 3);
+rb_define_method(class_client, "async_cond_atomic_min", hyperdex_ruby_client_cond_atomic_min, 4);
+rb_define_method(class_client, "cond_atomic_min", hyperdex_ruby_client_wait_cond_atomic_min, 4);
+rb_define_method(class_client, "async_atomic_max", hyperdex_ruby_client_atomic_max, 3);
+rb_define_method(class_client, "atomic_max", hyperdex_ruby_client_wait_atomic_max, 3);
+rb_define_method(class_client, "async_cond_atomic_max", hyperdex_ruby_client_cond_atomic_max, 4);
+rb_define_method(class_client, "cond_atomic_max", hyperdex_ruby_client_wait_cond_atomic_max, 4);
 rb_define_method(class_client, "async_string_prepend", hyperdex_ruby_client_string_prepend, 3);
 rb_define_method(class_client, "string_prepend", hyperdex_ruby_client_wait_string_prepend, 3);
 rb_define_method(class_client, "async_cond_string_prepend", hyperdex_ruby_client_cond_string_prepend, 4);
@@ -127,6 +135,10 @@ rb_define_method(class_client, "async_document_atomic_xor", hyperdex_ruby_client
 rb_define_method(class_client, "document_atomic_xor", hyperdex_ruby_client_wait_document_atomic_xor, 3);
 rb_define_method(class_client, "async_document_atomic_or", hyperdex_ruby_client_document_atomic_or, 3);
 rb_define_method(class_client, "document_atomic_or", hyperdex_ruby_client_wait_document_atomic_or, 3);
+rb_define_method(class_client, "async_document_atomic_min", hyperdex_ruby_client_document_atomic_min, 3);
+rb_define_method(class_client, "document_atomic_min", hyperdex_ruby_client_wait_document_atomic_min, 3);
+rb_define_method(class_client, "async_document_atomic_max", hyperdex_ruby_client_document_atomic_max, 3);
+rb_define_method(class_client, "document_atomic_max", hyperdex_ruby_client_wait_document_atomic_max, 3);
 rb_define_method(class_client, "async_document_string_prepend", hyperdex_ruby_client_document_string_prepend, 3);
 rb_define_method(class_client, "document_string_prepend", hyperdex_ruby_client_wait_document_string_prepend, 3);
 rb_define_method(class_client, "async_document_string_append", hyperdex_ruby_client_document_string_append, 3);
