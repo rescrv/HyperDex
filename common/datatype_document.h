@@ -78,6 +78,9 @@ class datatype_document : public datatype_info
         // Traverse a path to the last node
         // Returns NULL if the node doesn't exist
         json_object* traverse_path(const json_object* root, const json_path& path) const;
+
+        // Go down the path as far as possible
+        json_object* get_last_elem_in_path(const json_object* parent, const json_path& path, json_path& child_path) const;
 };
 
 END_HYPERDEX_NAMESPACE

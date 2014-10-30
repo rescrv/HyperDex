@@ -31,10 +31,8 @@ class Iterator: pass
 
 class StructClient(object):
     args = (('struct hyperdex_client*', 'client'),)
-
 class StructAdmin(object):
     args = (('struct hyperdex_admin*', 'admin'),)
-
 class SpaceName(object):
     args = (('const char*', 'space'),)
 class SpaceNameSource(object):
@@ -80,6 +78,10 @@ class SpaceDescription(object):
     args = (('const char*', 'description'),)
 class SpaceList(object):
     args = (('const char*', 'spaces'),)
+class IndexList(object):
+    args = (('const char*', 'indexes'),)
+class SubspaceList(object):
+    args = (('const char*', 'subspaces'),)
 class Token(object):
     args = (('uint64_t', 'token'),)
 class Address(object):
@@ -102,6 +104,8 @@ class Method(object):
         self.form = form
         self.args_in = args_in
         self.args_out = args_out
+
+# NOTE: The commas here aren't redundant, because the parser expects lists of arguments
 
 Client = [
     Method('get', AsyncCall, (SpaceName, Key), (Status, Attributes)),
@@ -192,6 +196,8 @@ Admin = [
     Method('rm_space', AsyncCall, (SpaceName,), (AdminStatus,)),
     Method('mv_space', AsyncCall, (SpaceNameSource, SpaceNameTarget), (AdminStatus,)),
     Method('list_spaces', AsyncCall, (), (AdminStatus, SpaceList)),
+    Method('list_indices', AsyncCall, (SpaceName,), (AdminStatus, IndexList)),
+    Method('list_subspaces', AsyncCall, (SpaceName,), (AdminStatus, SubspaceList)),
     Method('add_index', AsyncCall, (SpaceName, AttributeName), (AdminStatus,)),
     Method('rm_index', AsyncCall, (IndexID,), (AdminStatus,)),
     Method('server_register', AsyncCall, (Token, Address), (AdminStatus,)),
