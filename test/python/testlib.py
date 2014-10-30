@@ -1,9 +1,20 @@
 def assertEqualsApprox(actual, expected, tolerance):
-	if not (abs(actual - expected) < tolerance):
-		print "AssertEqualsApprox failed"
-		print "Should be: " + str(expected) + ", but was " + str(actual) + "."
+    # Recurse over all subdocuments
+    if isinstance(actual, dict) and isinstance(expected, dict):
+        for k,v in actual.iteritems():
+            assert k in expected
+            assertEqualsApprox(v, expected[k], tolerance)
+        
+    elif isinstance(actual, float) and isinstance(expected, float):
+        if not (abs(actual - expected) < tolerance):
+            print "AssertEqualsApprox failed"
+            print "Should be: " + str(expected) + ", but was " + str(actual) + "."
 
-		assert False
+            assert False
+
+    else:
+        raise ValueError('Invalid Type(s) in AssertEqualsApprox')
+
 
 def assertEquals(actual, expected):
 	if not actual == expected:

@@ -116,14 +116,13 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
         gobj.use_variable();
 
         json_path path(func.arg2.c_str());
-        path.make_relative();
         json_object* obj = traverse_path(root, path);
 
         bool exists = (obj != NULL);
 
         if (func.name == FUNC_DOC_UNSET)
         {
-            json_object_put(obj);
+            //json_object_put(obj);
             return exists;
         }
         else
@@ -139,8 +138,8 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
 
             bool other_exists = (other_obj == NULL);
 
-            json_object_put(obj);
-            json_object_put(other_obj);
+            //json_object_put(obj);
+            //json_object_put(other_obj);
 
             return exists && !other_exists;
         }
@@ -170,7 +169,6 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
         assert(func.arg2_datatype == HYPERDATATYPE_STRING);
 
         json_path path(func.arg2.c_str());
-        path.make_relative();
         json_object* obj = traverse_path(root, path);
 
         if(!obj)
@@ -205,7 +203,6 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
         assert(func.arg2_datatype == HYPERDATATYPE_STRING);
 
         json_path path(func.arg2.c_str());
-        path.make_relative();
         json_object* obj = traverse_path(root, path);
 
         if(!obj)
@@ -360,12 +357,12 @@ datatype_document :: apply(const e::slice& old_value,
             if(path.has_subtree())
             {
                 json_path parent_path;
-                std::string obj_name;
-                path.split_reverse(parent_path, obj_name);
+                std::string old_name;
+                path.split_reverse(parent_path, old_name);
                 json_object *parent = traverse_path(root, parent_path);
 
                 json_object_object_add(parent, new_name.c_str(), obj);
-                json_object_object_del(parent, path.str().c_str());
+                json_object_object_del(parent, old_name.c_str());
             }
             else
             {
@@ -381,7 +378,6 @@ datatype_document :: apply(const e::slice& old_value,
             const e::slice& val = funcs[i].arg1;
 
             json_path path(key.c_str());
-            path.make_relative();
 
             const std::string arg(val.c_str());
             root = root ? root : to_json(old_value);
@@ -418,7 +414,6 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_NUM_MIN:
         {
             json_path path(funcs[i].arg2.c_str());
-            path.make_relative();
 
             const int64_t arg = *reinterpret_cast<const int64_t*>(funcs[i].arg1.data());
 
