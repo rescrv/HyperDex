@@ -79,3 +79,8 @@ json_file = open(os.getcwd() + '/test/test-data/big.json')
 data = json.load(json_file)
 assert c.put('kv', 'k2', {'v': Document(data)}) == True
 assertEquals(c.get('kv', 'k2')['v'], Document(data))
+
+# Remove a property
+assertTrue(c.put('kv', 'k7', {'v' : Document({'a' : {'b' : 3}})}))
+assertEquals(c.get('kv', 'k7')['v'], Document({'a' : {'b' : 3}}))
+assertTrue(c.document_unset('kv', 'k7', {'v' : Document({'a' : {'b' : 1}})})

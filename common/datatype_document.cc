@@ -105,7 +105,7 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
     case FUNC_DOC_RENAME:
     case FUNC_DOC_UNSET:
     {
-            json_object* root = to_json(old_values[0]);
+        json_object* root = to_json(old_values[0]);
 
         if(!root)
         {
@@ -302,7 +302,23 @@ datatype_document :: apply(const e::slice& old_value,
         }
         case FUNC_DOC_UNSET:
         {
-            //TODO implement
+            json_path path(func->arg2.c_str());
+            root = root ? root : to_json(old_value);
+            json_path parent_path;
+
+            if(path.has_subtree())
+            {
+                std::string obj_name;
+                path.split_reverse(parent_path, obj_name);
+                json_object *parent = traverse_path(root, parent_path);
+
+                assert(parent);
+                json_object_object_del(parent, obj_name.c_str());
+            }
+            else
+            {
+                json_object_object_del(root, path.str().c_str());
+            }
             break;
         }
         case FUNC_DOC_RENAME:

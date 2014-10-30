@@ -898,6 +898,18 @@ Java_org_hyperdex_client_Client_async_1document_1string_1append(JNIEnv* env, job
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1document_1rename(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject docattributes)
+{
+    return hyperdex_java_client_asynccall__spacename_key_docattributes__status(env, obj, hyperdex_client_document_rename, spacename, key, docattributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1document_1unset(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject docattributes)
+{
+    return hyperdex_java_client_asynccall__spacename_key_docattributes__status(env, obj, hyperdex_client_document_unset, spacename, key, docattributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1map_1atomic_1add(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject mapattributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_mapattributes__status(env, obj, hyperdex_client_map_atomic_add, spacename, key, mapattributes);

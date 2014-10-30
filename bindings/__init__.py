@@ -166,6 +166,8 @@ Client = [
     Method('document_atomic_max', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
     Method('document_string_prepend', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
     Method('document_string_append', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
+    Method('document_rename', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
+    Method('document_unset', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
     Method('map_atomic_add', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_add', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
     Method('map_atomic_sub', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),

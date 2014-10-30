@@ -86,6 +86,8 @@ NODE_SET_PROTOTYPE_METHOD(tpl, "document_atomic_min", HyperDexClient::document_a
 NODE_SET_PROTOTYPE_METHOD(tpl, "document_atomic_max", HyperDexClient::document_atomic_max);
 NODE_SET_PROTOTYPE_METHOD(tpl, "document_string_prepend", HyperDexClient::document_string_prepend);
 NODE_SET_PROTOTYPE_METHOD(tpl, "document_string_append", HyperDexClient::document_string_append);
+NODE_SET_PROTOTYPE_METHOD(tpl, "document_rename", HyperDexClient::document_rename);
+NODE_SET_PROTOTYPE_METHOD(tpl, "document_unset", HyperDexClient::document_unset);
 NODE_SET_PROTOTYPE_METHOD(tpl, "map_atomic_add", HyperDexClient::map_atomic_add);
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_map_atomic_add", HyperDexClient::cond_map_atomic_add);
 NODE_SET_PROTOTYPE_METHOD(tpl, "map_atomic_sub", HyperDexClient::map_atomic_sub);

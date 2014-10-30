@@ -101,6 +101,8 @@ static v8::Handle<v8::Value> document_atomic_min(const v8::Arguments& args);
 static v8::Handle<v8::Value> document_atomic_max(const v8::Arguments& args);
 static v8::Handle<v8::Value> document_string_prepend(const v8::Arguments& args);
 static v8::Handle<v8::Value> document_string_append(const v8::Arguments& args);
+static v8::Handle<v8::Value> document_rename(const v8::Arguments& args);
+static v8::Handle<v8::Value> document_unset(const v8::Arguments& args);
 static v8::Handle<v8::Value> map_atomic_add(const v8::Arguments& args);
 static v8::Handle<v8::Value> cond_map_atomic_add(const v8::Arguments& args);
 static v8::Handle<v8::Value> map_atomic_sub(const v8::Arguments& args);
