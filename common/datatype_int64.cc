@@ -127,7 +127,7 @@ datatype_int64 :: apply(const e::slice& old_value,
                 number = std::max(number, arg);
                 break;
             case FUNC_NUM_MIN:
-                number = std::max(number, arg);
+                number = std::min(number, arg);
                 break;
             case FUNC_NUM_ADD:
                 if (!e::safe_add(number, arg, &number))

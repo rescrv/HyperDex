@@ -183,6 +183,14 @@ rb_define_method(class_client, "async_map_string_append", hyperdex_ruby_client_m
 rb_define_method(class_client, "map_string_append", hyperdex_ruby_client_wait_map_string_append, 3);
 rb_define_method(class_client, "async_cond_map_string_append", hyperdex_ruby_client_cond_map_string_append, 4);
 rb_define_method(class_client, "cond_map_string_append", hyperdex_ruby_client_wait_cond_map_string_append, 4);
+rb_define_method(class_client, "async_map_atomic_min", hyperdex_ruby_client_map_atomic_min, 3);
+rb_define_method(class_client, "map_atomic_min", hyperdex_ruby_client_wait_map_atomic_min, 3);
+rb_define_method(class_client, "async_cond_map_atomic_min", hyperdex_ruby_client_cond_map_atomic_min, 4);
+rb_define_method(class_client, "cond_map_atomic_min", hyperdex_ruby_client_wait_cond_map_atomic_min, 4);
+rb_define_method(class_client, "async_map_atomic_max", hyperdex_ruby_client_map_atomic_max, 3);
+rb_define_method(class_client, "map_atomic_max", hyperdex_ruby_client_wait_map_atomic_max, 3);
+rb_define_method(class_client, "async_cond_map_atomic_max", hyperdex_ruby_client_cond_map_atomic_max, 4);
+rb_define_method(class_client, "cond_map_atomic_max", hyperdex_ruby_client_wait_cond_map_atomic_max, 4);
 rb_define_method(class_client, "search", hyperdex_ruby_client_search, 2);
 rb_define_method(class_client, "async_search_describe", hyperdex_ruby_client_search_describe, 2);
 rb_define_method(class_client, "search_describe", hyperdex_ruby_client_wait_search_describe, 2);

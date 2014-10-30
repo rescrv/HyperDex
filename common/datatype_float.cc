@@ -63,13 +63,26 @@ datatype_float :: validate(const e::slice& value) const
 bool
 datatype_float :: check_args(const funcall& func) const
 {
-    return func.arg1_datatype == HYPERDATATYPE_FLOAT &&
-           validate(func.arg1) &&
-           (func.name == FUNC_SET ||
-            func.name == FUNC_NUM_ADD ||
-            func.name == FUNC_NUM_SUB ||
-            func.name == FUNC_NUM_MUL ||
-            func.name == FUNC_NUM_DIV);
+    if (func.name == FUNC_SET ||
+        func.name == FUNC_NUM_ADD ||
+        func.name == FUNC_NUM_SUB ||
+        func.name == FUNC_NUM_MUL ||
+        func.name == FUNC_NUM_DIV ||
+        func.name == FUNC_NUM_MOD ||
+        func.name == FUNC_NUM_AND ||
+        func.name == FUNC_NUM_OR ||
+        func.name == FUNC_NUM_XOR ||
+        func.name == FUNC_NUM_MAX ||
+        func.name == FUNC_NUM_MIN)
+    {
+        return func.arg1_datatype == HYPERDATATYPE_FLOAT &&
+                    validate(func.arg1);
+    }
+    else
+    {
+        // unsupported operation
+        return false;
+    }
 }
 
 uint8_t*

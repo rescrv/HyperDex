@@ -1063,6 +1063,30 @@ HyperDexClient :: cond_map_string_append(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: map_atomic_min(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_min, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: cond_map_atomic_min(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_min, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: map_atomic_max(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_max, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: cond_map_atomic_max(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_max, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: search(const v8::Arguments& args)
 {
     return iterator__spacename_predicates__status_attributes(hyperdex_client_search, args);

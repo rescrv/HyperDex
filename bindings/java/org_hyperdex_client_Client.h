@@ -673,6 +673,38 @@ JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1co
 
 /*
  * Class:     org_hyperdex_client_Client
+ * Method:    async_map_atomic_min
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1min
+  (JNIEnv *, jobject, jstring, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Client
+ * Method:    async_cond_map_atomic_min
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1min
+  (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Client
+ * Method:    async_map_atomic_max
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1max
+  (JNIEnv *, jobject, jstring, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Client
+ * Method:    async_cond_map_atomic_max
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1max
+  (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Client
  * Method:    search
  * Signature: (Ljava/lang/String;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
  */

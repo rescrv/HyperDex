@@ -1388,6 +1388,54 @@ hyperdex_ruby_client_wait_cond_map_string_append(VALUE self, VALUE spacename, VA
 }
 
 static VALUE
+hyperdex_ruby_client_map_atomic_min(VALUE self, VALUE spacename, VALUE key, VALUE mapattributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_min, self, spacename, key, mapattributes);
+}
+VALUE
+hyperdex_ruby_client_wait_map_atomic_min(VALUE self, VALUE spacename, VALUE key, VALUE mapattributes)
+{
+    VALUE deferred = hyperdex_ruby_client_map_atomic_min(self, spacename, key, mapattributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
+hyperdex_ruby_client_cond_map_atomic_min(VALUE self, VALUE spacename, VALUE key, VALUE predicates, VALUE mapattributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_min, self, spacename, key, predicates, mapattributes);
+}
+VALUE
+hyperdex_ruby_client_wait_cond_map_atomic_min(VALUE self, VALUE spacename, VALUE key, VALUE predicates, VALUE mapattributes)
+{
+    VALUE deferred = hyperdex_ruby_client_cond_map_atomic_min(self, spacename, key, predicates, mapattributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
+hyperdex_ruby_client_map_atomic_max(VALUE self, VALUE spacename, VALUE key, VALUE mapattributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_max, self, spacename, key, mapattributes);
+}
+VALUE
+hyperdex_ruby_client_wait_map_atomic_max(VALUE self, VALUE spacename, VALUE key, VALUE mapattributes)
+{
+    VALUE deferred = hyperdex_ruby_client_map_atomic_max(self, spacename, key, mapattributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
+hyperdex_ruby_client_cond_map_atomic_max(VALUE self, VALUE spacename, VALUE key, VALUE predicates, VALUE mapattributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_max, self, spacename, key, predicates, mapattributes);
+}
+VALUE
+hyperdex_ruby_client_wait_cond_map_atomic_max(VALUE self, VALUE spacename, VALUE key, VALUE predicates, VALUE mapattributes)
+{
+    VALUE deferred = hyperdex_ruby_client_cond_map_atomic_max(self, spacename, key, predicates, mapattributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
 hyperdex_ruby_client_search(VALUE self, VALUE spacename, VALUE predicates)
 {
     return hyperdex_ruby_client_iterator__spacename_predicates__status_attributes(hyperdex_client_search, self, spacename, predicates);

@@ -106,6 +106,10 @@ NODE_SET_PROTOTYPE_METHOD(tpl, "map_string_prepend", HyperDexClient::map_string_
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_map_string_prepend", HyperDexClient::cond_map_string_prepend);
 NODE_SET_PROTOTYPE_METHOD(tpl, "map_string_append", HyperDexClient::map_string_append);
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_map_string_append", HyperDexClient::cond_map_string_append);
+NODE_SET_PROTOTYPE_METHOD(tpl, "map_atomic_min", HyperDexClient::map_atomic_min);
+NODE_SET_PROTOTYPE_METHOD(tpl, "cond_map_atomic_min", HyperDexClient::cond_map_atomic_min);
+NODE_SET_PROTOTYPE_METHOD(tpl, "map_atomic_max", HyperDexClient::map_atomic_max);
+NODE_SET_PROTOTYPE_METHOD(tpl, "cond_map_atomic_max", HyperDexClient::cond_map_atomic_max);
 NODE_SET_PROTOTYPE_METHOD(tpl, "search", HyperDexClient::search);
 NODE_SET_PROTOTYPE_METHOD(tpl, "search_describe", HyperDexClient::search_describe);
 NODE_SET_PROTOTYPE_METHOD(tpl, "sorted_search", HyperDexClient::sorted_search);

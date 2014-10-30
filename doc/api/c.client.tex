@@ -2771,6 +2771,148 @@ int64_t hyperdex_client_cond_map_string_append(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%% map_atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{map\_atomic\_min}}
+\label{api:c:map_atomic_min}
+\index{map\_atomic\_min!C API}
+\input{\topdir/api/desc/map_atomic_min}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_client_map_atomic_min(struct hyperdex_client* client,
+        const char* space,
+        const char* key, size_t key_sz,
+        const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+        enum hyperdex_client_returncode* status);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%% cond_map_atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_map\_atomic\_min}}
+\label{api:c:cond_map_atomic_min}
+\index{cond\_map\_atomic\_min!C API}
+\input{\topdir/api/desc/cond_map_atomic_min}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_client_cond_map_atomic_min(struct hyperdex_client* client,
+        const char* space,
+        const char* key, size_t key_sz,
+        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+        const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+        enum hyperdex_client_returncode* status);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%% map_atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{map\_atomic\_max}}
+\label{api:c:map_atomic_max}
+\index{map\_atomic\_max!C API}
+\input{\topdir/api/desc/map_atomic_max}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_client_map_atomic_max(struct hyperdex_client* client,
+        const char* space,
+        const char* key, size_t key_sz,
+        const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+        enum hyperdex_client_returncode* status);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%% cond_map_atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_map\_atomic\_max}}
+\label{api:c:cond_map_atomic_max}
+\index{cond\_map\_atomic\_max!C API}
+\input{\topdir/api/desc/cond_map_atomic_max}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_client_cond_map_atomic_max(struct hyperdex_client* client,
+        const char* space,
+        const char* key, size_t key_sz,
+        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+        const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+        enum hyperdex_client_returncode* status);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_map\_attribute* mapattrs, size\_t mapattrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
+\end{itemize}
+
 %%%%%%%%%%%%%%%%%%%% search %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{search}}
