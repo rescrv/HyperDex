@@ -64,9 +64,17 @@ class HyperSpace:
         self.init()
         return self.client.document_string_prepend(self.name, key, {'v' : self.Document(value)})
         
+    def async_atomic_add(self, key, value):
+        self.init()
+        return self.client.async_document_atomic_add(self.name, key, {'v' : self.Document(value)})
+        
     def atomic_add(self, key, value):
         self.init()
         return self.client.document_atomic_add(self.name, key, {'v' : self.Document(value)})
+        
+    def async_atomic_sub(self, key, value):
+        self.init()
+        return self.client.async_document_atomic_sub(self.name, key, {'v' : self.Document(value)})
     
     def atomic_sub(self, key, value):
         self.init()
