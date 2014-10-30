@@ -84,17 +84,26 @@ datatype_int64 :: validate(const e::slice& value) const
 bool
 datatype_int64 :: check_args(const funcall& func) const
 {
-    return func.arg1_datatype == HYPERDATATYPE_INT64 &&
-           validate(func.arg1) &&
-           (func.name == FUNC_SET ||
-            func.name == FUNC_NUM_ADD ||
-            func.name == FUNC_NUM_SUB ||
-            func.name == FUNC_NUM_MUL ||
-            func.name == FUNC_NUM_DIV ||
-            func.name == FUNC_NUM_MOD ||
-            func.name == FUNC_NUM_AND ||
-            func.name == FUNC_NUM_OR ||
-            func.name == FUNC_NUM_XOR);
+    if (func.name == FUNC_SET ||
+        func.name == FUNC_NUM_ADD ||
+        func.name == FUNC_NUM_SUB ||
+        func.name == FUNC_NUM_MUL ||
+        func.name == FUNC_NUM_DIV ||
+        func.name == FUNC_NUM_MOD ||
+        func.name == FUNC_NUM_AND ||
+        func.name == FUNC_NUM_OR ||
+        func.name == FUNC_NUM_XOR ||
+        func.name == FUNC_NUM_MAX ||
+        func.name == FUNC_NUM_MIN)
+    {
+        return func.arg1_datatype == HYPERDATATYPE_INT64 &&
+                    validate(func.arg1);
+    }
+    else
+    {
+        // unsupported operation
+        return false;
+    }
 }
 
 uint8_t*
@@ -113,6 +122,12 @@ datatype_int64 :: apply(const e::slice& old_value,
         {
             case FUNC_SET:
                 number = arg;
+                break;
+            case FUNC_NUM_MAX:
+                number = std::max(number, arg);
+                break;
+            case FUNC_NUM_MIN:
+                number = std::min(number, arg);
                 break;
             case FUNC_NUM_ADD:
                 if (!e::safe_add(number, arg, &number))
@@ -164,6 +179,8 @@ datatype_int64 :: apply(const e::slice& old_value,
             case FUNC_MAP_ADD:
             case FUNC_MAP_REMOVE:
             case FUNC_FAIL:
+            case FUNC_DOC_RENAME:
+            case FUNC_DOC_UNSET:
             default:
                 abort();
         }

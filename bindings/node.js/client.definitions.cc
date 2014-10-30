@@ -733,6 +733,30 @@ HyperDexClient :: cond_atomic_xor(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: atomic_min(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_attributes__status(hyperdex_client_atomic_min, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: cond_atomic_min(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_min, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: atomic_max(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_attributes__status(hyperdex_client_atomic_max, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: cond_atomic_max(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_max, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: string_prepend(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_string_prepend, args);
@@ -895,6 +919,18 @@ HyperDexClient :: document_atomic_or(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: document_atomic_min(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_min, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: document_atomic_max(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_max, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: document_string_prepend(const v8::Arguments& args)
 {
     return asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_prepend, args);
@@ -904,6 +940,18 @@ v8::Handle<v8::Value>
 HyperDexClient :: document_string_append(const v8::Arguments& args)
 {
     return asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_append, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: document_rename(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_rename, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: document_unset(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_unset, args);
 }
 
 v8::Handle<v8::Value>
@@ -1024,6 +1072,30 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_map_string_append(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_string_append, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: map_atomic_min(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_min, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: cond_map_atomic_min(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_min, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: map_atomic_max(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_max, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: cond_map_atomic_max(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_max, args);
 }
 
 v8::Handle<v8::Value>
