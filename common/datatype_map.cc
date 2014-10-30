@@ -202,6 +202,8 @@ datatype_map :: apply(const e::slice& old_value,
             case FUNC_STRING_APPEND:
             case FUNC_STRING_PREPEND:
             case FUNC_NUM_ADD:
+            case FUNC_NUM_MIN:
+            case FUNC_NUM_MAX:
             case FUNC_NUM_SUB:
             case FUNC_NUM_MUL:
             case FUNC_NUM_DIV:
@@ -219,6 +221,8 @@ datatype_map :: apply(const e::slice& old_value,
             case FUNC_FAIL:
             case FUNC_LIST_LPUSH:
             case FUNC_LIST_RPUSH:
+            case FUNC_DOC_RENAME:
+            case FUNC_DOC_UNSET:
             case FUNC_SET_ADD:
             case FUNC_SET_REMOVE:
             case FUNC_SET_INTERSECT:

@@ -102,8 +102,36 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
     // we only need to check old values for atomic operations
     switch(func.name)
     {
+    case FUNC_DOC_RENAME:
+    case FUNC_DOC_UNSET:
+    {
+            json_object* root = to_json(old_values[0]);
+
+        if(!root)
+        {
+            return false;
+        }
+
+        e::guard gobj = e::makeguard(json_object_put, root);
+        gobj.use_variable();
+
+        // Arugment 2 must be the path
+        // otherwise, check_args should have caught this
+        assert(func.arg2_datatype == HYPERDATATYPE_STRING);
+
+        json_path path(func.arg2.c_str());
+        path.make_relative();
+        json_object* obj = traverse_path(root, path);
+
+        bool exists = (obj != NULL);
+        json_object_put(obj);
+
+        return exists;
+    }
     case FUNC_NUM_ADD:
     case FUNC_NUM_AND:
+    case FUNC_NUM_MAX:
+    case FUNC_NUM_MIN:
     case FUNC_NUM_MOD:
     case FUNC_NUM_MUL:
     case FUNC_NUM_SUB:
@@ -211,6 +239,8 @@ datatype_document :: check_args(const funcall& func) const
     case FUNC_NUM_AND:
     case FUNC_NUM_OR:
     case FUNC_NUM_MOD:
+    case FUNC_NUM_MIN:
+    case FUNC_NUM_MAX:
     {
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
@@ -223,6 +253,11 @@ datatype_document :: check_args(const funcall& func) const
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
         return func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING;
+    }
+    case FUNC_DOC_UNSET:
+    case FUNC_DOC_RENAME:
+    {
+        return func.arg2_datatype == HYPERDATATYPE_STRING;
     }
     case FUNC_FAIL:
     case FUNC_LIST_LPUSH:
@@ -262,6 +297,16 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_SET:
         {
             new_value = func->arg1;
+            break;
+        }
+        case FUNC_DOC_UNSET:
+        {
+            //TODO implement
+            break;
+        }
+        case FUNC_DOC_RENAME:
+        {
+            //TODO implement
             break;
         }
         case FUNC_STRING_PREPEND:
@@ -304,6 +349,8 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_NUM_OR:
         case FUNC_NUM_AND:
         case FUNC_NUM_MOD:
+        case FUNC_NUM_MAX:
+        case FUNC_NUM_MIN:
         {
             json_path path(funcs[i].arg2.c_str());
             path.make_relative();
@@ -354,6 +401,16 @@ datatype_document :: apply(const e::slice& old_value,
             else if(func->name == FUNC_NUM_OR)
             {
                 number = number | arg;
+                success = true;
+            }
+            else if(func->name == FUNC_NUM_MAX)
+            {
+                number = std::max(number, arg);
+                success = true;
+            }
+            else if(func->name == FUNC_NUM_MIN)
+            {
+                number = std::min(number, arg);
                 success = true;
             }
 

@@ -107,6 +107,12 @@ datatype_float :: apply(const e::slice& old_value,
             case FUNC_NUM_DIV:
                 number /= arg;
                 break;
+            case FUNC_NUM_MAX:
+                number = std::max(number, arg);
+                break;
+            case FUNC_NUM_MIN:
+                number = std::min(number, arg);
+                break;
             case FUNC_NUM_MOD:
             case FUNC_NUM_AND:
             case FUNC_NUM_OR:
@@ -119,6 +125,8 @@ datatype_float :: apply(const e::slice& old_value,
             case FUNC_SET_REMOVE:
             case FUNC_SET_INTERSECT:
             case FUNC_SET_UNION:
+            case FUNC_DOC_RENAME:
+            case FUNC_DOC_UNSET:
             case FUNC_MAP_ADD:
             case FUNC_MAP_REMOVE:
             case FUNC_FAIL:
