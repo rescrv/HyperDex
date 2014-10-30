@@ -115,18 +115,35 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
         e::guard gobj = e::makeguard(json_object_put, root);
         gobj.use_variable();
 
-        // Arugment 2 must be the path
-        // otherwise, check_args should have caught this
-        assert(func.arg2_datatype == HYPERDATATYPE_STRING);
-
         json_path path(func.arg2.c_str());
         path.make_relative();
         json_object* obj = traverse_path(root, path);
 
         bool exists = (obj != NULL);
-        json_object_put(obj);
 
-        return exists;
+        if (func.name == FUNC_DOC_UNSET)
+        {
+            json_object_put(obj);
+            return exists;
+        }
+        else
+        {
+            std::string new_name(func.arg2.c_str());
+
+            json_path parent_path;
+            std::string obj_name;
+            path.split_reverse(parent_path, obj_name);
+
+            parent_path.append(new_name);
+            json_object* other_obj = traverse_path(root, path);
+
+            bool other_exists = (other_obj == NULL);
+
+            json_object_put(obj);
+            json_object_put(other_obj);
+
+            return exists && !other_exists;
+        }
     }
     case FUNC_NUM_ADD:
     case FUNC_NUM_AND:
@@ -256,9 +273,20 @@ datatype_document :: check_args(const funcall& func) const
         return func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
     case FUNC_DOC_UNSET:
+    {
+        // Key should be a path and the value will not be evaluated (for now)
+        return func.arg1_datatype == HYPERDATATYPE_INT64 && func.arg2_datatype == HYPERDATATYPE_STRING;
+    }
     case FUNC_DOC_RENAME:
     {
-        return func.arg2_datatype == HYPERDATATYPE_STRING;
+        if(!func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING)
+        {
+            return false;
+        }
+
+        // New name must not be empty or contain a '.'
+        std::string new_path = func.arg1.c_str();
+        return !new_path.empty() && new_path.find('.') == std::string::npos;
     }
     case FUNC_FAIL:
     case FUNC_LIST_LPUSH:
@@ -304,10 +332,10 @@ datatype_document :: apply(const e::slice& old_value,
         {
             json_path path(func->arg2.c_str());
             root = root ? root : to_json(old_value);
-            json_path parent_path;
 
             if(path.has_subtree())
             {
+                json_path parent_path;
                 std::string obj_name;
                 path.split_reverse(parent_path, obj_name);
                 json_object *parent = traverse_path(root, parent_path);
@@ -323,7 +351,27 @@ datatype_document :: apply(const e::slice& old_value,
         }
         case FUNC_DOC_RENAME:
         {
-            //TODO implement
+            root = root ? root : to_json(old_value);
+
+            std::string new_name(func->arg1.c_str());
+            json_path path(func->arg2.c_str());
+            json_object *obj = traverse_path(root, path);
+
+            if(path.has_subtree())
+            {
+                json_path parent_path;
+                std::string obj_name;
+                path.split_reverse(parent_path, obj_name);
+                json_object *parent = traverse_path(root, parent_path);
+
+                json_object_object_add(parent, new_name.c_str(), obj);
+                json_object_object_del(parent, path.str().c_str());
+            }
+            else
+            {
+                json_object_object_add(root, new_name.c_str(), obj);
+                json_object_object_del(root, path.str().c_str());
+            }
             break;
         }
         case FUNC_STRING_PREPEND:
