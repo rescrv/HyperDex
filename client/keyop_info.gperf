@@ -41,6 +41,10 @@ atomic_or,               false, true,  false,  hyperdex::FUNC_NUM_OR
 cond_atomic_or,          false, true,  false,  hyperdex::FUNC_NUM_OR
 atomic_xor,              false, true,  false,  hyperdex::FUNC_NUM_XOR
 cond_atomic_xor,         false, true,  false,  hyperdex::FUNC_NUM_XOR
+atomic_max,              false, true,  false,  hyperdex::FUNC_NUM_MAX
+cond_atomic_max,         false, true,  false,  hyperdex::FUNC_NUM_MAX
+atomic_min,              false, true,  false,  hyperdex::FUNC_NUM_MIN
+cond_atomic_min,         false, true,  false,  hyperdex::FUNC_NUM_MIN
 string_prepend,          false, true,  false,  hyperdex::FUNC_STRING_PREPEND
 cond_string_prepend,     false, true,  false,  hyperdex::FUNC_STRING_PREPEND
 string_append,           false, true,  false,  hyperdex::FUNC_STRING_APPEND
@@ -71,6 +75,11 @@ document_string_append,  false, true,  false,  hyperdex::FUNC_STRING_APPEND
 document_atomic_mod,     false, true,  false,  hyperdex::FUNC_NUM_MOD
 document_atomic_xor,     false, true,  false,  hyperdex::FUNC_NUM_XOR
 document_atomic_or,      false, true,  false,  hyperdex::FUNC_NUM_OR
+document_atomic_and,     false, true,  false,  hyperdex::FUNC_NUM_AND
+document_rename,         false, true,  false,  hyperdex::FUNC_DOC_RENAME
+document_atomic_max,     false, true,  false,  hyperdex::FUNC_NUM_MAX
+document_atomic_min,     false, true,  false,  hyperdex::FUNC_NUM_MIN
+document_unset,          false, true,  false,  hyperdex::FUNC_DOC_UNSET
 cond_map_atomic_add,     false, true,  false,  hyperdex::FUNC_NUM_ADD
 map_atomic_sub,          false, true,  false,  hyperdex::FUNC_NUM_SUB
 cond_map_atomic_sub,     false, true,  false,  hyperdex::FUNC_NUM_SUB

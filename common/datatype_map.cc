@@ -121,26 +121,25 @@ datatype_map :: check_args(const funcall& func) const
         return m_k->validate(func.arg1) && func.arg1_datatype == m_k->datatype();
     }
     // Other operations embed their arguments in the second datatype
-    else if(func.arg2_datatype == m_k->datatype())
+    else if(func.name == FUNC_STRING_APPEND ||
+            func.name == FUNC_STRING_PREPEND ||
+            func.name == FUNC_NUM_ADD ||
+            func.name == FUNC_NUM_SUB ||
+            func.name == FUNC_NUM_MUL ||
+            func.name == FUNC_NUM_DIV ||
+            func.name == FUNC_NUM_MOD ||
+            func.name == FUNC_NUM_AND ||
+            func.name == FUNC_NUM_OR  ||
+            func.name == FUNC_NUM_XOR ||
+            func.name == FUNC_NUM_MIN ||
+            func.name == FUNC_NUM_MAX)
     {
-        bool allowedOperation = (func.name == FUNC_STRING_APPEND ||
-             func.name == FUNC_STRING_PREPEND ||
-             func.name == FUNC_NUM_ADD ||
-             func.name == FUNC_NUM_SUB ||
-             func.name == FUNC_NUM_MUL ||
-             func.name == FUNC_NUM_DIV ||
-             func.name == FUNC_NUM_MOD ||
-             func.name == FUNC_NUM_AND ||
-             func.name == FUNC_NUM_OR ||
-             func.name == FUNC_NUM_XOR);
-
         return m_k->validate(func.arg2)
-             && allowedOperation
+             && func.arg2_datatype == m_k->datatype()
              && m_v->check_args(func);
     }
     else
     {
-        // maybe call abort() here?
         return false;
     }
 }
@@ -202,6 +201,8 @@ datatype_map :: apply(const e::slice& old_value,
             case FUNC_STRING_APPEND:
             case FUNC_STRING_PREPEND:
             case FUNC_NUM_ADD:
+            case FUNC_NUM_MIN:
+            case FUNC_NUM_MAX:
             case FUNC_NUM_SUB:
             case FUNC_NUM_MUL:
             case FUNC_NUM_DIV:
@@ -219,6 +220,8 @@ datatype_map :: apply(const e::slice& old_value,
             case FUNC_FAIL:
             case FUNC_LIST_LPUSH:
             case FUNC_LIST_RPUSH:
+            case FUNC_DOC_RENAME:
+            case FUNC_DOC_UNSET:
             case FUNC_SET_ADD:
             case FUNC_SET_REMOVE:
             case FUNC_SET_INTERSECT:

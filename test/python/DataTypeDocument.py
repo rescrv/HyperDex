@@ -3,18 +3,15 @@ import sys
 import hyperdex.client
 import json
 import os
-import testlib
+from testlib import *
 
-from hyperdex.client import LessEqual, GreaterEqual, LessThan, GreaterThan, Range, Regex, LengthEquals, LengthLessEqual, LengthGreaterEqual
+from hyperdex.client import *
 c = hyperdex.client.Client(sys.argv[1], int(sys.argv[2]))
 
 def to_objectset(xs):
     return set([frozenset(x.items()) for x in xs])
 
 Document = hyperdex.client.Document
-assertEquals = testlib.assertEquals
-assertFalse = testlib.assertFalse
-assertTrue = testlib.assertTrue
 
 assertTrue(c.put('kv', 'k', {'v': Document({})}))
 assertEquals(c.get('kv', 'k')['v'], Document({}))
@@ -77,8 +74,24 @@ assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 , 'c' : {'b' :1}}))
 #assertEquals(c.get('kv', 'k5')['v'], Document(['a', 'b', 'c']))
 
 # Test loading a big json file
+
 #FIXME arrays unsupported by libbson. maybe use a different test document?
 #json_file = open(os.getcwd() + '/test/test-data/big.json')
 #data = json.load(json_file)
 #assertTrue(c.put('kv', 'k2', {'v': Document(data)}))
 #assertEquals(c.get('kv', 'k2')['v'], Document(data))
+
+# Remove a property
+assertTrue(c.put('kv', 'k7', {'v' : Document({'a' : {'b' : 3}})}))
+assertEquals(c.get('kv', 'k7')['v'], Document({'a' : {'b' : 3}}))
+assertTrue(c.document_unset('kv', 'k7', {'v' : Document({'a' : {'b' : 1}})}))
+assertEquals(c.get('kv', 'k7')['v'], Document({'a' : {}}))
+assertFalse(c.document_unset('kv', 'k7', {'v' : Document({'a' : {'b' : 1}})}))
+
+# Rename a property
+assertTrue(c.put('kv', 'k7', {'v' : Document({'a' : {'b' : 3}})}))
+assertEquals(c.get('kv', 'k7')['v'], Document({'a' : {'b' : 3}}))
+assertTrue(c.document_rename('kv', 'k7', {'v' : Document({'a' : {'b' : 'c'}})}))
+assertEquals(c.get('kv', 'k7')['v'], Document({'a' : {'c' : 3}}))
+assertFalse(c.document_rename('kv', 'k7', {'v' : Document({'a' : {'b' : 'c'}})}))
+>>>>>>> bench

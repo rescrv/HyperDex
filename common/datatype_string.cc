@@ -110,6 +110,8 @@ datatype_string :: apply(const e::slice& old_value,
             case FUNC_NUM_AND:
             case FUNC_NUM_OR:
             case FUNC_NUM_XOR:
+            case FUNC_NUM_MAX:
+            case FUNC_NUM_MIN:
             case FUNC_LIST_LPUSH:
             case FUNC_LIST_RPUSH:
             case FUNC_SET_ADD:
@@ -118,6 +120,8 @@ datatype_string :: apply(const e::slice& old_value,
             case FUNC_SET_UNION:
             case FUNC_MAP_ADD:
             case FUNC_MAP_REMOVE:
+            case FUNC_DOC_RENAME:
+            case FUNC_DOC_UNSET:
             default:
                 abort();
         }

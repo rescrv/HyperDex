@@ -84,8 +84,52 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
     // we only need to check old values for atomic operations
     switch(func.name)
     {
+    case FUNC_DOC_RENAME:
+    case FUNC_DOC_UNSET:
+    {
+        json_object* root = to_json(old_values[0]);
+
+        if(!root)
+        {
+            return false;
+        }
+
+        e::guard gobj = e::makeguard(json_object_put, root);
+        gobj.use_variable();
+
+        json_path path(func.arg2.c_str());
+        json_object* obj = traverse_path(root, path);
+
+        bool exists = (obj != NULL);
+
+        if (func.name == FUNC_DOC_UNSET)
+        {
+            //json_object_put(obj);
+            return exists;
+        }
+        else
+        {
+            std::string new_name(func.arg2.c_str());
+
+            json_path parent_path;
+            std::string obj_name;
+            path.split_reverse(parent_path, obj_name);
+
+            parent_path.append(new_name);
+            json_object* other_obj = traverse_path(root, path);
+
+            bool other_exists = (other_obj == NULL);
+
+            //json_object_put(obj);
+            //json_object_put(other_obj);
+
+            return exists && !other_exists;
+        }
+    }
     case FUNC_NUM_ADD:
     case FUNC_NUM_AND:
+    case FUNC_NUM_MAX:
+    case FUNC_NUM_MIN:
     case FUNC_NUM_MOD:
     case FUNC_NUM_MUL:
     case FUNC_NUM_SUB:
@@ -192,6 +236,8 @@ datatype_document :: check_args(const funcall& func) const
     case FUNC_NUM_AND:
     case FUNC_NUM_OR:
     case FUNC_NUM_MOD:
+    case FUNC_NUM_MIN:
+    case FUNC_NUM_MAX:
     {
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
@@ -204,6 +250,22 @@ datatype_document :: check_args(const funcall& func) const
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
         return func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING;
+    }
+    case FUNC_DOC_UNSET:
+    {
+        // Key should be a path and the value will not be evaluated (for now)
+        return func.arg1_datatype == HYPERDATATYPE_INT64 && func.arg2_datatype == HYPERDATATYPE_STRING;
+    }
+    case FUNC_DOC_RENAME:
+    {
+        if(!func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING)
+        {
+            return false;
+        }
+
+        // New name must not be empty or contain a '.'
+        std::string new_path = func.arg1.c_str();
+        return !new_path.empty() && new_path.find('.') == std::string::npos;
     }
     case FUNC_FAIL:
     case FUNC_LIST_LPUSH:
@@ -452,11 +514,59 @@ datatype_document :: apply(const e::slice& old_value,
             }
             break;
         }
+        case FUNC_DOC_UNSET:
+        {
+            json_path path(func->arg2.c_str());
+            root = root ? root : to_json(old_value);
+
+            if(path.has_subtree())
+            {
+                json_path parent_path;
+                std::string obj_name;
+                path.split_reverse(parent_path, obj_name);
+                json_object *parent = traverse_path(root, parent_path);
+
+                assert(parent);
+                json_object_object_del(parent, obj_name.c_str());
+            }
+            else
+            {
+                json_object_object_del(root, path.str().c_str());
+            }
+            break;
+        }
+        case FUNC_DOC_RENAME:
+        {
+            root = root ? root : to_json(old_value);
+
+            std::string new_name(func->arg1.c_str());
+            json_path path(func->arg2.c_str());
+            json_object *obj = traverse_path(root, path);
+
+            if(path.has_subtree())
+            {
+                json_path parent_path;
+                std::string old_name;
+                path.split_reverse(parent_path, old_name);
+                json_object *parent = traverse_path(root, parent_path);
+
+                json_object_object_add(parent, new_name.c_str(), obj);
+                json_object_object_del(parent, old_name.c_str());
+            }
+            else
+            {
+                json_object_object_add(root, new_name.c_str(), obj);
+                json_object_object_del(root, path.str().c_str());
+            }
+            break;
+        }
         case FUNC_STRING_PREPEND:
         case FUNC_STRING_APPEND:
         {
-            std::string arg = func->arg1.c_str();
-            std::string path = func->arg2.c_str();
+            const e::slice& key = funcs[i].arg2;
+            const e::slice& val = funcs[i].arg1;
+
+            json_path path(key.c_str());
 
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
 
@@ -500,6 +610,8 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_NUM_OR:
         case FUNC_NUM_AND:
         case FUNC_NUM_MOD:
+        case FUNC_NUM_MAX:
+        case FUNC_NUM_MIN:
         {
             int64_t arg = reinterpret_cast<const int64_t*>(func->arg1.data())[0];
             json_path path = func->arg2.c_str();
@@ -568,10 +680,15 @@ datatype_document :: apply(const e::slice& old_value,
                 number = number | arg;
                 success = true;
             }
-            else
+            else if(func->name == FUNC_NUM_MAX)
             {
-                // unknown operation
-                abort();
+                number = std::max(number, arg);
+                success = true;
+            }
+            else if(func->name == FUNC_NUM_MIN)
+            {
+                number = std::min(number, arg);
+                success = true;
             }
 
             if(success)
