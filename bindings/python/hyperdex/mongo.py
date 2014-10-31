@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from hyperdex.client import *
 import hyperdex.admin
 
@@ -17,6 +18,11 @@ class HyperIterator:
 			
         return self.innerIter.next()['v'].doc()
 
+=======
+import hyperdex.client
+import hyperdex.admin
+
+>>>>>>> 2eb132749be3111ade02e85b3974d57c505325b0
 class HyperSpace:
     Document = hyperdex.client.Document
     
@@ -38,6 +44,7 @@ class HyperSpace:
         self.admin.add_space('space ' + self.name + ' key k attributes document v')
         exists = True
         
+<<<<<<< HEAD
     # Convert from hyperdex to mongo conditions
     def convert_conds(self, conditions):
         if not isinstance(conditions, dict):
@@ -86,7 +93,8 @@ class HyperSpace:
         
     def get(self, key):
         self.init()
-        
+        result = self.client.get(self.name, key)
+      
         if result == None:
             return None
         else:
@@ -161,11 +169,11 @@ class HyperSpace:
     def atomic_div(self, key, value):
         self.init()
         return self.client.document_atomic_div(self.name, key, {'v' : self.Document(value)})
- 
+
     def atomic_and(self, key, value):
         self.init()
         return self.client.document_atomic_and(self.name, key, {'v' : self.Document(value)})
-
+        
     def atomic_xor(self, key, value):
         self.init()
         return self.client.document_atomic_xor(self.name, key, {'v' : self.Document(value)})
