@@ -161,11 +161,11 @@ class HyperSpace:
     def atomic_div(self, key, value):
         self.init()
         return self.client.document_atomic_div(self.name, key, {'v' : self.Document(value)})
-    
+ 
     def atomic_and(self, key, value):
         self.init()
         return self.client.document_atomic_and(self.name, key, {'v' : self.Document(value)})
-        
+
     def atomic_xor(self, key, value):
         self.init()
         return self.client.document_atomic_xor(self.name, key, {'v' : self.Document(value)})

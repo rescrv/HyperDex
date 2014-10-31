@@ -668,6 +668,7 @@ EXTRA_DIST += bindings/node.js/client.prototypes.cc
 
 if ENABLE_PYTHON_BINDINGS
 pkgpyexec_DATA += bindings/python/hyperdex/__init__.py
+pkgpyexec_DATA += bindings/python/hyperdex/mongo.py
 if ENABLE_CLIENT
 pkgpyexec_LTLIBRARIES += bindings/python/hyperdex/client.la
 endif

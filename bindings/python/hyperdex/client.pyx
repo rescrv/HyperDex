@@ -1047,7 +1047,8 @@ cdef class Deferred:
         self.finished = True
         return self.encode_return(self)
 
-
+# Utility class to easily iterate over a result of search()
+# It will dynamically poll the client for more content
 cdef class Iterator:
     cdef Client client
     cdef hyperdex_ds_arena* arena
@@ -1082,12 +1083,18 @@ cdef class Iterator:
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def hasNext(self):
+        # Poll for new elements
         while not self.finished and not self.backlogged:
             self.client.loop()
-        if self.backlogged:
+
+        return self.backlogged
+
+    def __next__(self):
+        if self.hasNext():
             return self.backlogged.pop()
-        raise StopIteration()
+        else:
+            raise StopIteration()
 
     def _callback(self):
         if self.status == HYPERDEX_CLIENT_SEARCHDONE:
