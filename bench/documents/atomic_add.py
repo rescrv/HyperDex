@@ -2,6 +2,7 @@
 
 import sys
 import functools
+import time
 
 from benchmark import Benchmark
 from hyperdex.mongo import HyperDatabase, HyperSpace 
@@ -20,6 +21,8 @@ db = HyperDatabase(sys.argv[1], int(sys.argv[2]))
 # Run
 for n in range(500, 10000, 250):
         db.bench.insert(createDoc('myval', n))
+        time.sleep(1)
+        
         numCalls = 1000
         pendingOps = []
 

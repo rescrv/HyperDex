@@ -38,7 +38,6 @@ class HyperSpace:
         self.admin.add_space('space ' + self.name + ' key k attributes document v')
         exists = True
 
-<<<<<<< HEAD
     # Convert from hyperdex to mongo conditions
     def convert_conds(self, conditions):
         if not isinstance(conditions, dict):
@@ -87,11 +86,7 @@ class HyperSpace:
 
     def get(self, key):
         self.init()
-=======
-    def get(self, key):
-        self.init()
         result = self.client.get(self.name, key)
->>>>>>> bench
 
         if result == None:
             return None

@@ -87,44 +87,7 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
     case FUNC_DOC_RENAME:
     case FUNC_DOC_UNSET:
     {
-        json_object* root = to_json(old_values[0]);
-
-        if(!root)
-        {
-            return false;
-        }
-
-        e::guard gobj = e::makeguard(json_object_put, root);
-        gobj.use_variable();
-
-        json_path path(func.arg2.c_str());
-        json_object* obj = traverse_path(root, path);
-
-        bool exists = (obj != NULL);
-
-        if (func.name == FUNC_DOC_UNSET)
-        {
-            //json_object_put(obj);
-            return exists;
-        }
-        else
-        {
-            std::string new_name(func.arg2.c_str());
-
-            json_path parent_path;
-            std::string obj_name;
-            path.split_reverse(parent_path, obj_name);
-
-            parent_path.append(new_name);
-            json_object* other_obj = traverse_path(root, path);
-
-            bool other_exists = (other_obj == NULL);
-
-            //json_object_put(obj);
-            //json_object_put(other_obj);
-
-            return exists && !other_exists;
-        }
+        //TODO implement
     }
     case FUNC_NUM_ADD:
     case FUNC_NUM_AND:
@@ -378,10 +341,8 @@ datatype_document :: replace_int64_recurse(const json_path& path, const int64_t 
 
     if(!found && !path.empty())
     {
-        std::cout << "a" << std::endl;
         if(path.has_subtree())
         {
-        std::cout << "b" << std::endl;
             json_path subpath;
             std::string root_name;
             path.split(root_name, subpath);
@@ -394,7 +355,6 @@ datatype_document :: replace_int64_recurse(const json_path& path, const int64_t 
         }
         else
         {
-        std::cout << "c" << std::endl;
             bson_append_int64(parent, path.str().c_str(), path.str().size(), new_value);
         }
     }
@@ -516,48 +476,12 @@ datatype_document :: apply(const e::slice& old_value,
         }
         case FUNC_DOC_UNSET:
         {
-            json_path path(func->arg2.c_str());
-            root = root ? root : to_json(old_value);
-
-            if(path.has_subtree())
-            {
-                json_path parent_path;
-                std::string obj_name;
-                path.split_reverse(parent_path, obj_name);
-                json_object *parent = traverse_path(root, parent_path);
-
-                assert(parent);
-                json_object_object_del(parent, obj_name.c_str());
-            }
-            else
-            {
-                json_object_object_del(root, path.str().c_str());
-            }
+            //TODO implement
             break;
         }
         case FUNC_DOC_RENAME:
         {
-            root = root ? root : to_json(old_value);
-
-            std::string new_name(func->arg1.c_str());
-            json_path path(func->arg2.c_str());
-            json_object *obj = traverse_path(root, path);
-
-            if(path.has_subtree())
-            {
-                json_path parent_path;
-                std::string old_name;
-                path.split_reverse(parent_path, old_name);
-                json_object *parent = traverse_path(root, parent_path);
-
-                json_object_object_add(parent, new_name.c_str(), obj);
-                json_object_object_del(parent, old_name.c_str());
-            }
-            else
-            {
-                json_object_object_add(root, new_name.c_str(), obj);
-                json_object_object_del(root, path.str().c_str());
-            }
+            //TOOD implement
             break;
         }
         case FUNC_STRING_PREPEND:
@@ -567,6 +491,7 @@ datatype_document :: apply(const e::slice& old_value,
             const e::slice& val = funcs[i].arg1;
 
             json_path path(key.c_str());
+            std::string arg(val.c_str());
 
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
 
@@ -576,7 +501,7 @@ datatype_document :: apply(const e::slice& old_value,
             uint32_t size = 0;
             std::string str = "";
 
-            if (bson_iter_find_descendant (&iter, path.c_str(), &baz))
+            if (bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
             {
                 str = bson_iter_utf8(&baz, &size);
             }
