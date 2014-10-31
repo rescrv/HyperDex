@@ -59,10 +59,22 @@ class HyperSpace:
                 self.atomic_add(key, v)
             else:
                 raise ValueError("Unknown command " + k)
-        
+       
+    def async_string_prepend(self, key, value):
+        self.init()
+        return self.client.async_document_string_prepend(self.name, key, {'v' : self.Document(value)})
+                
     def string_prepend(self, key, value):
         self.init()
         return self.client.document_string_prepend(self.name, key, {'v' : self.Document(value)})
+        
+    def async_string_append(self, key, value):
+        self.init()
+        return self.client.async_document_string_append(self.name, key, {'v' : self.Document(value)})
+                
+    def string_append(self, key, value):
+        self.init()
+        return self.client.document_string_append(self.name, key, {'v' : self.Document(value)})
         
     def async_atomic_add(self, key, value):
         self.init()
