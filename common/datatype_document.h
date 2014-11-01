@@ -91,6 +91,9 @@ class datatype_document : public datatype_info
 
         bson_t* unset_value(const bson_t* old_document, const json_path& path) const;
         void unset_value_recurse(const json_path& path, bson_t* parent, bson_iter_t* iter) const;
+
+        bson_t* rename_value(const bson_t* old_document, const json_path& path, const std::string& new_name) const;
+        void rename_value_recurse(const json_path& path, const std::string& new_name, bson_t* parent, bson_iter_t* iter) const;
 };
 
 END_HYPERDEX_NAMESPACE
