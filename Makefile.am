@@ -1,4 +1,4 @@
-## Copyright (c) 2012-2013, Cornell University
+## Copyright (c) 2012-2014, Cornell University
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -820,6 +820,7 @@ python_wrappers =
 python_wrappers += test/sh/bindings.python.BasicSearch.sh
 python_wrappers += test/sh/bindings.python.Basic.sh
 python_wrappers += test/sh/bindings.python.CondPut.sh
+python_wrappers += test/sh/bindings.python.DataTypeDocument.sh
 python_wrappers += test/sh/bindings.python.DataTypeFloat.sh
 python_wrappers += test/sh/bindings.python.DataTypeInt.sh
 python_wrappers += test/sh/bindings.python.DataTypeListFloat.sh

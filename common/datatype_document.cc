@@ -49,6 +49,7 @@
 // e
 #include <e/endian.h>
 #include <e/guard.h>
+#include <e/safe_math.h>
 
 using hyperdex::datatype_info;
 using hyperdex::datatype_document;
@@ -96,10 +97,18 @@ datatype_document :: validate(const e::slice& value) const
 }
 
 bool
-datatype_document :: validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values, const funcall& func) const
+datatype_document :: validate_old_values(const std::vector<e::slice>& old_values, const funcall& func) const
 {
     // we only need to check old values for atomic operations
-    if(func.name == FUNC_NUM_ADD)
+    switch(func.name)
+    {
+    case FUNC_NUM_ADD:
+    case FUNC_NUM_AND:
+    case FUNC_NUM_MOD:
+    case FUNC_NUM_MUL:
+    case FUNC_NUM_SUB:
+    case FUNC_NUM_XOR:
+    case FUNC_NUM_OR:
     {
         json_object* root = to_json(old_values[0]);
 
@@ -124,11 +133,60 @@ datatype_document :: validate_old_values(const key_change& kc, const std::vector
             // new child will be created...
             return true;
         }
-        else if(json_object_get_type(obj) != json_type_int)
+        else if(json_object_get_type(obj) != json_type_int
+            && json_object_get_type(obj) != json_type_double)
         {
             // we can only add integers
             return false;
         }
+        break;
+    }
+    case FUNC_STRING_APPEND:
+    case FUNC_STRING_PREPEND:
+    {
+        json_object* root = to_json(old_values[0]);
+
+        if(!root)
+        {
+            return false;
+        }
+
+        e::guard gobj = e::makeguard(json_object_put, root);
+        gobj.use_variable();
+
+        // Arugment 2 must be the path
+        // otherwise, check_args should have caught this
+        assert(func.arg2_datatype == HYPERDATATYPE_STRING);
+
+        json_path path(func.arg2.c_str());
+        path.make_relative();
+        json_object* obj = traverse_path(root, path);
+
+        if(!obj)
+        {
+            // new child will be created...
+            return true;
+        }
+        else if(json_object_get_type(obj) != json_type_string)
+        {
+            // we can only add integers
+            return false;
+        }
+        break;
+    }
+    case FUNC_FAIL:
+    case FUNC_SET:
+    case FUNC_NUM_DIV:
+    case FUNC_LIST_LPUSH:
+    case FUNC_LIST_RPUSH:
+    case FUNC_SET_ADD:
+    case FUNC_SET_REMOVE:
+    case FUNC_SET_INTERSECT:
+    case FUNC_SET_UNION:
+    case FUNC_MAP_ADD:
+    case FUNC_MAP_REMOVE:
+    default:
+        break;
     }
 
     // No check failed
@@ -138,21 +196,48 @@ datatype_document :: validate_old_values(const key_change& kc, const std::vector
 bool
 datatype_document :: check_args(const funcall& func) const
 {
-    if(func.name == FUNC_SET)
+    switch(func.name)
+    {
+    case FUNC_SET:
     {
         // set (or replace with) a new document
         return func.arg1_datatype == HYPERDATATYPE_DOCUMENT && validate(func.arg1);
     }
-    else if(func.name == FUNC_NUM_ADD)
+    case FUNC_NUM_ADD:
+    case FUNC_NUM_SUB:
+    case FUNC_NUM_MUL:
+    case FUNC_NUM_DIV:
+    case FUNC_NUM_XOR:
+    case FUNC_NUM_AND:
+    case FUNC_NUM_OR:
+    case FUNC_NUM_MOD:
     {
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
-        return func.arg1_datatype == HYPERDATATYPE_INT64 && func.arg2_datatype == HYPERDATATYPE_STRING;
+        return (func.arg1_datatype == HYPERDATATYPE_INT64 || func.arg1_datatype == HYPERDATATYPE_FLOAT)
+            && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
-    else
+    case FUNC_STRING_APPEND:
+    case FUNC_STRING_PREPEND:
+    {
+        // they second argument is a path to the field we want to manipulate
+        // (the path is represented as a string)
+        return func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING;
+    }
+    case FUNC_FAIL:
+    case FUNC_LIST_LPUSH:
+    case FUNC_LIST_RPUSH:
+    case FUNC_SET_ADD:
+    case FUNC_SET_INTERSECT:
+    case FUNC_SET_REMOVE:
+    case FUNC_SET_UNION:
+    case FUNC_MAP_ADD:
+    case FUNC_MAP_REMOVE:
+    default:
     {
         // Unsupported operation
         return false;
+    }
     }
 }
 
@@ -163,6 +248,11 @@ datatype_document :: apply(const e::slice& old_value,
 {
     e::slice new_value = old_value;
 
+    // To support multiple updates on the same document
+    // we reuse the json object
+    // This should also save some parsing time
+    json_object* root = NULL;
+
     for (size_t i = 0; i < funcs_sz; ++i)
     {
         const funcall* func = funcs + i;
@@ -171,11 +261,11 @@ datatype_document :: apply(const e::slice& old_value,
         {
         case FUNC_SET:
         {
-            assert(check_args(*func));
             new_value = func->arg1;
             break;
         }
-        case FUNC_NUM_ADD:
+        case FUNC_STRING_PREPEND:
+        case FUNC_STRING_APPEND:
         {
             const e::slice& key = funcs[i].arg2;
             const e::slice& val = funcs[i].arg1;
@@ -183,54 +273,159 @@ datatype_document :: apply(const e::slice& old_value,
             json_path path(key.c_str());
             path.make_relative();
 
-            const int64_t addval = static_cast<const int64_t>(*val.data());
+            const std::string arg(val.c_str());
+            root = root ? root : to_json(old_value);
 
-            json_object *data = to_json(old_value);
-            atomic_add(data, path, addval);
+            json_object *parent, *obj;
+            std::string obj_name;
 
-            new_value = json_object_to_json_string(data);
+            get_end(root, path, parent, obj, obj_name);
+
+            std::string str = obj ? json_object_get_string(obj) : "";
+
+            if(func->name == FUNC_STRING_APPEND)
+            {
+                str = str + arg;
+            }
+            else
+            {
+                str = arg + str;
+            }
+
+            json_object* new_elem = json_object_new_string(str.c_str());
+            json_object_object_add(parent, obj_name.c_str(), new_elem);
             break;
         }
+        case FUNC_NUM_ADD:
+        case FUNC_NUM_SUB:
+        case FUNC_NUM_DIV:
+        case FUNC_NUM_MUL:
+        case FUNC_NUM_XOR:
+        case FUNC_NUM_OR:
+        case FUNC_NUM_AND:
+        case FUNC_NUM_MOD:
+        {
+            json_path path(funcs[i].arg2.c_str());
+            path.make_relative();
+
+            const int64_t arg = *reinterpret_cast<const int64_t*>(funcs[i].arg1.data());
+
+            root = root ? root : to_json(old_value);
+
+            json_object *parent, *obj;
+            std::string obj_name;
+
+            get_end(root, path, parent, obj, obj_name);
+
+            int64_t number = obj ? json_object_get_int64(obj) : 0;
+            bool success = false;
+
+            if(func->name == FUNC_NUM_ADD)
+            {
+                success = e::safe_add(number, arg, &number);
+            }
+            else if(func->name == FUNC_NUM_SUB)
+            {
+                success = e::safe_sub(number, arg, &number);
+            }
+            else if(func->name == FUNC_NUM_DIV)
+            {
+                success = e::safe_div(number, arg, &number);
+            }
+            else if(func->name == FUNC_NUM_MUL)
+            {
+                success = e::safe_mul(number, arg, &number);
+            }
+            else if(func->name == FUNC_NUM_MOD)
+            {
+                number = number % arg;
+                success = true;
+            }
+            else if(func->name == FUNC_NUM_XOR)
+            {
+                number = number ^ arg;
+                success = true;
+            }
+            else if(func->name == FUNC_NUM_AND)
+            {
+                number = number & arg;
+                success = true;
+            }
+            else if(func->name == FUNC_NUM_OR)
+            {
+                number = number | arg;
+                success = true;
+            }
+
+            if(success)
+            {
+                json_object* new_elem = json_object_new_int64(number);
+                json_object_object_add(parent, obj_name.c_str(), new_elem);
+            }
+            else
+            {
+                json_object_put(root);
+                return NULL;
+            }
+            break;
+        }
+        case FUNC_FAIL:
+        case FUNC_LIST_LPUSH:
+        case FUNC_LIST_RPUSH:
+        case FUNC_SET_ADD:
+        case FUNC_SET_INTERSECT:
+        case FUNC_SET_REMOVE:
+        case FUNC_SET_UNION:
+        case FUNC_MAP_ADD:
+        case FUNC_MAP_REMOVE:
         default:
             abort();
         }
+    }
+
+    if(root)
+    {
+        new_value = json_object_to_json_string(root);
+        //json_object_put(root);
     }
 
     memmove(writeto, new_value.data(), new_value.size());
     return writeto + new_value.size();
 }
 
-void datatype_document :: atomic_add(json_object* root, const json_path& path, const int64_t addval) const
+void
+datatype_document :: get_end(const json_object* root, const json_path& path,
+                                json_object*& parent, json_object*& obj, std::string& obj_name) const
 {
-    std::string child_name;
-    json_object *parent;
+    json_path parent_path;
 
     if(path.has_subtree())
     {
-        json_path parent_path;
-        path.split_reverse(parent_path, child_name);
+        path.split_reverse(parent_path, obj_name);
 
         // Apperantly, there is no easier way in json-c to get the parent
         parent = traverse_path(root, parent_path);
     }
     else
     {
-        parent = root;
-        child_name = path.str();
+        parent = const_cast<json_object*>(root);
+        obj_name = path.str();
     }
 
-    int64_t data_val = 0;
-    json_object* obj = traverse_path(root, path);
-
-    // if object doesnt exist, just create it
-    // TODO: we might also create the parent
-    if(obj)
+    if(!parent)
     {
-        data_val = json_object_get_int64(obj);
+        // Recursively build the path
+        // This might be a little inefficent but should rarely be needed
+        json_object *grandparent = NULL;
+        std::string parent_name_;
+        get_end(root, parent_path, grandparent, parent, parent_name_);
+
+        assert(grandparent != NULL);
+        parent = json_object_new_object();
+        json_object_object_add(grandparent, parent_name_.c_str(), parent);
     }
 
-    json_object* new_val = json_object_new_int64(data_val + addval);
-    json_object_object_add(parent, child_name.c_str(), new_val);
+    obj = traverse_path(root, path);
 }
 
 bool

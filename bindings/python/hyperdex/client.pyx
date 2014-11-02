@@ -196,6 +196,14 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_document_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_document_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_document_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_document_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_document_atomic_mod(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_document_atomic_xor(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_document_atomic_or(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_document_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_document_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
@@ -868,7 +876,7 @@ cdef hyperdex_python_client_iterator_encode_status_attributes(Iterator it):
 # Json can be represented natively in Python
 # However, we add a wrapper class to distinguish dictionaries from documents
 cdef class Document:
-    cdef dict _doc
+    cdef _doc
 
     # Create from either a dict (native representation) or a string
     def __init__(self, doc):
@@ -876,8 +884,10 @@ cdef class Document:
             self._doc = json.loads(doc)
         elif isinstance(doc, dict):
             self._doc = doc
+        elif isinstance(doc, list):
+            self._doc = doc
         else:
-            raise ValueError("Document must either be a dict or a string")
+            raise ValueError("Input must either be a document (dict or list) or a string")
 
     def __len__(self):
         return len(self.inner_str())
@@ -893,6 +903,14 @@ cdef class Document:
 
     def __repr__(self):
         return str(self)
+
+    def __richcmp__(Document self, Document other not None, int op):
+        if op == 2:
+            return self.doc() == other.doc()
+        elif op == 3:
+            return self.doc() != other.doc()
+        else:
+            raise TypeError('No ordering is possible for Documents.')
 
 
 cdef class Predicate:
@@ -1151,9 +1169,12 @@ cdef class Client:
                 subpath = path + "." + name
                 i = self.flatten_document(arena, i, keyname, subpath, value, mapattrs)
 
-            elif isinstance(value, int):
+            else:
                 fullpath = path + "." + name + "\0"
                 mapattrs[i].attr = keyname
+
+                if isinstance(value, str):
+                        value = value + "\0"
 
                 hyperdex_python_client_convert_type(arena, fullpath,
                                                     &mapattrs[i].map_key,
@@ -1164,8 +1185,6 @@ cdef class Client:
                                                     &mapattrs[i].value_sz,
                                                     &mapattrs[i].value_datatype)
                 i += 1
-            else:
-                raise ValueError("Can only flatten documents, where all values are integers.")
 
         return i
 
@@ -1692,6 +1711,46 @@ cdef class Client:
         return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_add, spacename, key, docattributes)
     def document_atomic_add(self, bytes spacename, key, dict docattributes):
         return self.async_document_atomic_add(spacename, key, docattributes).wait()
+
+    def async_document_atomic_sub(self, bytes spacename, key, dict docattributes):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_sub, spacename, key, docattributes)
+    def document_atomic_sub(self, bytes spacename, key, dict docattributes):
+        return self.async_document_atomic_sub(spacename, key, docattributes).wait()
+
+    def async_document_atomic_mul(self, bytes spacename, key, dict docattributes):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_mul, spacename, key, docattributes)
+    def document_atomic_mul(self, bytes spacename, key, dict docattributes):
+        return self.async_document_atomic_mul(spacename, key, docattributes).wait()
+
+    def async_document_atomic_div(self, bytes spacename, key, dict docattributes):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_div, spacename, key, docattributes)
+    def document_atomic_div(self, bytes spacename, key, dict docattributes):
+        return self.async_document_atomic_div(spacename, key, docattributes).wait()
+
+    def async_document_atomic_mod(self, bytes spacename, key, dict docattributes):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_mod, spacename, key, docattributes)
+    def document_atomic_mod(self, bytes spacename, key, dict docattributes):
+        return self.async_document_atomic_mod(spacename, key, docattributes).wait()
+
+    def async_document_atomic_xor(self, bytes spacename, key, dict docattributes):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_xor, spacename, key, docattributes)
+    def document_atomic_xor(self, bytes spacename, key, dict docattributes):
+        return self.async_document_atomic_xor(spacename, key, docattributes).wait()
+
+    def async_document_atomic_or(self, bytes spacename, key, dict docattributes):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_or, spacename, key, docattributes)
+    def document_atomic_or(self, bytes spacename, key, dict docattributes):
+        return self.async_document_atomic_or(spacename, key, docattributes).wait()
+
+    def async_document_string_prepend(self, bytes spacename, key, dict docattributes):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_prepend, spacename, key, docattributes)
+    def document_string_prepend(self, bytes spacename, key, dict docattributes):
+        return self.async_document_string_prepend(spacename, key, docattributes).wait()
+
+    def async_document_string_append(self, bytes spacename, key, dict docattributes):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_append, spacename, key, docattributes)
+    def document_string_append(self, bytes spacename, key, dict docattributes):
+        return self.async_document_string_append(spacename, key, docattributes).wait()
 
     def async_map_atomic_add(self, bytes spacename, key, dict mapattributes):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_add, spacename, key, mapattributes)

@@ -98,7 +98,7 @@ class datatype_info
 
     // override these if the type has requirements on the old value for certain operations
     public:
-        virtual bool validate_old_values(const key_change& kc, const std::vector<e::slice>& old_values, const funcall& func) const;
+        virtual bool validate_old_values(const std::vector<e::slice>& old_values, const funcall& func) const;
 
     // override these if the type can be compared
     public:

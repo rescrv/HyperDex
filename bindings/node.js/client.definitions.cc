@@ -859,6 +859,54 @@ HyperDexClient :: document_atomic_add(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: document_atomic_sub(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_sub, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: document_atomic_mul(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_mul, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: document_atomic_div(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_div, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: document_atomic_mod(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_mod, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: document_atomic_xor(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_xor, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: document_atomic_or(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_or, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: document_string_prepend(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_prepend, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: document_string_append(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_append, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: map_atomic_add(const v8::Arguments& args)
 {
     return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_add, args);
