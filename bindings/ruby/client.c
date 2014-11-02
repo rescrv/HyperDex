@@ -1459,20 +1459,28 @@ hyperdex_ruby_client_init(VALUE self, VALUE host, VALUE port)
 }
 
 static VALUE
-hyperdex_ruby_client_loop(VALUE self)
+hyperdex_ruby_client_loop(int argc, VALUE *argv, VALUE self)
 {
     struct hyperdex_client* client;
     enum hyperdex_client_returncode rc;
     int64_t ret;
     VALUE ops;
     VALUE op;
+    VALUE timeout;
+
+    rb_scan_args(argc, argv, "01", &timeout);
+    if (NIL_P(timeout)) {
+        timeout = INT2NUM(-1);
+    }
 
     Data_Get_Struct(self, struct hyperdex_client, client);
-    ret = hyperdex_client_loop(client, -1, &rc);
+    ret = hyperdex_client_loop(client, NUM2INT(timeout), &rc);
 
     if (ret < 0)
     {
-        hyperdex_ruby_client_throw_exception(rc, hyperdex_client_error_message(client));
+        if (rc != HYPERDEX_CLIENT_TIMEOUT) {
+            hyperdex_ruby_client_throw_exception(rc, hyperdex_client_error_message(client));
+        }
         return Qnil;
     }
     else
@@ -1700,7 +1708,8 @@ Init_hyperdex_client()
     class_client = rb_define_class_under(mod_hyperdex_client, "Client", rb_cObject);
     rb_define_alloc_func(class_client, hyperdex_ruby_client_alloc);
     rb_define_method(class_client, "initialize", hyperdex_ruby_client_init, 2);
-    rb_define_method(class_client, "loop", hyperdex_ruby_client_loop, 0);
+    rb_define_method(class_client, "loop", hyperdex_ruby_client_loop, -1);
+
     /* include the generated rb_define_* calls */
 #include "bindings/ruby/prototypes.c"
 
