@@ -1478,9 +1478,11 @@ hyperdex_ruby_client_loop(int argc, VALUE *argv, VALUE self)
 
     if (ret < 0)
     {
-        if (rc != HYPERDEX_CLIENT_TIMEOUT) {
+        if (rc != HYPERDEX_CLIENT_TIMEOUT)
+        {
             hyperdex_ruby_client_throw_exception(rc, hyperdex_client_error_message(client));
         }
+
         return Qnil;
     }
     else
