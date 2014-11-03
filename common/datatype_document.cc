@@ -630,9 +630,6 @@ datatype_document :: apply(const e::slice& old_value,
         }
         case FUNC_DOC_UNSET:
         {
-<<<<<<< HEAD
-            //TODO implement
-=======
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
             std::string path = func->arg2.c_str();
             bson_t* new_doc = unset_value(bson_root, path);
@@ -644,14 +641,10 @@ datatype_document :: apply(const e::slice& old_value,
 
             bson_destroy(bson_root);
             bson_root = new_doc;
->>>>>>> 2cfe175c75107043e1282cce8eea787a5aa491a5
             break;
         }
         case FUNC_DOC_RENAME:
         {
-<<<<<<< HEAD
-            //TOOD implement
-=======
             std::string new_name = func->arg1.c_str();
             std::string path = func->arg2.c_str();
 
@@ -665,22 +658,13 @@ datatype_document :: apply(const e::slice& old_value,
 
             bson_destroy(bson_root);
             bson_root = new_doc;
->>>>>>> 2cfe175c75107043e1282cce8eea787a5aa491a5
             break;
         }
         case FUNC_STRING_PREPEND:
         case FUNC_STRING_APPEND:
         {
-<<<<<<< HEAD
-            const e::slice& key = funcs[i].arg2;
-            const e::slice& val = funcs[i].arg1;
-
-            json_path path(key.c_str());
-            std::string arg(val.c_str());
-=======
             std::string arg = func->arg1.c_str();
             std::string path = func->arg2.c_str();
->>>>>>> 2cfe175c75107043e1282cce8eea787a5aa491a5
 
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
 
