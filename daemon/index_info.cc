@@ -111,6 +111,7 @@ index_encoding :: lookup(hyperdatatype datatype)
         case HYPERDATATYPE_SET_INT64:
         case HYPERDATATYPE_SET_FLOAT:
         case HYPERDATATYPE_MAP_GENERIC:
+        case HYPERDATATYPE_TIMESTAMP_GENERIC:
         case HYPERDATATYPE_MAP_STRING_KEYONLY:
         case HYPERDATATYPE_MAP_STRING_STRING:
         case HYPERDATATYPE_MAP_STRING_INT64:

@@ -27,6 +27,7 @@
 
 try: import simplejson as json
 except ImportError: import json
+import datetime
 
 from cpython cimport bool
 
@@ -83,6 +84,7 @@ cdef extern from "hyperdex.h":
         HYPERDATATYPE_TIMESTAMP_DAY = 9511
         HYPERDATATYPE_TIMESTAMP_WEEK = 9512
         HYPERDATATYPE_TIMESTAMP_MONTH = 9513
+        HYPERDATATYPE_TIMESTAMP_GENERIC = 9514
         HYPERDATATYPE_GARBAGE            = 9727
 
     cdef enum hyperpredicate:
@@ -492,9 +494,9 @@ cdef hyperdex_python_client_convert_type(hyperdex_ds_arena* arena, x,
     elif isinstance(x, Document):
         datatype[0] = HYPERDATATYPE_DOCUMENT
         return hyperdex_python_client_convert_string(arena, x.doc(), value, value_sz, &_datatype)
-    elif isinstance(x, Timestamp):
-        datatype[0] = x.interval()
-        return hyperdex_python_client_convert_int(arena, x.val(), value, value_sz, &_datatype)
+    elif isinstance(x, datetime.datetime):
+        datatype[0] = HYPERDATATYPE_TIMESTAMP_GENERIC
+        return hyperdex_python_client_convert_int(arena, long(x.strftime("%s")), value, value_sz, &_datatype)
     else:
         raise TypeError("Cannot convert object to a HyperDex type")
 
@@ -786,18 +788,13 @@ cdef hyperdex_python_client_build_attributes(const hyperdex_client_attribute* at
             val = hyperdex_python_client_build_float(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_DOCUMENT:
             val = Document(hyperdex_python_client_build_string(attrs[i].value, attrs[i].value_sz))
-        elif attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_SECOND:
-            val = Timestamp(hyperdex_python_client_build_int(attrs[i].value, attrs[i].value_sz),"Second")
-        elif attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_MINUTE:
-            val = Timestamp(hyperdex_python_client_build_int(attrs[i].value, attrs[i].value_sz),"Minute")
-        elif attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_HOUR:
-            val = Timestamp(hyperdex_python_client_build_int(attrs[i].value, attrs[i].value_sz),"Hour")
-        elif attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_DAY:
-            val = Timestamp(hyperdex_python_client_build_int(attrs[i].value, attrs[i].value_sz),"Day")
-        elif attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_WEEK:
-            val = Timestamp(hyperdex_python_client_build_int(attrs[i].value, attrs[i].value_sz),"Week")
-        elif attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_MONTH:
-            val = Timestamp(hyperdex_python_client_build_int(attrs[i].value, attrs[i].value_sz),"Month")
+        elif (attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_SECOND or
+             attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_MINUTE or
+             attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_HOUR or
+             attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_DAY or
+             attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_WEEK or
+             attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_MONTH):
+            val = datetime.datetime.utcfromtimestamp(hyperdex_python_client_build_int(attrs[i].value, attrs[i].value_sz))
         elif attrs[i].datatype == HYPERDATATYPE_LIST_STRING:
             val = hyperdex_python_client_build_list_string(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_LIST_INT64:
@@ -903,68 +900,6 @@ cdef class Document:
 
     def __repr__(self):
         return 'Document(%s)' % self._doc
-
-cdef class Timestamp:
-
-    cdef long _time
-    cdef str _interval
-
-    def __init__(self,time,interval):
-        if not isinstance(time,long):
-            raise("time must be an int")
-        if not isinstance(interval,str):
-            raise("time must be a string")
-        if not (interval == "Second" or interval == "Minute" or interval == "Hour" or interval == "Day" or interval == "Week" or interval == "Month"):
-            raise ("invalid interval")
-        self._interval = interval
-        self._time = time
-
-    def val(self):
-        return self._time
-
-    def interval(self):
-        _interval = self._interval
-        if _interval == "Second":
-            return HYPERDATATYPE_TIMESTAMP_SECOND
-        elif _interval == "Minute":
-            return HYPERDATATYPE_TIMESTAMP_MINUTE
-        elif _interval == "Hour":
-            return HYPERDATATYPE_TIMESTAMP_HOUR
-        elif _interval == "Day":
-            return HYPERDATATYPE_TIMESTAMP_DAY
-        elif _interval == "Week":
-            return HYPERDATATYPE_TIMESTAMP_WEEK
-        elif _interval == "Month":
-            return HYPERDATATYPE_TIMESTAMP_MONTH
-cdef class Second(Timestamp):
-
-    def __init__(self,time):
-        Timestamp.__init__(self,time,"Second")
-cdef class Minute(Timestamp):
-
-    def __init__(self,time):
-        Timestamp.__init__(self,time,"Minute")
-
-cdef class Hour(Timestamp):
-
-    def __init__(self,time):
-        Timestamp.__init__(self,time,"Hour")
-
-cdef class Day(Timestamp):
-
-    def __init__(self,time):
-        Timestamp.__init__(self,time,"Day")
-
-cdef class Week(Timestamp):
-
-    def __init__(self,time):
-        Timestamp.__init__(self,time,"Week")
-
-cdef class Month(Timestamp):
-
-    def __init__(self,time):
-        Timestamp.__init__(self,time,"Month")
-
 
 cdef class Predicate:
 

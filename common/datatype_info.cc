@@ -122,6 +122,7 @@ datatype_info :: lookup(hyperdatatype datatype)
         case HYPERDATATYPE_TIMESTAMP_MONTH:
           return &d_timestamp_month;
         case HYPERDATATYPE_GENERIC:
+        case HYPERDATATYPE_TIMESTAMP_GENERIC:
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
         case HYPERDATATYPE_GARBAGE:

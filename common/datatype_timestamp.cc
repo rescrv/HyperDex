@@ -122,49 +122,21 @@ const char * interval_to_string(enum timestamp_interval in)
     };
 }
 
-int64_t remove_disregarded_bits(int64_t val, int64_t scale, int64_t * extra) {
-      int64_t extra_bits = val % scale;
-      *extra = extra_bits;
-      val -= extra_bits;
-      // fill extra bits with the least significant interesting bits
-      val += (val / scale) % scale;
-      return val;
-}
 
+int64_t  lookup_interesting[] = { 1, 60, 3600, 24*60*60, 7*24*60*60, 30 *7 * 24*60*60};
 uint64_t
 datatype_timestamp::hash(const e::slice& value) {
 
     //TODO better hash
     //std::cout << "Hashing with "<<interval_to_string(this->interval) << "\n";
-    int64_t interesting_bits = 1;
+    int64_t interesting_bits;
     int64_t extra;
     int64_t timestamp = unpack(value);
-    switch(this->interval){
-    case SECOND:
-        break;
-    case MINUTE:
-        interesting_bits *= 60;
-        timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
-        break;
-    case HOUR:
-        interesting_bits *= 60 *60;
-        timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
-        break;
-    case DAY:
-        interesting_bits *= 24 * 60 * 60;
-        timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
-        break;
-    case WEEK:
-        interesting_bits *= 7 * 24 * 60 * 60;
-        timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
-        break;
-    case MONTH:
-        interesting_bits *= 30 * 7 * 24 * 60 * 60;
-        timestamp = remove_disregarded_bits(timestamp,interesting_bits,&extra);
-        break;
-    };
+    interesting_bits = lookup_interesting[this->interval];
+    extra = timestamp % interesting_bits;
+    timestamp /= interesting_bits;
 
-    return CityHash64((const char*)&timestamp,sizeof(int64_t))+extra;
+    return CityHash64((const char*)&timestamp, sizeof(int64_t))+extra;
 
 }
 
