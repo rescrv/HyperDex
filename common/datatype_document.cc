@@ -674,7 +674,7 @@ datatype_document :: apply(const e::slice& old_value,
             uint32_t size = 0;
             std::string str = "";
 
-            if (bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
+            if (bson_iter_find_descendant (&iter, path.c_str(), &baz))
             {
                 str = bson_iter_utf8(&baz, &size);
             }
