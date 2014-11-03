@@ -119,6 +119,27 @@ class HyperSpace:
         for k,v in arg.items():
             if k is "$inc$":
                 self.atomic_add(key, v)
+            elif pred == '$bit':
+                if not isinstance(val, dict):
+                    raise ValueError('$bit argument must a dict')
+                    
+                op, mask = val.iteritems().next()
+                    
+                if op == 'and':
+                    self.atomic_and(key, mask)
+                elif op == 'or':
+                    self.atomic_or(key, mask)
+                elif op == 'mod':
+                    self.atomic_mod(key, mask)
+                elif op =='xor':
+                    self.atomic_xor(key, mask)
+                else
+                    raise ValueError("Unknown bit-operation")
+            
+            elif pred == '$mul':
+                self.atomic_mul(key, v)        
+            elif pred == '$div':
+                self.atomic_div(key, v)
             else:
                 raise ValueError("Unknown command " + k)
        
@@ -161,6 +182,10 @@ class HyperSpace:
     def atomic_div(self, key, value):
         self.init()
         return self.client.document_atomic_div(self.name, key, {'v' : self.Document(value)})
+
+    def atomic_and(self, key, value):
+        self.init()
+        return self.client.document_atomic_and(self.name, key, {'v' : self.Document(value)})
 
     def atomic_xor(self, key, value):
         self.init()

@@ -87,7 +87,39 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
     case FUNC_DOC_RENAME:
     case FUNC_DOC_UNSET:
     {
-        //TODO implement
+        json_path path = func.arg2.c_str();
+
+        bson_t b;
+        bool inited = bson_init_static(&b, old_values[0].data(), old_values[0].size());
+
+        if(!inited)
+        {
+            return false;
+        }
+
+        bson_iter_t iter, baz1, baz2;
+        assert(bson_iter_init (&iter, &b));
+
+        bool exists = bson_iter_find_descendant(&iter, path.str().c_str(), &baz1);
+
+        if (func.name == FUNC_DOC_UNSET)
+        {
+            return exists;
+        }
+        else
+        {
+            std::string new_name(func.arg2.c_str());
+
+            json_path parent_path;
+            std::string obj_name;
+            path.split_reverse(parent_path, obj_name);
+
+            parent_path.append(new_name);
+
+            bool other_exists = bson_iter_find_descendant(&iter, path.str().c_str(), &baz2);
+
+            return exists && !other_exists;
+        }
     }
     case FUNC_NUM_ADD:
     case FUNC_NUM_AND:
@@ -261,6 +293,128 @@ datatype_document :: add_or_replace_string(const bson_t* old_document, const jso
 
     replace_string_recurse(path, new_value, new_doc, &iter);
     return new_doc;
+}
+
+bson_t*
+datatype_document :: rename_value(const bson_t* old_document, const json_path& path, const std::string& new_name) const
+{
+    bson_iter_t iter;
+
+    if(!bson_iter_init (&iter, old_document))
+    {
+        return NULL;
+    }
+
+    bson_t *new_doc = bson_new();
+
+    rename_value_recurse(path, new_name, new_doc, &iter);
+    return new_doc;
+}
+
+void
+datatype_document :: rename_value_recurse(const json_path& path, const std::string& new_name, bson_t* parent, bson_iter_t* iter) const
+{
+    while (iter && bson_iter_next(iter))
+    {
+        bson_type_t type = bson_iter_type(iter);
+        std::string key = bson_iter_key(iter);
+
+        if(key == path.str())
+        {
+            // found it!
+            const bson_value_t *value = bson_iter_value(iter);
+            bson_append_value(parent, new_name.c_str(), new_name.size(), value);
+        }
+        else if(type == BSON_TYPE_DOCUMENT)
+        {
+            json_path subpath;
+            std::string root_name;
+
+            bson_iter_t sub_iter;
+            bson_iter_recurse(iter, &sub_iter);
+
+            bson_t *child = bson_new();
+            bson_append_document_begin(parent, key.c_str(), key.size(), child);
+
+            if(path.has_subtree() && path.split(root_name, subpath)
+                && root_name == key)
+            {
+                rename_value_recurse(subpath, new_name, child, &sub_iter);
+            }
+            else
+            {
+                // This is not the path you are looking for...
+                rename_value_recurse("", "", child, &sub_iter);
+            }
+
+            bson_append_document_end(parent, child);
+        }
+        else
+        {
+            const bson_value_t *value = bson_iter_value(iter);
+            bson_append_value(parent, key.c_str(), key.size(), value);
+        }
+    }
+}
+
+bson_t*
+datatype_document :: unset_value(const bson_t* old_document, const json_path& path) const
+{
+    bson_iter_t iter;
+
+    if(!bson_iter_init (&iter, old_document))
+    {
+        return NULL;
+    }
+
+    bson_t *new_doc = bson_new();
+
+    unset_value_recurse(path, new_doc, &iter);
+    return new_doc;
+}
+
+void
+datatype_document :: unset_value_recurse(const json_path& path, bson_t* parent, bson_iter_t* iter) const
+{
+    while (iter && bson_iter_next(iter))
+    {
+        bson_type_t type = bson_iter_type(iter);
+        std::string key = bson_iter_key(iter);
+
+        if(key == path.str())
+        {
+            // skip
+        }
+        else if(type == BSON_TYPE_DOCUMENT)
+        {
+            json_path subpath;
+            std::string root_name;
+
+            bson_iter_t sub_iter;
+            bson_iter_recurse(iter, &sub_iter);
+
+            bson_t *child = bson_new();
+            bson_append_document_begin(parent, key.c_str(), key.size(), child);
+
+            if(path.has_subtree() && path.split(root_name, subpath)
+                && root_name == key)
+            {
+                unset_value_recurse(subpath, child, &sub_iter);
+            }
+            else
+            {
+                // This is not the path you are looking for...
+                unset_value_recurse("", child, &sub_iter);
+            }
+
+            bson_append_document_end(parent, child);
+        }
+        else
+        {
+            const bson_value_t *value = bson_iter_value(iter);
+            bson_append_value(parent, key.c_str(), key.size(), value);
+        }
+    }
 }
 
 bson_t*
@@ -476,22 +630,57 @@ datatype_document :: apply(const e::slice& old_value,
         }
         case FUNC_DOC_UNSET:
         {
+<<<<<<< HEAD
             //TODO implement
+=======
+            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
+            std::string path = func->arg2.c_str();
+            bson_t* new_doc = unset_value(bson_root, path);
+
+            if(!new_doc)
+            {
+                abort();
+            }
+
+            bson_destroy(bson_root);
+            bson_root = new_doc;
+>>>>>>> 2cfe175c75107043e1282cce8eea787a5aa491a5
             break;
         }
         case FUNC_DOC_RENAME:
         {
+<<<<<<< HEAD
             //TOOD implement
+=======
+            std::string new_name = func->arg1.c_str();
+            std::string path = func->arg2.c_str();
+
+            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
+            bson_t* new_doc = rename_value(bson_root, path, new_name);
+
+            if(!new_doc)
+            {
+                abort();
+            }
+
+            bson_destroy(bson_root);
+            bson_root = new_doc;
+>>>>>>> 2cfe175c75107043e1282cce8eea787a5aa491a5
             break;
         }
         case FUNC_STRING_PREPEND:
         case FUNC_STRING_APPEND:
         {
+<<<<<<< HEAD
             const e::slice& key = funcs[i].arg2;
             const e::slice& val = funcs[i].arg1;
 
             json_path path(key.c_str());
             std::string arg(val.c_str());
+=======
+            std::string arg = func->arg1.c_str();
+            std::string path = func->arg2.c_str();
+>>>>>>> 2cfe175c75107043e1282cce8eea787a5aa491a5
 
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
 
