@@ -273,6 +273,7 @@ replication_manager :: client_atomic(const server_id& from,
         m_daemon->m_data.bump_version(ri, version);
     }
 
+    // we hava a valid keychange. put it into the workloop
     ks->enqueue_key_change(from, nonce, version, kc, backing);
     ks->work_state_machine(this, to, sc);
 }

@@ -244,6 +244,10 @@ class Client
                                const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                hyperdex_client_returncode* status)
             { return hyperdex_client_map_atomic_add(m_cl, space, key, key_sz, mapattrs, mapattrs_sz, status); }
+        int64_t document_atomic_add(const char* space, const char* key, size_t key_sz,
+                               const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz,
+                               hyperdex_client_returncode* status)
+            { return hyperdex_client_document_atomic_add(m_cl, space, key, key_sz, docattrs, docattrs_sz, status); }
         int64_t cond_map_atomic_add(const char* space, const char* key, size_t key_sz,
                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
                                     const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,

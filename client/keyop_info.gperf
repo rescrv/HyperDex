@@ -1,4 +1,12 @@
 struct hyperdex_client_keyop_info;
+#if defined __GNUC_STDC_INLINE__
+#undef __GNUC_STDC_INLINE__
+#endif
+#if defined __GNUC_GNU_INLINE__
+#undef __GNUC_GNU_INLINE__
+#endif
+extern "C"
+{
 %struct-type
 %language=ANSI-C
 %define hash-function-name _hyperdex_client_keyop_info_hash
@@ -54,6 +62,15 @@ cond_map_add,            false, true,  false,  hyperdex::FUNC_MAP_ADD
 map_remove,              false, true,  false,  hyperdex::FUNC_MAP_REMOVE
 cond_map_remove,         false, true,  false,  hyperdex::FUNC_MAP_REMOVE
 map_atomic_add,          false, true,  false,  hyperdex::FUNC_NUM_ADD
+document_atomic_add,     false, true,  false,  hyperdex::FUNC_NUM_ADD
+document_atomic_sub,     false, true,  false,  hyperdex::FUNC_NUM_SUB
+document_atomic_mul,     false, true,  false,  hyperdex::FUNC_NUM_MUL
+document_atomic_div,     false, true,  false,  hyperdex::FUNC_NUM_DIV
+document_string_prepend, false, true,  false,  hyperdex::FUNC_STRING_PREPEND
+document_string_append,  false, true,  false,  hyperdex::FUNC_STRING_APPEND
+document_atomic_mod,     false, true,  false,  hyperdex::FUNC_NUM_MOD
+document_atomic_xor,     false, true,  false,  hyperdex::FUNC_NUM_XOR
+document_atomic_or,      false, true,  false,  hyperdex::FUNC_NUM_OR
 cond_map_atomic_add,     false, true,  false,  hyperdex::FUNC_NUM_ADD
 map_atomic_sub,          false, true,  false,  hyperdex::FUNC_NUM_SUB
 cond_map_atomic_sub,     false, true,  false,  hyperdex::FUNC_NUM_SUB
@@ -74,6 +91,7 @@ cond_map_string_prepend, false, true,  false,  hyperdex::FUNC_STRING_PREPEND
 map_string_append,       false, true,  false,  hyperdex::FUNC_STRING_APPEND
 cond_map_string_append,  false, true,  false,  hyperdex::FUNC_STRING_APPEND
 %%
+}
 const struct hyperdex_client_keyop_info*
 hyperdex_client_keyop_info_lookup(const char* str, unsigned int len)
 {

@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="hyperdex" />
+		<Option makefile_is_custom="1" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="all">
+				<Option output="bin/Debug/hyperdex" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+				<MakeCommands>
+					<Build command="$make  -j4 -f $makefile $target" />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make -q -f $makefile $target" />
+					<SilentBuild command="$make  -j4 -f $makefile $target &gt; $(CMD_NULL)" />
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="bindings/c/admin-testcompile.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/c/client-testcompile.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/cc/admin-testcompile.cc" />
+		<Unit filename="bindings/cc/client-testcompile.cc" />
+		<Unit filename="bindings/java/org/hyperdex/client/ByteString.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Client.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Deferred.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/GreaterEqual.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/GreaterThan.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/HyperDexClientException.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Iterator.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/LengthEquals.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/LengthGreaterEqual.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/LengthLessEqual.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/LessEqual.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/LessThan.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Operation.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Predicate.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Range.java" />
+		<Unit filename="bindings/java/org/hyperdex/client/Regex.java" />
+		<Unit filename="bindings/java/org/hyperdex/ycsb/HyperDex.java" />
+		<Unit filename="bindings/java/org_hyperdex_client_Client.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/java/org_hyperdex_client_Client.definitions.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/java/org_hyperdex_client_Client.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_Deferred.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_GreaterEqual.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_GreaterThan.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_Iterator.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_LengthEquals.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_LengthGreaterEqual.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_LengthLessEqual.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_LessEqual.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_LessThan.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_Range.h" />
+		<Unit filename="bindings/java/org_hyperdex_client_Regex.h" />
+		<Unit filename="bindings/node.js/client.cc" />
+		<Unit filename="bindings/node.js/client.declarations.cc" />
+		<Unit filename="bindings/node.js/client.definitions.cc" />
+		<Unit filename="bindings/node.js/client.prototypes.cc" />
+		<Unit filename="bindings/python/hyperdex/admin.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/python/hyperdex/client.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/python/hyperdex/client.pyx">
+			<Option compile="1" />
+		</Unit>
+		<Unit filename="bindings/ruby/admin.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/ruby/client.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/ruby/definitions.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/ruby/hyperdex.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="bindings/ruby/prototypes.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="client/c.cc" />
+		<Unit filename="client/client.cc" />
+		<Unit filename="client/client.h" />
+		<Unit filename="client/constants.h" />
+		<Unit filename="client/datastructures.cc" />
+		<Unit filename="client/keyop_info.cc" />
+		<Unit filename="client/keyop_info.h" />
+		<Unit filename="client/pending.cc" />
+		<Unit filename="client/pending.h" />
+		<Unit filename="client/pending_aggregation.cc" />
+		<Unit filename="client/pending_aggregation.h" />
+		<Unit filename="client/pending_atomic.cc" />
+		<Unit filename="client/pending_atomic.h" />
+		<Unit filename="client/pending_count.cc" />
+		<Unit filename="client/pending_count.h" />
+		<Unit filename="client/pending_get.cc" />
+		<Unit filename="client/pending_get.h" />
+		<Unit filename="client/pending_get_partial.cc" />
+		<Unit filename="client/pending_get_partial.h" />
+		<Unit filename="client/pending_group_del.cc" />
+		<Unit filename="client/pending_group_del.h" />
+		<Unit filename="client/pending_search.cc" />
+		<Unit filename="client/pending_search.h" />
+		<Unit filename="client/pending_search_describe.cc" />
+		<Unit filename="client/pending_search_describe.h" />
+		<Unit filename="client/pending_sorted_search.cc" />
+		<Unit filename="client/pending_sorted_search.h" />
+		<Unit filename="client/test/datastructures.cc" />
+		<Unit filename="client/util.cc" />
+		<Unit filename="client/util.h" />
+		<Unit filename="common/attribute.cc" />
+		<Unit filename="common/attribute.h" />
+		<Unit filename="common/attribute_check.cc" />
+		<Unit filename="common/attribute_check.h" />
+		<Unit filename="common/configuration.cc" />
+		<Unit filename="common/configuration.h" />
+		<Unit filename="common/configuration_flags.h" />
+		<Unit filename="common/coordinator_link.cc" />
+		<Unit filename="common/coordinator_link.h" />
+		<Unit filename="common/coordinator_returncode.cc" />
+		<Unit filename="common/coordinator_returncode.h" />
+		<Unit filename="common/datatype_document.cc" />
+		<Unit filename="common/datatype_document.h" />
+		<Unit filename="common/datatype_float.cc" />
+		<Unit filename="common/datatype_float.h" />
+		<Unit filename="common/datatype_info.cc" />
+		<Unit filename="common/datatype_info.h" />
+		<Unit filename="common/datatype_int64.cc" />
+		<Unit filename="common/datatype_int64.h" />
+		<Unit filename="common/datatype_list.cc" />
+		<Unit filename="common/datatype_list.h" />
+		<Unit filename="common/datatype_map.cc" />
+		<Unit filename="common/datatype_map.h" />
+		<Unit filename="common/datatype_set.cc" />
+		<Unit filename="common/datatype_set.h" />
+		<Unit filename="common/datatype_string.cc" />
+		<Unit filename="common/datatype_string.h" />
+		<Unit filename="common/funcall.cc" />
+		<Unit filename="common/funcall.h" />
+		<Unit filename="common/hash.cc" />
+		<Unit filename="common/hash.h" />
+		<Unit filename="common/hyperdex.cc" />
+		<Unit filename="common/hyperspace.cc" />
+		<Unit filename="common/hyperspace.h" />
+		<Unit filename="common/ids.cc" />
+		<Unit filename="common/ids.h" />
+		<Unit filename="common/index.cc" />
+		<Unit filename="common/index.h" />
+		<Unit filename="common/json_path.h" />
+		<Unit filename="common/key_change.cc" />
+		<Unit filename="common/key_change.h" />
+		<Unit filename="common/macros.h" />
+		<Unit filename="common/mapper.cc" />
+		<Unit filename="common/mapper.h" />
+		<Unit filename="common/network_msgtype.cc" />
+		<Unit filename="common/network_msgtype.h" />
+		<Unit filename="common/network_returncode.h" />
+		<Unit filename="common/ordered_encoding.cc" />
+		<Unit filename="common/ordered_encoding.h" />
+		<Unit filename="common/range.cc" />
+		<Unit filename="common/range.h" />
+		<Unit filename="common/range_searches.cc" />
+		<Unit filename="common/range_searches.h" />
+		<Unit filename="common/regex_match.cc" />
+		<Unit filename="common/regex_match.h" />
+		<Unit filename="common/schema.cc" />
+		<Unit filename="common/schema.h" />
+		<Unit filename="common/serialization.cc" />
+		<Unit filename="common/serialization.h" />
+		<Unit filename="common/server.cc" />
+		<Unit filename="common/server.h" />
+		<Unit filename="common/test/ordered_encoding.cc" />
+		<Unit filename="common/transfer.cc" />
+		<Unit filename="common/transfer.h" />
+		<Unit filename="coordinator/coordinator.cc" />
+		<Unit filename="coordinator/coordinator.h" />
+		<Unit filename="coordinator/offline_server.h" />
+		<Unit filename="coordinator/region_intent.h" />
+		<Unit filename="coordinator/replica_sets.cc" />
+		<Unit filename="coordinator/replica_sets.h" />
+		<Unit filename="coordinator/server_barrier.cc" />
+		<Unit filename="coordinator/server_barrier.h" />
+		<Unit filename="coordinator/symtable.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="coordinator/transitions.cc" />
+		<Unit filename="coordinator/transitions.h" />
+		<Unit filename="coordinator/util.h" />
+		<Unit filename="daemon/background_thread.cc" />
+		<Unit filename="daemon/background_thread.h" />
+		<Unit filename="daemon/communication.cc" />
+		<Unit filename="daemon/communication.h" />
+		<Unit filename="daemon/coordinator_link_wrapper.cc" />
+		<Unit filename="daemon/coordinator_link_wrapper.h" />
+		<Unit filename="daemon/daemon.cc" />
+		<Unit filename="daemon/daemon.h" />
+		<Unit filename="daemon/datalayer.cc" />
+		<Unit filename="daemon/datalayer.h" />
+		<Unit filename="daemon/datalayer_checkpointer_thread.cc" />
+		<Unit filename="daemon/datalayer_checkpointer_thread.h" />
+		<Unit filename="daemon/datalayer_encodings.cc" />
+		<Unit filename="daemon/datalayer_encodings.h" />
+		<Unit filename="daemon/datalayer_index_state.h" />
+		<Unit filename="daemon/datalayer_indexer_thread.cc" />
+		<Unit filename="daemon/datalayer_indexer_thread.h" />
+		<Unit filename="daemon/datalayer_iterator.cc" />
+		<Unit filename="daemon/datalayer_iterator.h" />
+		<Unit filename="daemon/datalayer_wiper_indexer_mediator.h" />
+		<Unit filename="daemon/datalayer_wiper_thread.cc" />
+		<Unit filename="daemon/datalayer_wiper_thread.h" />
+		<Unit filename="daemon/identifier_collector.cc" />
+		<Unit filename="daemon/identifier_collector.h" />
+		<Unit filename="daemon/identifier_generator.cc" />
+		<Unit filename="daemon/identifier_generator.h" />
+		<Unit filename="daemon/index_container.cc" />
+		<Unit filename="daemon/index_container.h" />
+		<Unit filename="daemon/index_document.cc" />
+		<Unit filename="daemon/index_document.h" />
+		<Unit filename="daemon/index_float.cc" />
+		<Unit filename="daemon/index_float.h" />
+		<Unit filename="daemon/index_info.cc" />
+		<Unit filename="daemon/index_info.h" />
+		<Unit filename="daemon/index_int64.cc" />
+		<Unit filename="daemon/index_int64.h" />
+		<Unit filename="daemon/index_list.cc" />
+		<Unit filename="daemon/index_list.h" />
+		<Unit filename="daemon/index_map.cc" />
+		<Unit filename="daemon/index_map.h" />
+		<Unit filename="daemon/index_primitive.cc" />
+		<Unit filename="daemon/index_primitive.h" />
+		<Unit filename="daemon/index_set.cc" />
+		<Unit filename="daemon/index_set.h" />
+		<Unit filename="daemon/index_string.cc" />
+		<Unit filename="daemon/index_string.h" />
+		<Unit filename="daemon/key_operation.cc" />
+		<Unit filename="daemon/key_operation.h" />
+		<Unit filename="daemon/key_region.cc" />
+		<Unit filename="daemon/key_region.h" />
+		<Unit filename="daemon/key_state.cc" />
+		<Unit filename="daemon/key_state.h" />
+		<Unit filename="daemon/leveldb.h" />
+		<Unit filename="daemon/main.cc" />
+		<Unit filename="daemon/performance_counter.h" />
+		<Unit filename="daemon/reconfigure_returncode.h" />
+		<Unit filename="daemon/region_timestamp.h" />
+		<Unit filename="daemon/replication_manager.cc" />
+		<Unit filename="daemon/replication_manager.h" />
+		<Unit filename="daemon/search_manager.cc" />
+		<Unit filename="daemon/search_manager.h" />
+		<Unit filename="daemon/state_hash_table.h" />
+		<Unit filename="daemon/state_transfer_manager.cc" />
+		<Unit filename="daemon/state_transfer_manager.h" />
+		<Unit filename="daemon/state_transfer_manager_pending.cc" />
+		<Unit filename="daemon/state_transfer_manager_pending.h" />
+		<Unit filename="daemon/state_transfer_manager_transfer_in_state.cc" />
+		<Unit filename="daemon/state_transfer_manager_transfer_in_state.h" />
+		<Unit filename="daemon/state_transfer_manager_transfer_out_state.cc" />
+		<Unit filename="daemon/state_transfer_manager_transfer_out_state.h" />
+		<Unit filename="daemon/test/identifier_collector.cc" />
+		<Unit filename="daemon/test/identifier_generator.cc" />
+		<Unit filename="include/hyperdex.h" />
+		<Unit filename="include/hyperdex/admin.h" />
+		<Unit filename="include/hyperdex/admin.hpp" />
+		<Unit filename="include/hyperdex/client.h" />
+		<Unit filename="include/hyperdex/client.hpp" />
+		<Unit filename="include/hyperdex/datastructures.h" />
+		<Unit filename="include/hyperdex/hyperspace_builder.h" />
+		<Unit filename="test/samples/big.json" />
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

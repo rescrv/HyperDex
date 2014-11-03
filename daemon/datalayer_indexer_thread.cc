@@ -130,9 +130,10 @@ datalayer :: indexer_thread :: do_work()
         return;
     }
 
+    configuration config = m_config;
     leveldb_db_ptr db = m_daemon->m_data.m_db;
-    const schema* sc = m_config.get_schema(m_current_region);
-    const index* idx = m_config.get_index(m_current_index);
+    const schema* sc = config.get_schema(m_current_region);
+    const index* idx = config.get_index(m_current_index);
     assert(idx);
     std::vector<const index*> idxs(1, idx);
 
@@ -372,7 +373,7 @@ datalayer :: indexer_thread :: index_from_iterator(region_iterator* it,
     uint64_t version;
     datalayer::reference ref;
     datalayer::returncode rc;
-    rc = m_daemon->m_data.get_from_iterator(ri, it,
+    rc = m_daemon->m_data.get_from_iterator(ri, *sc, it,
             &key, &value, &version, &ref);
 
     if (rc != SUCCESS)

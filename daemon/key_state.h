@@ -132,14 +132,32 @@ class key_state
         po6::threads::mutex m_lock;
         bool m_marked_garbage;
         bool m_initialized;
+
+        // Does this key have a value (before operations are applied)
         bool m_has_old_value;
         uint64_t m_old_version;
+
         std::vector<e::slice> m_old_value;
         datalayer::reference m_old_disk_ref;
         e::intrusive_ptr<key_operation> m_old_op;
+
+        // These operations are being actively replicated by HyperDex
+        // and were passed to subsequent nodes in the value dependent chain.
         key_operation_list_t m_committable;
+
+        // These operations delayed pending completion of all operations
+        // in the committable state.  Generally, it happens on different sides
+        // of deletions in order to enforce proper order of arrival for
+        // operations.  It's like a memory barrier, but for distributed systems.
         key_operation_list_t m_blocked;
+
+        // These messages arrived out of order and will be processed
+        // pending future messages arrival.
         key_operation_list_t m_deferred;
+
+        // These are client-submitted operations enqueued to be
+        // processed.  Generally the changes queue will be moved to
+        // blocked/committable immediate.
         key_change_list_t m_changes;
 };
 

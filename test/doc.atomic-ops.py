@@ -217,3 +217,30 @@ True
 True
 >>> c.get('alldatatypes', 'somekey')
 {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': '->mapvalue<-'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 2}}
+>>> a.add_space('''
+... space people
+... key k
+... attributes
+...    document info''')
+True
+>>> Document = hyperdex.client.Document
+>>> c.put('people', 'jane', {'info' : Document( {'name': 'Jane Doe', 'gender' : 'female', 'age' : 21, 'likes' : ['cornell', 'python']} )})
+True
+>>> c.document_atomic_add('people', 'jane', {'info' : Document({'age' : 1})})
+True
+>>> c.get('people', 'jane')
+{'info': Document({"name": "Jane Doe", "gender": "female", "age": 22, "likes": ["cornell", "python"]})}
+>>> c.document_atomic_add('people', 'jane', {'info' : Document({'gender' : 1})})
+False
+>>> c.document_atomic_add('people', 'jane', {'info' : Document({'children' : 1})})
+True
+>>> c.get('people', 'jane')
+{'info': Document({"name": "Jane Doe", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}
+>>> c.document_string_prepend('people', 'jane', {'info' : Document({'name' : 'Dr. '})})
+True
+>>> c.get('people', 'jane')
+{'info': Document({"name": "Dr. Jane Doe", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}
+>>> c.document_string_append('people', 'jane', {'info' : Document({'name' : ', Jr.'})})
+True
+>>> c.get('people', 'jane')
+{'info': Document({"name": "Dr. Jane Doe, Jr.", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}

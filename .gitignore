@@ -30,6 +30,7 @@
 /client/keyop_info.cc
 /client/test/datastructures
 /common/test/ordered_encoding
+/compile
 /config.guess
 /config.h
 /config.h.in

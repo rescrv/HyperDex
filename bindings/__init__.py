@@ -52,6 +52,9 @@ class Attributes(object):
 class MapAttributes(object):
     args = (('const struct hyperdex_client_map_attribute*', 'mapattrs'),
             ('size_t', 'mapattrs_sz'))
+class DocAttributes(object):
+    args = (('const struct hyperdex_client_map_attribute*', 'docattrs'),
+            ('size_t', 'docattrs_sz'))
 class AttributeNames(object):
     args = (('const char**', 'attrnames'),
             ('size_t', 'attrnames_sz'))
@@ -144,6 +147,15 @@ Client = [
     Method('cond_map_add', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
     Method('map_remove', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('cond_map_remove', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
+    Method('document_atomic_add', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
+    Method('document_atomic_sub', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
+    Method('document_atomic_mul', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
+    Method('document_atomic_div', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
+    Method('document_atomic_mod', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
+    Method('document_atomic_xor', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
+    Method('document_atomic_or', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
+    Method('document_string_prepend', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
+    Method('document_string_append', AsyncCall, (SpaceName, Key, DocAttributes), (Status,)),
     Method('map_atomic_add', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_add', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
     Method('map_atomic_sub', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),

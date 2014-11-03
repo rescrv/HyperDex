@@ -366,6 +366,60 @@ public class Client
         return (Boolean) async_cond_map_remove(spacename, key, predicates, attributes).waitForIt();
     }
 
+    public native Deferred async_document_atomic_add(String spacename, Object key, Object docattributes) throws HyperDexClientException;
+    public Boolean document_atomic_add(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    {
+        return (Boolean) async_document_atomic_add(spacename, key, docattributes).waitForIt();
+    }
+
+    public native Deferred async_document_atomic_sub(String spacename, Object key, Object docattributes) throws HyperDexClientException;
+    public Boolean document_atomic_sub(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    {
+        return (Boolean) async_document_atomic_sub(spacename, key, docattributes).waitForIt();
+    }
+
+    public native Deferred async_document_atomic_mul(String spacename, Object key, Object docattributes) throws HyperDexClientException;
+    public Boolean document_atomic_mul(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    {
+        return (Boolean) async_document_atomic_mul(spacename, key, docattributes).waitForIt();
+    }
+
+    public native Deferred async_document_atomic_div(String spacename, Object key, Object docattributes) throws HyperDexClientException;
+    public Boolean document_atomic_div(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    {
+        return (Boolean) async_document_atomic_div(spacename, key, docattributes).waitForIt();
+    }
+
+    public native Deferred async_document_atomic_mod(String spacename, Object key, Object docattributes) throws HyperDexClientException;
+    public Boolean document_atomic_mod(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    {
+        return (Boolean) async_document_atomic_mod(spacename, key, docattributes).waitForIt();
+    }
+
+    public native Deferred async_document_atomic_xor(String spacename, Object key, Object docattributes) throws HyperDexClientException;
+    public Boolean document_atomic_xor(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    {
+        return (Boolean) async_document_atomic_xor(spacename, key, docattributes).waitForIt();
+    }
+
+    public native Deferred async_document_atomic_or(String spacename, Object key, Object docattributes) throws HyperDexClientException;
+    public Boolean document_atomic_or(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    {
+        return (Boolean) async_document_atomic_or(spacename, key, docattributes).waitForIt();
+    }
+
+    public native Deferred async_document_string_prepend(String spacename, Object key, Object docattributes) throws HyperDexClientException;
+    public Boolean document_string_prepend(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    {
+        return (Boolean) async_document_string_prepend(spacename, key, docattributes).waitForIt();
+    }
+
+    public native Deferred async_document_string_append(String spacename, Object key, Object docattributes) throws HyperDexClientException;
+    public Boolean document_string_append(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    {
+        return (Boolean) async_document_string_append(spacename, key, docattributes).waitForIt();
+    }
+
     public native Deferred async_map_atomic_add(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
     public Boolean map_atomic_add(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {

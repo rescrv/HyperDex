@@ -1,4 +1,4 @@
-## Copyright (c) 2012-2013, Cornell University
+## Copyright (c) 2012-2014, Cornell University
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,9 @@ AM_CFLAGS    = -fvisibility=hidden $(WANAL_CFLAGS)
 AM_CXXFLAGS  = -fvisibility=hidden -fvisibility-inlines-hidden $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(SPARSEHASH_CFLAGS) $(WANAL_CXXFLAGS)
 AM_MAKEFLAGS = --no-print-directory
 AM_YFLAGS = -d
-HELP2MAN_FLAGS = --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
+HELP2MAN_FLAGS = --no-discard-stderr --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
 TESTS_ENVIRONMENT = . $(abs_top_srcdir)/test/env.sh "${abs_top_srcdir}" "${abs_top_builddir}" "${VERSION}";
+AM_DISTCHECK_CONFIGURE_FLAGS = --enable-python-bindings --enable-java-bindings --enable-ruby-bindings
 
 hyperdexexecdir = $(libexecdir)/$(PACKAGE)-$(VERSION)
 hyperdexheaderdir = $(includedir)/hyperdex
@@ -131,6 +132,7 @@ noinst_HEADERS += common/hyperspace.h
 noinst_HEADERS += common/ordered_encoding.h
 noinst_HEADERS += common/ids.h
 noinst_HEADERS += common/index.h
+noinst_HEADERS += common/json_path.h
 noinst_HEADERS += common/key_change.h
 noinst_HEADERS += common/macros.h
 noinst_HEADERS += common/mapper.h
@@ -293,8 +295,7 @@ hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(E_LIBS)
 hyperdex_daemon_LDADD += $(JSON_LIBS)
 hyperdex_daemon_LDADD += -lpopt -lglog $(LRT_LDFLAGS) -lpthread
-man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-daemon$(EXEEXT)
+man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc | hyperdex-daemon$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-daemon$(EXEEXT)
 
 check_PROGRAMS += daemon/test/identifier_collector
@@ -356,8 +357,7 @@ hyperdex_coordinator_LDADD =
 hyperdex_coordinator_LDADD += $(BUSYBEE_LIBS)
 hyperdex_coordinator_LDADD += $(E_LIBS)
 hyperdex_coordinator_LDADD += -lpopt
-man/hyperdex-coordinator.1: man/hyperdex-coordinator.1.h2m tools/coordinator.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-coordinator$(EXEEXT)
+man/hyperdex-coordinator.1: man/hyperdex-coordinator.1.h2m | hyperdex-coordinator${EXEEXT}
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-coordinator$(EXEEXT)
 
 ################################################################################
@@ -825,6 +825,7 @@ python_wrappers =
 python_wrappers += test/sh/bindings.python.BasicSearch.sh
 python_wrappers += test/sh/bindings.python.Basic.sh
 python_wrappers += test/sh/bindings.python.CondPut.sh
+python_wrappers += test/sh/bindings.python.DataTypeDocument.sh
 python_wrappers += test/sh/bindings.python.DataTypeFloat.sh
 python_wrappers += test/sh/bindings.python.DataTypeInt.sh
 python_wrappers += test/sh/bindings.python.DataTypeListFloat.sh
@@ -1091,8 +1092,7 @@ EXTRA_DIST += man/hyperdex.1.h2m
 hyperdex_SOURCES = hyperdex.cc
 hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(AM_CPPFLAGS) $(CPPFLAGS)
 hyperdex_LDADD = -lpopt
-man/hyperdex.1: man/hyperdex.1.h2m hyperdex.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex$(EXEEXT)
+man/hyperdex.1: man/hyperdex.1.h2m hyperdex.cc | hyperdex$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex$(EXEEXT)
 
 # hyperdex-add-space
@@ -1100,8 +1100,7 @@ EXTRA_DIST += man/hyperdex-add-space.1.md
 EXTRA_DIST += man/hyperdex-add-space.1.h2m
 hyperdex_add_space_SOURCES = tools/add-space.cc
 hyperdex_add_space_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-add-space.1: man/hyperdex-add-space.1.h2m tools/add-space.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-add-space$(EXEEXT)
+man/hyperdex-add-space.1: man/hyperdex-add-space.1.h2m tools/add-space.cc | hyperdex-add-space$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-add-space$(EXEEXT)
 
 # hyperdex-rm-space
@@ -1109,8 +1108,7 @@ EXTRA_DIST += man/hyperdex-rm-space.1.md
 EXTRA_DIST += man/hyperdex-rm-space.1.h2m
 hyperdex_rm_space_SOURCES = tools/rm-space.cc
 hyperdex_rm_space_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-rm-space.1: man/hyperdex-rm-space.1.h2m tools/rm-space.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-rm-space$(EXEEXT)
+man/hyperdex-rm-space.1: man/hyperdex-rm-space.1.h2m tools/rm-space.cc | hyperdex-rm-space$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-rm-space$(EXEEXT)
 
 # hyperdex-mv-space
@@ -1118,8 +1116,7 @@ EXTRA_DIST += man/hyperdex-mv-space.1.md
 EXTRA_DIST += man/hyperdex-mv-space.1.h2m
 hyperdex_mv_space_SOURCES = tools/mv-space.cc
 hyperdex_mv_space_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-mv-space.1: man/hyperdex-mv-space.1.h2m tools/mv-space.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-mv-space$(EXEEXT)
+man/hyperdex-mv-space.1: man/hyperdex-mv-space.1.h2m tools/mv-space.cc | hyperdex-mv-space$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-mv-space$(EXEEXT)
 
 # hyperdex-list-spaces
@@ -1127,8 +1124,7 @@ EXTRA_DIST += man/hyperdex-list-spaces.1.md
 EXTRA_DIST += man/hyperdex-list-spaces.1.h2m
 hyperdex_list_spaces_SOURCES = tools/list-spaces.cc
 hyperdex_list_spaces_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-list-spaces.1: man/hyperdex-list-spaces.1.h2m tools/list-spaces.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-list-spaces$(EXEEXT)
+man/hyperdex-list-spaces.1: man/hyperdex-list-spaces.1.h2m tools/list-spaces.cc | hyperdex-list-spaces$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-list-spaces$(EXEEXT)
 
 # hyperdex-validate-space
@@ -1136,8 +1132,7 @@ EXTRA_DIST += man/hyperdex-validate-space.1.md
 EXTRA_DIST += man/hyperdex-validate-space.1.h2m
 hyperdex_validate_space_SOURCES = tools/validate-space.cc
 hyperdex_validate_space_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-validate-space.1: man/hyperdex-validate-space.1.h2m tools/validate-space.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-validate-space$(EXEEXT)
+man/hyperdex-validate-space.1: man/hyperdex-validate-space.1.h2m tools/validate-space.cc | hyperdex-validate-space$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-validate-space$(EXEEXT)
 
 # hyperdex-add-index
@@ -1145,8 +1140,7 @@ EXTRA_DIST += man/hyperdex-add-index.1.md
 EXTRA_DIST += man/hyperdex-add-index.1.h2m
 hyperdex_add_index_SOURCES = tools/add-index.cc
 hyperdex_add_index_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-add-index.1: man/hyperdex-add-index.1.h2m tools/add-index.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-add-index$(EXEEXT)
+man/hyperdex-add-index.1: man/hyperdex-add-index.1.h2m tools/add-index.cc | hyperdex-add-index$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-add-index$(EXEEXT)
 
 # hyperdex-rm-index
@@ -1154,8 +1148,7 @@ EXTRA_DIST += man/hyperdex-rm-index.1.md
 EXTRA_DIST += man/hyperdex-rm-index.1.h2m
 hyperdex_rm_index_SOURCES = tools/rm-index.cc
 hyperdex_rm_index_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-rm-index.1: man/hyperdex-rm-index.1.h2m tools/rm-index.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-rm-index$(EXEEXT)
+man/hyperdex-rm-index.1: man/hyperdex-rm-index.1.h2m tools/rm-index.cc | hyperdex-rm-index$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-rm-index$(EXEEXT)
 
 # hyperdex-show-config
@@ -1163,8 +1156,7 @@ EXTRA_DIST += man/hyperdex-show-config.1.md
 EXTRA_DIST += man/hyperdex-show-config.1.h2m
 hyperdex_show_config_SOURCES = tools/show-config.cc
 hyperdex_show_config_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-show-config.1: man/hyperdex-show-config.1.h2m tools/show-config.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-show-config$(EXEEXT)
+man/hyperdex-show-config.1: man/hyperdex-show-config.1.h2m tools/show-config.cc | hyperdex-show-config$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-show-config$(EXEEXT)
 
 # hyperdex-server-register
@@ -1172,8 +1164,7 @@ EXTRA_DIST += man/hyperdex-server-register.1.md
 EXTRA_DIST += man/hyperdex-server-register.1.h2m
 hyperdex_server_register_SOURCES = tools/server-register.cc
 hyperdex_server_register_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-server-register.1: man/hyperdex-server-register.1.h2m tools/server-register.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-register$(EXEEXT)
+man/hyperdex-server-register.1: man/hyperdex-server-register.1.h2m tools/server-register.cc | hyperdex-server-register$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-register$(EXEEXT)
 
 # hyperdex-server-online
@@ -1181,8 +1172,7 @@ EXTRA_DIST += man/hyperdex-server-online.1.md
 EXTRA_DIST += man/hyperdex-server-online.1.h2m
 hyperdex_server_online_SOURCES = tools/server-online.cc
 hyperdex_server_online_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-server-online.1: man/hyperdex-server-online.1.h2m tools/server-online.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-online$(EXEEXT)
+man/hyperdex-server-online.1: man/hyperdex-server-online.1.h2m tools/server-online.cc | hyperdex-server-online$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-online$(EXEEXT)
 
 # hyperdex-server-offline
@@ -1190,8 +1180,7 @@ EXTRA_DIST += man/hyperdex-server-offline.1.md
 EXTRA_DIST += man/hyperdex-server-offline.1.h2m
 hyperdex_server_offline_SOURCES = tools/server-offline.cc
 hyperdex_server_offline_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-server-offline.1: man/hyperdex-server-offline.1.h2m tools/server-offline.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-offline$(EXEEXT)
+man/hyperdex-server-offline.1: man/hyperdex-server-offline.1.h2m tools/server-offline.cc | hyperdex-server-offline$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-offline$(EXEEXT)
 
 # hyperdex-server-forget
@@ -1199,8 +1188,7 @@ EXTRA_DIST += man/hyperdex-server-forget.1.md
 EXTRA_DIST += man/hyperdex-server-forget.1.h2m
 hyperdex_server_forget_SOURCES = tools/server-forget.cc
 hyperdex_server_forget_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-server-forget.1: man/hyperdex-server-forget.1.h2m tools/server-forget.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-forget$(EXEEXT)
+man/hyperdex-server-forget.1: man/hyperdex-server-forget.1.h2m tools/server-forget.cc | hyperdex-server-forget$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-forget$(EXEEXT)
 
 # hyperdex-server-kill
@@ -1208,8 +1196,7 @@ EXTRA_DIST += man/hyperdex-server-kill.1.md
 EXTRA_DIST += man/hyperdex-server-kill.1.h2m
 hyperdex_server_kill_SOURCES = tools/server-kill.cc
 hyperdex_server_kill_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-server-kill.1: man/hyperdex-server-kill.1.h2m tools/server-kill.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-kill$(EXEEXT)
+man/hyperdex-server-kill.1: man/hyperdex-server-kill.1.h2m tools/server-kill.cc | hyperdex-server-kill$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-kill$(EXEEXT)
 
 # hyperdex-perf-counters
@@ -1217,8 +1204,7 @@ EXTRA_DIST += man/hyperdex-perf-counters.1.md
 EXTRA_DIST += man/hyperdex-perf-counters.1.h2m
 hyperdex_perf_counters_SOURCES = tools/perf-counters.cc
 hyperdex_perf_counters_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-perf-counters.1: man/hyperdex-perf-counters.1.h2m tools/perf-counters.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-perf-counters$(EXEEXT)
+man/hyperdex-perf-counters.1: man/hyperdex-perf-counters.1.h2m tools/perf-counters.cc | hyperdex-perf-counters$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-perf-counters$(EXEEXT)
 
 # hyperdex-set-read-only
@@ -1226,8 +1212,7 @@ EXTRA_DIST += man/hyperdex-set-read-only.1.md
 EXTRA_DIST += man/hyperdex-set-read-only.1.h2m
 hyperdex_set_read_only_SOURCES = tools/set-read-only.cc
 hyperdex_set_read_only_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-set-read-only.1: man/hyperdex-set-read-only.1.h2m tools/set-read-only.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-set-read-only$(EXEEXT)
+man/hyperdex-set-read-only.1: man/hyperdex-set-read-only.1.h2m tools/set-read-only.cc | hyperdex-set-read-only$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-read-only$(EXEEXT)
 
 # hyperdex-set-read-write
@@ -1235,8 +1220,7 @@ EXTRA_DIST += man/hyperdex-set-read-write.1.md
 EXTRA_DIST += man/hyperdex-set-read-write.1.h2m
 hyperdex_set_read_write_SOURCES = tools/set-read-write.cc
 hyperdex_set_read_write_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-set-read-write.1: man/hyperdex-set-read-write.1.h2m tools/set-read-write.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-set-read-write$(EXEEXT)
+man/hyperdex-set-read-write.1: man/hyperdex-set-read-write.1.h2m tools/set-read-write.cc | hyperdex-set-read-write$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-read-write$(EXEEXT)
 
 # hyperdex-set-fault-tolerance
@@ -1244,8 +1228,7 @@ EXTRA_DIST += man/hyperdex-set-fault-tolerance.1.md
 EXTRA_DIST += man/hyperdex-set-fault-tolerance.1.h2m
 hyperdex_set_fault_tolerance_SOURCES = tools/set-fault-tolerance.cc
 hyperdex_set_fault_tolerance_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-set-fault-tolerance.1: man/hyperdex-set-fault-tolerance.1.h2m tools/set-fault-tolerance.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-set-fault-tolerance$(EXEEXT)
+man/hyperdex-set-fault-tolerance.1: man/hyperdex-set-fault-tolerance.1.h2m tools/set-fault-tolerance.cc | hyperdex-set-fault-tolerance$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-fault-tolerance$(EXEEXT)
 
 # hyperdex-wait-until-stable
@@ -1253,8 +1236,7 @@ EXTRA_DIST += man/hyperdex-wait-until-stable.1.md
 EXTRA_DIST += man/hyperdex-wait-until-stable.1.h2m
 hyperdex_wait_until_stable_SOURCES = tools/wait-until-stable.cc
 hyperdex_wait_until_stable_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-wait-until-stable.1: man/hyperdex-wait-until-stable.1.h2m tools/wait-until-stable.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-wait-until-stable$(EXEEXT)
+man/hyperdex-wait-until-stable.1: man/hyperdex-wait-until-stable.1.h2m tools/wait-until-stable.cc | hyperdex-wait-until-stable$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-wait-until-stable$(EXEEXT)
 
 # hyperdex-backup
@@ -1262,8 +1244,7 @@ EXTRA_DIST += man/hyperdex-backup.1.md
 EXTRA_DIST += man/hyperdex-backup.1.h2m
 hyperdex_backup_SOURCES = tools/backup.cc
 hyperdex_backup_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-backup.1: man/hyperdex-backup.1.h2m tools/backup.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-backup$(EXEEXT)
+man/hyperdex-backup.1: man/hyperdex-backup.1.h2m tools/backup.cc | hyperdex-backup$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-backup$(EXEEXT)
 
 # hyperdex-backup-manager
@@ -1271,8 +1252,7 @@ EXTRA_DIST += man/hyperdex-backup-manager.1.md
 EXTRA_DIST += man/hyperdex-backup-manager.1.h2m
 hyperdex_backup_manager_SOURCES = tools/backup-manager.cc
 hyperdex_backup_manager_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-backup-manager.1: man/hyperdex-backup-manager.1.h2m tools/backup-manager.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-backup-manager$(EXEEXT)
+man/hyperdex-backup-manager.1: man/hyperdex-backup-manager.1.h2m tools/backup-manager.cc | hyperdex-backup-manager$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-backup-manager$(EXEEXT)
 
 # hyperdex-raw-backup
@@ -1280,8 +1260,7 @@ EXTRA_DIST += man/hyperdex-raw-backup.1.md
 EXTRA_DIST += man/hyperdex-raw-backup.1.h2m
 hyperdex_raw_backup_SOURCES = tools/raw-backup.cc
 hyperdex_raw_backup_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-raw-backup.1: man/hyperdex-raw-backup.1.h2m tools/raw-backup.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-raw-backup$(EXEEXT)
+man/hyperdex-raw-backup.1: man/hyperdex-raw-backup.1.h2m tools/raw-backup.cc | hyperdex-raw-backup$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-raw-backup$(EXEEXT)
 
 # hyperdex-noc
@@ -1334,14 +1313,13 @@ EXTRA_DIST += doc/api/node.js/window-pattern.js
 EXTRA_DIST += doc/api/ruby/hello-world-async-loop.rb
 EXTRA_DIST += doc/api/ruby/hello-world-async-wait.rb
 EXTRA_DIST += doc/api/ruby/hello-world.rb
-
-CLEANFILES += doc/HyperDex-$(VERSION).pdf
-
-doc/HyperDex-$(VERSION).pdf:
-	sphinx-build -d ${abs_top_builddir}/doc/_build -b latex ${abs_top_srcdir}/doc ${abs_top_builddir}/doc/_build/latex
-	make -C ${abs_top_builddir}/doc/_build/latex all-pdf
-	cp ${abs_top_builddir}/doc/_build/latex/HyperDex.pdf doc/HyperDex-$(VERSION).pdf
-	rm -r ${abs_top_builddir}/doc/_build
+EXTRA_DIST += doc/install/centos-packages.sh
+EXTRA_DIST += doc/install/debian7-packages.sh
+EXTRA_DIST += doc/install/fedora-packages.sh
+EXTRA_DIST += doc/install/linux-amd64.sh
+EXTRA_DIST += doc/install/ubuntu12.04-packages.sh
+EXTRA_DIST += doc/install/ubuntu14.04-packages.sh
+EXTRA_DIST += doc/install/ubuntu14.10-packages.sh
 
 ################################################################################
 ################################## Maintenance #################################
@@ -1363,17 +1341,17 @@ maint_lib_check_SOURCES = maint/lib-check.c
 maint_lib_check_LDADD = -ldl
 
 maintainer-generate:
-	python bindings/c.py
-	python bindings/java.py
-	python bindings/nodejs.py
-	python bindings/python.py
-	python bindings/ruby.py
-	python maint/generate-replication-shell-stubs.py
-	python maint/generate-search-shell-stubs.py
-	python maint/generate-doc-shell-stubs.py
-	python maint/generate-bindings-tests.py
-	python test/doc-extract.py python doc/quick-start.tex test/doc.quick-start.py
-	python test/doc-extract.py python doc/data-types.tex test/doc.data-types.py
-	python test/doc-extract.py python doc/async-ops.tex test/doc.async-ops.py
-	python test/doc-extract.py python doc/atomic-ops.tex test/doc.atomic-ops.py
-	python test/doc-extract.py python doc/documents.tex test/doc.documents.py
+	python2 bindings/c.py
+	python2 bindings/java.py
+	python2 bindings/nodejs.py
+	python2 bindings/python.py
+	python2 bindings/ruby.py
+	python2 maint/generate-replication-shell-stubs.py
+	python2 maint/generate-search-shell-stubs.py
+	python2 maint/generate-doc-shell-stubs.py
+	python2 maint/generate-bindings-tests.py
+	python2 test/doc-extract.py python doc/quick-start.tex test/doc.quick-start.py
+	python2 test/doc-extract.py python doc/data-types.tex test/doc.data-types.py
+	python2 test/doc-extract.py python doc/async-ops.tex test/doc.async-ops.py
+	python2 test/doc-extract.py python doc/atomic-ops.tex test/doc.atomic-ops.py
+	python2 test/doc-extract.py python doc/documents.tex test/doc.documents.py

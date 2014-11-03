@@ -68,33 +68,48 @@ key_change :: validate(const schema& sc) const
 hyperdex::network_returncode
 key_change :: check(const schema& sc,
                     bool has_old_value,
-                    const std::vector<e::slice>* old_value) const
+                    const std::vector<e::slice>* old_values) const
 {
-    network_returncode nrc = NET_SUCCESS;
-    const key_change* kc = this;
+    const key_change& kc = *this;
 
-    if (!has_old_value && kc->erase)
+    if (!has_old_value && kc.erase)
     {
-        nrc = NET_NOTFOUND;
+        // cannot erase if there is no old value
+        return NET_NOTFOUND;
     }
-    else if (!has_old_value && kc->fail_if_not_found)
+    else if (!has_old_value && kc.fail_if_not_found)
     {
-        nrc = NET_NOTFOUND;
+        return NET_NOTFOUND;
     }
-    else if (!has_old_value && !kc->checks.empty())
+    else if (!has_old_value && !kc.checks.empty())
     {
-        nrc = NET_CMPFAIL;
+        return NET_CMPFAIL;
     }
-    else if (has_old_value && kc->fail_if_found)
+    else if (has_old_value && kc.fail_if_found)
     {
-        nrc = NET_CMPFAIL;
+        return NET_CMPFAIL;
     }
-    else if (has_old_value && passes_attribute_checks(sc, kc->checks, key, *old_value) < kc->checks.size())
+    // The attribute checks are needed for cond_put and friends
+    else if (has_old_value && passes_attribute_checks(sc, kc.checks, key, *old_values) < kc.checks.size())
     {
-        nrc = NET_CMPFAIL;
+        return NET_CMPFAIL;
+    }
+    // Sometimes an operation has specific requirements on the old value
+    else if (has_old_value)
+    {
+        for(std::vector<funcall>::const_iterator it = kc.funcs.begin(); it != kc.funcs.end(); ++it)
+        {
+            const funcall& func = *it;
+
+            if(!datatype_info::lookup(sc.attrs[func.attr].type)->validate_old_values(*old_values, func))
+            {
+                return NET_CMPFAIL;
+            }
+        }
     }
 
-    return nrc;
+    // All check have passed
+    return NET_SUCCESS;
 }
 
 key_change&

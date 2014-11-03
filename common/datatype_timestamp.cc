@@ -16,21 +16,21 @@ namespace {
 int64_t
 unpack(const e::slice& value)
 {
-  assert(value.size() == sizeof(int64_t) || value.empty());
+    assert(value.size() == sizeof(int64_t) || value.empty());
 
-  if (value.empty()) {
-    return 0;
-  }
+    if (value.empty()) {
+      return 0;
+    }
 
-  int64_t timestamp;
-  e::unpack64le(value.data(),&timestamp);
+    int64_t timestamp;
+    e::unpack64le(value.data(),&timestamp);
 
-  return timestamp;
+    return timestamp;
 }
 }
 
 datatype_timestamp::datatype_timestamp(enum timestamp_interval interval) {
-  this->interval = interval;
+    this->interval = interval;
 }
 
 datatype_timestamp :: ~datatype_timestamp() throw ()
@@ -38,7 +38,7 @@ datatype_timestamp :: ~datatype_timestamp() throw ()
 }
 
 hyperdatatype
-datatype_timestamp::datatype()
+datatype_timestamp::datatype() const
 {
   switch(this->interval)
   {
@@ -58,13 +58,12 @@ datatype_timestamp::datatype()
   }
 }
 bool
-datatype_timestamp::validate(const e::slice& value) {
+datatype_timestamp::validate(const e::slice& value) const {
   return value.size() == sizeof(int64_t) || value.empty();
 }
 
-
 bool
-datatype_timestamp::check_args(const funcall& func)
+datatype_timestamp::check_args(const funcall& func) const
 {
   return func.name == FUNC_SET && func.arg1_datatype == this->datatype() && validate(func.arg1);
 }
@@ -89,7 +88,7 @@ datatype_timestamp::apply(const e::slice& old_value,
 }
 
 bool
-datatype_timestamp::hashable()
+datatype_timestamp::hashable() const
 {
     return true;
 }
@@ -140,9 +139,15 @@ datatype_timestamp::hash(const e::slice& value) {
 
 }
 
+bool
+datatype_timestamp :: indexable() const
+{
+    return true;
+}
+
 
 bool
-datatype_timestamp :: containable()
+datatype_timestamp :: containable() const
 {
     return true;
 }
@@ -171,7 +176,7 @@ datatype_timestamp :: write(uint8_t* writeto,
 }
 
 bool
-datatype_timestamp :: comparable()
+datatype_timestamp :: comparable() const
 {
     return true;
 }

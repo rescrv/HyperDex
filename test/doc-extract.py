@@ -1,4 +1,4 @@
-# Copyright (c) 2013, Cornell University
+# Copyright (c) 2013-2014, Cornell University
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -23,6 +23,8 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+from __future__ import print_function
 
 import sys
 
@@ -55,4 +57,11 @@ def transform(code, infile, outfile):
             else:
                 fout.write(line)
 
-transform(sys.argv[1], sys.argv[2], sys.argv[3])
+if len(sys.argv) < 4 or sys.argv[1] is "help":
+	print("This script generates test case from the documentation")
+	print("Please supply the following arguments:")
+	print(" 1. name of code (e.g. python)")
+	print(" 2. input file ")
+	print(" 3. output file ")
+else:
+	transform(sys.argv[1], sys.argv[2], sys.argv[3])

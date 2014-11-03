@@ -873,13 +873,13 @@ datalayer :: backup(const e::slice& _name)
 
 datalayer::returncode
 datalayer :: get_from_iterator(const region_id& ri,
+                               const schema& sc,
                                iterator* iter,
                                e::slice* key,
                                std::vector<e::slice>* value,
                                uint64_t* version,
                                reference* ref)
 {
-    const schema& sc(*m_daemon->m_config.get_schema(ri));
     std::vector<char> scratch;
 
     // create the encoded key

@@ -853,7 +853,9 @@ daemon :: process_req_atomic(server_id from,
                              std::auto_ptr<e::buffer> msg,
                              e::unpacker up)
 {
+    // initialize nonce from pseudo-random memory
     uint64_t nonce;
+
     std::auto_ptr<key_change> kc(new key_change());
     up = up >> nonce >> *kc;
 

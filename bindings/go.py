@@ -48,12 +48,14 @@ def GOTYPEOF(x):
         return 'MapAttributes'
     elif x == bindings.AttributeNames:
         return 'AttributeNames'
+    elif x == bindings.DocAttributes:
+        return 'DocAttributes'
     elif x == bindings.Predicates:
         return '[]Predicate'
     elif x == bindings.SortBy:
         return 'string'
     elif x == bindings.Limit:
-        return 'uint64'
+        return 'uint32'
     elif x == bindings.MaxMin:
         return 'string'
     print x
@@ -64,13 +66,13 @@ def arg_name(a):
 
 def return_type_async(args_out):
     if args_out == (bindings.Status,):
-        return 'err Error'
+        return 'err *Error'
     elif args_out == (bindings.Status, bindings.Attributes):
-        return 'attrs Attributes, err Error'
+        return 'attrs Attributes, err *Error'
     elif args_out == (bindings.Status, bindings.Description):
-        return 'desc string, err Error'
+        return 'desc string, err *Error'
     elif args_out == (bindings.Status, bindings.Count):
-        return 'count uint64, err Error'
+        return 'count uint64, err *Error'
     print args_out
     assert False
 
@@ -81,9 +83,9 @@ def return_value_async(args_out):
     elif args_out == (bindings.Status, bindings.Attributes):
         ret  = '\tif c_status == SUCCESS {\n'
         ret += '\t\tvar er error\n'
-        ret += '\t\tattrs, er = client.buildAttributes(c_attrs, c_attrs_sz)\n'
+        ret += '\t\tattrs, er = inner.buildAttributes(c_attrs, c_attrs_sz)\n'
         ret += '\t\tif er != nil {\n'
-        ret += '\t\t\terr = Error{Status(SERVERERROR), er.Error(), ""}\n'
+        ret += '\t\t\terr = &Error{Status(SERVERERROR), er.Error(), ""}\n'
         ret += '\t\t}\n'
         ret += '\t\tC.hyperdex_client_destroy_attrs(c_attrs, c_attrs_sz)\n'
         ret += '\t}\n'
@@ -154,27 +156,38 @@ def generate_worker_asynccall(call, x):
     for arg in x.args_in:
         for p, n in arg.args:
             func += '\tvar c_{0} {1}\n'.format(n, CGoIfy(p))
+    func += '\tvar er error\n'
     for arg in x.args_in:
         args = ', '.join(['&c_' + n for p, n in arg.args])
-        func += '\tclient.convert{0}(arena, {1}, {2})\n'.format(GoIfy(arg.__name__), arg_name(arg), args)
+        func += '\ter = client.convert{0}(arena, {1}, {2})\n'.format(GoIfy(arg.__name__), arg_name(arg), args)
+        func += '\tif er != nil {\n\t\terr = &Error{Status(WRONGTYPE), er.Error(), ""}\n'
+        func += '\t\treturn\n\t}\n'
     for arg in x.args_out:
         for p, n in arg.args:
             func += '\tvar c_{0} {1}\n'.format(n, CGoIfy(p))
     stub_args, stub_args_list = generate_stub_args(x, in_prefix='c_', out_prefix='&c_')
     func += '\tdone := make(chan Error)\n'
     func += '\tclient.mutex.Lock()\n'
-    func += '\treqid := stub(client.ptr, {0})\n'.format(stub_args_list)
-    func += '\tif reqid >= 0 {\n'
-    func += '\t\tclient.ops[reqid] = done\n'
-    func += '\t} else {\n'
-    func += '\t\terr = Error{Status(c_status),\n'
-    func += '\t\t            C.GoString(C.hyperdex_client_error_message(client.ptr)),\n'
-    func += '\t\t            C.GoString(C.hyperdex_client_error_location(client.ptr))}\n'
-    func += '\t}\n'
+    func += '\tinner := client.clients[client.counter%uint64(len(client.clients))]\n'
+    func += '\tclient.counter++\n'
     func += '\tclient.mutex.Unlock()\n'
+    func += '\tinner.mutex.Lock()\n'
+    func += '\treqid := stub(inner.ptr, {0})\n'.format(stub_args_list)
     func += '\tif reqid >= 0 {\n'
-    func += '\t\terr = <-done\n'
-    func += '\t\terr.Status = Status(c_status)\n'
+    func += '\t\tinner.ops[reqid] = done\n'
+    func += '\t} else {\n'
+    func += '\t\tif c_status != SUCCESS {\n'
+    func += '\t\terr = &Error{Status(c_status),\n'
+    func += '\t\t            C.GoString(C.hyperdex_client_error_message(inner.ptr)),\n'
+    func += '\t\t            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}\n'
+    func += '\t}\n'
+    func += '\tinner.mutex.Unlock()\n'
+    func += '\tif reqid >= 0 {\n'
+    func += '\t\t rz := <-done\n'
+    func += '\t\t if c_status != SUCCESS {\n'
+    func += '\t\t    err = &rz\n'
+    func += '\t\t    err.Status = Status(c_status)\n'
+    func += '\t}\n'
     func += '\t}\n'
     func += return_value_async(x.args_out)
     func += '}\n'
@@ -191,25 +204,33 @@ def generate_worker_iterator(call, x):
     for arg in x.args_in:
         for p, n in arg.args:
             func += '\tvar c_{0} {1}\n'.format(n, CGoIfy(p))
-    for arg in x.args_in:
-        args = ', '.join(['&c_' + n for p, n in arg.args])
-        func += '\tclient.convert{0}(arena, {1}, {2})\n'.format(GoIfy(arg.__name__), arg_name(arg), args)
+    func += '\tvar er error\n'
     func += '\tvar c_iter cIterator\n'
     func += '\tc_iter = cIterator{C.HYPERDEX_CLIENT_GARBAGE, nil, 0, make(chan Attributes, 10), make(chan Error, 10)}\n'
     func += '\tattrs = c_iter.attrChan\n'
     func += '\terrs = c_iter.errChan\n'
+    for arg in x.args_in:
+        args = ', '.join(['&c_' + n for p, n in arg.args])
+        func += '\ter = client.convert{0}(arena, {1}, {2})\n'.format(GoIfy(arg.__name__), arg_name(arg), args)
+        func += '\tif er != nil {\n\t\terr := Error{Status(WRONGTYPE), er.Error(), ""}\n'
+        func += '\t\terrs<-err\n\t\tclose(attrs)\n\t\tclose(errs)\n'
+        func += '\t\treturn\n\t}\n'
     stub_args, stub_args_list = generate_stub_args(x, in_prefix='c_', out_prefix='&c_iter.')
     func += '\tvar err Error\n'
     func += '\tclient.mutex.Lock()\n'
-    func += '\treqid := stub(client.ptr, {0})\n'.format(stub_args_list)
+    func += '\tinner := client.clients[client.counter%uint64(len(client.clients))]\n'
+    func += '\tclient.counter++\n'
+    func += '\tclient.mutex.Unlock()\n'
+    func += '\tinner.mutex.Lock()\n'
+    func += '\treqid := stub(inner.ptr, {0})\n'.format(stub_args_list)
     func += '\tif reqid >= 0 {\n'
-    func += '\t\tclient.searches[reqid] = &c_iter\n'
+    func += '\t\tinner.searches[reqid] = &c_iter\n'
     func += '\t} else {\n'
     func += '\t\terr = Error{Status(c_iter.status),\n'
-    func += '\t\t            C.GoString(C.hyperdex_client_error_message(client.ptr)),\n'
-    func += '\t\t            C.GoString(C.hyperdex_client_error_location(client.ptr))}\n'
+    func += '\t\t            C.GoString(C.hyperdex_client_error_message(inner.ptr)),\n'
+    func += '\t\t            C.GoString(C.hyperdex_client_error_location(inner.ptr))}\n'
     func += '\t}\n'
-    func += '\tclient.mutex.Unlock()\n'
+    func += '\tinner.mutex.Unlock()\n'
     func += '\tif reqid < 0 {\n'
     func += '\t\terrs<-err\n'
     func += '\t\tclose(attrs)\n'

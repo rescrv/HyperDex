@@ -40,7 +40,7 @@ def gen_shell(lang, name, cmd, space, precmd=None):
     if precmd is not None:
         shell += precmd + '\n'
     shell += '''
-python "${{HYPERDEX_SRCDIR}}"/test/runner.py --space="{0}" --daemons=1 -- \\
+python2 "${{HYPERDEX_SRCDIR}}"/test/runner.py --space="{0}" --daemons=1 -- \\
     {1} {{HOST}} {{PORT}}
 '''.format(space, cmd)
     path = 'test/sh/bindings.{0}.{1}.sh'.format(lang, name)
@@ -143,9 +143,9 @@ class PythonGenerator(BindingGenerator):
     def test(self, name, space):
         assert self.f is None
         self.name = 'test/python/{0}.py'.format(name)
-        gen_shell('python', name, 'python "${HYPERDEX_SRCDIR}"/' + self.name, space)
+        gen_shell('python', name, 'python2 "${HYPERDEX_SRCDIR}"/' + self.name, space)
         self.f = open(self.name, 'w')
-        self.f.write('''#!/usr/bin/env python
+        self.f.write('''#!/usr/bin/env python2
 import sys
 import hyperdex.client
 from hyperdex.client import LessEqual, GreaterEqual, LessThan, GreaterThan, Range, Regex, LengthEquals, LengthLessEqual, LengthGreaterEqual

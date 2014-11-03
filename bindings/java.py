@@ -329,7 +329,7 @@ public class Client
     }
 
     /* utilities */
-    public Operation loop()
+    public Operation loop() throws HyperDexClientException
     {
         long ret = inner_loop();
         Operation o = ops.get(ret);
@@ -349,7 +349,7 @@ public class Client
     private native void _create(String host, int port);
     private native void _destroy();
     /* utilities */
-    private native long inner_loop();
+    private native long inner_loop() throws HyperDexClientException;
     private void add_op(long l, Operation op)
     {
         ops.put(l, op);
