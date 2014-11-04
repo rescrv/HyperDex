@@ -71,7 +71,8 @@ hyperdex :: validate_funcs(const schema& sc,
 {
     for (size_t i = 0; i < funcs.size(); ++i)
     {
-        if (!validate_func(sc, funcs[i]))
+        if ((i > 0 && funcs[i - 1].attr > funcs[i].attr) ||
+            !validate_func(sc, funcs[i]))
         {
             return i;
         }

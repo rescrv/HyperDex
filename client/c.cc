@@ -197,6 +197,7 @@ hyperdex_client_returncode_to_string(enum hyperdex_client_returncode stat)
         CSTRINGIFY(HYPERDEX_CLIENT_INTERRUPTED);
         CSTRINGIFY(HYPERDEX_CLIENT_CLUSTER_JUMP);
         CSTRINGIFY(HYPERDEX_CLIENT_OFFLINE);
+        CSTRINGIFY(HYPERDEX_CLIENT_UNAUTHORIZED);
         CSTRINGIFY(HYPERDEX_CLIENT_INTERNAL);
         CSTRINGIFY(HYPERDEX_CLIENT_EXCEPTION);
         CSTRINGIFY(HYPERDEX_CLIENT_GARBAGE);
@@ -245,6 +246,25 @@ hyperdex_client_destroy_attrs(const hyperdex_client_attribute* attrs, size_t /*a
     FAKE_STATUS;
     SIGNAL_PROTECT_VOID;
     free(const_cast<hyperdex_client_attribute*>(attrs));
+}
+
+HYPERDEX_API void
+hyperdex_client_clear_auth_context(struct hyperdex_client* _cl)
+{
+    FAKE_STATUS;
+    SIGNAL_PROTECT_VOID;
+    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
+    cl->clear_auth_context();
+}
+
+HYPERDEX_API void
+hyperdex_client_set_auth_context(struct hyperdex_client* _cl,
+                                 const char** macaroons, size_t macaroons_sz)
+{
+    FAKE_STATUS;
+    SIGNAL_PROTECT_VOID;
+    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
+    cl->set_auth_context(macaroons, macaroons_sz);
 }
 
 HYPERDEX_API int64_t

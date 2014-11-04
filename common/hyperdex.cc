@@ -61,6 +61,7 @@ operator << (std::ostream& lhs, hyperdatatype rhs)
         STRINGIFY(HYPERDATATYPE_MAP_FLOAT_STRING);
         STRINGIFY(HYPERDATATYPE_MAP_FLOAT_INT64);
         STRINGIFY(HYPERDATATYPE_MAP_FLOAT_FLOAT);
+        STRINGIFY(HYPERDATATYPE_MACAROON_SECRET);
         STRINGIFY(HYPERDATATYPE_GARBAGE);
         default:
             lhs << "unknown hyperdatatype";

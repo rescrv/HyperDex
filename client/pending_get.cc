@@ -151,6 +151,10 @@ pending_get :: handle_message(client* cl,
                                     << " reports that the operation would"
                                     << " cause a number overflow";
             return true;
+        case NET_UNAUTHORIZED:
+            PENDING_ERROR(UNAUTHORIZED) << "server " << si
+                                        << " denied the request because it is unauthorized";
+            return true;
         default:
             PENDING_ERROR(SERVERERROR) << "server " << si
                                        << " returned non-sensical returncode"

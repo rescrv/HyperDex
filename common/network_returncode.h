@@ -36,14 +36,15 @@ BEGIN_HYPERDEX_NAMESPACE
 // HyperDisk returncode occupies [8320, 8448)
 enum network_returncode
 {
-    NET_SUCCESS     = 8320,
-    NET_NOTFOUND    = 8321,
-    NET_BADDIMSPEC  = 8322,
-    NET_NOTUS       = 8323,
-    NET_SERVERERROR = 8324,
-    NET_CMPFAIL     = 8325,
-    NET_READONLY    = 8327,
-    NET_OVERFLOW    = 8328
+    NET_SUCCESS      = 8320,
+    NET_NOTFOUND     = 8321,
+    NET_BADDIMSPEC   = 8322,
+    NET_NOTUS        = 8323,
+    NET_SERVERERROR  = 8324,
+    NET_CMPFAIL      = 8325,
+    NET_READONLY     = 8327,
+    NET_OVERFLOW     = 8328,
+    NET_UNAUTHORIZED = 8329
 };
 
 END_HYPERDEX_NAMESPACE

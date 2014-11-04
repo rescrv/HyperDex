@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,31 +25,30 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// C
-#include <cstring>
+#ifndef hyperdex_common_datatype_macaroon_secret_h_
+#define hyperdex_common_datatype_macaroon_secret_h_
 
 // HyperDex
-#include "common/schema.h"
+#include "namespace.h"
+#include "common/datatype_info.h"
 
-using hyperdex::schema;
+BEGIN_HYPERDEX_NAMESPACE
 
-schema :: schema()
-    : attrs_sz(0)
-    , attrs(NULL)
-    , authorization(false)
+class datatype_macaroon_secret : public datatype_info
 {
-}
+    public:
+        datatype_macaroon_secret();
+        virtual ~datatype_macaroon_secret() throw ();
 
-uint16_t
-schema :: lookup_attr(const char* name) const
-{
-    for (uint16_t i = 0; i < attrs_sz; ++i)
-    {
-        if (strcmp(name, attrs[i].name) == 0)
-        {
-            return i;
-        }
-    }
+    public:
+        virtual hyperdatatype datatype() const;
+        virtual bool validate(const e::slice& value) const;
+        virtual bool check_args(const funcall& func) const;
+        virtual uint8_t* apply(const e::slice& old_value,
+                               const funcall* funcs, size_t funcs_sz,
+                               uint8_t* writeto);
+};
 
-    return attrs_sz;
-}
+END_HYPERDEX_NAMESPACE
+
+#endif // hyperdex_common_datatype_macaroon_secret_h_

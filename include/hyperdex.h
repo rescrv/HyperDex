@@ -86,6 +86,9 @@ enum hyperdatatype
     HYPERDATATYPE_MAP_FLOAT_INT64    = 9434,
     HYPERDATATYPE_MAP_FLOAT_FLOAT    = 9435,
 
+    /* Special (internal) types */
+    HYPERDATATYPE_MACAROON_SECRET    = 9664,
+
     /* Returned if the server acts up */
     HYPERDATATYPE_GARBAGE   = 9727
 };

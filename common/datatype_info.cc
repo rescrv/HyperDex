@@ -34,6 +34,7 @@
 #include "common/datatype_float.h"
 #include "common/datatype_int64.h"
 #include "common/datatype_list.h"
+#include "common/datatype_macaroon_secret.h"
 #include "common/datatype_map.h"
 #include "common/datatype_set.h"
 #include "common/datatype_string.h"
@@ -59,6 +60,7 @@ static hyperdex::datatype_map d_map_int64_float(&d_int64, &d_float);
 static hyperdex::datatype_map d_map_float_string(&d_float, &d_string);
 static hyperdex::datatype_map d_map_float_int64(&d_float, &d_int64);
 static hyperdex::datatype_map d_map_float_float(&d_float, &d_float);
+static hyperdex::datatype_macaroon_secret d_macaroon_secret;
 
 datatype_info*
 datatype_info :: lookup(hyperdatatype datatype)
@@ -103,14 +105,16 @@ datatype_info :: lookup(hyperdatatype datatype)
             return &d_map_float_int64;
         case HYPERDATATYPE_MAP_FLOAT_FLOAT:
             return &d_map_float_float;
+        case HYPERDATATYPE_MACAROON_SECRET:
+            return &d_macaroon_secret;
         case HYPERDATATYPE_GENERIC:
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
-        case HYPERDATATYPE_GARBAGE:
         case HYPERDATATYPE_MAP_GENERIC:
         case HYPERDATATYPE_MAP_STRING_KEYONLY:
         case HYPERDATATYPE_MAP_INT64_KEYONLY:
         case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+        case HYPERDATATYPE_GARBAGE:
         default:
             return NULL;
     }

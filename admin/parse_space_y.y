@@ -73,6 +73,8 @@ yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, const char* ms
 %token PARTITIONS
 %token SUBSPACE
 %token INDEX
+%token WITH
+%token AUTHORIZATION
 
 %token <str> IDENTIFIER
 %token <num> NUMBER
@@ -134,6 +136,7 @@ options :                { }
 
 option : TOLERATE NUMBER FAILURES { hyperspace_set_fault_tolerance(space, $2); }
        | CREATE NUMBER PARTITIONS { hyperspace_set_number_of_partitions(space, $2); }
+       | WITH AUTHORIZATION { hyperspace_use_authorization(space); }
 
 type : STRING                        { $$ = HYPERDATATYPE_STRING; }
      | INT64                         { $$ = HYPERDATATYPE_INT64; }

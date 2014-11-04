@@ -200,6 +200,13 @@ search_manager :: start(const server_id& from,
                         std::vector<attribute_check>* checks)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+
+    if (sc->authorization)
+    {
+        return;
+    }
+
     id sid(ri, from, search_id);
 
     if (m_searches.contains(sid))
@@ -425,6 +432,13 @@ search_manager :: sorted_search(const server_id& from,
                                 bool maximize)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+
+    if (sc->authorization)
+    {
+        return;
+    }
+
     std::stable_sort(checks->begin(), checks->end());
     datalayer::returncode rc = datalayer::SUCCESS;
     datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
@@ -446,8 +460,6 @@ search_manager :: sorted_search(const server_id& from,
             abort();
     }
 
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    assert(sc);
     _sorted_search_params params(sc, sort_by, maximize);
     std::vector<_sorted_search_item> top_n;
     top_n.reserve(limit);
@@ -498,6 +510,12 @@ search_manager :: group_keyop(const server_id& from,
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
     const schema* sc = m_daemon->m_config.get_schema(ri);
+
+    if (sc->authorization)
+    {
+        return;
+    }
+
     std::stable_sort(checks->begin(), checks->end());
     datalayer::returncode rc = datalayer::SUCCESS;
     datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
@@ -561,6 +579,13 @@ search_manager :: count(const server_id& from,
                         std::vector<attribute_check>* checks)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+
+    if (sc->authorization)
+    {
+        return;
+    }
+
     std::stable_sort(checks->begin(), checks->end());
     datalayer::returncode rc = datalayer::SUCCESS;
     datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
@@ -605,6 +630,13 @@ search_manager :: search_describe(const server_id& from,
                                   std::vector<attribute_check>* checks)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+
+    if (sc->authorization)
+    {
+        return;
+    }
+
     std::stable_sort(checks->begin(), checks->end());
     datalayer::returncode rc = datalayer::SUCCESS;
     std::ostringstream ostr;

@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,31 +25,53 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// C
-#include <cstring>
+#ifndef hyperdex_common_auth_wallet_h_
+#define hyperdex_common_auth_wallet_h_
+
+// e
+#include <e/buffer.h>
+#include <e/unpacker.h>
+
+// macaroons
+#include <macaroons.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/schema.h"
 
-using hyperdex::schema;
+BEGIN_HYPERDEX_NAMESPACE
 
-schema :: schema()
-    : attrs_sz(0)
-    , attrs(NULL)
-    , authorization(false)
+class auth_wallet
 {
-}
+    public:
+        auth_wallet();
+        auth_wallet(const char** macaroons, size_t macaroons_sz);
+        auth_wallet(const auth_wallet&);
 
-uint16_t
-schema :: lookup_attr(const char* name) const
-{
-    for (uint16_t i = 0; i < attrs_sz; ++i)
-    {
-        if (strcmp(name, attrs[i].name) == 0)
-        {
-            return i;
-        }
-    }
+    public:
+        bool get_macaroons(std::vector<macaroon*>* macaroons);
 
-    return attrs_sz;
-}
+    private:
+        friend e::buffer::packer operator << (e::buffer::packer lhs, const auth_wallet& rhs);
+        friend e::unpacker operator >> (e::unpacker lhs, auth_wallet& rhs);
+        friend size_t pack_size(const auth_wallet& aw);
+
+        friend std::ostream& operator << (std::ostream& lhs, const auth_wallet& rhs); // XXX
+
+    private:
+        auth_wallet& operator = (const auth_wallet&);
+
+    private:
+        std::vector<std::string> m_macaroons;
+};
+
+e::buffer::packer
+operator << (e::buffer::packer lhs, const auth_wallet& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, auth_wallet& rhs);
+size_t
+pack_size(const auth_wallet& aw);
+
+END_HYPERDEX_NAMESPACE
+
+#endif // hyperdex_common_auth_wallet_h_

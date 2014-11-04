@@ -1,0 +1,152 @@
+\chapter{Authorization}
+\label{chap:auth}
+
+% Bank account application
+\begin{pythoncode}
+>>> import hyperdex.admin
+>>> a = hyperdex.admin.Admin('127.0.0.1', 1982)
+>>> a.add_space('''
+... space accounts
+... key int account
+... attributes
+...    string name,
+...    int balance
+... with authorization
+... ''')
+True
+>>> import hyperdex.client
+>>> c = hyperdex.client.Client('127.0.0.1', 1982)
+\end{pythoncode}
+
+% Create a bank account for John Smith
+\begin{pythoncode}
+>>> SECRET = 'this is the password for the account'
+>>> c.put('accounts', 3735928559, {'name': 'John Smith', 'balance': 10, '__secret': SECRET})
+True
+\end{pythoncode}
+
+% You cannot get the bank account without authorization
+\begin{pythoncode}
+>>> c.get('accounts', 3735928559)
+Traceback (most recent call last):
+HyperDexClientException: HyperDexClientException: server ... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
+\end{pythoncode}
+
+% If you provide authorization, you can get the object
+
+% Start by creating a macaroon
+\begin{pythoncode}
+>>> import macaroons
+>>> M = macaroons.create('account 3735928559', SECRET, '')
+>>> token = M.serialize()
+\end{pythoncode}
+
+% Now we can do a Get
+\begin{pythoncode}
+>>> c.get('accounts', 3735928559, auth=[token])
+{'name': 'John Smith', 'balance': 10}
+\end{pythoncode}
+
+% Or alter the bank account balance
+\begin{pythoncode}
+>>> c.atomic_add('accounts', 3735928559, {'balance': 5}, auth=[token])
+True
+>>> c.get('accounts', 3735928559, auth=[token])
+{'name': 'John Smith', 'balance': 15}
+\end{pythoncode}
+
+% If we want to give access to something like Mint.com, we could give them
+% "token", but that's dangerous!  It allows them to do everything to the bank
+% balance.  Let's give them a restricted token
+\begin{pythoncode}
+>>> M = macaroons.create('account 3735928559', SECRET, '')
+>>> M = M.add_first_party_caveat('op = read')
+>>> token = M.serialize()
+\end{pythoncode}
+
+% We can read the balance just fine
+\begin{pythoncode}
+>>> c.get('accounts', 3735928559, auth=[token])
+{'name': 'John Smith', 'balance': 15}
+\end{pythoncode}
+
+% Writes are unauthorized at the HyperDex level
+\begin{pythoncode}
+>>> c.atomic_add('accounts', 3735928559, {'balance': 5}, auth=[token])
+Traceback (most recent call last):
+HyperDexClientException: HyperDexClientException: server ... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
+\end{pythoncode}
+
+% Let's add a third party restriction, that requires that Mint.com check in with
+% a third party audit service ten seconds prior to querying our bank.
+%  - Audit service can be anywhere
+%  - This service provides two functions.  The first is an RPC that takes a key,
+%    and returns an identifier for the key
+\begin{pythoncode}
+>>> def add_caveat_rpc(key):
+...     return 'identifier associated with key' # usually a random number
+...
+\end{pythoncode}
+
+% We generate a key, and send it to the service in exchange for an ID
+\begin{pythoncode}
+>>> key = 'a unique key for this caveat; usually a random string'
+>>> # then "call" the RPC on the server
+>>> ident = add_caveat_rpc(key)
+\end{pythoncode}
+
+% Now we create our own even-more-restricted macaroon and give token to mint
+\begin{pythoncode}
+>>> M = M.add_third_party_caveat('http://audit.service/', key, ident)
+>>> token = M.serialize()
+\end{pythoncode}
+
+% When Mint wants to use this token, they cannot use it in isolation:
+\begin{pythoncode}
+>>> c.get('accounts', 3735928559, auth=[token])
+Traceback (most recent call last):
+HyperDexClientException: HyperDexClientException: server ... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
+\end{pythoncode}
+
+% Instead, they must go back to the audit.service and get a discharge macaroon
+\begin{pythoncode}
+>>> def generate_discharge_rpc(ident):
+...     'return the key passed into add_caveat_rpc'
+...     D = macaroons.create('', 'a unique key for this caveat; usually a random string', ident)
+...     return D
+...
+\end{pythoncode}
+
+% Now mint gets this dicharge macaroon and provides it with the original to the
+% call
+\begin{pythoncode}
+>>> D = generate_discharge_rpc(ident)
+>>> DP = M.prepare_for_request(D)
+>>> c.get('accounts', 3735928559, auth=[token, DP.serialize()])
+{'name': 'John Smith', 'balance': 15}
+\end{pythoncode}
+
+% Of course, this too is weak as M and D can forever authorize the bank account.
+% Let's modify the "generate_discharge_rpc" to add a time constraint
+\begin{pythoncode}
+>>> import time
+>>> def generate_discharge_rpc(ident):
+...     'return the key passed into add_caveat_rpc'
+...     D = macaroons.create('', 'a unique key for this caveat; usually a random string', ident)
+...     expiration = int(time.time()) + 10
+...     D = D.add_first_party_caveat('time < %d' % expiration)
+...     return D
+...
+\end{pythoncode}
+
+% Now try it (it'll be dead after 15s)
+\begin{pythoncode}
+>>> D = generate_discharge_rpc(ident)
+>>> DP = M.prepare_for_request(D)
+>>> c.get('accounts', 3735928559, auth=[token, DP.serialize()])
+{'name': 'John Smith', 'balance': 15}
+>>> time.sleep(15)
+>>> c.get('accounts', 3735928559, auth=[token, DP.serialize()])
+Traceback (most recent call last):
+HyperDexClientException: HyperDexClientException: server ... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
+\end{pythoncode}

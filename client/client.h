@@ -57,8 +57,9 @@ class client
         ~client() throw ();
 
     public:
-        hyperdex_client_returncode add_space(const char* description);
-        hyperdex_client_returncode rm_space(const char* space);
+        void clear_auth_context() { m_macaroons = NULL; m_macaroons_sz = 0; }
+        void set_auth_context(const char** macaroons, size_t macaroons_sz)
+        { m_macaroons = macaroons; m_macaroons_sz = macaroons_sz; }
 
     public:
         // specific calls
@@ -189,6 +190,12 @@ class client
         e::intrusive_ptr<pending> m_yielding;
         e::intrusive_ptr<pending> m_yielded;
         e::error m_last_error;
+        const char** m_macaroons;
+        size_t m_macaroons_sz;
+
+    private:
+        client(const client&);
+        client& operator = (const client&);
 };
 
 END_HYPERDEX_NAMESPACE

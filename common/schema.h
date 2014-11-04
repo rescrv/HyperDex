@@ -48,6 +48,7 @@ class schema
     public:
         uint16_t attrs_sz;
         const attribute* attrs;
+        bool authorization;
 };
 
 END_HYPERDEX_NAMESPACE

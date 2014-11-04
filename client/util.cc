@@ -97,6 +97,11 @@ hyperdex :: value_to_attributes(const configuration& config,
 
     for (size_t i = 0; i < value.size(); ++i)
     {
+        if (sc->attrs[i + 1].type == HYPERDATATYPE_MACAROON_SECRET)
+        {
+            continue;
+        }
+
         ha.push_back(hyperdex_client_attribute());
         size_t attr_sz = strlen(sc->attrs[i + 1].name) + 1;
         ha.back().attr = data;
@@ -161,6 +166,11 @@ hyperdex :: value_to_attributes(const configuration& config,
 
     for (size_t i = 0; i < value.size(); ++i)
     {
+        if (sc->attrs[i + 1].type == HYPERDATATYPE_MACAROON_SECRET)
+        {
+            continue;
+        }
+
         uint16_t attr = value[i].first;
         ha.push_back(hyperdex_client_attribute());
         size_t attr_sz = strlen(sc->attrs[attr].name) + 1;

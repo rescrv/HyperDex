@@ -134,6 +134,7 @@ if test x"${enable_all_components}" = xyes -o \
     PKG_CHECK_MODULES([HYPERLEVELDB], [libhyperleveldb >= 1.0])
 fi
 PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.6])
+PKG_CHECK_MODULES([MACAROONS], [libmacaroons >= 0.2])
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])

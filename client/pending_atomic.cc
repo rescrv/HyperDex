@@ -145,9 +145,13 @@ pending_atomic :: handle_message(client*,
                                        << " reports a server error;"
                                        << " check its log for details";
             return true;
+        case NET_UNAUTHORIZED:
+            PENDING_ERROR(UNAUTHORIZED) << "server " << si
+                                        << " denied the request because it is unauthorized";
+            return true;
         default:
             PENDING_ERROR(SERVERERROR) << "server " << si
-                                       << " returned non-sensical returncode"
+                                       << " returned non-sensical returncode "
                                        << response;
             return true;
     }

@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,31 +25,43 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// C
-#include <cstring>
+#ifndef hyperdex_daemon_auth_h_
+#define hyperdex_daemon_auth_h_
+
+// e
+#include <e/guard.h>
+#include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
+#include "common/key_change.h"
 #include "common/schema.h"
 
-using hyperdex::schema;
+BEGIN_HYPERDEX_NAMESPACE
 
-schema :: schema()
-    : attrs_sz(0)
-    , attrs(NULL)
-    , authorization(false)
-{
-}
+void
+sanitize_secrets(const schema& sc, std::vector<e::slice>* value);
 
-uint16_t
-schema :: lookup_attr(const char* name) const
-{
-    for (uint16_t i = 0; i < attrs_sz; ++i)
-    {
-        if (strcmp(name, attrs[i].name) == 0)
-        {
-            return i;
-        }
-    }
+bool
+auth_verify(const schema& sc,
+            bool has_value,
+            const std::vector<e::slice>* value,
+            auth_wallet* aw,
+            const char** exact,
+            struct general_caveat* general);
 
-    return attrs_sz;
-}
+bool
+auth_verify_read(const schema& sc,
+                 bool has_value,
+                 const std::vector<e::slice>* value,
+                 auth_wallet* aw);
+
+bool
+auth_verify_write(const schema& sc,
+                  bool has_value,
+                  const std::vector<e::slice>* value,
+                  const key_change& kc);
+
+END_HYPERDEX_NAMESPACE
+
+#endif // hyperdex_daemon_auth_h_
