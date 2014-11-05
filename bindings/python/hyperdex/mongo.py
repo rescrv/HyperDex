@@ -133,7 +133,7 @@ class HyperSpace:
                     self.atomic_mod(key, mask)
                 elif op =='xor':
                     self.atomic_xor(key, mask)
-                else
+                else:
                     raise ValueError("Unknown bit-operation")
             
             elif pred == '$mul':

@@ -131,7 +131,7 @@ fi
 
 if test x"${needs_bson}" = xyes; then
     AC_SUBST([BSON_LIBS], ["-lbson-1.0"])
-    AC_SUBST([CPP_INCDIRS], ["-I/usr/local/include/libbson-1.0"])
+    AC_SUBST([CPP_INCDIRS], ["-I"$(includedir)"/home/kai/include/libbson-1.0"])
 else
     AC_MSG_ERROR([
 -------------------------------------------------
