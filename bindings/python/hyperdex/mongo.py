@@ -46,26 +46,26 @@ class HyperSpace:
         result = {}
 
         for k, c in conditions.iteritems():
-            if not isinstance(c, dict):
-                raise ValueError('Wrong Type')
+            if isinstance(c, dict):
+            	hyperpreds = []
 
-            hyperpreds = []
+                for pred, val in c.iteritems():
+                    if pred == '$lt':
+                        hyperpreds.append(LessThan(val))
+                    elif pred == '$lte':
+                        hyperpreds.append(LessEqual(val))
+                    elif pred == '$gt':
+                        hyperpreds.append(GreaterThan(val))
+                    elif pred == '$gte':
+                        hyperpreds.append(GreaterEqual(val))
+                    elif pred == '$eq':
+                        hyperpreds.append(Equals(val))
+                    else:
+                        raise ValueError('Unknown Mongo Predicate: ' + pred)
 
-            for pred, val in c.iteritems():
-                if pred == '$lt':
-                    hyperpreds.append(LessThan(val))
-                elif pred == '$lte':
-                    hyperpreds.append(LessEquals(val))
-                elif pred == '$gt':
-					hyperpreds.append(GreaterThan(val))
-                elif pred == '$gte':
-					hyperpreds.append(GreaterEquals(val))
-                elif pred == '$eq':
-					hyperpreds.append(Equals(val))
-                else:
-					raise ValueError('Unknown Mongo Predicate: ' + pred)
-
-            result['v.' + k] = hyperpreds
+                result['v.' + k] = hyperpreds
+            else:
+                result['v.' + k] = Equals(c)
 
         return result
 
@@ -117,13 +117,13 @@ class HyperSpace:
 
     def update(self, key, arg):
         for k,v in arg.items():
-            if k is "$inc$":
+            if k == "$inc":
                 self.atomic_add(key, v)
-            elif pred == '$bit':
-                if not isinstance(val, dict):
+            elif k == '$bit':
+                if not isinstance(v, dict):
                     raise ValueError('$bit argument must a dict')
                     
-                op, mask = val.iteritems().next()
+                op, mask = v.iteritems().next()
                     
                 if op == 'and':
                     self.atomic_and(key, mask)
@@ -133,12 +133,12 @@ class HyperSpace:
                     self.atomic_mod(key, mask)
                 elif op =='xor':
                     self.atomic_xor(key, mask)
-                else
+                else:
                     raise ValueError("Unknown bit-operation")
             
-            elif pred == '$mul':
+            elif k == '$mul':
                 self.atomic_mul(key, v)        
-            elif pred == '$div':
+            elif k == '$div':
                 self.atomic_div(key, v)
             else:
                 raise ValueError("Unknown command " + k)
