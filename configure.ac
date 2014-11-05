@@ -129,16 +129,16 @@ Please install libjson to continue.
 -------------------------------------------------])
 fi
 
-if test x"${needs_bson}" = xyes; then
+#if test x"${needs_bson}" = xyes; then
     AC_SUBST([BSON_LIBS], ["-lbson-1.0"])
     AC_SUBST([CPP_INCDIRS], ["-I"$(includedir)"/home/kai/include/libbson-1.0"])
-else
-    AC_MSG_ERROR([
--------------------------------------------------
-HyperDex relies upon the libbson library.
-Please install libbson to continue.
--------------------------------------------------])
-fi
+#else
+#    AC_MSG_ERROR([
+#-------------------------------------------------
+#HyperDex relies upon the libbson library.
+#Please install libbson to continue.
+#-------------------------------------------------])
+#fi
 
 PKG_CHECK_MODULES([PO6], [libpo6 >= 0.5])
 PKG_CHECK_MODULES([E], [libe >= 0.7])
