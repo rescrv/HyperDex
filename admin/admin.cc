@@ -104,6 +104,22 @@ admin :: dump_config(hyperdex_admin_returncode* status,
 }
 
 int64_t
+admin :: list_subspaces(const char* space, hyperdex_admin_returncode* status, const char** subspaces)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    std::string tmp = m_coord.config()->list_subspaces(space);
+    e::intrusive_ptr<pending> op = new pending_string(id, status, HYPERDEX_ADMIN_SUCCESS, tmp, subspaces);
+    m_yieldable.push_back(op.get());
+    return op->admin_visible_id();
+}
+
+int64_t
 admin :: read_only(int ro, hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
@@ -394,6 +410,23 @@ admin :: rm_index(uint64_t idxid,
         interpret_rpc_request_failure(op->repl_status, status);
         return -1;
     }
+}
+
+int64_t
+admin :: list_indices(const char* space, enum hyperdex_admin_returncode* status,
+                            const char** indexes)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    std::string tmp = m_coord.config()->list_indices(space);
+    e::intrusive_ptr<pending> op = new pending_string(id, status, HYPERDEX_ADMIN_SUCCESS, tmp, indexes);
+    m_yieldable.push_back(op.get());
+    return op->admin_visible_id();
 }
 
 int64_t
