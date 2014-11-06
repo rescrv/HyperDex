@@ -17,7 +17,7 @@ assert c.put('kv', 'k', {'v': Document({})}) == True
 assertEquals(c.get('kv', 'k')['v'], Document({}))
 assert c.put('kv', 'k',  {'v': Document({'a': 'b', 'c': {'d' : 1, 'e': 'f', 'g': -2 }})}) == True
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 1, 'e': 'f', 'g': -2 }}))
-assert c.document_atomic_add('kv', 'k',  {'v': Document({'a': 1})}) == False
+assert c.atomic_add('kv', 'k',  {'v.a': 1}) == False
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 1, 'e': 'f', 'g': -2 }}))
 assert c.document_atomic_add('kv', 'k',  {'v': Document({'c': {'d' : 5}})}) == True
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 6, 'e': 'f', 'g': -2 }}))

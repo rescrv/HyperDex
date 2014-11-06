@@ -390,12 +390,6 @@ public class Client
         return (Boolean) async_cond_map_remove(spacename, key, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_document_atomic_add(String spacename, Object key, Object docattributes) throws HyperDexClientException;
-    public Boolean document_atomic_add(String spacename, Object key, Object docattributes) throws HyperDexClientException
-    {
-        return (Boolean) async_document_atomic_add(spacename, key, docattributes).waitForIt();
-    }
-
     public native Deferred async_document_atomic_sub(String spacename, Object key, Object docattributes) throws HyperDexClientException;
     public Boolean document_atomic_sub(String spacename, Object key, Object docattributes) throws HyperDexClientException
     {

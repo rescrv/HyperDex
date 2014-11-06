@@ -1687,40 +1687,6 @@ int64_t hyperdex_client_cond_map_remove(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% document_atomic_add %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_atomic\_add}}
-\label{api:c:document_atomic_add}
-\index{document\_atomic\_add!C API}
-\input{\topdir/api/desc/document_atomic_add}
-
-\paragraph{Definition:}
-\begin{ccode}
-int64_t hyperdex_client_document_atomic_add(struct hyperdex_client* client,
-        const char* space,
-        const char* key, size_t key_sz,
-        const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz,
-        enum hyperdex_client_returncode* status);
-\end{ccode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{struct hyperdex\_client* client}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
-\item \code{const char* space}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
-\item \code{const char* key, size\_t key\_sz}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_key}
-\item \code{const struct hyperdex\_client\_map\_attribute* docattrs, size\_t docattrs\_sz}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\begin{itemize}[noitemsep]
-\item \code{enum hyperdex\_client\_returncode* status}\\
-\input{\topdir/api/fragments/c/client/out_asynccall_status}
-\end{itemize}
-
 %%%%%%%%%%%%%%%%%%%% document_atomic_sub %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{document\_atomic\_sub}}

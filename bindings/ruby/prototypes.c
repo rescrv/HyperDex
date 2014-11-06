@@ -121,8 +121,6 @@ rb_define_method(class_client, "async_map_remove", hyperdex_ruby_client_map_remo
 rb_define_method(class_client, "map_remove", hyperdex_ruby_client_wait_map_remove, 3);
 rb_define_method(class_client, "async_cond_map_remove", hyperdex_ruby_client_cond_map_remove, 4);
 rb_define_method(class_client, "cond_map_remove", hyperdex_ruby_client_wait_cond_map_remove, 4);
-rb_define_method(class_client, "async_document_atomic_add", hyperdex_ruby_client_document_atomic_add, 3);
-rb_define_method(class_client, "document_atomic_add", hyperdex_ruby_client_wait_document_atomic_add, 3);
 rb_define_method(class_client, "async_document_atomic_sub", hyperdex_ruby_client_document_atomic_sub, 3);
 rb_define_method(class_client, "document_atomic_sub", hyperdex_ruby_client_wait_document_atomic_sub, 3);
 rb_define_method(class_client, "async_document_atomic_mul", hyperdex_ruby_client_document_atomic_mul, 3);

@@ -90,7 +90,6 @@ static v8::Handle<v8::Value> map_add(const v8::Arguments& args);
 static v8::Handle<v8::Value> cond_map_add(const v8::Arguments& args);
 static v8::Handle<v8::Value> map_remove(const v8::Arguments& args);
 static v8::Handle<v8::Value> cond_map_remove(const v8::Arguments& args);
-static v8::Handle<v8::Value> document_atomic_add(const v8::Arguments& args);
 static v8::Handle<v8::Value> document_atomic_sub(const v8::Arguments& args);
 static v8::Handle<v8::Value> document_atomic_mul(const v8::Arguments& args);
 static v8::Handle<v8::Value> document_atomic_div(const v8::Arguments& args);

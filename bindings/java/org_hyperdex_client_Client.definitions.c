@@ -832,12 +832,6 @@ Java_org_hyperdex_client_Client_async_1cond_1map_1remove(JNIEnv* env, jobject ob
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
-Java_org_hyperdex_client_Client_async_1document_1atomic_1add(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject docattributes)
-{
-    return hyperdex_java_client_asynccall__spacename_key_docattributes__status(env, obj, hyperdex_client_document_atomic_add, spacename, key, docattributes);
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1document_1atomic_1sub(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject docattributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_docattributes__status(env, obj, hyperdex_client_document_atomic_sub, spacename, key, docattributes);

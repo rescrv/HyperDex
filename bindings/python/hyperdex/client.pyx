@@ -199,7 +199,6 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_cond_map_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_document_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_document_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_document_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_document_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, hyperdex_client_returncode* status)
@@ -1745,11 +1744,6 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_map_remove, spacename, key, predicates, attributes)
     def cond_map_remove(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_map_remove(spacename, key, predicates, attributes).wait()
-
-    def async_document_atomic_add(self, bytes spacename, key, dict docattributes):
-        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_add, spacename, key, docattributes)
-    def document_atomic_add(self, bytes spacename, key, dict docattributes):
-        return self.async_document_atomic_add(spacename, key, docattributes).wait()
 
     def async_document_atomic_sub(self, bytes spacename, key, dict docattributes):
         return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_sub, spacename, key, docattributes)

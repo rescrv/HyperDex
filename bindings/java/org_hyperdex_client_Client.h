@@ -425,14 +425,6 @@ JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1co
 
 /*
  * Class:     org_hyperdex_client_Client
- * Method:    async_document_atomic_add
- * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)Lorg/hyperdex/client/Deferred;
- */
-JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1document_1atomic_1add
-  (JNIEnv *, jobject, jstring, jobject, jobject);
-
-/*
- * Class:     org_hyperdex_client_Client
  * Method:    async_document_atomic_sub
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)Lorg/hyperdex/client/Deferred;
  */

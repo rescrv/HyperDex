@@ -877,12 +877,6 @@ HyperDexClient :: cond_map_remove(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
-HyperDexClient :: document_atomic_add(const v8::Arguments& args)
-{
-    return asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_add, args);
-}
-
-v8::Handle<v8::Value>
 HyperDexClient :: document_atomic_sub(const v8::Arguments& args)
 {
     return asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_sub, args);
