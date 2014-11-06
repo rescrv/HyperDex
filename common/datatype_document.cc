@@ -379,7 +379,8 @@ datatype_document :: apply(const e::slice& old_value,
 
             json_path path(key.c_str());
 
-            const std::string arg(val.c_str());
+            const std::string arg(val.cdata(), val.size());
+
             root = root ? root : to_json(old_value);
 
             json_object *parent, *obj;
