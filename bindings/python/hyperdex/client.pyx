@@ -158,7 +158,7 @@ cdef extern from "hyperdex/client.h":
     char* hyperdex_client_error_location(hyperdex_client* client)
     char* hyperdex_client_returncode_to_string(hyperdex_client_returncode)
     void hyperdex_client_clear_auth_context(hyperdex_client* client)
-    void hyperdex_client_set_auth_context(hyperdex_client* client, const char** macaroons, size_t macaroons_sz);
+    void hyperdex_client_set_auth_context(hyperdex_client* client, const char** macaroons, size_t macaroons_sz)
     # Begin Automatically Generated Prototypes
     int64_t hyperdex_client_get(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_get_partial(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
