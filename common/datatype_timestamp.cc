@@ -121,22 +121,17 @@ const char * interval_to_string(enum timestamp_interval in)
     };
 }
 
-
 int64_t  lookup_interesting[] = { 1, 60, 3600, 24*60*60, 7*24*60*60, 30 *7 * 24*60*60};
 uint64_t
-datatype_timestamp::hash(const e::slice& value) {
-
-    //TODO better hash
-    //std::cout << "Hashing with "<<interval_to_string(this->interval) << "\n";
+datatype_timestamp::hash(const e::slice& value)
+{
     int64_t interesting_bits;
     int64_t extra;
     int64_t timestamp = unpack(value);
     interesting_bits = lookup_interesting[this->interval];
     extra = timestamp % interesting_bits;
     timestamp /= interesting_bits;
-
     return CityHash64((const char*)&timestamp, sizeof(int64_t))+extra;
-
 }
 
 bool

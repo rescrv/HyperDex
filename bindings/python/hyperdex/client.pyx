@@ -798,12 +798,11 @@ cdef hyperdex_python_client_build_attributes(const hyperdex_client_attribute* at
             val = hyperdex_python_client_build_float(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_DOCUMENT:
             val = Document(hyperdex_python_client_build_string(attrs[i].value, attrs[i].value_sz))
-        elif (attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_SECOND or
-             attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_MINUTE or
-             attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_HOUR or
-             attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_DAY or
-             attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_WEEK or
-             attrs[i].datatype == HYPERDATATYPE_TIMESTAMP_MONTH):
+        elif (attrs[i].datatype in
+             [HYPERDATATYPE_TIMESTAMP_SECOND,
+             HYPERDATATYPE_TIMESTAMP_MINUTE,
+             HYPERDATATYPE_TIMESTAMP_HOUR, HYPERDATATYPE_TIMESTAMP_DAY,
+             HYPERDATATYPE_TIMESTAMP_WEEK, HYPERDATATYPE_TIMESTAMP_MONTH]):
             val = datetime.datetime.utcfromtimestamp(hyperdex_python_client_build_int(attrs[i].value, attrs[i].value_sz))
         elif attrs[i].datatype == HYPERDATATYPE_LIST_STRING:
             val = hyperdex_python_client_build_list_string(attrs[i].value, attrs[i].value_sz)
