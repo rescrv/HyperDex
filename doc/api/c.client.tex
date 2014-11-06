@@ -1699,7 +1699,7 @@ int64_t hyperdex_client_cond_map_remove(struct hyperdex_client* client,
 int64_t hyperdex_client_document_rename(struct hyperdex_client* client,
         const char* space,
         const char* key, size_t key_sz,
-        const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz,
+        const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
         enum hyperdex_client_returncode* status);
 \end{ccode}
 
@@ -1711,8 +1711,8 @@ int64_t hyperdex_client_document_rename(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/in_asynccall_spacename}
 \item \code{const char* key, size\_t key\_sz}\\
 \input{\topdir/api/fragments/c/client/in_asynccall_key}
-\item \code{const struct hyperdex\_client\_map\_attribute* docattrs, size\_t docattrs\_sz}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_docattributes}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
@@ -1733,7 +1733,7 @@ int64_t hyperdex_client_document_rename(struct hyperdex_client* client,
 int64_t hyperdex_client_document_unset(struct hyperdex_client* client,
         const char* space,
         const char* key, size_t key_sz,
-        const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz,
+        const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
         enum hyperdex_client_returncode* status);
 \end{ccode}
 
@@ -1745,8 +1745,8 @@ int64_t hyperdex_client_document_unset(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/in_asynccall_spacename}
 \item \code{const char* key, size\_t key\_sz}\\
 \input{\topdir/api/fragments/c/client/in_asynccall_key}
-\item \code{const struct hyperdex\_client\_map\_attribute* docattrs, size\_t docattrs\_sz}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_docattributes}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}

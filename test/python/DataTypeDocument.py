@@ -85,13 +85,13 @@ assertEquals(c.get('kv', 'k2')['v'], Document(data))
 # Remove a property
 assertTrue(c.put('kv', 'k7', {'v' : Document({'a' : {'b' : 3}})}))
 assertEquals(c.get('kv', 'k7')['v'], Document({'a' : {'b' : 3}}))
-assertTrue(c.document_unset('kv', 'k7', {'v' : Document({'a' : {'b' : 1}})}))
+assertTrue(c.document_unset('kv', 'k7', {'v.a.b' : 1}))
 assertEquals(c.get('kv', 'k7')['v'], Document({'a' : {}}))
-assertFalse(c.document_unset('kv', 'k7', {'v' : Document({'a' : {'b' : 1}})}))
+assertFalse(c.document_unset('kv', 'k7', {'v.a.b' : 1}))
 
 # Rename a property
 assertTrue(c.put('kv', 'k7', {'v' : Document({'a' : {'b' : 3}})}))
 assertEquals(c.get('kv', 'k7')['v'], Document({'a' : {'b' : 3}}))
-assertTrue(c.document_rename('kv', 'k7', {'v' : Document({'a' : {'b' : 'c'}})}))
+assertTrue(c.document_rename('kv', 'k7', {'v.a.b' : 'c'}))
 assertEquals(c.get('kv', 'k7')['v'], Document({'a' : {'c' : 3}}))
-assertFalse(c.document_rename('kv', 'k7', {'v' : Document({'a' : {'b' : 'c'}})}))
+assertFalse(c.document_rename('kv', 'k7', {'v.a.b' : 'c'}))

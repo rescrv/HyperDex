@@ -350,8 +350,8 @@ datatype_document :: apply(const e::slice& old_value,
         {
             root = root ? root : to_json(old_value);
 
-            std::string new_name(func->arg1.c_str());
-            json_path path(func->arg2.c_str());
+            std::string new_name(func->arg1.cdata(), func->arg1.size());
+            json_path path(func->arg2);
             json_object *obj = traverse_path(root, path);
 
             if(path.has_subtree())

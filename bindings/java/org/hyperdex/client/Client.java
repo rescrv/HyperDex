@@ -390,16 +390,16 @@ public class Client
         return (Boolean) async_cond_map_remove(spacename, key, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_document_rename(String spacename, Object key, Object docattributes) throws HyperDexClientException;
-    public Boolean document_rename(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    public native Deferred async_document_rename(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean document_rename(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
-        return (Boolean) async_document_rename(spacename, key, docattributes).waitForIt();
+        return (Boolean) async_document_rename(spacename, key, attributes).waitForIt();
     }
 
-    public native Deferred async_document_unset(String spacename, Object key, Object docattributes) throws HyperDexClientException;
-    public Boolean document_unset(String spacename, Object key, Object docattributes) throws HyperDexClientException
+    public native Deferred async_document_unset(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean document_unset(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
-        return (Boolean) async_document_unset(spacename, key, docattributes).waitForIt();
+        return (Boolean) async_document_unset(spacename, key, attributes).waitForIt();
     }
 
     public native Deferred async_map_atomic_add(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;

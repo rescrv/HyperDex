@@ -334,44 +334,6 @@ hyperdex_java_client_asynccall__spacename_key_predicates_mapattributes__status(J
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key_docattributes__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key, jobject docattributes);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key_docattributes__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_map_attribute* docattrs, size_t docattrs_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key, jobject docattributes)
-{
-    const char* in_space;
-    const char* in_key;
-    size_t in_key_sz;
-    const struct hyperdex_client_map_attribute* in_docattrs;
-    size_t in_docattrs_sz;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, obj);
-    struct hyperdex_java_client_deferred* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_deferred_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_key(env, obj, o->arena, key, &in_key, &in_key_sz);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_docattributes(env, obj, o->arena, docattributes, &in_docattrs, &in_docattrs_sz);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_key, in_key_sz, in_docattrs, in_docattrs_sz, &o->status);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_deferred_encode_status;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
 hyperdex_java_client_iterator__spacename_predicates__status_attributes(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, enum hyperdex_client_returncode* status, const struct hyperdex_client_attribute** attrs, size_t* attrs_sz), jstring spacename, jobject predicates);
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -832,15 +794,15 @@ Java_org_hyperdex_client_Client_async_1cond_1map_1remove(JNIEnv* env, jobject ob
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
-Java_org_hyperdex_client_Client_async_1document_1rename(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject docattributes)
+Java_org_hyperdex_client_Client_async_1document_1rename(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
-    return hyperdex_java_client_asynccall__spacename_key_docattributes__status(env, obj, hyperdex_client_document_rename, spacename, key, docattributes);
+    return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_document_rename, spacename, key, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
-Java_org_hyperdex_client_Client_async_1document_1unset(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject docattributes)
+Java_org_hyperdex_client_Client_async_1document_1unset(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
-    return hyperdex_java_client_asynccall__spacename_key_docattributes__status(env, obj, hyperdex_client_document_unset, spacename, key, docattributes);
+    return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_document_unset, spacename, key, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
