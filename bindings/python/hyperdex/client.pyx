@@ -85,6 +85,7 @@ cdef extern from "hyperdex.h":
         HYPERDATATYPE_TIMESTAMP_WEEK = 9512
         HYPERDATATYPE_TIMESTAMP_MONTH = 9513
         HYPERDATATYPE_TIMESTAMP_GENERIC = 9514
+        HYPERDATATYPE_MACAROON_SECRET    = 9664
         HYPERDATATYPE_GARBAGE            = 9727
 
     cdef enum hyperpredicate:
@@ -99,6 +100,11 @@ cdef extern from "hyperdex.h":
         HYPERPREDICATE_LENGTH_LESS_EQUAL    = 9735
         HYPERPREDICATE_LENGTH_GREATER_EQUAL = 9736
         HYPERPREDICATE_CONTAINS      = 9737
+
+
+cdef extern from "macaroons.h":
+
+    cdef struct macaroon
 
 
 cdef extern from "hyperdex/client.h":
@@ -159,6 +165,8 @@ cdef extern from "hyperdex/client.h":
     char* hyperdex_client_error_message(hyperdex_client* client)
     char* hyperdex_client_error_location(hyperdex_client* client)
     char* hyperdex_client_returncode_to_string(hyperdex_client_returncode)
+    void hyperdex_client_clear_auth_context(hyperdex_client* client)
+    void hyperdex_client_set_auth_context(hyperdex_client* client, const char** macaroons, size_t macaroons_sz)
     # Begin Automatically Generated Prototypes
     int64_t hyperdex_client_get(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_get_partial(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
@@ -834,6 +842,8 @@ cdef hyperdex_python_client_build_attributes(const hyperdex_client_attribute* at
             val = hyperdex_python_client_build_map_float_int(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_MAP_FLOAT_FLOAT:
             val = hyperdex_python_client_build_map_float_float(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_MACAROON_SECRET:
+            val = hyperdex_python_client_build_string(attrs[i].value, attrs[i].value_sz)
         else:
             raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed attributes")
         ret[attrs[i].attr] = val
@@ -1101,10 +1111,15 @@ cdef class Iterator:
 cdef class Client:
     cdef hyperdex_client* client
     cdef dict ops
+    cdef const char** auth
+    cdef size_t auth_sz
+    cdef list auth_backing
 
     def __cinit__(self, address, port):
         self.client = hyperdex_client_create(address, port)
         self.ops = {}
+        self.auth = NULL
+        self.auth_sz = 0
 
     def __dealloc__(self):
         if self.client:
@@ -1265,6 +1280,24 @@ cdef class Client:
             raise ValueError("Comparison must be either 'max' or 'min'")
         maximize[0] = 1 if compare in ('max', 'maximize') else 0
 
+    cdef set_auth_context(self, auth):
+        self.clear_auth_context()
+        if auth is not None:
+            self.auth_sz = len(auth)
+            self.auth = <const char**>malloc(sizeof(const char*) * self.auth_sz)
+            for i in range(self.auth_sz):
+                self.auth_backing.append(auth[i])
+                self.auth[i] = self.auth_backing[i]
+            hyperdex_client_set_auth_context(self.client, self.auth, self.auth_sz)
+
+    cdef clear_auth_context(self):
+        hyperdex_client_clear_auth_context(self.client)
+        if self.auth != NULL:
+            free(self.auth);
+        self.auth = NULL
+        self.auth_sz = 0
+        self.auth_backing = []
+
     def loop(self):
         cdef hyperdex_client_returncode status
         ret = hyperdex_client_loop(self.client, -1, &status)
@@ -1279,21 +1312,23 @@ cdef class Client:
             return op
 
     # Begin Automatically Generated Methods
-    cdef asynccall__spacename_key__status_attributes(self, asynccall__spacename_key__status_attributes_fptr f, bytes spacename, key):
+    cdef asynccall__spacename_key__status_attributes(self, asynccall__spacename_key__status_attributes_fptr f, bytes spacename, key, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef const char* in_key
         cdef size_t in_key_sz
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_key, in_key_sz, &d.status, &d.attrs, &d.attrs_sz);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status_attributes
         self.ops[d.reqid] = d
         return d
 
-    cdef asynccall__spacename_key_attributenames__status_attributes(self, asynccall__spacename_key_attributenames__status_attributes_fptr f, bytes spacename, key, attributenames):
+    cdef asynccall__spacename_key_attributenames__status_attributes(self, asynccall__spacename_key_attributenames__status_attributes_fptr f, bytes spacename, key, attributenames, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef const char* in_key
@@ -1303,14 +1338,16 @@ cdef class Client:
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
         self.convert_attributenames(d.arena, attributenames, &in_attrnames, &in_attrnames_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_key, in_key_sz, in_attrnames, in_attrnames_sz, &d.status, &d.attrs, &d.attrs_sz);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status_attributes
         self.ops[d.reqid] = d
         return d
 
-    cdef asynccall__spacename_key_attributes__status(self, asynccall__spacename_key_attributes__status_fptr f, bytes spacename, key, dict attributes):
+    cdef asynccall__spacename_key_attributes__status(self, asynccall__spacename_key_attributes__status_fptr f, bytes spacename, key, dict attributes, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef const char* in_key
@@ -1320,14 +1357,16 @@ cdef class Client:
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
         self.convert_attributes(d.arena, attributes, &in_attrs, &in_attrs_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_key, in_key_sz, in_attrs, in_attrs_sz, &d.status);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status
         self.ops[d.reqid] = d
         return d
 
-    cdef asynccall__spacename_key_predicates_attributes__status(self, asynccall__spacename_key_predicates_attributes__status_fptr f, bytes spacename, key, dict predicates, dict attributes):
+    cdef asynccall__spacename_key_predicates_attributes__status(self, asynccall__spacename_key_predicates_attributes__status_fptr f, bytes spacename, key, dict predicates, dict attributes, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef const char* in_key
@@ -1340,28 +1379,32 @@ cdef class Client:
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
         self.convert_predicates(d.arena, predicates, &in_checks, &in_checks_sz);
         self.convert_attributes(d.arena, attributes, &in_attrs, &in_attrs_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_key, in_key_sz, in_checks, in_checks_sz, in_attrs, in_attrs_sz, &d.status);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status
         self.ops[d.reqid] = d
         return d
 
-    cdef asynccall__spacename_key__status(self, asynccall__spacename_key__status_fptr f, bytes spacename, key):
+    cdef asynccall__spacename_key__status(self, asynccall__spacename_key__status_fptr f, bytes spacename, key, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef const char* in_key
         cdef size_t in_key_sz
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_key, in_key_sz, &d.status);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status
         self.ops[d.reqid] = d
         return d
 
-    cdef asynccall__spacename_key_predicates__status(self, asynccall__spacename_key_predicates__status_fptr f, bytes spacename, key, dict predicates):
+    cdef asynccall__spacename_key_predicates__status(self, asynccall__spacename_key_predicates__status_fptr f, bytes spacename, key, dict predicates, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef const char* in_key
@@ -1371,14 +1414,16 @@ cdef class Client:
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
         self.convert_predicates(d.arena, predicates, &in_checks, &in_checks_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_key, in_key_sz, in_checks, in_checks_sz, &d.status);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status
         self.ops[d.reqid] = d
         return d
 
-    cdef asynccall__spacename_key_mapattributes__status(self, asynccall__spacename_key_mapattributes__status_fptr f, bytes spacename, key, dict mapattributes):
+    cdef asynccall__spacename_key_mapattributes__status(self, asynccall__spacename_key_mapattributes__status_fptr f, bytes spacename, key, dict mapattributes, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef const char* in_key
@@ -1388,14 +1433,16 @@ cdef class Client:
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
         self.convert_mapattributes(d.arena, mapattributes, &in_mapattrs, &in_mapattrs_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_key, in_key_sz, in_mapattrs, in_mapattrs_sz, &d.status);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status
         self.ops[d.reqid] = d
         return d
 
-    cdef asynccall__spacename_key_predicates_mapattributes__status(self, asynccall__spacename_key_predicates_mapattributes__status_fptr f, bytes spacename, key, dict predicates, dict mapattributes):
+    cdef asynccall__spacename_key_predicates_mapattributes__status(self, asynccall__spacename_key_predicates_mapattributes__status_fptr f, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef const char* in_key
@@ -1408,14 +1455,16 @@ cdef class Client:
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
         self.convert_predicates(d.arena, predicates, &in_checks, &in_checks_sz);
         self.convert_mapattributes(d.arena, mapattributes, &in_mapattrs, &in_mapattrs_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_key, in_key_sz, in_checks, in_checks_sz, in_mapattrs, in_mapattrs_sz, &d.status);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status
         self.ops[d.reqid] = d
         return d
 
-    cdef asynccall__spacename_key_docattributes__status(self, asynccall__spacename_key_docattributes__status_fptr f, bytes spacename, key, dict docattributes):
+    cdef asynccall__spacename_key_docattributes__status(self, asynccall__spacename_key_docattributes__status_fptr f, bytes spacename, key, dict docattributes, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef const char* in_key
@@ -1425,7 +1474,9 @@ cdef class Client:
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_key(d.arena, key, &in_key, &in_key_sz);
         self.convert_docattributes(d.arena, docattributes, &in_docattrs, &in_docattrs_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_key, in_key_sz, in_docattrs, in_docattrs_sz, &d.status);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status
@@ -1446,14 +1497,16 @@ cdef class Client:
         self.ops[it.reqid] = it
         return it
 
-    cdef asynccall__spacename_predicates__status_description(self, asynccall__spacename_predicates__status_description_fptr f, bytes spacename, dict predicates):
+    cdef asynccall__spacename_predicates__status_description(self, asynccall__spacename_predicates__status_description_fptr f, bytes spacename, dict predicates, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef hyperdex_client_attribute_check* in_checks
         cdef size_t in_checks_sz
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_predicates(d.arena, predicates, &in_checks, &in_checks_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_checks, in_checks_sz, &d.status, &d.description);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status_description
@@ -1480,412 +1533,416 @@ cdef class Client:
         self.ops[it.reqid] = it
         return it
 
-    cdef asynccall__spacename_predicates__status(self, asynccall__spacename_predicates__status_fptr f, bytes spacename, dict predicates):
+    cdef asynccall__spacename_predicates__status(self, asynccall__spacename_predicates__status_fptr f, bytes spacename, dict predicates, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef hyperdex_client_attribute_check* in_checks
         cdef size_t in_checks_sz
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_predicates(d.arena, predicates, &in_checks, &in_checks_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_checks, in_checks_sz, &d.status);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status
         self.ops[d.reqid] = d
         return d
 
-    cdef asynccall__spacename_predicates__status_count(self, asynccall__spacename_predicates__status_count_fptr f, bytes spacename, dict predicates):
+    cdef asynccall__spacename_predicates__status_count(self, asynccall__spacename_predicates__status_count_fptr f, bytes spacename, dict predicates, auth=None):
         cdef Deferred d = Deferred(self)
         cdef const char* in_space
         cdef hyperdex_client_attribute_check* in_checks
         cdef size_t in_checks_sz
         self.convert_spacename(d.arena, spacename, &in_space);
         self.convert_predicates(d.arena, predicates, &in_checks, &in_checks_sz);
+        self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_checks, in_checks_sz, &d.status, &d.count);
+        self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
         d.encode_return = hyperdex_python_client_deferred_encode_status_count
         self.ops[d.reqid] = d
         return d
 
-    def async_get(self, bytes spacename, key):
-        return self.asynccall__spacename_key__status_attributes(hyperdex_client_get, spacename, key)
-    def get(self, bytes spacename, key):
-        return self.async_get(spacename, key).wait()
-
-    def async_get_partial(self, bytes spacename, key, attributenames):
-        return self.asynccall__spacename_key_attributenames__status_attributes(hyperdex_client_get_partial, spacename, key, attributenames)
-    def get_partial(self, bytes spacename, key, attributenames):
-        return self.async_get_partial(spacename, key, attributenames).wait()
-
-    def async_put(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_put, spacename, key, attributes)
-    def put(self, bytes spacename, key, dict attributes):
-        return self.async_put(spacename, key, attributes).wait()
-
-    def async_cond_put(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_put, spacename, key, predicates, attributes)
-    def cond_put(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_put(spacename, key, predicates, attributes).wait()
-
-    def async_put_if_not_exist(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_put_if_not_exist, spacename, key, attributes)
-    def put_if_not_exist(self, bytes spacename, key, dict attributes):
-        return self.async_put_if_not_exist(spacename, key, attributes).wait()
-
-    def async_delete(self, bytes spacename, key):
-        return self.asynccall__spacename_key__status(hyperdex_client_del, spacename, key)
-    def delete(self, bytes spacename, key):
-        return self.async_delete(spacename, key).wait()
-
-    def async_cond_del(self, bytes spacename, key, dict predicates):
-        return self.asynccall__spacename_key_predicates__status(hyperdex_client_cond_del, spacename, key, predicates)
-    def cond_del(self, bytes spacename, key, dict predicates):
-        return self.async_cond_del(spacename, key, predicates).wait()
-
-    def async_atomic_add(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_add, spacename, key, attributes)
-    def atomic_add(self, bytes spacename, key, dict attributes):
-        return self.async_atomic_add(spacename, key, attributes).wait()
-
-    def async_cond_atomic_add(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_add, spacename, key, predicates, attributes)
-    def cond_atomic_add(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_atomic_add(spacename, key, predicates, attributes).wait()
-
-    def async_atomic_sub(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_sub, spacename, key, attributes)
-    def atomic_sub(self, bytes spacename, key, dict attributes):
-        return self.async_atomic_sub(spacename, key, attributes).wait()
-
-    def async_cond_atomic_sub(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_sub, spacename, key, predicates, attributes)
-    def cond_atomic_sub(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_atomic_sub(spacename, key, predicates, attributes).wait()
-
-    def async_atomic_mul(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_mul, spacename, key, attributes)
-    def atomic_mul(self, bytes spacename, key, dict attributes):
-        return self.async_atomic_mul(spacename, key, attributes).wait()
-
-    def async_cond_atomic_mul(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_mul, spacename, key, predicates, attributes)
-    def cond_atomic_mul(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_atomic_mul(spacename, key, predicates, attributes).wait()
-
-    def async_atomic_div(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_div, spacename, key, attributes)
-    def atomic_div(self, bytes spacename, key, dict attributes):
-        return self.async_atomic_div(spacename, key, attributes).wait()
-
-    def async_cond_atomic_div(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_div, spacename, key, predicates, attributes)
-    def cond_atomic_div(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_atomic_div(spacename, key, predicates, attributes).wait()
-
-    def async_atomic_mod(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_mod, spacename, key, attributes)
-    def atomic_mod(self, bytes spacename, key, dict attributes):
-        return self.async_atomic_mod(spacename, key, attributes).wait()
-
-    def async_cond_atomic_mod(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_mod, spacename, key, predicates, attributes)
-    def cond_atomic_mod(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_atomic_mod(spacename, key, predicates, attributes).wait()
-
-    def async_atomic_and(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_and, spacename, key, attributes)
-    def atomic_and(self, bytes spacename, key, dict attributes):
-        return self.async_atomic_and(spacename, key, attributes).wait()
-
-    def async_cond_atomic_and(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_and, spacename, key, predicates, attributes)
-    def cond_atomic_and(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_atomic_and(spacename, key, predicates, attributes).wait()
-
-    def async_atomic_or(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_or, spacename, key, attributes)
-    def atomic_or(self, bytes spacename, key, dict attributes):
-        return self.async_atomic_or(spacename, key, attributes).wait()
-
-    def async_cond_atomic_or(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_or, spacename, key, predicates, attributes)
-    def cond_atomic_or(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_atomic_or(spacename, key, predicates, attributes).wait()
-
-    def async_atomic_xor(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_xor, spacename, key, attributes)
-    def atomic_xor(self, bytes spacename, key, dict attributes):
-        return self.async_atomic_xor(spacename, key, attributes).wait()
-
-    def async_cond_atomic_xor(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_xor, spacename, key, predicates, attributes)
-    def cond_atomic_xor(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_atomic_xor(spacename, key, predicates, attributes).wait()
-
-    def async_string_prepend(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_string_prepend, spacename, key, attributes)
-    def string_prepend(self, bytes spacename, key, dict attributes):
-        return self.async_string_prepend(spacename, key, attributes).wait()
-
-    def async_cond_string_prepend(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_prepend, spacename, key, predicates, attributes)
-    def cond_string_prepend(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_string_prepend(spacename, key, predicates, attributes).wait()
-
-    def async_string_append(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_string_append, spacename, key, attributes)
-    def string_append(self, bytes spacename, key, dict attributes):
-        return self.async_string_append(spacename, key, attributes).wait()
-
-    def async_cond_string_append(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_append, spacename, key, predicates, attributes)
-    def cond_string_append(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_string_append(spacename, key, predicates, attributes).wait()
-
-    def async_list_lpush(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_list_lpush, spacename, key, attributes)
-    def list_lpush(self, bytes spacename, key, dict attributes):
-        return self.async_list_lpush(spacename, key, attributes).wait()
-
-    def async_cond_list_lpush(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_list_lpush, spacename, key, predicates, attributes)
-    def cond_list_lpush(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_list_lpush(spacename, key, predicates, attributes).wait()
-
-    def async_list_rpush(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_list_rpush, spacename, key, attributes)
-    def list_rpush(self, bytes spacename, key, dict attributes):
-        return self.async_list_rpush(spacename, key, attributes).wait()
-
-    def async_cond_list_rpush(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_list_rpush, spacename, key, predicates, attributes)
-    def cond_list_rpush(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_list_rpush(spacename, key, predicates, attributes).wait()
-
-    def async_set_add(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_set_add, spacename, key, attributes)
-    def set_add(self, bytes spacename, key, dict attributes):
-        return self.async_set_add(spacename, key, attributes).wait()
-
-    def async_cond_set_add(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_set_add, spacename, key, predicates, attributes)
-    def cond_set_add(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_set_add(spacename, key, predicates, attributes).wait()
-
-    def async_set_remove(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_set_remove, spacename, key, attributes)
-    def set_remove(self, bytes spacename, key, dict attributes):
-        return self.async_set_remove(spacename, key, attributes).wait()
-
-    def async_cond_set_remove(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_set_remove, spacename, key, predicates, attributes)
-    def cond_set_remove(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_set_remove(spacename, key, predicates, attributes).wait()
-
-    def async_set_intersect(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_set_intersect, spacename, key, attributes)
-    def set_intersect(self, bytes spacename, key, dict attributes):
-        return self.async_set_intersect(spacename, key, attributes).wait()
-
-    def async_cond_set_intersect(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_set_intersect, spacename, key, predicates, attributes)
-    def cond_set_intersect(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_set_intersect(spacename, key, predicates, attributes).wait()
-
-    def async_set_union(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_set_union, spacename, key, attributes)
-    def set_union(self, bytes spacename, key, dict attributes):
-        return self.async_set_union(spacename, key, attributes).wait()
-
-    def async_cond_set_union(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_set_union, spacename, key, predicates, attributes)
-    def cond_set_union(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_set_union(spacename, key, predicates, attributes).wait()
-
-    def async_map_add(self, bytes spacename, key, dict mapattributes):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_add, spacename, key, mapattributes)
-    def map_add(self, bytes spacename, key, dict mapattributes):
-        return self.async_map_add(spacename, key, mapattributes).wait()
-
-    def async_cond_map_add(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_add, spacename, key, predicates, mapattributes)
-    def cond_map_add(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.async_cond_map_add(spacename, key, predicates, mapattributes).wait()
-
-    def async_map_remove(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_map_remove, spacename, key, attributes)
-    def map_remove(self, bytes spacename, key, dict attributes):
-        return self.async_map_remove(spacename, key, attributes).wait()
-
-    def async_cond_map_remove(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_map_remove, spacename, key, predicates, attributes)
-    def cond_map_remove(self, bytes spacename, key, dict predicates, dict attributes):
-        return self.async_cond_map_remove(spacename, key, predicates, attributes).wait()
-
-    def async_document_atomic_add(self, bytes spacename, key, dict docattributes):
-        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_add, spacename, key, docattributes)
-    def document_atomic_add(self, bytes spacename, key, dict docattributes):
-        return self.async_document_atomic_add(spacename, key, docattributes).wait()
-
-    def async_document_atomic_sub(self, bytes spacename, key, dict docattributes):
-        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_sub, spacename, key, docattributes)
-    def document_atomic_sub(self, bytes spacename, key, dict docattributes):
-        return self.async_document_atomic_sub(spacename, key, docattributes).wait()
-
-    def async_document_atomic_mul(self, bytes spacename, key, dict docattributes):
-        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_mul, spacename, key, docattributes)
-    def document_atomic_mul(self, bytes spacename, key, dict docattributes):
-        return self.async_document_atomic_mul(spacename, key, docattributes).wait()
-
-    def async_document_atomic_div(self, bytes spacename, key, dict docattributes):
-        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_div, spacename, key, docattributes)
-    def document_atomic_div(self, bytes spacename, key, dict docattributes):
-        return self.async_document_atomic_div(spacename, key, docattributes).wait()
-
-    def async_document_atomic_mod(self, bytes spacename, key, dict docattributes):
-        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_mod, spacename, key, docattributes)
-    def document_atomic_mod(self, bytes spacename, key, dict docattributes):
-        return self.async_document_atomic_mod(spacename, key, docattributes).wait()
-
-    def async_document_atomic_xor(self, bytes spacename, key, dict docattributes):
-        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_xor, spacename, key, docattributes)
-    def document_atomic_xor(self, bytes spacename, key, dict docattributes):
-        return self.async_document_atomic_xor(spacename, key, docattributes).wait()
-
-    def async_document_atomic_or(self, bytes spacename, key, dict docattributes):
-        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_or, spacename, key, docattributes)
-    def document_atomic_or(self, bytes spacename, key, dict docattributes):
-        return self.async_document_atomic_or(spacename, key, docattributes).wait()
-
-    def async_document_string_prepend(self, bytes spacename, key, dict docattributes):
-        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_prepend, spacename, key, docattributes)
-    def document_string_prepend(self, bytes spacename, key, dict docattributes):
-        return self.async_document_string_prepend(spacename, key, docattributes).wait()
-
-    def async_document_string_append(self, bytes spacename, key, dict docattributes):
-        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_append, spacename, key, docattributes)
-    def document_string_append(self, bytes spacename, key, dict docattributes):
-        return self.async_document_string_append(spacename, key, docattributes).wait()
-
-    def async_map_atomic_add(self, bytes spacename, key, dict mapattributes):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_add, spacename, key, mapattributes)
-    def map_atomic_add(self, bytes spacename, key, dict mapattributes):
-        return self.async_map_atomic_add(spacename, key, mapattributes).wait()
-
-    def async_cond_map_atomic_add(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_add, spacename, key, predicates, mapattributes)
-    def cond_map_atomic_add(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.async_cond_map_atomic_add(spacename, key, predicates, mapattributes).wait()
-
-    def async_map_atomic_sub(self, bytes spacename, key, dict mapattributes):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_sub, spacename, key, mapattributes)
-    def map_atomic_sub(self, bytes spacename, key, dict mapattributes):
-        return self.async_map_atomic_sub(spacename, key, mapattributes).wait()
-
-    def async_cond_map_atomic_sub(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_sub, spacename, key, predicates, mapattributes)
-    def cond_map_atomic_sub(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.async_cond_map_atomic_sub(spacename, key, predicates, mapattributes).wait()
-
-    def async_map_atomic_mul(self, bytes spacename, key, dict mapattributes):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_mul, spacename, key, mapattributes)
-    def map_atomic_mul(self, bytes spacename, key, dict mapattributes):
-        return self.async_map_atomic_mul(spacename, key, mapattributes).wait()
-
-    def async_cond_map_atomic_mul(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_mul, spacename, key, predicates, mapattributes)
-    def cond_map_atomic_mul(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.async_cond_map_atomic_mul(spacename, key, predicates, mapattributes).wait()
-
-    def async_map_atomic_div(self, bytes spacename, key, dict mapattributes):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_div, spacename, key, mapattributes)
-    def map_atomic_div(self, bytes spacename, key, dict mapattributes):
-        return self.async_map_atomic_div(spacename, key, mapattributes).wait()
-
-    def async_cond_map_atomic_div(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_div, spacename, key, predicates, mapattributes)
-    def cond_map_atomic_div(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.async_cond_map_atomic_div(spacename, key, predicates, mapattributes).wait()
-
-    def async_map_atomic_mod(self, bytes spacename, key, dict mapattributes):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_mod, spacename, key, mapattributes)
-    def map_atomic_mod(self, bytes spacename, key, dict mapattributes):
-        return self.async_map_atomic_mod(spacename, key, mapattributes).wait()
-
-    def async_cond_map_atomic_mod(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_mod, spacename, key, predicates, mapattributes)
-    def cond_map_atomic_mod(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.async_cond_map_atomic_mod(spacename, key, predicates, mapattributes).wait()
-
-    def async_map_atomic_and(self, bytes spacename, key, dict mapattributes):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_and, spacename, key, mapattributes)
-    def map_atomic_and(self, bytes spacename, key, dict mapattributes):
-        return self.async_map_atomic_and(spacename, key, mapattributes).wait()
-
-    def async_cond_map_atomic_and(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_and, spacename, key, predicates, mapattributes)
-    def cond_map_atomic_and(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.async_cond_map_atomic_and(spacename, key, predicates, mapattributes).wait()
-
-    def async_map_atomic_or(self, bytes spacename, key, dict mapattributes):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_or, spacename, key, mapattributes)
-    def map_atomic_or(self, bytes spacename, key, dict mapattributes):
-        return self.async_map_atomic_or(spacename, key, mapattributes).wait()
-
-    def async_cond_map_atomic_or(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_or, spacename, key, predicates, mapattributes)
-    def cond_map_atomic_or(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.async_cond_map_atomic_or(spacename, key, predicates, mapattributes).wait()
-
-    def async_map_atomic_xor(self, bytes spacename, key, dict mapattributes):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_xor, spacename, key, mapattributes)
-    def map_atomic_xor(self, bytes spacename, key, dict mapattributes):
-        return self.async_map_atomic_xor(spacename, key, mapattributes).wait()
-
-    def async_cond_map_atomic_xor(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_xor, spacename, key, predicates, mapattributes)
-    def cond_map_atomic_xor(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.async_cond_map_atomic_xor(spacename, key, predicates, mapattributes).wait()
-
-    def async_map_string_prepend(self, bytes spacename, key, dict mapattributes):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_string_prepend, spacename, key, mapattributes)
-    def map_string_prepend(self, bytes spacename, key, dict mapattributes):
-        return self.async_map_string_prepend(spacename, key, mapattributes).wait()
-
-    def async_cond_map_string_prepend(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_string_prepend, spacename, key, predicates, mapattributes)
-    def cond_map_string_prepend(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.async_cond_map_string_prepend(spacename, key, predicates, mapattributes).wait()
-
-    def async_map_string_append(self, bytes spacename, key, dict mapattributes):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_string_append, spacename, key, mapattributes)
-    def map_string_append(self, bytes spacename, key, dict mapattributes):
-        return self.async_map_string_append(spacename, key, mapattributes).wait()
-
-    def async_cond_map_string_append(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_string_append, spacename, key, predicates, mapattributes)
-    def cond_map_string_append(self, bytes spacename, key, dict predicates, dict mapattributes):
-        return self.async_cond_map_string_append(spacename, key, predicates, mapattributes).wait()
+    def async_get(self, bytes spacename, key, auth=None):
+        return self.asynccall__spacename_key__status_attributes(hyperdex_client_get, spacename, key, auth)
+    def get(self, bytes spacename, key, auth=None):
+        return self.async_get(spacename, key, auth).wait()
+
+    def async_get_partial(self, bytes spacename, key, attributenames, auth=None):
+        return self.asynccall__spacename_key_attributenames__status_attributes(hyperdex_client_get_partial, spacename, key, attributenames, auth)
+    def get_partial(self, bytes spacename, key, attributenames, auth=None):
+        return self.async_get_partial(spacename, key, attributenames, auth).wait()
+
+    def async_put(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_put, spacename, key, attributes, auth)
+    def put(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_put(spacename, key, attributes, auth).wait()
+
+    def async_cond_put(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_put, spacename, key, predicates, attributes, auth)
+    def cond_put(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_put(spacename, key, predicates, attributes, auth).wait()
+
+    def async_put_if_not_exist(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_put_if_not_exist, spacename, key, attributes, auth)
+    def put_if_not_exist(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_put_if_not_exist(spacename, key, attributes, auth).wait()
+
+    def async_delete(self, bytes spacename, key, auth=None):
+        return self.asynccall__spacename_key__status(hyperdex_client_del, spacename, key, auth)
+    def delete(self, bytes spacename, key, auth=None):
+        return self.async_delete(spacename, key, auth).wait()
+
+    def async_cond_del(self, bytes spacename, key, dict predicates, auth=None):
+        return self.asynccall__spacename_key_predicates__status(hyperdex_client_cond_del, spacename, key, predicates, auth)
+    def cond_del(self, bytes spacename, key, dict predicates, auth=None):
+        return self.async_cond_del(spacename, key, predicates, auth).wait()
+
+    def async_atomic_add(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_add, spacename, key, attributes, auth)
+    def atomic_add(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_atomic_add(spacename, key, attributes, auth).wait()
+
+    def async_cond_atomic_add(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_add, spacename, key, predicates, attributes, auth)
+    def cond_atomic_add(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_atomic_add(spacename, key, predicates, attributes, auth).wait()
+
+    def async_atomic_sub(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_sub, spacename, key, attributes, auth)
+    def atomic_sub(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_atomic_sub(spacename, key, attributes, auth).wait()
+
+    def async_cond_atomic_sub(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_sub, spacename, key, predicates, attributes, auth)
+    def cond_atomic_sub(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_atomic_sub(spacename, key, predicates, attributes, auth).wait()
+
+    def async_atomic_mul(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_mul, spacename, key, attributes, auth)
+    def atomic_mul(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_atomic_mul(spacename, key, attributes, auth).wait()
+
+    def async_cond_atomic_mul(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_mul, spacename, key, predicates, attributes, auth)
+    def cond_atomic_mul(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_atomic_mul(spacename, key, predicates, attributes, auth).wait()
+
+    def async_atomic_div(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_div, spacename, key, attributes, auth)
+    def atomic_div(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_atomic_div(spacename, key, attributes, auth).wait()
+
+    def async_cond_atomic_div(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_div, spacename, key, predicates, attributes, auth)
+    def cond_atomic_div(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_atomic_div(spacename, key, predicates, attributes, auth).wait()
+
+    def async_atomic_mod(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_mod, spacename, key, attributes, auth)
+    def atomic_mod(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_atomic_mod(spacename, key, attributes, auth).wait()
+
+    def async_cond_atomic_mod(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_mod, spacename, key, predicates, attributes, auth)
+    def cond_atomic_mod(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_atomic_mod(spacename, key, predicates, attributes, auth).wait()
+
+    def async_atomic_and(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_and, spacename, key, attributes, auth)
+    def atomic_and(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_atomic_and(spacename, key, attributes, auth).wait()
+
+    def async_cond_atomic_and(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_and, spacename, key, predicates, attributes, auth)
+    def cond_atomic_and(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_atomic_and(spacename, key, predicates, attributes, auth).wait()
+
+    def async_atomic_or(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_or, spacename, key, attributes, auth)
+    def atomic_or(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_atomic_or(spacename, key, attributes, auth).wait()
+
+    def async_cond_atomic_or(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_or, spacename, key, predicates, attributes, auth)
+    def cond_atomic_or(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_atomic_or(spacename, key, predicates, attributes, auth).wait()
+
+    def async_atomic_xor(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_xor, spacename, key, attributes, auth)
+    def atomic_xor(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_atomic_xor(spacename, key, attributes, auth).wait()
+
+    def async_cond_atomic_xor(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_xor, spacename, key, predicates, attributes, auth)
+    def cond_atomic_xor(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_atomic_xor(spacename, key, predicates, attributes, auth).wait()
+
+    def async_string_prepend(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_string_prepend, spacename, key, attributes, auth)
+    def string_prepend(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_string_prepend(spacename, key, attributes, auth).wait()
+
+    def async_cond_string_prepend(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_prepend, spacename, key, predicates, attributes, auth)
+    def cond_string_prepend(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_string_prepend(spacename, key, predicates, attributes, auth).wait()
+
+    def async_string_append(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_string_append, spacename, key, attributes, auth)
+    def string_append(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_string_append(spacename, key, attributes, auth).wait()
+
+    def async_cond_string_append(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_append, spacename, key, predicates, attributes, auth)
+    def cond_string_append(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_string_append(spacename, key, predicates, attributes, auth).wait()
+
+    def async_list_lpush(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_list_lpush, spacename, key, attributes, auth)
+    def list_lpush(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_list_lpush(spacename, key, attributes, auth).wait()
+
+    def async_cond_list_lpush(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_list_lpush, spacename, key, predicates, attributes, auth)
+    def cond_list_lpush(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_list_lpush(spacename, key, predicates, attributes, auth).wait()
+
+    def async_list_rpush(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_list_rpush, spacename, key, attributes, auth)
+    def list_rpush(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_list_rpush(spacename, key, attributes, auth).wait()
+
+    def async_cond_list_rpush(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_list_rpush, spacename, key, predicates, attributes, auth)
+    def cond_list_rpush(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_list_rpush(spacename, key, predicates, attributes, auth).wait()
+
+    def async_set_add(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_set_add, spacename, key, attributes, auth)
+    def set_add(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_set_add(spacename, key, attributes, auth).wait()
+
+    def async_cond_set_add(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_set_add, spacename, key, predicates, attributes, auth)
+    def cond_set_add(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_set_add(spacename, key, predicates, attributes, auth).wait()
+
+    def async_set_remove(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_set_remove, spacename, key, attributes, auth)
+    def set_remove(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_set_remove(spacename, key, attributes, auth).wait()
+
+    def async_cond_set_remove(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_set_remove, spacename, key, predicates, attributes, auth)
+    def cond_set_remove(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_set_remove(spacename, key, predicates, attributes, auth).wait()
+
+    def async_set_intersect(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_set_intersect, spacename, key, attributes, auth)
+    def set_intersect(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_set_intersect(spacename, key, attributes, auth).wait()
+
+    def async_cond_set_intersect(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_set_intersect, spacename, key, predicates, attributes, auth)
+    def cond_set_intersect(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_set_intersect(spacename, key, predicates, attributes, auth).wait()
+
+    def async_set_union(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_set_union, spacename, key, attributes, auth)
+    def set_union(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_set_union(spacename, key, attributes, auth).wait()
+
+    def async_cond_set_union(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_set_union, spacename, key, predicates, attributes, auth)
+    def cond_set_union(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_set_union(spacename, key, predicates, attributes, auth).wait()
+
+    def async_map_add(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_add, spacename, key, mapattributes, auth)
+    def map_add(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_add(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_add(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_add, spacename, key, predicates, mapattributes, auth)
+    def cond_map_add(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_add(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_map_remove(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_map_remove, spacename, key, attributes, auth)
+    def map_remove(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_map_remove(spacename, key, attributes, auth).wait()
+
+    def async_cond_map_remove(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_map_remove, spacename, key, predicates, attributes, auth)
+    def cond_map_remove(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_map_remove(spacename, key, predicates, attributes, auth).wait()
+
+    def async_document_atomic_add(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_add, spacename, key, docattributes, auth)
+    def document_atomic_add(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.async_document_atomic_add(spacename, key, docattributes, auth).wait()
+
+    def async_document_atomic_sub(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_sub, spacename, key, docattributes, auth)
+    def document_atomic_sub(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.async_document_atomic_sub(spacename, key, docattributes, auth).wait()
+
+    def async_document_atomic_mul(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_mul, spacename, key, docattributes, auth)
+    def document_atomic_mul(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.async_document_atomic_mul(spacename, key, docattributes, auth).wait()
+
+    def async_document_atomic_div(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_div, spacename, key, docattributes, auth)
+    def document_atomic_div(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.async_document_atomic_div(spacename, key, docattributes, auth).wait()
+
+    def async_document_atomic_mod(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_mod, spacename, key, docattributes, auth)
+    def document_atomic_mod(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.async_document_atomic_mod(spacename, key, docattributes, auth).wait()
+
+    def async_document_atomic_xor(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_xor, spacename, key, docattributes, auth)
+    def document_atomic_xor(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.async_document_atomic_xor(spacename, key, docattributes, auth).wait()
+
+    def async_document_atomic_or(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_atomic_or, spacename, key, docattributes, auth)
+    def document_atomic_or(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.async_document_atomic_or(spacename, key, docattributes, auth).wait()
+
+    def async_document_string_prepend(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_prepend, spacename, key, docattributes, auth)
+    def document_string_prepend(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.async_document_string_prepend(spacename, key, docattributes, auth).wait()
+
+    def async_document_string_append(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.asynccall__spacename_key_docattributes__status(hyperdex_client_document_string_append, spacename, key, docattributes, auth)
+    def document_string_append(self, bytes spacename, key, dict docattributes, auth=None):
+        return self.async_document_string_append(spacename, key, docattributes, auth).wait()
+
+    def async_map_atomic_add(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_add, spacename, key, mapattributes, auth)
+    def map_atomic_add(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_atomic_add(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_atomic_add(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_add, spacename, key, predicates, mapattributes, auth)
+    def cond_map_atomic_add(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_atomic_add(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_map_atomic_sub(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_sub, spacename, key, mapattributes, auth)
+    def map_atomic_sub(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_atomic_sub(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_atomic_sub(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_sub, spacename, key, predicates, mapattributes, auth)
+    def cond_map_atomic_sub(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_atomic_sub(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_map_atomic_mul(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_mul, spacename, key, mapattributes, auth)
+    def map_atomic_mul(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_atomic_mul(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_atomic_mul(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_mul, spacename, key, predicates, mapattributes, auth)
+    def cond_map_atomic_mul(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_atomic_mul(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_map_atomic_div(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_div, spacename, key, mapattributes, auth)
+    def map_atomic_div(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_atomic_div(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_atomic_div(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_div, spacename, key, predicates, mapattributes, auth)
+    def cond_map_atomic_div(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_atomic_div(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_map_atomic_mod(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_mod, spacename, key, mapattributes, auth)
+    def map_atomic_mod(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_atomic_mod(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_atomic_mod(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_mod, spacename, key, predicates, mapattributes, auth)
+    def cond_map_atomic_mod(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_atomic_mod(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_map_atomic_and(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_and, spacename, key, mapattributes, auth)
+    def map_atomic_and(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_atomic_and(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_atomic_and(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_and, spacename, key, predicates, mapattributes, auth)
+    def cond_map_atomic_and(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_atomic_and(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_map_atomic_or(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_or, spacename, key, mapattributes, auth)
+    def map_atomic_or(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_atomic_or(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_atomic_or(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_or, spacename, key, predicates, mapattributes, auth)
+    def cond_map_atomic_or(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_atomic_or(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_map_atomic_xor(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_xor, spacename, key, mapattributes, auth)
+    def map_atomic_xor(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_atomic_xor(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_atomic_xor(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_xor, spacename, key, predicates, mapattributes, auth)
+    def cond_map_atomic_xor(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_atomic_xor(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_map_string_prepend(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_string_prepend, spacename, key, mapattributes, auth)
+    def map_string_prepend(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_string_prepend(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_string_prepend(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_string_prepend, spacename, key, predicates, mapattributes, auth)
+    def cond_map_string_prepend(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_string_prepend(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_map_string_append(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_string_append, spacename, key, mapattributes, auth)
+    def map_string_append(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_string_append(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_string_append(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_string_append, spacename, key, predicates, mapattributes, auth)
+    def cond_map_string_append(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_string_append(spacename, key, predicates, mapattributes, auth).wait()
 
     def search(self, bytes spacename, dict predicates):
         return self.iterator__spacename_predicates__status_attributes(hyperdex_client_search, spacename, predicates)
 
-    def async_search_describe(self, bytes spacename, dict predicates):
-        return self.asynccall__spacename_predicates__status_description(hyperdex_client_search_describe, spacename, predicates)
-    def search_describe(self, bytes spacename, dict predicates):
-        return self.async_search_describe(spacename, predicates).wait()
+    def async_search_describe(self, bytes spacename, dict predicates, auth=None):
+        return self.asynccall__spacename_predicates__status_description(hyperdex_client_search_describe, spacename, predicates, auth)
+    def search_describe(self, bytes spacename, dict predicates, auth=None):
+        return self.async_search_describe(spacename, predicates, auth).wait()
 
     def sorted_search(self, bytes spacename, dict predicates, bytes sortby, int limit, str maxmin):
         return self.iterator__spacename_predicates_sortby_limit_maxmin__status_attributes(hyperdex_client_sorted_search, spacename, predicates, sortby, limit, maxmin)
 
-    def async_group_del(self, bytes spacename, dict predicates):
-        return self.asynccall__spacename_predicates__status(hyperdex_client_group_del, spacename, predicates)
-    def group_del(self, bytes spacename, dict predicates):
-        return self.async_group_del(spacename, predicates).wait()
+    def async_group_del(self, bytes spacename, dict predicates, auth=None):
+        return self.asynccall__spacename_predicates__status(hyperdex_client_group_del, spacename, predicates, auth)
+    def group_del(self, bytes spacename, dict predicates, auth=None):
+        return self.async_group_del(spacename, predicates, auth).wait()
 
-    def async_count(self, bytes spacename, dict predicates):
-        return self.asynccall__spacename_predicates__status_count(hyperdex_client_count, spacename, predicates)
-    def count(self, bytes spacename, dict predicates):
-        return self.async_count(spacename, predicates).wait()
+    def async_count(self, bytes spacename, dict predicates, auth=None):
+        return self.asynccall__spacename_predicates__status_count(hyperdex_client_count, spacename, predicates, auth)
+    def count(self, bytes spacename, dict predicates, auth=None):
+        return self.async_count(spacename, predicates, auth).wait()
     # End Automatically Generated Methods

@@ -27,9 +27,9 @@
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-AM_CPPFLAGS  = -I${abs_top_srcdir}/include $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(SPARSEHASH_CFLAGS)
+AM_CPPFLAGS  = -I${abs_top_srcdir}/include $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(MACAROONS_CFLAGS)
 AM_CFLAGS    = -fvisibility=hidden $(WANAL_CFLAGS)
-AM_CXXFLAGS  = -fvisibility=hidden -fvisibility-inlines-hidden $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(SPARSEHASH_CFLAGS) $(WANAL_CXXFLAGS)
+AM_CXXFLAGS  = -fvisibility=hidden -fvisibility-inlines-hidden $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(MACAROONS_CFLAGS) $(WANAL_CXXFLAGS)
 AM_MAKEFLAGS = --no-print-directory
 AM_YFLAGS = -d
 HELP2MAN_FLAGS = --no-discard-stderr --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
@@ -224,6 +224,7 @@ EXTRA_DIST += man/hyperdex-daemon.1.h2m
 hyperdex_daemon_SOURCES =
 hyperdex_daemon_SOURCES += common/attribute.cc
 hyperdex_daemon_SOURCES += common/attribute_check.cc
+hyperdex_daemon_SOURCES += common/auth_wallet.cc
 hyperdex_daemon_SOURCES += common/configuration.cc
 hyperdex_daemon_SOURCES += common/coordinator_link.cc
 hyperdex_daemon_SOURCES += common/coordinator_returncode.cc
@@ -233,6 +234,7 @@ hyperdex_daemon_SOURCES += common/datatype_info.cc
 hyperdex_daemon_SOURCES += common/datatype_int64.cc
 hyperdex_daemon_SOURCES += common/datatype_list.cc
 hyperdex_daemon_SOURCES += common/datatype_timestamp.cc
+hyperdex_daemon_SOURCES += common/datatype_macaroon_secret.cc
 hyperdex_daemon_SOURCES += common/datatype_map.cc
 hyperdex_daemon_SOURCES += common/datatype_set.cc
 hyperdex_daemon_SOURCES += common/datatype_string.cc
@@ -254,6 +256,7 @@ hyperdex_daemon_SOURCES += common/serialization.cc
 hyperdex_daemon_SOURCES += common/server.cc
 hyperdex_daemon_SOURCES += common/transfer.cc
 hyperdex_daemon_SOURCES += cityhash/city.cc
+hyperdex_daemon_SOURCES += daemon/auth.cc
 hyperdex_daemon_SOURCES += daemon/background_thread.cc
 hyperdex_daemon_SOURCES += daemon/communication.cc
 hyperdex_daemon_SOURCES += daemon/coordinator_link_wrapper.cc
@@ -289,6 +292,7 @@ hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_in_state.cc
 hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_out_state.cc
 hyperdex_daemon_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
 hyperdex_daemon_LDADD =
+hyperdex_daemon_LDADD += $(MACAROONS_LIBS)
 hyperdex_daemon_LDADD += $(REPLICANT_LIBS)
 hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
@@ -396,6 +400,7 @@ noinst_HEADERS += client/util.h
 libhyperdex_client_la_SOURCES =
 libhyperdex_client_la_SOURCES += common/attribute.cc
 libhyperdex_client_la_SOURCES += common/attribute_check.cc
+libhyperdex_client_la_SOURCES += common/auth_wallet.cc
 libhyperdex_client_la_SOURCES += common/configuration.cc
 libhyperdex_client_la_SOURCES += common/coordinator_link.cc
 libhyperdex_client_la_SOURCES += common/datatype_document.cc
@@ -403,6 +408,7 @@ libhyperdex_client_la_SOURCES += common/datatype_float.cc
 libhyperdex_client_la_SOURCES += common/datatype_info.cc
 libhyperdex_client_la_SOURCES += common/datatype_int64.cc
 libhyperdex_client_la_SOURCES += common/datatype_list.cc
+libhyperdex_client_la_SOURCES += common/datatype_macaroon_secret.cc
 libhyperdex_client_la_SOURCES += common/datatype_map.cc
 libhyperdex_client_la_SOURCES += common/datatype_set.cc
 libhyperdex_client_la_SOURCES += common/datatype_timestamp.cc
@@ -440,6 +446,7 @@ libhyperdex_client_la_SOURCES += client/pending_search_describe.cc
 libhyperdex_client_la_SOURCES += client/pending_sorted_search.cc
 libhyperdex_client_la_SOURCES += client/util.cc
 libhyperdex_client_la_LIBADD =
+libhyperdex_client_la_LIBADD += $(MACAROONS_LIBS)
 libhyperdex_client_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(E_LIBS)
@@ -495,6 +502,7 @@ libhyperdex_admin_la_SOURCES += common/datatype_float.cc
 libhyperdex_admin_la_SOURCES += common/datatype_info.cc
 libhyperdex_admin_la_SOURCES += common/datatype_int64.cc
 libhyperdex_admin_la_SOURCES += common/datatype_list.cc
+libhyperdex_admin_la_SOURCES += common/datatype_macaroon_secret.cc
 libhyperdex_admin_la_SOURCES += common/datatype_map.cc
 libhyperdex_admin_la_SOURCES += common/datatype_set.cc
 libhyperdex_admin_la_SOURCES += common/datatype_timestamp.cc
@@ -533,6 +541,7 @@ libhyperdex_admin_la_SOURCES += admin/pending_string.cc
 libhyperdex_admin_la_SOURCES += admin/raw_backup.cc
 libhyperdex_admin_la_SOURCES += admin/yieldable.cc
 libhyperdex_admin_la_LIBADD =
+libhyperdex_admin_la_LIBADD += $(MACAROONS_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
@@ -780,6 +789,7 @@ doctest_wrappers += test/sh/doc.data-types.sh
 doctest_wrappers += test/sh/doc.documents.sh
 doctest_wrappers += test/sh/doc.async-ops.sh
 doctest_wrappers += test/sh/doc.atomic-ops.sh
+doctest_wrappers += test/sh/doc.authorization.sh
 shell_wrappers += $(doctest_wrappers)
 
 stress_wrappers =
@@ -1346,7 +1356,7 @@ maintainer-generate:
 	python2 bindings/java.py
 	python2 bindings/nodejs.py
 	python2 bindings/python.py
-	python2 bindings/ruby.py
+	bindings python2/ruby.py
 	python2 maint/generate-replication-shell-stubs.py
 	python2 maint/generate-search-shell-stubs.py
 	python2 maint/generate-doc-shell-stubs.py
@@ -1356,3 +1366,4 @@ maintainer-generate:
 	python2 test/doc-extract.py python doc/async-ops.tex test/doc.async-ops.py
 	python2 test/doc-extract.py python doc/atomic-ops.tex test/doc.atomic-ops.py
 	python2 test/doc-extract.py python doc/documents.tex test/doc.documents.py
+	python2 test/doc-extract.py python doc/authorization.tex test/doc.authorization.py

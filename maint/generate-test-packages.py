@@ -27,6 +27,7 @@
 
 import argparse
 import os
+import re
 import subprocess
 import tarfile
 import tempfile
@@ -40,11 +41,9 @@ def add_from_content(tar, name, content, mode=0644):
     tinfo = tar.gettarinfo(arcname=name, fileobj=tmp)
     tar.addfile(tinfo, tmp)
 
-def generate_test_tarball(name, tests):
-    archive = 'test-hyperdex-' + name + '-0.0.1'
+def generate_test_tarball(version, name, tests):
+    archive = 'test-hyperdex-' + name + '-' + str(version)
     tar = tarfile.open(archive + '.tar.gz', 'w:gz')
-    add_from_content(tar, archive + '/configure', '', 0755)
-    add_from_content(tar, archive + '/test-hyperdex', '#!/bin/sh\necho SUCCESS\n', 0755)
     version = subprocess.check_output('grep AC_INIT configure.ac',
                                       shell=True).split(' ')[1].strip('[,] ')
     makefile = '''CLASSPATH := /usr/share/java/*:test/java:.
@@ -52,11 +51,8 @@ export CLASSPATH
 export HYPERDEX_SRCDIR=.
 export HYPERDEX_BUILDDIR=.
 
-all:
+check:
 {rules}
-install:
-	mkdir -p $(DESTDIR)/usr/bin
-	cp test-hyperdex $(DESTDIR)/usr/bin/test-hyperdex
 '''.format(version=version, rules=''.join(['\t%s\n' % s for s, t in tests]))
     add_from_content(tar, archive + '/Makefile', makefile, 0644)
     for sh, test in tests:
@@ -67,27 +63,11 @@ install:
     if argparse.__file__.endswith('.pyc'):
         tar.add(argparse.__file__[:-1], archive + '/argparse.py')
     tar.close()
-    fout = open('test-hyperdex-' + name + '.upack', 'w')
-    fout.write("""package test-hyperdex
-| source="test-hyperdex"
-| debian section="net"
-| version="0.0.1"
-| release="1"
-| license="BSD"
-| copyright="2014 Cornell University"
-| homepage="http://hyperdex.org"
-| tarball="http://hyperdex.org/src/test-hyperdex-{version}.tar.gz"
-| configure=""
-| summary="Check a HyperDex install"
-| build-requires="python, hyperdex-daemon, hyperdex-coordinator, python-hyperdex-client, java-hyperdex-client, ruby-hyperdex"
-| requires=""
-+ {bindir}/test-hyperdex
-'''{{summary}}'''
-""")
-    fout.flush()
-    fout.close()
 
-generate_test_tarball('doc', [
+version = re.search('^AC_INIT\(\[.*\], \[(.*)\], \[.*\]\)$',
+            open('configure.ac').read(), re.MULTILINE).group(1)
+
+generate_test_tarball(version, 'doc', [
     ('test/sh/doc.async-ops.sh', 'test/doc.async-ops.py'),
     ('test/sh/doc.atomic-ops.sh', 'test/doc.atomic-ops.py'),
     ('test/sh/doc.data-types.sh', 'test/doc.data-types.py'),
@@ -95,7 +75,7 @@ generate_test_tarball('doc', [
     ('test/sh/doc.quick-start.sh', 'test/doc.quick-start.py'),
 ])
 
-generate_test_tarball('java', [
+generate_test_tarball(version, 'java', [
     ('test/sh/bindings.java.BasicSearch.sh', 'test/java/BasicSearch.java'),
     ('test/sh/bindings.java.Basic.sh', 'test/java/Basic.java'),
     ('test/sh/bindings.java.DataTypeFloat.sh', 'test/java/DataTypeFloat.java'),
@@ -123,7 +103,7 @@ generate_test_tarball('java', [
     ('test/sh/bindings.java.RegexSearch.sh', 'test/java/RegexSearch.java'),
 ])
 
-generate_test_tarball('python', [
+generate_test_tarball(version, 'python', [
     ('test/sh/bindings.python.BasicSearch.sh', 'test/python/BasicSearch.py'),
     ('test/sh/bindings.python.Basic.sh', 'test/python/Basic.py'),
     ('test/sh/bindings.python.DataTypeFloat.sh', 'test/python/DataTypeFloat.py'),
@@ -151,7 +131,7 @@ generate_test_tarball('python', [
     ('test/sh/bindings.python.RegexSearch.sh', 'test/python/RegexSearch.py'),
 ])
 
-generate_test_tarball('ruby', [
+generate_test_tarball(version, 'ruby', [
     ('test/sh/bindings.ruby.BasicSearch.sh', 'test/ruby/BasicSearch.rb'),
     ('test/sh/bindings.ruby.Basic.sh', 'test/ruby/Basic.rb'),
     ('test/sh/bindings.ruby.DataTypeFloat.sh', 'test/ruby/DataTypeFloat.rb'),

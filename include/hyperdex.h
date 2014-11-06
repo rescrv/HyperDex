@@ -94,6 +94,8 @@ enum hyperdatatype
     HYPERDATATYPE_TIMESTAMP_WEEK = 9512,
     HYPERDATATYPE_TIMESTAMP_MONTH = 9513,
     HYPERDATATYPE_TIMESTAMP_GENERIC = 9514,
+    /* Special (internal) types */
+    HYPERDATATYPE_MACAROON_SECRET    = 9664,
 
     /* Returned if the server acts up */
     HYPERDATATYPE_GARBAGE   = 9727

@@ -96,6 +96,7 @@ enum hyperdex_client_returncode
     HYPERDEX_CLIENT_INTERRUPTED  = 8530,
     HYPERDEX_CLIENT_CLUSTER_JUMP = 8531,
     HYPERDEX_CLIENT_OFFLINE      = 8533,
+    HYPERDEX_CLIENT_UNAUTHORIZED = 8534,
 
     /* This should never happen.  It indicates a bug */
     HYPERDEX_CLIENT_INTERNAL     = 8573,
@@ -103,12 +104,22 @@ enum hyperdex_client_returncode
     HYPERDEX_CLIENT_GARBAGE      = 8575
 };
 
+#define HYPERDEX_ATTRIBUTE_SECRET "__secret"
+
 struct hyperdex_client*
 hyperdex_client_create(const char* coordinator, uint16_t port);
 struct hyperdex_client*
 hyperdex_client_create_conn_str(const char* conn_str);
 void
 hyperdex_client_destroy(struct hyperdex_client* client);
+
+struct macaroon;
+
+void
+hyperdex_client_clear_auth_context(struct hyperdex_client* client);
+void
+hyperdex_client_set_auth_context(struct hyperdex_client* client,
+                                 const char** macaroons, size_t macaroons_sz);
 
 int64_t
 hyperdex_client_get(struct hyperdex_client* client,

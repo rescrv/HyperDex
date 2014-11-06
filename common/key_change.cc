@@ -25,7 +25,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// e
+#include <e/guard.h>
+
 // HyperDex
+#include <hyperdex/client.h>
 #include "common/datatype_info.h"
 #include "common/serialization.h"
 #include "common/key_change.h"
@@ -39,6 +43,7 @@ key_change :: key_change()
     , fail_if_found(false)
     , checks()
     , funcs()
+    , auth()
 {
 }
 
@@ -49,6 +54,7 @@ key_change :: key_change(const key_change& other)
     , fail_if_found(other.fail_if_found)
     , checks(other.checks)
     , funcs(other.funcs)
+    , auth(new auth_wallet(*other.auth))
 {
 }
 
@@ -129,6 +135,7 @@ key_change :: operator = (const key_change& rhs)
 }
 
 #define FLAG_WRITE 128
+#define FLAG_AUTH 64
 #define FLAG_FINF 1
 #define FLAG_FIF 2
 
@@ -137,8 +144,16 @@ hyperdex :: operator << (e::buffer::packer pa, const key_change& td)
 {
     uint8_t flags = (td.erase ? 0 : FLAG_WRITE)
                   | (td.fail_if_not_found ? FLAG_FINF : 0)
-                  | (td.fail_if_found ? FLAG_FIF : 0);
-    return pa << td.key << flags << td.checks << td.funcs;
+                  | (td.fail_if_found ? FLAG_FIF : 0)
+                  | (td.auth.get() ? FLAG_AUTH : 0);
+    pa = pa << td.key << flags << td.checks << td.funcs;
+
+    if (td.auth.get())
+    {
+        pa = pa << *td.auth;
+    }
+
+    return pa;
 }
 
 e::unpacker
@@ -149,6 +164,13 @@ hyperdex :: operator >> (e::unpacker up, key_change& td)
     td.erase = !(flags & FLAG_WRITE);
     td.fail_if_not_found = flags & FLAG_FINF;
     td.fail_if_found = flags & FLAG_FIF;
+
+    if ((flags & FLAG_AUTH))
+    {
+        td.auth.reset(new auth_wallet());
+        up = up >> *td.auth;
+    }
+
     return up;
 }
 
@@ -158,5 +180,6 @@ hyperdex :: pack_size(const key_change& td)
     return pack_size(td.key)
          + sizeof(uint8_t)
          + pack_size(td.checks)
-         + pack_size(td.funcs);
+         + pack_size(td.funcs)
+         + (td.auth.get() ? pack_size(*td.auth) : 0);
 }

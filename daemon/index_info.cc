@@ -124,6 +124,7 @@ index_encoding :: lookup(hyperdatatype datatype)
         case HYPERDATATYPE_MAP_FLOAT_STRING:
         case HYPERDATATYPE_MAP_FLOAT_INT64:
         case HYPERDATATYPE_MAP_FLOAT_FLOAT:
+        case HYPERDATATYPE_MACAROON_SECRET:
         case HYPERDATATYPE_GARBAGE:
         default:
             abort();
@@ -200,6 +201,7 @@ index_info :: lookup(hyperdatatype datatype)
         case HYPERDATATYPE_MAP_STRING_KEYONLY:
         case HYPERDATATYPE_MAP_INT64_KEYONLY:
         case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+        case HYPERDATATYPE_MACAROON_SECRET:
         case HYPERDATATYPE_GARBAGE:
         default:
             abort();

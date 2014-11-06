@@ -38,6 +38,7 @@
 #include <vector>
 
 // HyperDex
+#include <hyperdex/client.h>
 #include <hyperdex/hyperspace_builder.h>
 #include "visibility.h"
 #include "common/attribute.h"
@@ -99,6 +100,7 @@ class hyperspace
         std::vector<const char*> indices;
         uint64_t fault_tolerance;
         uint64_t partitions;
+        bool authorization;
 
     private:
         hyperspace(const hyperspace&);
@@ -116,6 +118,7 @@ hyperspace :: hyperspace()
     , indices()
     , fault_tolerance(1)
     , partitions(64)
+    , authorization(false)
 {
     memset(buffer, 0, 1024);
 }
@@ -174,6 +177,11 @@ is_identifier(const char* str)
         }
     }
 
+    if (i >= 2 && strncmp(str, "__", 2) == 0)
+    {
+        return false;
+    }
+
     return i > 0;
 }
 
@@ -207,9 +215,6 @@ yy_switch_to_buffer(yy_buffer_state* new_buffer, void* scanner);
 
 extern void
 yyset_lineno(int line_number, void* scanner);
-
-extern int
-yyparse(hyperspace* space, void* scanner);
 
 HYPERDEX_API hyperspace*
 hyperspace_create()
@@ -478,6 +483,13 @@ hyperspace_set_number_of_partitions(hyperspace* space, uint64_t num)
     return HYPERSPACE_SUCCESS;
 }
 
+HYPERDEX_API enum hyperspace_returncode
+hyperspace_use_authorization(struct hyperspace* space)
+{
+    space->authorization = true;
+    return HYPERSPACE_SUCCESS;
+}
+
 char*
 hyperspace_buffer(hyperspace* space)
 {
@@ -508,6 +520,11 @@ hyperdex :: space_to_space(hyperspace* in, hyperdex::space* out)
     for (size_t i = 0; i < in->attributes.size(); ++i)
     {
         attrs.push_back(in->attributes[i]);
+    }
+
+    if (in->authorization)
+    {
+        attrs.push_back(attribute(HYPERDEX_ATTRIBUTE_SECRET, HYPERDATATYPE_MACAROON_SECRET));
     }
 
     schema sc;

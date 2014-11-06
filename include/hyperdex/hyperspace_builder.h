@@ -96,6 +96,9 @@ hyperspace_set_fault_tolerance(struct hyperspace* space, uint64_t num);
 enum hyperspace_returncode
 hyperspace_set_number_of_partitions(struct hyperspace* space, uint64_t num);
 
+enum hyperspace_returncode
+hyperspace_use_authorization(struct hyperspace* space);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */

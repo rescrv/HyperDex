@@ -62,6 +62,7 @@ CLIENT_ENUM = [(8448, 'SUCCESS'),
                (8530, 'INTERRUPTED'),
                (8531, 'CLUSTER_JUMP'),
                (8533, 'OFFLINE'),
+               (8534, 'UNAUTHORIZED'),
                (0, 'This should never happen.  It indicates a bug'),
                (8573, 'INTERNAL'),
                (8574, 'EXCEPTION'),
@@ -350,12 +351,22 @@ enum hyperdex_client_returncode
 ''' + generate_enum('HYPERDEX_CLIENT_', CLIENT_ENUM) + '''
 };
 
+#define HYPERDEX_ATTRIBUTE_SECRET "__secret"
+
 struct hyperdex_client*
 hyperdex_client_create(const char* coordinator, uint16_t port);
 struct hyperdex_client*
 hyperdex_client_create_conn_str(const char* conn_str);
 void
 hyperdex_client_destroy(struct hyperdex_client* client);
+
+struct macaroon;
+
+void
+hyperdex_client_clear_auth_context(struct hyperdex_client* client);
+void
+hyperdex_client_set_auth_context(struct hyperdex_client* client,
+                                 const char** macaroons, size_t macaroons_sz);
 
 '''
 
@@ -569,6 +580,7 @@ hyperdex_client_returncode_to_string(enum hyperdex_client_returncode stat)
         CSTRINGIFY(HYPERDEX_CLIENT_INTERRUPTED);
         CSTRINGIFY(HYPERDEX_CLIENT_CLUSTER_JUMP);
         CSTRINGIFY(HYPERDEX_CLIENT_OFFLINE);
+        CSTRINGIFY(HYPERDEX_CLIENT_UNAUTHORIZED);
         CSTRINGIFY(HYPERDEX_CLIENT_INTERNAL);
         CSTRINGIFY(HYPERDEX_CLIENT_EXCEPTION);
         CSTRINGIFY(HYPERDEX_CLIENT_GARBAGE);
@@ -617,6 +629,25 @@ hyperdex_client_destroy_attrs(const hyperdex_client_attribute* attrs, size_t /*a
     FAKE_STATUS;
     SIGNAL_PROTECT_VOID;
     free(const_cast<hyperdex_client_attribute*>(attrs));
+}
+
+HYPERDEX_API void
+hyperdex_client_clear_auth_context(struct hyperdex_client* _cl)
+{
+    FAKE_STATUS;
+    SIGNAL_PROTECT_VOID;
+    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
+    cl->clear_auth_context();
+}
+
+HYPERDEX_API void
+hyperdex_client_set_auth_context(struct hyperdex_client* _cl,
+                                 const char** macaroons, size_t macaroons_sz)
+{
+    FAKE_STATUS;
+    SIGNAL_PROTECT_VOID;
+    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
+    cl->set_auth_context(macaroons, macaroons_sz);
 }
 
 '''

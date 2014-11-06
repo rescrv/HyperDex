@@ -95,7 +95,7 @@ def generate_function_ptr(x, name, lib):
 def generate_worker_asynccall(call, x, client='self', ptr='client', fptr='_fptr'):
     typed_args = ', '.join([(PYTYPEOF(arg) + ' ' + arg_name(arg)).strip()
                              for arg in x.args_in])
-    func  = 'cdef {0}(self, {2} f, {1}):\n'.format(call, typed_args, call + fptr)
+    func  = 'cdef {0}(self, {2} f, {1}, auth=None):\n'.format(call, typed_args, call + fptr)
     func += '    cdef Deferred d = Deferred({0})\n'.format(client)
     for arg in x.args_in:
         for p, n in arg.args:
@@ -106,8 +106,10 @@ def generate_worker_asynccall(call, x, client='self', ptr='client', fptr='_fptr'
     for arg in x.args_in:
         args = ', '.join(['&in_' + n for p, n in arg.args])
         func += '    {0}.convert_{1}(d.arena, {1}, {2});\n'.format(client, arg.__name__.lower(), args)
+    func += '    self.set_auth_context(auth)\n'
     func += '    d.reqid = f(self.{0}, {1}, {2});\n'.format(ptr, ', '.join(['in_' + n for p, n in sum([list(a.args) for a in x.args_in], [])]),
                                                                  ', '.join(['&d.' + n for p, n in sum([list(a.args) for a in x.args_out], [])]))
+    func += '    self.clear_auth_context()\n'
     func += '    if d.reqid < 0:\n'
     func += '        raise HyperDexClientException(d.status, hyperdex_client_error_message({0}.client))\n'.format(client)
     func += '    d.encode_return = hyperdex_python_client_deferred_encode_' + '_'.join([arg.__name__.lower() for arg in x.args_out]) + '\n'
@@ -169,10 +171,10 @@ def generate_method(x, lib):
                              for arg in x.args_in])
     arg_list = ', '.join([arg_name(arg) for arg in x.args_in])
     if x.form == bindings.AsyncCall:
-        meth  = 'def async_{0}(self, {1}):\n'.format(name(x), typed_args)
-        meth += '    return self.{0}(hyperdex_{3}_{1}, {2})\n'.format(bindings.call_name(x), x.name, arg_list, lib)
-        meth += 'def {0}(self, {1}):\n'.format(name(x), typed_args)
-        meth += '    return self.async_{0}({1}).wait()\n'.format(name(x), arg_list)
+        meth  = 'def async_{0}(self, {1}, auth=None):\n'.format(name(x), typed_args)
+        meth += '    return self.{0}(hyperdex_{3}_{1}, {2}, auth)\n'.format(bindings.call_name(x), x.name, arg_list, lib)
+        meth += 'def {0}(self, {1}, auth=None):\n'.format(name(x), typed_args)
+        meth += '    return self.async_{0}({1}, auth).wait()\n'.format(name(x), arg_list)
     if x.form == bindings.Iterator:
         meth  = 'def {0}(self, {1}):\n'.format(name(x), typed_args)
         meth += '    return self.{0}(hyperdex_{3}_{1}, {2})\n'.format(bindings.call_name(x), x.name, arg_list, lib)

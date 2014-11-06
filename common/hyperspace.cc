@@ -27,6 +27,7 @@
 
 // HyperDex
 #include "common/hyperspace.h"
+#include "common/serialization.h"
 
 using hyperdex::space;
 using hyperdex::subspace;
@@ -224,46 +225,33 @@ hyperdex :: operator << (e::buffer::packer pa, const space& s)
 e::unpacker
 hyperdex :: operator >> (e::unpacker up, space& s)
 {
-    uint64_t id;
     e::slice name;
-    std::vector<e::slice> attrs;
+    std::vector<std::string> strs;
+    std::vector<attribute> attrs;
     uint16_t num_subspaces;
     uint16_t num_indices;
-    up = up >> id >> name >> s.fault_tolerance >> s.sc.attrs_sz
+    up = up >> s.id >> name >> s.fault_tolerance >> s.sc.attrs_sz
             >> num_subspaces >> num_indices;
-    s.id = space_id(id);
-    s.m_attrs = new attribute[s.sc.attrs_sz];
-    s.sc.attrs = s.m_attrs.get();
-    size_t sz = name.size() + 1;
+    strs.push_back(std::string(name.cdata(), name.size()));
+    s.name = strs.back().c_str();
 
     // Unpack all attributes
     for (size_t i = 0; !up.error() && i < s.sc.attrs_sz; ++i)
     {
         e::slice attr;
-        uint16_t type;
+        hyperdatatype type;
         up = up >> attr >> type;
-        s.m_attrs[i].type = static_cast<hyperdatatype>(type);
-        attrs.push_back(attr);
-        sz += attr.size() + 1;
+        strs.push_back(std::string(attr.cdata(), attr.size()));
+        attrs.push_back(attribute(strs.back().c_str(), type));
+
+        if (type == HYPERDATATYPE_MACAROON_SECRET)
+        {
+            s.sc.authorization = true;
+        }
     }
 
-    // Swap pointers over to our storage
-    s.m_c_strs = new char[sz];
-    char* ptr = s.m_c_strs.get();
-    s.name = ptr;
-    memmove(ptr, name.data(), name.size());
-    ptr += name.size();
-    *ptr = '\0';
-    ++ptr;
-
-    for (size_t i = 0; i < s.sc.attrs_sz; ++i)
-    {
-        s.m_attrs[i].name = ptr;
-        memmove(ptr, attrs[i].data(), attrs[i].size());
-        ptr += attrs[i].size();
-        *ptr = '\0';
-        ++ptr;
-    }
+    s.sc.attrs = &attrs.front();
+    s.sc.attrs_sz = attrs.size();
 
     // Unpack subspaces
     s.subspaces.resize(num_subspaces);
@@ -281,6 +269,7 @@ hyperdex :: operator >> (e::unpacker up, space& s)
         up = up >> s.indices[i];
     }
 
+    s.reestablish_backing();
     return up;
 }
 

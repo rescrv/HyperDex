@@ -67,6 +67,7 @@ operator << (std::ostream& lhs, hyperdatatype rhs)
         STRINGIFY(HYPERDATATYPE_TIMESTAMP_DAY);
         STRINGIFY(HYPERDATATYPE_TIMESTAMP_WEEK);
         STRINGIFY(HYPERDATATYPE_TIMESTAMP_MONTH);
+        STRINGIFY(HYPERDATATYPE_MACAROON_SECRET);
         STRINGIFY(HYPERDATATYPE_GARBAGE);
         default:
             lhs << "unknown hyperdatatype";

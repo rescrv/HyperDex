@@ -35,6 +35,7 @@
 #include "common/datatype_float.h"
 #include "common/datatype_int64.h"
 #include "common/datatype_list.h"
+#include "common/datatype_macaroon_secret.h"
 #include "common/datatype_map.h"
 #include "common/datatype_set.h"
 #include "common/datatype_string.h"
@@ -66,6 +67,8 @@ static hyperdex::datatype_timestamp d_timestamp_hour(HOUR);
 static hyperdex::datatype_timestamp d_timestamp_day(DAY);
 static hyperdex::datatype_timestamp d_timestamp_week(WEEK);
 static hyperdex::datatype_timestamp d_timestamp_month(MONTH);
+static hyperdex::datatype_macaroon_secret d_macaroon_secret;
+
 datatype_info*
 datatype_info :: lookup(hyperdatatype datatype)
 {
@@ -121,15 +124,17 @@ datatype_info :: lookup(hyperdatatype datatype)
           return &d_timestamp_week;
         case HYPERDATATYPE_TIMESTAMP_MONTH:
           return &d_timestamp_month;
+        case HYPERDATATYPE_MACAROON_SECRET:
+            return &d_macaroon_secret;
         case HYPERDATATYPE_GENERIC:
         case HYPERDATATYPE_TIMESTAMP_GENERIC:
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
-        case HYPERDATATYPE_GARBAGE:
         case HYPERDATATYPE_MAP_GENERIC:
         case HYPERDATATYPE_MAP_STRING_KEYONLY:
         case HYPERDATATYPE_MAP_INT64_KEYONLY:
         case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+        case HYPERDATATYPE_GARBAGE:
         default:
             return NULL;
     }

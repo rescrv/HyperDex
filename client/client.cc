@@ -43,6 +43,7 @@
 // HyperDex
 #include "visibility.h"
 #include "common/attribute_check.h"
+#include "common/auth_wallet.h"
 #include "common/datatype_info.h"
 #include "common/funcall.h"
 #include "common/macros.h"
@@ -92,6 +93,8 @@ client :: client(const char* coordinator, uint16_t port)
     , m_yielding()
     , m_yielded()
     , m_last_error()
+    , m_macaroons(NULL)
+    , m_macaroons_sz(0)
 {
     m_gc.register_thread(&m_gc_ts);
 }
@@ -110,6 +113,8 @@ client :: client(const char* conn_str)
     , m_yielding()
     , m_yielded()
     , m_last_error()
+    , m_macaroons(NULL)
+    , m_macaroons_sz(0)
 {
     m_gc.register_thread(&m_gc_ts);
 }
@@ -150,8 +155,21 @@ client :: get(const char* space, const char* _key, size_t _key_sz,
     e::intrusive_ptr<pending> op;
     op = new pending_get(m_next_client_id++, status, attrs, attrs_sz);
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ + sizeof(uint32_t) + key.size();
+    auth_wallet aw(m_macaroons, m_macaroons_sz);
+
+    if (m_macaroons_sz)
+    {
+        sz += pack_size(aw);
+    }
+
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << key;
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << key;
+
+    if (m_macaroons_sz)
+    {
+        pa = pa << aw;
+    }
+
     return send_keyop(space, key, REQ_GET, msg, op, status);
 }
 
@@ -214,6 +232,13 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
               + sizeof(uint32_t) + key.size()
               + sizeof(uint32_t) + attrnums.size() * sizeof(uint16_t);
+    auth_wallet aw(m_macaroons, m_macaroons_sz);
+
+    if (m_macaroons_sz)
+    {
+        sz += pack_size(aw);
+    }
+
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
     pa = pa << key << uint32_t(attrnums.size());
@@ -221,6 +246,11 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
     for (size_t i = 0; i < attrnums.size(); ++i)
     {
         pa = pa << attrnums[i];
+    }
+
+    if (m_macaroons_sz)
+    {
+        pa = pa << aw;
     }
 
     return send_keyop(space, key, REQ_GET_PARTIAL, msg, op, status);
@@ -426,12 +456,27 @@ client :: perform_funcall(const hyperdex_client_keyop_info* opinfo,
               + pack_size(key)
               + pack_size(checks)
               + pack_size(funcs);
+    auth_wallet aw(m_macaroons, m_macaroons_sz);
+
+    if (m_macaroons_sz)
+    {
+        sz += pack_size(aw);
+    }
+
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     uint8_t flags = (opinfo->fail_if_not_found ? 1 : 0)
                   | (opinfo->fail_if_found ? 2 : 0)
-                  | (opinfo->erase ? 0 : 128);
+                  | (opinfo->erase ? 0 : 128)
+                  | (m_macaroons_sz ? 64 : 0);
+    e::buffer::packer pa =
     msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ)
         << key << flags << checks << funcs;
+
+    if (m_macaroons_sz)
+    {
+        pa = pa << aw;
+    }
+
     return send_keyop(space, key, REQ_ATOMIC, msg, op, status);
 }
 
@@ -797,6 +842,11 @@ client :: prepare_funcs(const char* space, const schema& sc,
             datatype = sc.attrs[attrnum].type;
         }
 
+        if (sc.attrs[attrnum].type == HYPERDATATYPE_MACAROON_SECRET)
+        {
+            datatype = HYPERDATATYPE_MACAROON_SECRET;
+        }
+
         funcall o;
         o.attr = attrnum;
         o.name = opinfo->fname;
@@ -1121,6 +1171,7 @@ operator << (std::ostream& lhs, hyperdex_client_returncode rhs)
         STRINGIFY(HYPERDEX_CLIENT_INTERRUPTED);
         STRINGIFY(HYPERDEX_CLIENT_CLUSTER_JUMP);
         STRINGIFY(HYPERDEX_CLIENT_OFFLINE);
+        STRINGIFY(HYPERDEX_CLIENT_UNAUTHORIZED);
         STRINGIFY(HYPERDEX_CLIENT_INTERNAL);
         STRINGIFY(HYPERDEX_CLIENT_EXCEPTION);
         STRINGIFY(HYPERDEX_CLIENT_GARBAGE);

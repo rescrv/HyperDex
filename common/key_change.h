@@ -31,6 +31,7 @@
 // HyperDex
 #include "namespace.h"
 #include "common/attribute_check.h"
+#include "common/auth_wallet.h"
 #include "common/funcall.h"
 #include "common/network_returncode.h"
 
@@ -72,6 +73,9 @@ class key_change
 
         // The actual keychange is stored here
         std::vector<funcall> funcs;
+
+        // Authorization info is stored here
+        std::auto_ptr<auth_wallet> auth;
 };
 
 e::buffer::packer
