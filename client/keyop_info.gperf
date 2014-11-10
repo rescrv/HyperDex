@@ -67,6 +67,7 @@ map_remove,              false, true,  false,  hyperdex::FUNC_MAP_REMOVE
 cond_map_remove,         false, true,  false,  hyperdex::FUNC_MAP_REMOVE
 map_atomic_add,          false, true,  false,  hyperdex::FUNC_NUM_ADD
 document_rename,         false, true,  false,  hyperdex::FUNC_DOC_RENAME
+document_set,            false, true,  false,  hyperdex::FUNC_DOC_SET
 document_unset,          false, true,  false,  hyperdex::FUNC_DOC_UNSET
 cond_map_atomic_add,     false, true,  false,  hyperdex::FUNC_NUM_ADD
 map_atomic_sub,          false, true,  false,  hyperdex::FUNC_NUM_SUB
