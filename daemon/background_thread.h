@@ -88,7 +88,7 @@ class background_thread
         po6::threads::cond m_wakeup_thread;
         po6::threads::cond m_wakeup_pauser;
         bool m_shutdown;
-        bool m_need_pause;
+        int m_pause_count;
         bool m_paused;
         bool m_offline;
 };
