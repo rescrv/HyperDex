@@ -123,6 +123,7 @@ noinst_HEADERS += common/datatype_float.h
 noinst_HEADERS += common/datatype_info.h
 noinst_HEADERS += common/datatype_int64.h
 noinst_HEADERS += common/datatype_list.h
+noinst_HEADERS += common/datatype_macaroon_secret.h
 noinst_HEADERS += common/datatype_map.h
 noinst_HEADERS += common/datatype_set.h
 noinst_HEADERS += common/datatype_string.h
@@ -180,6 +181,7 @@ endif
 EXTRA_DIST += initscripts/sysv/default/hyperdex-daemon
 EXTRA_DIST += initscripts/sysv/init.d/hyperdex-daemon
 
+noinst_HEADERS += daemon/auth.h
 noinst_HEADERS += daemon/background_thread.h
 noinst_HEADERS += daemon/communication.h
 noinst_HEADERS += daemon/coordinator_link_wrapper.h
@@ -946,6 +948,7 @@ EXTRA_DIST += test/doc.async-ops.py
 EXTRA_DIST += test/doc.atomic-ops.py
 EXTRA_DIST += test/doc.data-types.py
 EXTRA_DIST += test/doc.documents.py
+EXTRA_DIST += test/doc.authorization.py
 EXTRA_DIST += test/doc-extract.py
 EXTRA_DIST += test/doc.quick-start.py
 EXTRA_DIST += test/doctest-runner.py
