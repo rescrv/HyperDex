@@ -113,6 +113,7 @@ noinst_HEADERS += namespace.h
 noinst_HEADERS += visibility.h
 noinst_HEADERS += common/attribute_check.h
 noinst_HEADERS += common/attribute.h
+noinst_HEADERS += common/auth_wallet.h
 noinst_HEADERS += common/configuration.h
 noinst_HEADERS += common/configuration_flags.h
 noinst_HEADERS += common/coordinator_link.h
