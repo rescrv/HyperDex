@@ -72,7 +72,7 @@ Figure~\ref{fig:daemon-state-machine} shows the state machine that the
 coordinator adheres to when changing members' states.
 
 \begin{figure}[t]
-\centering
+\begin{center}
 \begin{tikzpicture}
 % structure things
 % A at 9:30
@@ -109,6 +109,7 @@ coordinator adheres to when changing members' states.
 
 \draw[->,>=latex,thick] (assigned) -- (available) node[midway,above,sloped,draw=white,fill=white,text=black,rectangle,inner sep=0pt,xshift=-24pt,yshift=2pt] {\ref{srvtrans:postreg}.~post-register};
 \end{tikzpicture}
+\end{center}
 \caption{XXX}
 \label{fig:daemon-state-machine}
 \end{figure}
