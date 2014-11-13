@@ -40,6 +40,9 @@
 // BusyBee
 #include <busybee_utils.h>
 
+// BSON
+#include <bson.h>
+
 // HyperDex
 #include "visibility.h"
 #include "common/attribute_check.h"
@@ -762,7 +765,7 @@ size_t
 client :: prepare_funcs(const char* space, const schema& sc,
                         const hyperdex_client_keyop_info* opinfo,
                         const hyperdex_client_attribute* attrs, size_t attrs_sz,
-                        arena_t*,
+                        arena_t* allocate,
                         hyperdex_client_returncode* status,
                         std::vector<funcall>* funcs)
 {
@@ -814,8 +817,34 @@ client :: prepare_funcs(const char* space, const schema& sc,
         funcall o;
         o.attr = attrnum;
         o.name = opinfo->fname;
-        o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
         o.arg1_datatype = datatype;
+
+        if (datatype == HYPERDATATYPE_DOCUMENT)
+        {
+            bson_error_t error;
+            bson_t *bson = bson_new_from_json(reinterpret_cast<const uint8_t*>(attrs[i].value), attrs[i].value_sz, &error);
+
+            if(!bson)
+            {
+                //TODO parse error
+                ERROR(WRONGTYPE) << "invalid document \"" << e::strescape(attr) << "\"";
+            }
+
+            size_t len = bson->len;
+            const char* data = reinterpret_cast<const char*>(bson_get_data(bson));
+
+            //TODO make arena store smart pointers instead of copying to strings
+            allocate->push_back(std::string());
+            std::string& s(allocate->back());
+            s.append(data, len);
+
+            o.arg1 = e::slice(s.data(), len);
+            bson_destroy(bson);
+        }
+        else
+        {
+            o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
+        }
 
         if(path != NULL)
         {

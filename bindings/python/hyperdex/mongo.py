@@ -26,6 +26,13 @@ class HyperSpace:
         self.name = name
         self.exists = False
 
+    def clear(self):
+        # FIXME not atomic
+        keys = self.list_keys()     
+        
+        for key in keys:   
+                self.client.delete(self.name, key)
+
     def init(self):
         if self.exists:
             return
@@ -98,6 +105,14 @@ class HyperSpace:
             raise RuntimeError("Can't remove. Space doesn't exist yet")
 
         return self.client.delete(self.name, key)
+
+    def async_insert(self, value):
+        if value is None or value['_id'] is None:
+            #TODO auto generate id
+            raise ValueError("Document is missing an id field")
+
+        self.init()
+        return self.client.async_put(self.name, value['_id'], {'v' : self.Document(value)})
 
     def insert(self, value):
         if value is None or value['_id'] is None:
