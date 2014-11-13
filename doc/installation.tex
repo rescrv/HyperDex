@@ -1,143 +1,85 @@
 \chapter{Installing HyperDex}
 \label{chap:installation}
 
-HyperDex provides two means of installation for users.  The easiest and most
-convenient way to install HyperDex is to use precompiled binary packages.
-Packages are available for a several platforms and more platforms will be
-supported as resources permit.  For users who need more control over their
-installation, HyperDex provides the option to compile from source tarballs.
+HyperDex provides multiple installation methods that provide easy access to
+HyperDex in a variety of environments.  For Linux users, the easiest and most
+convenient way to install HyperDex is to use pre-compiled binary packages.
+Users of OS X have the option to install using Homebrew packages.  Finally,
+HyperDex is also distributed as a set of tarballs so that power users may
+install HyperDex in a custom manner on their platform of choice.
 
-\section{Installing Binary Packages}
-\label{sec:installation:binaries}
+\section{Installing on CentOS/RedHat Using Binary Packages}
 
-The HyperDex team maintains repositories for Debian, Ubuntu, and Fedora so that
-the latest version is always conveniently available.
+The following code snippet will install HyperDex on any 64-bit CentOS 6 or 7
+system.  The script configures the HyperDex repository, imports the HyperDex
+signing key, and installs the \code{hyperdex} package.  This script is available
+in the HyperDex tarball or repository at \code{doc/install/centos-packages.sh}.
 
-\subsection{Debian}
-\label{sec:installation:binaries:debian}
+\inputminted[frame=lines,framesep=2mm,firstline=5]{bash}{\topdir/install/centos-packages.sh}
 
-To access the Debian repository, add the following to
-\texttt{/etc/apt/sources.list}:
+\noindent\textbf{Note:}  Users installing on Red Hat Enterprise Linux may have
+to follow the instructions to install Extra Packages for Enterprise Linux
+\footnote{\url{https://fedoraproject.org/wiki/EPEL}} prior to running the above
+code.
 
-\begin{consolecode}
-deb http://debian.hyperdex.org wheezy main
-\end{consolecode}
+\section{Installing on Debian Using Binary Packages}
 
-Subsequent invocations of the package manager may complain about the absence of
-the relevant package signing key.  You can download the
-\href{http://debian.hyperdex.org/hyperdex.gpg.key}{Debian public key} and add
-it with:
+The following code snippet will install HyperDex on any 64-bit Debian 7 (Wheezy)
+system.  The script configures the HyperDex repository, imports the HyperDex
+signing key, and installs the \code{HyperDex} package.  This script is available
+in the HyperDex tarball or repository at \code{doc/install/debian7-packages.sh}.
 
-\begin{consolecode}
-apt-key add hyperdex.gpg.key
-\end{consolecode}
+\inputminted[frame=lines,framesep=2mm,firstline=5]{bash}{\topdir/install/debian7-packages.sh}
 
-The following code may be copied and pasted into a root terminal to quickly
-setup the Debian repository and install HyperDex:
+\section{Installing on Ubuntu Using Binary Packages}
 
-\begin{consolecode}
-wget -O - http://debian.hyperdex.org/hyperdex.gpg.key \
-| apt-key add -
-wget -O /etc/apt/sources.list.d/hyperdex.list \
-    http://debian.hyperdex.org/hyperdex.list
-aptitude update
-aptitude install hyperdex
-\end{consolecode}
+The following code snippets will install HyperDex on 64-bit Ubuntu systems.
+Pick the script that corresponds to the distribution you are running.  Each
+script configures the HyperDex repository, imports the HyperDex signing key, and
+installs the \code{HyperDex} package.  To figure out which version of Ubuntu you
+are using, \code{cat /etc/os-release} and look for the corresponding version and
+codename.
 
-\subsection{Ubuntu}
-\label{sec:installation:binaries:ubuntu}
+\subsection{Ubuntu 12.04 Precise Pangolin}
 
-To access the Ubuntu repository, add the following to
-\texttt{/etc/apt/sources.list}:
+This script is available in the HyperDex tarball or repository at
+\code{doc/install/ubuntu12.04-packages.sh}.
 
-\begin{consolecode}
-deb [arch=amd64] http://ubuntu.hyperdex.org precise main
-\end{consolecode}
+\inputminted[frame=lines,framesep=2mm,firstline=5]{bash}{\topdir/install/ubuntu12.04-packages.sh}
 
-Subsequent invocations of the package manager may complain about the absence of
-the relevant package signing key.  You can download the
-\href{http://ubuntu.hyperdex.org/hyperdex.gpg.key}{Ubuntu public key} and add
-it with:
+\subsection{Ubuntu 14.04 Trusty Tahr}
 
-\begin{consolecode}
-apt-key add hyperdex.gpg.key
-\end{consolecode}
+This script is available in the HyperDex tarball or repository at
+\code{doc/install/ubuntu14.04-packages.sh}.
 
-The following code may be copied and pasted to quickly setup the Ubuntu
-repository and install HyperDex:
+\inputminted[frame=lines,framesep=2mm,firstline=5]{bash}{\topdir/install/ubuntu14.04-packages.sh}
 
-\begin{consolecode}
-sudo wget -O /etc/apt/sources.list.d/hyperdex.list \
-    http://ubuntu.hyperdex.org/precise.list
-sudo wget -O - http://ubuntu.hyperdex.org/hyperdex.gpg.key \
-| sudo apt-key add -
-sudo apt-get update
-sudo apt-get install hyperdex
-\end{consolecode}
+\section{Installing on Fedora Using Binary Packages}
 
-Change \code{precise.list} to reflect the version of Ubuntu that you are using.
+The following code snippet will install HyperDex on any 64-bit Fedora 20 system.
+The script configures the HyperDex repository, imports the HyperDex signing key,
+and installs the \code{hyperdex} package.  This script is available in the
+HyperDex tarball or repository at \code{doc/install/fedora-packages.sh}.
 
-\subsection{Fedora}
-\label{sec:installation:binaries:fedora}
+\inputminted[frame=lines,framesep=2mm,firstline=5]{bash}{\topdir/install/fedora-packages.sh}
 
-To access the Fedora repository, add the following to \texttt{/etc/yum.conf}:
+\section{Installing on Linux Using Universal Binaries}
+\label{sec:installation:universal-linux}
 
-\begin{consolecode}
-[hyperdex]
-name=hyperdex
-baseurl=http://fedora.hyperdex.org/
-enabled=1
-gpgcheck=0
-\end{consolecode}
+HyperDex is also available as a self-contained universal binary that works on
+most glibc-based Linux distributions.  To use this installation, first download
+the requisite tarball, and then you can install HyperDex like this:
 
-To install HyperDex, issue the following command as root:
+\inputminted[frame=lines,framesep=2mm,firstline=3]{bash}{\topdir/install/linux-amd64.sh}
 
-\begin{consolecode}
-yum install hyperdex
-\end{consolecode}
+\section{Installing on OS X Using Homebrew}
+\label{sec:installation:os-x-homebrew}
 
-\subsection{Package Names}
-\label{sec:installation:package-names}
+XXX
 
-Packages are named consistently across platforms.  On all architectures, the
-\texttt{hyperdex} meta-package pulls in all HyperDex packages.  For most users,
-installing the \texttt{hyperdex} package and any language packages will be
-sufficient.
-
-For completeness, here is a list of all packages:
-
-\begin{description}
-\item[\texttt{hyperdex-daemon}]
-This package contains the HyperDex daemon that runs on each storage node.  It
-required on every storage node.
-
-\item[\texttt{libhyperdex-client}]
-This package contains the client library for C/C++ bindings.  It is required on
-all platforms which will access HyperDex.
-
-On Debian and Ubuntu systems, this will have a small number appended to the
-package name indicating the version of the package contained within.
-
-\item[\texttt{python-hyperdex-client}]
-This provides the python module \texttt{hyperdex.client}.  This package is only
-required for systems that need to interact with HyperDex from Python.
-
-\item[\texttt{libhyperdex-coordinator}]
-This package provides the coordinator for a HyperDex cluster.  This package is
-required only on systems which will serve as the coordinator for the cluster.
-
-\item[\texttt{replicant}]
-This package provides part of the HyperDex coordinator and is only necessary on
-systems which will serve as the coordinator for the cluster.
-\end{description}
-
-Most packages are complemented by development and debug packages.  In the
-development package, there are header files and static libraries.  The debug
-packages provide symbols which will aid in providing tracebacks to the HyperDex
-developers.  Please consult your package manager to find these packages.
-
-\section{Installing Source Tarballs}
+\section{Installing From Source}
 \label{sec:installation:source}
+
 
 An alternative to installing a prepackaged binary is to install from source
 tarballs.  This is a straightforward process that should work on most any recent

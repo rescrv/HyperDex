@@ -46,6 +46,10 @@ public:
         : path(path_)
     {}
 
+    json_path(const e::slice& slice)
+        : path(slice.cdata(), slice.size())
+    {}
+
     bool empty() const
     {
         return str().size() == 0;

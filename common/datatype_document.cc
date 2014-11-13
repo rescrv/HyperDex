@@ -74,6 +74,13 @@ datatype_document :: validate(const e::slice& value) const
     // FIXME!!
     return true;
 
+    if(value.size() == 0)
+    {
+        // default value is empty
+        // not part of the BSON standard but this is how HyperDex behaves
+        return true;
+    }
+
     bson_t b;
     return bson_init_static(&b, reinterpret_cast<const uint8_t*>(value.cdata()), value.size());
 }
@@ -445,6 +452,8 @@ datatype_document :: replace_int64_recurse(const json_path& path, const int64_t 
         bson_type_t type = bson_iter_type(iter);
         std::string key = bson_iter_key(iter);
 
+        std::cout<< key << std::endl;
+
         if(type == BSON_TYPE_INT64)
         {
             if(path.str() == key)
@@ -603,6 +612,14 @@ datatype_document :: apply(const e::slice& old_value,
                            const funcall* funcs, size_t funcs_sz,
                            uint8_t* writeto)
 {
+    // Prevent copying on SET
+    if(funcs_sz == 1 && funcs[0].name == FUNC_SET)
+    {
+        size_t len = funcs[0].arg1.size();
+        memmove(writeto, funcs[0].arg1.data(), len);
+        return writeto + len;
+    }
+
     e::slice new_value = old_value;
 
     // To support multiple updates on the same document
@@ -611,27 +628,21 @@ datatype_document :: apply(const e::slice& old_value,
 
     for (size_t i = 0; i < funcs_sz; ++i)
     {
-        const funcall* func = funcs + i;
+        const funcall& func = *(funcs + i);
 
-        switch(func->name)
+        switch(func.name)
         {
         case FUNC_SET:
         {
-            bson_error_t error;
-            bson_root = bson_new_from_json (func->arg1.data(), -1, &error);
-
-            //TODO needs to be caught by validation
-            if (!bson_root)
-            {
-                printf ("Error: %s\n", error.message);
-                abort();
-            }
+            // this is not supported
+            // there should be only a single func call when set happens
+            abort();
             break;
         }
         case FUNC_DOC_UNSET:
         {
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
-            std::string path = func->arg2.c_str();
+            std::string path = func.arg2.c_str();
             bson_t* new_doc = unset_value(bson_root, path);
 
             if(!new_doc)
@@ -645,8 +656,8 @@ datatype_document :: apply(const e::slice& old_value,
         }
         case FUNC_DOC_RENAME:
         {
-            std::string new_name = func->arg1.c_str();
-            std::string path = func->arg2.c_str();
+            std::string new_name(func.arg1.cdata(), func.arg1.size());
+            std::string path = func.arg2.c_str();
 
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
             bson_t* new_doc = rename_value(bson_root, path, new_name);
@@ -663,8 +674,8 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_STRING_PREPEND:
         case FUNC_STRING_APPEND:
         {
-            std::string arg = func->arg1.c_str();
-            std::string path = func->arg2.c_str();
+            std::string arg(func.arg1.cdata(), func.arg1.size());
+            json_path path = func.arg2.c_str();
 
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
 
@@ -674,12 +685,12 @@ datatype_document :: apply(const e::slice& old_value,
             uint32_t size = 0;
             std::string str = "";
 
-            if (bson_iter_find_descendant (&iter, path.c_str(), &baz))
+            if (bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
             {
                 str = bson_iter_utf8(&baz, &size);
             }
 
-            if(func->name == FUNC_STRING_APPEND)
+            if(func.name == FUNC_STRING_APPEND)
             {
                 str = str + arg;
             }
@@ -711,8 +722,8 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_NUM_MAX:
         case FUNC_NUM_MIN:
         {
-            int64_t arg = reinterpret_cast<const int64_t*>(func->arg1.data())[0];
-            json_path path = func->arg2.c_str();
+            int64_t arg = reinterpret_cast<const int64_t*>(func.arg1.data())[0];
+            json_path path = func.arg2.c_str();
 
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
 
@@ -742,48 +753,48 @@ datatype_document :: apply(const e::slice& old_value,
 
             bool success = false;
 
-            if(func->name == FUNC_NUM_ADD)
+            if(func.name == FUNC_NUM_ADD)
             {
                 success = e::safe_add(number, arg, &number);
             }
-            else if(func->name == FUNC_NUM_SUB)
+            else if(func.name == FUNC_NUM_SUB)
             {
                 success = e::safe_sub(number, arg, &number);
             }
-            else if(func->name == FUNC_NUM_DIV)
+            else if(func.name == FUNC_NUM_DIV)
             {
                 success = e::safe_div(number, arg, &number);
             }
-            else if(func->name == FUNC_NUM_MUL)
+            else if(func.name == FUNC_NUM_MUL)
             {
                 success = e::safe_mul(number, arg, &number);
             }
-            else if(func->name == FUNC_NUM_MOD)
+            else if(func.name == FUNC_NUM_MOD)
             {
                 number = number % arg;
                 success = true;
             }
-            else if(func->name == FUNC_NUM_XOR)
+            else if(func.name == FUNC_NUM_XOR)
             {
                 number = number ^ arg;
                 success = true;
             }
-            else if(func->name == FUNC_NUM_AND)
+            else if(func.name == FUNC_NUM_AND)
             {
                 number = number & arg;
                 success = true;
             }
-            else if(func->name == FUNC_NUM_OR)
+            else if(func.name == FUNC_NUM_OR)
             {
                 number = number | arg;
                 success = true;
             }
-            else if(func->name == FUNC_NUM_MAX)
+            else if(func.name == FUNC_NUM_MAX)
             {
                 number = std::max(number, arg);
                 success = true;
             }
-            else if(func->name == FUNC_NUM_MIN)
+            else if(func.name == FUNC_NUM_MIN)
             {
                 number = std::min(number, arg);
                 success = true;

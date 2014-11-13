@@ -26,6 +26,13 @@ class HyperSpace:
         self.name = name
         self.exists = False
 
+    def clear(self):
+        # FIXME not atomic
+        keys = self.list_keys()     
+        
+        for key in keys:   
+                self.client.delete(self.name, key)
+
     def init(self):
         if self.exists:
             return
@@ -99,6 +106,14 @@ class HyperSpace:
 
         return self.client.delete(self.name, key)
 
+    def async_insert(self, value):
+        if value is None or value['_id'] is None:
+            #TODO auto generate id
+            raise ValueError("Document is missing an id field")
+
+        self.init()
+        return self.client.async_put(self.name, value['_id'], {'v' : self.Document(value)})
+
     def insert(self, value):
         if value is None or value['_id'] is None:
             #TODO auto generate id
@@ -122,9 +137,9 @@ class HyperSpace:
             elif k == '$bit':
                 if not isinstance(v, dict):
                     raise ValueError('$bit argument must a dict')
-                    
+
                 op, mask = v.iteritems().next()
-                    
+
                 if op == 'and':
                     self.atomic_and(key, mask)
                 elif op == 'or':
@@ -135,69 +150,108 @@ class HyperSpace:
                     self.atomic_xor(key, mask)
                 else:
                     raise ValueError("Unknown bit-operation")
-            
+
             elif k == '$mul':
-                self.atomic_mul(key, v)        
+                self.atomic_mul(key, v)
             elif k == '$div':
                 self.atomic_div(key, v)
             else:
                 raise ValueError("Unknown command " + k)
-       
+
+    def convert_docargs(self, args):
+        if (not isinstance(args, dict)) or (len(args) is 0):
+                raise ValueError("Invalid arguments")
+
+        docargs = {}
+
+        for k,v in args.iteritems():
+                docargs['v.' + k] = v
+
+        return docargs
+
     def async_string_prepend(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.async_document_string_prepend(self.name, key, {'v' : self.Document(value)})
-                
+
+        return self.client.async_string_prepend(self.name, key, docargs)
+
     def string_prepend(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.document_string_prepend(self.name, key, {'v' : self.Document(value)})
-        
+
+        return self.client.string_prepend(self.name, key, docargs)
+
     def async_string_append(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.async_document_string_append(self.name, key, {'v' : self.Document(value)})
-                
+
+        return self.client.async_string_append(self.name, key, docargs)
+
     def string_append(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.document_string_append(self.name, key, {'v' : self.Document(value)})
-        
+
+        return self.client.string_append(self.name, key, docargs)
+
     def async_atomic_add(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.async_document_atomic_add(self.name, key, {'v' : self.Document(value)})
+
+        return self.client.async_atomic_add(self.name, key, docargs)
 
     def atomic_add(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.document_atomic_add(self.name, key, {'v' : self.Document(value)})
+
+        return self.client.atomic_add(self.name, key, docargs)
 
     def async_atomic_sub(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.async_document_atomic_sub(self.name, key, {'v' : self.Document(value)})
+
+        return self.client.async_atomic_sub(self.name, key, docargs)
 
     def atomic_sub(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.document_atomic_sub(self.name, key, {'v' : self.Document(value)})
+
+        return self.client.atomic_sub(self.name, key, docargs)
 
     def atomic_mul(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.document_atomic_mul(self.name, key, {'v' : self.Document(value)})
+
+        return self.client.atomic_mul(self.name, key, docargs)
 
     def atomic_div(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.document_atomic_div(self.name, key, {'v' : self.Document(value)})
+
+        return self.client.atomic_div(self.name, key, docargs)
 
     def atomic_and(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.document_atomic_and(self.name, key, {'v' : self.Document(value)})
+
+        return self.client.atomic_and(self.name, key, docargs)
 
     def atomic_xor(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.document_atomic_xor(self.name, key, {'v' : self.Document(value)})
+
+        return self.client.atomic_xor(self.name, key, docargs)
 
     def atomic_or(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.document_atomic_or(self.name, key, {'v' : self.Document(value)})
+
+        return self.client.atomic_or(self.name, key, docargs)
 
     def atomic_mod(self, key, value):
+        docargs = self.convert_docargs(value)
         self.init()
-        return self.client.document_atomic_mod(self.name, key, {'v' : self.Document(value)})
+
+        return self.client.atomic_mod(self.name, key, docargs)
 
 
 class HyperDatabase:
