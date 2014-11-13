@@ -445,6 +445,8 @@ datatype_document :: replace_int64_recurse(const json_path& path, const int64_t 
         bson_type_t type = bson_iter_type(iter);
         std::string key = bson_iter_key(iter);
 
+        std::cout<< key << std::endl;
+
         if(type == BSON_TYPE_INT64)
         {
             if(path.str() == key)
@@ -645,7 +647,7 @@ datatype_document :: apply(const e::slice& old_value,
         }
         case FUNC_DOC_RENAME:
         {
-            std::string new_name = func->arg1.c_str();
+            std::string new_name(func->arg1.cdata(), func->arg1.size());
             std::string path = func->arg2.c_str();
 
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
@@ -663,8 +665,8 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_STRING_PREPEND:
         case FUNC_STRING_APPEND:
         {
-            std::string arg = func->arg1.c_str();
-            std::string path = func->arg2.c_str();
+            std::string arg(func->arg1.cdata(), func->arg1.size());
+            json_path path = func->arg2.c_str();
 
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
 
@@ -674,7 +676,7 @@ datatype_document :: apply(const e::slice& old_value,
             uint32_t size = 0;
             std::string str = "";
 
-            if (bson_iter_find_descendant (&iter, path.c_str(), &baz))
+            if (bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
             {
                 str = bson_iter_utf8(&baz, &size);
             }
