@@ -226,21 +226,21 @@ True
 >>> Document = hyperdex.client.Document
 >>> c.put('people', 'jane', {'info' : Document( {'name': 'Jane Doe', 'gender' : 'female', 'age' : 21, 'likes' : ['cornell', 'python']} )})
 True
->>> c.document_atomic_add('people', 'jane', {'info' : Document({'age' : 1})})
+>>> c.atomic_add('people', 'jane', {'info.age' : 1})
 True
 >>> c.get('people', 'jane')
 {'info': Document({"name": "Jane Doe", "gender": "female", "age": 22, "likes": ["cornell", "python"]})}
->>> c.document_atomic_add('people', 'jane', {'info' : Document({'gender' : 1})})
+>>> c.atomic_add('people', 'jane', {'info.gender' : 1})
 False
->>> c.document_atomic_add('people', 'jane', {'info' : Document({'children' : 1})})
+>>> c.atomic_add('people', 'jane', {'info.children' : 1})
 True
 >>> c.get('people', 'jane')
 {'info': Document({"name": "Jane Doe", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}
->>> c.document_string_prepend('people', 'jane', {'info' : Document({'name' : 'Dr. '})})
+>>> c.string_prepend('people', 'jane', {'info.name' : 'Dr. '})
 True
 >>> c.get('people', 'jane')
 {'info': Document({"name": "Dr. Jane Doe", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}
->>> c.document_string_append('people', 'jane', {'info' : Document({'name' : ', Jr.'})})
+>>> c.string_append('people', 'jane', {'info.name' : ', Jr.'})
 True
 >>> c.get('people', 'jane')
 {'info': Document({"name": "Dr. Jane Doe, Jr.", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}

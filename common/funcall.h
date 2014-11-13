@@ -77,6 +77,7 @@ enum funcall_t
     FUNC_MAP_REMOVE,
 
     FUNC_DOC_RENAME,
+    FUNC_DOC_SET,
     FUNC_DOC_UNSET
 };
 

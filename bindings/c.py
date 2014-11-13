@@ -169,8 +169,6 @@ def generate_client_c_wrapper(x):
             args += ('NULL', '0')
         if bindings.MapAttributes in x.args_in:
             args += ('mapattrs', 'mapattrs_sz')
-	elif bindings.DocAttributes in x.args_in:
-	    args += ('docattrs', 'docattrs_sz')
         else:
             args += ('NULL', '0')
         args += ('status',)

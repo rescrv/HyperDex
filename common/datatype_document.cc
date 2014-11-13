@@ -108,7 +108,7 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
         }
         else
         {
-            std::string new_name(func.arg2.c_str());
+            std::string new_name(func.arg1.c_str());
 
             json_path parent_path;
             std::string obj_name;
@@ -120,6 +120,24 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
 
             return exists && !other_exists;
         }
+    }
+    case FUNC_DOC_SET:
+    {
+        bson_t b;
+        bool inited = bson_init_static(&b, old_values[0].data(), old_values[0].size());
+
+        if(!inited)
+        {
+            return false;
+        }
+
+        bson_iter_t iter, baz;
+        assert(bson_iter_init (&iter, &b));
+
+        json_path path(func.arg2.c_str());
+
+        bool other_exists = bson_iter_find_descendant(&iter, path.str().c_str(), &baz);
+        return !other_exists;
     }
     case FUNC_NUM_ADD:
     case FUNC_NUM_AND:
@@ -250,6 +268,11 @@ datatype_document :: check_args(const funcall& func) const
     {
         // Key should be a path and the value will not be evaluated (for now)
         return func.arg1_datatype == HYPERDATATYPE_INT64 && func.arg2_datatype == HYPERDATATYPE_STRING;
+    }
+    case FUNC_DOC_SET:
+    {
+        // Key should be a path and the value can be any type
+        return func.arg2_datatype == HYPERDATATYPE_STRING;
     }
     case FUNC_DOC_RENAME:
     {
@@ -626,6 +649,14 @@ datatype_document :: apply(const e::slice& old_value,
                 printf ("Error: %s\n", error.message);
                 abort();
             }
+            break;
+        }
+        case FUNC_DOC_SET:
+        {
+            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
+            std::string path = func->arg2.c_str();
+
+            //TODO implement
             break;
         }
         case FUNC_DOC_UNSET:

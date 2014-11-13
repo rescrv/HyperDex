@@ -180,6 +180,7 @@ datatype_int64 :: apply(const e::slice& old_value,
             case FUNC_MAP_REMOVE:
             case FUNC_FAIL:
             case FUNC_DOC_RENAME:
+            case FUNC_DOC_SET:
             case FUNC_DOC_UNSET:
             default:
                 abort();

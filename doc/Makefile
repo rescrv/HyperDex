@@ -13,7 +13,7 @@ all: $(TARGET).pdf $(TARGET).ps
 	@echo "SUCCESS: dvi, ps, pdf all up-to-date"
 
 $(TARGET).dvi: hyperdex.tex $(wildcard *.tex) $(wildcard */*.tex) $(wildcard */*/*.tex)
-	python latex.py $(TARGET)
+	python2 latex.py $(TARGET)
 
 $(TARGET).ps: $(TARGET).dvi
 	dvips $(TARGET).dvi
