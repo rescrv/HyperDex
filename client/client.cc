@@ -770,11 +770,25 @@ client :: prepare_funcs(const char* space, const schema& sc,
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
-        uint16_t attrnum = sc.lookup_attr(attrs[i].attr);
+        const char* attr = attrs[i].attr;
+        const char* path = strstr(attrs[i].attr, ".");
+
+        // This is a path to a document value
+        if (path != NULL)
+        {
+            // Remove the dot
+            path = path+1;
+
+            // Set attribute name to only the first part
+            std::string orig(attrs[i].attr);
+            attr = orig.substr(0, orig.find('.')).c_str();
+        }
+
+        uint16_t attrnum = sc.lookup_attr(attr);
 
         if (attrnum == sc.attrs_sz)
         {
-            ERROR(UNKNOWNATTR) << "\"" << e::strescape(attrs[i].attr)
+            ERROR(UNKNOWNATTR) << "\"" << e::strescape(attr)
                                << "\" is not an attribute of space \""
                                << e::strescape(space) << "\"";
             return i;
@@ -783,7 +797,7 @@ client :: prepare_funcs(const char* space, const schema& sc,
         if (attrnum == 0)
         {
             ERROR(DONTUSEKEY) << "attribute \""
-                              << e::strescape(attrs[i].attr)
+                              << e::strescape(attr)
                               << "\" is the key and cannot be changed";
             return i;
         }
@@ -802,12 +816,19 @@ client :: prepare_funcs(const char* space, const schema& sc,
         o.name = opinfo->fname;
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
         o.arg1_datatype = datatype;
+
+        if(path != NULL)
+        {
+            o.arg2 = e::slice(path, strlen(path)+1);
+            o.arg2_datatype = HYPERDATATYPE_STRING;
+        }
+
         datatype_info* type = datatype_info::lookup(sc.attrs[attrnum].type);
 
         if (!type->check_args(o))
         {
             ERROR(WRONGTYPE) << "invalid attribute \""
-                             << e::strescape(attrs[i].attr)
+                             << e::strescape(attr)
                              << "\": attribute has the wrong type";
             return i;
         }

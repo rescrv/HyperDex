@@ -457,7 +457,7 @@ We might now want to modify the information of this person without rewriting the
 Fortunately, atomic operations also work on this kind of data. Hyperdex is able to add up two documents as long as the argument is a subset of the original data and only has numerical values.
 
 \begin{pythoncode}
->>> c.document_atomic_add('people', 'jane', {'info' : Document({'age' : 1})})
+>>> c.atomic_add('people', 'jane', {'info.age' : 1})
 True
 >>> c.get('people', 'jane')
 {'info': Document({"name": "Jane Doe", "gender": "female", "age": 22, "likes": ["cornell", "python"]})}
@@ -466,14 +466,14 @@ True
 HyperDex will also prevent you from adding to non-numeric fields.
 
 \begin{pythoncode}
->>> c.document_atomic_add('people', 'jane', {'info' : Document({'gender' : 1})})
+>>> c.atomic_add('people', 'jane', {'info.gender' : 1})
 False
 \end{pythoncode}
 
 You can also add new entries to the document using this method.
 
 \begin{pythoncode}
->>> c.document_atomic_add('people', 'jane', {'info' : Document({'children' : 1})})
+>>> c.atomic_add('people', 'jane', {'info.children' : 1})
 True
 >>> c.get('people', 'jane')
 {'info': Document({"name": "Jane Doe", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}
@@ -482,7 +482,7 @@ True
 Like for maps, there are other possible atomic operations. You might want to modify the name by prepending a title.
 
 \begin{pythoncode}
->>> c.document_string_prepend('people', 'jane', {'info' : Document({'name' : 'Dr. '})})
+>>> c.string_prepend('people', 'jane', {'info.name' : 'Dr. '})
 True
 >>> c.get('people', 'jane')
 {'info': Document({"name": "Dr. Jane Doe", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}
@@ -491,7 +491,7 @@ True
 Similarly, we can append text. 
 
 \begin{pythoncode}
->>> c.document_string_append('people', 'jane', {'info' : Document({'name' : ', Jr.'})})
+>>> c.string_append('people', 'jane', {'info.name' : ', Jr.'})
 True
 >>> c.get('people', 'jane')
 {'info': Document({"name": "Dr. Jane Doe, Jr.", "gender": "female", "age": 22, "children": 1, "likes": ["cornell", "python"]})}
