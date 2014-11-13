@@ -402,6 +402,12 @@ public class Client
         return (Boolean) async_document_unset(spacename, key, attributes).waitForIt();
     }
 
+    public native Deferred async_document_set(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean document_set(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Boolean) async_document_set(spacename, key, attributes).waitForIt();
+    }
+
     public native Deferred async_map_atomic_add(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
     public Boolean map_atomic_add(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {

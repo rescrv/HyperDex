@@ -181,6 +181,7 @@ datatype_set :: apply(const e::slice& old_value,
             case FUNC_NUM_MIN:
             case FUNC_NUM_MAX:
             case FUNC_DOC_RENAME:
+            case FUNC_DOC_SET:
             case FUNC_DOC_UNSET:
             case FUNC_LIST_LPUSH:
             case FUNC_LIST_RPUSH:

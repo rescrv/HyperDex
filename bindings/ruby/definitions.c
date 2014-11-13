@@ -1009,6 +1009,18 @@ hyperdex_ruby_client_wait_document_unset(VALUE self, VALUE spacename, VALUE key,
 }
 
 static VALUE
+hyperdex_ruby_client_document_set(VALUE self, VALUE spacename, VALUE key, VALUE attributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_attributes__status(hyperdex_client_document_set, self, spacename, key, attributes);
+}
+VALUE
+hyperdex_ruby_client_wait_document_set(VALUE self, VALUE spacename, VALUE key, VALUE attributes)
+{
+    VALUE deferred = hyperdex_ruby_client_document_set(self, spacename, key, attributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
 hyperdex_ruby_client_map_atomic_add(VALUE self, VALUE spacename, VALUE key, VALUE mapattributes)
 {
     return hyperdex_ruby_client_asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_add, self, spacename, key, mapattributes);

@@ -91,6 +91,24 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
     // we only need to check old values for atomic operations
     switch(func.name)
     {
+    case FUNC_DOC_SET:
+    {
+        json_path path = func.arg2.c_str();
+
+        bson_t b;
+        bool inited = bson_init_static(&b, old_values[0].data(), old_values[0].size());
+
+        if(!inited)
+        {
+            return false;
+        }
+
+        bson_iter_t iter, baz;
+        assert(bson_iter_init (&iter, &b));
+
+        bool exists = bson_iter_find_descendant(&iter, path.str().c_str(), &baz);
+        return !exists;
+    }
     case FUNC_DOC_RENAME:
     case FUNC_DOC_UNSET:
     {
@@ -253,6 +271,16 @@ datatype_document :: check_args(const funcall& func) const
         // (the path is represented as a string)
         return func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
+    case FUNC_DOC_SET:
+    {
+        if (!func.arg2_datatype == HYPERDATATYPE_STRING)
+        {
+            // not valid path
+            return false;
+        }
+
+        return func.arg1_datatype == HYPERDATATYPE_INT64 || func.arg1_datatype == HYPERDATATYPE_STRING || func.arg1_datatype == HYPERDATATYPE_DOCUMENT;
+    }
     case FUNC_DOC_UNSET:
     {
         // Key should be a path and the value will not be evaluated (for now)
@@ -298,7 +326,7 @@ datatype_document :: add_or_replace_string(const bson_t* old_document, const jso
 
     bson_t *new_doc = bson_new();
 
-    replace_string_recurse(path, new_value, new_doc, &iter);
+    add_or_replace_string_recurse(path, new_value, new_doc, &iter);
     return new_doc;
 }
 
@@ -425,6 +453,90 @@ datatype_document :: unset_value_recurse(const json_path& path, bson_t* parent, 
 }
 
 bson_t*
+datatype_document :: add_or_replace_document(const bson_t* old_document, const json_path& path, const bson_value_t *new_value) const
+{
+    bson_iter_t iter;
+
+    if(!bson_iter_init (&iter, old_document))
+    {
+        return NULL;
+    }
+
+    bson_t *new_doc = bson_new();
+
+    add_or_replace_document_recurse(path, new_value, new_doc, &iter);
+    return new_doc;
+}
+
+void
+datatype_document :: add_or_replace_document_recurse(const json_path& path, const bson_value_t *value,
+                                    bson_t* parent, bson_iter_t* iter) const
+{
+    bool found = false;
+
+    // There might be not iterator if we have to create the subtree
+    while (iter && bson_iter_next(iter))
+    {
+        bson_type_t type = bson_iter_type(iter);
+        std::string key = bson_iter_key(iter);
+
+        if(type == BSON_TYPE_DOCUMENT)
+        {
+            json_path subpath;
+            std::string root_name;
+            assert(path.split(root_name, subpath));
+
+            bson_iter_t sub_iter;
+            bson_iter_recurse(iter, &sub_iter);
+
+            bson_t *child = bson_new();
+            bson_append_document_begin(parent, key.c_str(), key.size(), child);
+
+            if(root_name == key)
+            {
+                found = true;
+                add_or_replace_int64_recurse(subpath, new_value, child, &sub_iter);
+            }
+            else
+            {
+                add_or_replace_int64_recurse("", new_value, child, &sub_iter);
+            }
+
+            bson_append_document_end(parent, child);
+        }
+        else if(type == BSON_TYPE_ARRAY || type == BSON_TYPE_INT32 || type == BSON_TYPE_DOUBLE || type == BSON_TYPE_UTF8)
+        {
+            const bson_value_t *value = bson_iter_value(iter);
+            bson_append_value(parent, key.c_str(), key.size(), value);
+        }
+        else
+        {
+            abort();
+        }
+    }
+
+    if(!found && !path.empty())
+    {
+        if(path.has_subtree())
+        {
+            json_path subpath;
+            std::string root_name;
+            path.split(root_name, subpath);
+
+            bson_t *child = bson_new();
+
+            bson_append_document_begin(parent, root_name.c_str(), root_name.size(), child);
+            replace_int64_recurse(subpath, new_value, child, NULL);
+            bson_append_document_end(parent, child);
+        }
+        else
+        {
+            bson_append_int64(parent, path.str().c_str(), path.str().size(), new_value);
+        }
+    }
+}
+
+bson_t*
 datatype_document :: add_or_replace_int64(const bson_t* old_document, const json_path& path, const int64_t new_value) const
 {
     bson_iter_t iter;
@@ -451,8 +563,6 @@ datatype_document :: replace_int64_recurse(const json_path& path, const int64_t 
     {
         bson_type_t type = bson_iter_type(iter);
         std::string key = bson_iter_key(iter);
-
-        std::cout<< key << std::endl;
 
         if(type == BSON_TYPE_INT64)
         {
@@ -637,6 +747,47 @@ datatype_document :: apply(const e::slice& old_value,
             // this is not supported
             // there should be only a single func call when set happens
             abort();
+            break;
+        }
+        case FUNC_DOC_SET:
+        {
+            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
+            std::string path = func.arg2.c_str();
+
+            bson_t *new_doc = NULL;
+
+            if(func.arg1_datatype == HYPERDATATYPE_STRING)
+            {
+                std::string arg(func.arg1.cdata(), func.arg1.size());
+                new_doc = add_or_replace_string(bson_root, path, arg);
+            }
+            else if(func.arg1_datatype == HYPERDATATYPE_INT64)
+            {
+                int64_t arg = reinterpret_cast<const int64_t*>(func.arg1.data())[0];
+                new_doc = add_or_replace_int64(bson_root, path, arg);
+            }
+            else if(func.arg1_datatype == HYPERDATATYPE_DOCUMENT)
+            {
+                bson_t bson;
+                bson_init_static(&bson, func.arg1.data(), func.arg1.size());
+
+                bson_iter_t iter;
+                bson_init_iter(&bson, &iter);
+
+                bson_iter_value()
+
+                new_doc = add_or_replace_document(bson_root, path, )
+            }
+
+            if(new_doc == NULL)
+            {
+                abort();
+            }
+            else
+            {
+                bson_destroy(bson_root);
+                bson_root = new_doc;
+            }
             break;
         }
         case FUNC_DOC_UNSET:

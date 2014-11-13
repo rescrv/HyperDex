@@ -82,11 +82,15 @@ class datatype_document : public datatype_info
 
         // Create a new document where one string entry is replaced by a new value
         bson_t* add_or_replace_string(const bson_t* old_document, const json_path& path, const std::string& new_val) const;
-        void replace_string_recurse(const json_path& path, const std::string& new_value,
+        void add_or_replace_string_recurse(const json_path& path, const std::string& new_value,
                                     bson_t* parent, bson_iter_t* iter) const;
 
         bson_t* add_or_replace_int64(const bson_t* old_document, const json_path& path, int64_t new_val) const;
-        void replace_int64_recurse(const json_path& path, const int64_t new_value,
+        void add_or_replace_int64_recurse(const json_path& path, const int64_t new_value,
+                                    bson_t* parent, bson_iter_t* iter) const;
+
+        bson_t* add_or_replace_document(const bson_t* old_document, const json_path& path, const bson_value_t *value) const;
+        void add_or_replace_document_recurse(const json_path& path, const bson_value_t *value,
                                     bson_t* parent, bson_iter_t* iter) const;
 
         bson_t* unset_value(const bson_t* old_document, const json_path& path) const;
