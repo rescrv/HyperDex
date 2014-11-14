@@ -114,6 +114,13 @@ apply_funcs(const schema& sc,
 bool
 operator < (const funcall& lhs, const funcall& rhs);
 
+inline bool
+is_binary_operation(const funcall_t op)
+{
+    return op == FUNC_NUM_MOD || op == FUNC_NUM_OR || op == FUNC_NUM_XOR
+            || op == FUNC_NUM_AND;
+}
+
 END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_funcall_h_

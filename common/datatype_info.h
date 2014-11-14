@@ -121,6 +121,18 @@ class datatype_info
                                     const e::slice& value);
 };
 
+// Is it a float or integer?
+inline bool is_type_numeric(const hyperdatatype type)
+{
+    return type == HYPERDATATYPE_FLOAT || type == HYPERDATATYPE_INT64;
+}
+
+// Is it a numeric or string type?
+inline bool is_type_primitive(const hyperdatatype type)
+{
+    return is_type_numeric(type) || type == HYPERDATATYPE_STRING;
+}
+
 END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_datatypes_h_

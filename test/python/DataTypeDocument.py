@@ -33,7 +33,7 @@ assertEquals(c.get('kv', 'k')['v'], Document({'a': 'xbx', 'c': {'d' : 11, 'e': '
 assertTrue(c.atomic_sub('kv', 'k',  {'v.k.a.b.c.d' : 5}))
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'xbx', 'c': {'d' : 11, 'e': 'zfz', 'g': 3}, 'k' : {'a': {'b' : {'c' : {'d' : -4}}}, 'l' : 'm'}}))
 
-# More exotic operations
+# Bit operations
 assertTrue(c.put('kv', 'k3',  {'v': Document({'a': 'b', 'c': {'d' : 100, 'e': 'f', 'g': 5 }})}))
 assertEquals(c.get('kv', 'k3')['v'], Document({'a': 'b', 'c': {'d' : 100, 'e': 'f', 'g': 5 }}))
 assertTrue(c.atomic_mod('kv', 'k3', {'v.c.d' : 10000}))
@@ -58,6 +58,13 @@ assertTrue(c.atomic_mul('kv', 'k4', {'v.a' : 1}))
 assertEquals(c.get('kv', 'k4')['v'], Document({ 'a': 400 }))
 assertTrue(c.atomic_mul('kv', 'k4', {'v.a' : 0}))
 assertEquals(c.get('kv', 'k4')['v'], Document({ 'a': 0 }))
+
+# Floating point numbers
+assertTrue(c.put('kv', 'k10',  {'v': Document({'a': 200})}))
+assertTrue(c.atomic_add('kv', 'k10', {'v.a' : 100.0}))
+assertEquals(c.get('kv', 'k10')['v'], Document({ 'a': 300.0 }))
+assertTrue(c.atomic_mul('kv', 'k10', {'v.a' : 1.5}))
+assertEquals(c.get('kv', 'k10')['v'], Document({ 'a': 450.0 }))
 
 # Build a new subdocument
 assertTrue(c.put('kv', 'k6', {'v' : Document({'a' : 100})}))
@@ -113,6 +120,8 @@ assertTrue(c.document_set('kv', 'k8', {'v.b.a' : 1, 'v.b.b' : 1, 'v.b.c' : 'xyz'
 assertEquals(c.get('kv', 'k8')['v'], Document({'a' : {'b' : 'c', 'c' : 1}, 'b' : {'a' : 1, 'b' : 1, 'c' : 'xyz'}}))
 assertTrue(c.document_set('kv', 'k8', {'v.c' : Document({'b' : {'a' : 1, 'b' : 1, 'c' : 'xyz'}})}))
 assertEquals(c.get('kv', 'k8')['v'], Document({'a' : {'b' : 'c', 'c' : 1}, 'b' : {'a' : 1, 'b' : 1, 'c' : 'xyz'}, 'c' : {'b' : {'a' : 1, 'b' : 1, 'c' : 'xyz'}}}))
+assertTrue(c.document_set('kv', 'k8', {'v.d' : 2.5}))
+assertEquals(c.get('kv', 'k8')['v'], Document({'a' : {'b' : 'c', 'c' : 1}, 'b' : {'a' : 1, 'b' : 1, 'c' : 'xyz'}, 'c' : {'b' : {'a' : 1, 'b' : 1, 'c' : 'xyz'}}, 'd' : 2.5}))
 
 # Search on Documents
 assertTrue(c.put('kv', 'k9', {'v' : Document({'x' : {'b' : 'c'}})}))

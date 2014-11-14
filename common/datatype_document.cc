@@ -71,9 +71,6 @@ datatype_document :: datatype() const
 bool
 datatype_document :: validate(const e::slice& value) const
 {
-    // FIXME!!
-    return true;
-
     if(value.size() == 0)
     {
         // default value is empty
@@ -166,7 +163,15 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
 
         if (bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
         {
-            return (bson_iter_type(&baz) == BSON_TYPE_INT64 || bson_iter_type(&baz) == BSON_TYPE_INT32);
+            bson_type_t type = bson_iter_type(&baz);
+
+            if(is_binary_operation(func.name) && type == BSON_TYPE_DOUBLE)
+            {
+                // modulo not defined for float
+                return false;
+            }
+
+            return type == BSON_TYPE_INT64 || type == BSON_TYPE_INT32 || type == BSON_TYPE_DOUBLE;
         }
         else
         {
@@ -259,10 +264,15 @@ datatype_document :: check_args(const funcall& func) const
     case FUNC_NUM_MIN:
     case FUNC_NUM_MAX:
     {
+        if(is_binary_operation(func.name) && func.arg1_datatype == HYPERDATATYPE_FLOAT)
+        {
+            // not defined for float
+            return false;
+        }
+
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
-        return (func.arg1_datatype == HYPERDATATYPE_INT64 || func.arg1_datatype == HYPERDATATYPE_FLOAT)
-            && func.arg2_datatype == HYPERDATATYPE_STRING;
+        return is_type_numeric(func.arg1_datatype) && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
     case FUNC_STRING_APPEND:
     case FUNC_STRING_PREPEND:
@@ -279,8 +289,19 @@ datatype_document :: check_args(const funcall& func) const
             return false;
         }
 
-        return func.arg1_datatype == HYPERDATATYPE_INT64 || func.arg1_datatype == HYPERDATATYPE_STRING
-                || func.arg1_datatype == HYPERDATATYPE_DOCUMENT;
+        if(is_type_primitive(func.arg1_datatype))
+        {
+            return true;
+        }
+        else if(func.arg1_datatype == HYPERDATATYPE_DOCUMENT)
+        {
+            return validate(func.arg1);
+        }
+        else
+        {
+            // invalid argument
+            return false;
+        }
     }
     case FUNC_DOC_UNSET:
     {
@@ -591,6 +612,16 @@ datatype_document :: apply(const e::slice& old_value,
 
                 new_doc = add_or_replace_value(bson_root, path, &value);
             }
+            else if(func.arg1_datatype == HYPERDATATYPE_FLOAT)
+            {
+                double arg = reinterpret_cast<const double*>(func.arg1.data())[0];
+
+                bson_value_t value;
+                value.value_type = BSON_TYPE_DOUBLE;
+                value.value.v_double = arg;
+
+                new_doc = add_or_replace_value(bson_root, path, &value);
+            }
             else if(func.arg1_datatype == HYPERDATATYPE_INT64)
             {
                 int64_t arg = reinterpret_cast<const int64_t*>(func.arg1.data())[0];
@@ -711,7 +742,21 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_NUM_MAX:
         case FUNC_NUM_MIN:
         {
-            int64_t arg = reinterpret_cast<const int64_t*>(func.arg1.data())[0];
+            bool arg_is_int = false;
+            int64_t int_arg = 0;
+            double float_arg = 0.0;
+
+            if(func.arg1_datatype == HYPERDATATYPE_INT64)
+            {
+                arg_is_int = true;
+                int_arg = reinterpret_cast<const int64_t*>(func.arg1.data())[0];
+            }
+            else
+            {
+                arg_is_int = false;
+                float_arg = reinterpret_cast<const double*>(func.arg1.data())[0];
+            }
+
             json_path path = func.arg2.c_str();
 
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
@@ -719,20 +764,29 @@ datatype_document :: apply(const e::slice& old_value,
             bson_iter_t iter, baz;
             assert(bson_iter_init (&iter, bson_root));
 
-            int64_t number = 0;
-            bool is32bit = false;
+            int64_t int_field = 0;
+            double float_field = 0.0;
+
+            bool field_is_int = true;
             bool field_exists = bson_iter_find_descendant (&iter, path.str().c_str(), &baz);
 
             if (field_exists)
             {
                 if(BSON_ITER_HOLDS_INT64(&baz))
                 {
-                    number = bson_iter_int64(&baz);
+                    field_is_int = true;
+                    int_field = bson_iter_int64(&baz);
                 }
                 else if(BSON_ITER_HOLDS_INT32(&baz))
                 {
-                    number = bson_iter_int32(&baz);
-                    is32bit = true;
+                    field_exists = false; // will be overwritten by 64bit
+                    field_is_int = true;
+                    int_field = bson_iter_int32(&baz);
+                }
+                else if(BSON_ITER_HOLDS_DOUBLE(&baz))
+                {
+                    float_field = bson_iter_double(&baz);
+                    field_is_int = false;
                 }
                 else
                 {
@@ -740,74 +794,139 @@ datatype_document :: apply(const e::slice& old_value,
                 }
             }
 
+            // if one of the two is a float we have to convert
+            // and also can't simply overwrite the value
+            bool float_op = false;
+            if(arg_is_int && !field_is_int)
+            {
+                float_op = true;
+                field_exists = false;
+                float_arg = int_arg;
+            }
+            else if(!arg_is_int && field_is_int)
+            {
+                float_op = true;
+                field_exists = false;
+                float_field = int_field;
+            }
+            else if(!arg_is_int && !field_is_int)
+            {
+                float_op = true;
+            }
+
             bool success = false;
 
-            if(func.name == FUNC_NUM_ADD)
+            if(float_op)
             {
-                success = e::safe_add(number, arg, &number);
-            }
-            else if(func.name == FUNC_NUM_SUB)
-            {
-                success = e::safe_sub(number, arg, &number);
-            }
-            else if(func.name == FUNC_NUM_DIV)
-            {
-                success = e::safe_div(number, arg, &number);
-            }
-            else if(func.name == FUNC_NUM_MUL)
-            {
-                success = e::safe_mul(number, arg, &number);
-            }
-            else if(func.name == FUNC_NUM_MOD)
-            {
-                number = number % arg;
+                // no overflow checks here...
                 success = true;
+
+                if(func.name == FUNC_NUM_ADD)
+                {
+                    float_field = float_field + float_arg;
+                }
+                else if(func.name == FUNC_NUM_SUB)
+                {
+                    float_field = float_field - float_arg;
+                }
+                else if(func.name == FUNC_NUM_DIV)
+                {
+                    float_field = float_field / float_arg;
+                }
+                else if(func.name == FUNC_NUM_MUL)
+                {
+                    float_field = float_field * float_arg;
+                }
+                else if(func.name == FUNC_NUM_MAX)
+                {
+                    float_field = std::max(float_field, float_arg);
+                }
+                else if(func.name == FUNC_NUM_MIN)
+                {
+                    float_field = std::min(float_field, float_arg);
+                }
+                else
+                {
+                    success = false;
+                }
             }
-            else if(func.name == FUNC_NUM_XOR)
+            else
             {
-                number = number ^ arg;
-                success = true;
-            }
-            else if(func.name == FUNC_NUM_AND)
-            {
-                number = number & arg;
-                success = true;
-            }
-            else if(func.name == FUNC_NUM_OR)
-            {
-                number = number | arg;
-                success = true;
-            }
-            else if(func.name == FUNC_NUM_MAX)
-            {
-                number = std::max(number, arg);
-                success = true;
-            }
-            else if(func.name == FUNC_NUM_MIN)
-            {
-                number = std::min(number, arg);
-                success = true;
+                if(func.name == FUNC_NUM_ADD)
+                {
+                    success = e::safe_add(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_SUB)
+                {
+                    success = e::safe_sub(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_DIV)
+                {
+                    success = e::safe_div(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_MUL)
+                {
+                    success = e::safe_mul(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_MOD)
+                {
+                    int_field = int_field % int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_XOR)
+                {
+                    int_field = int_field ^ int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_AND)
+                {
+                    int_field = int_field & int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_OR)
+                {
+                    int_field = int_field | int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_MAX)
+                {
+                    int_field = std::max(int_field, int_arg);
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_MIN)
+                {
+                    int_field = std::min(int_field, int_arg);
+                    success = true;
+                }
             }
 
             if(success)
             {
                 if(field_exists)
                 {
-                    if(is32bit)
+                    if(float_op)
                     {
-                        //FIXME check for buffer overflow
-                        bson_iter_overwrite_int32(&baz, (int32_t)number);
+                        bson_iter_overwrite_double(&baz, float_field);
                     }
                     else
                     {
-                        bson_iter_overwrite_int64(&baz, number);
+                        bson_iter_overwrite_int64(&baz, int_field);
                     }
                 }
                 else
                 {
                     bson_value_t value;
-                    value.value_type = BSON_TYPE_INT64;
-                    value.value.v_int64 = number;
+
+                    if(float_op)
+                    {
+                        value.value_type = BSON_TYPE_DOUBLE;
+                        value.value.v_double = float_field;
+                    }
+                    else
+                    {
+                        value.value_type = BSON_TYPE_INT64;
+                        value.value.v_int64 = int_field;
+                    }
 
                     bson_t* new_doc = add_or_replace_value(bson_root, path, &value);
 
