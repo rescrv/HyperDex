@@ -36,6 +36,7 @@ NODE_SET_PROTOTYPE_METHOD(tpl, "put_if_not_exist", HyperDexClient::put_if_not_ex
 NODE_SET_PROTOTYPE_METHOD(tpl, "del", HyperDexClient::del);
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_del", HyperDexClient::cond_del);
 NODE_SET_PROTOTYPE_METHOD(tpl, "atomic_add", HyperDexClient::atomic_add);
+NODE_SET_PROTOTYPE_METHOD(tpl, "group_atomic_add", HyperDexClient::group_atomic_add);
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_atomic_add", HyperDexClient::cond_atomic_add);
 NODE_SET_PROTOTYPE_METHOD(tpl, "atomic_sub", HyperDexClient::atomic_sub);
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_atomic_sub", HyperDexClient::cond_atomic_sub);

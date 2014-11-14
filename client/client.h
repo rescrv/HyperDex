@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2013, Cornell University
+// Copyright (c) 2011-2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -63,41 +63,48 @@ class client
     public:
         // specific calls
         int64_t get(const char* space, const char* key, size_t key_sz,
-                    hyperdex_client_returncode* status,
+                    hyperdex_client_returncode& status,
                     const hyperdex_client_attribute** attrs, size_t* attrs_sz);
         int64_t get_partial(const char* space, const char* key, size_t key_sz,
                             const char** attrnames, size_t attrnames_sz,
-                            hyperdex_client_returncode* status,
+                            hyperdex_client_returncode& status,
                             const hyperdex_client_attribute** attrs, size_t* attrs_sz);
         int64_t search(const char* space,
                        const hyperdex_client_attribute_check* checks, size_t checks_sz,
-                       hyperdex_client_returncode* status,
+                       hyperdex_client_returncode& status,
                        const hyperdex_client_attribute** attrs, size_t* attrs_sz);
         int64_t search_describe(const char* space,
                                 const hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                hyperdex_client_returncode* status, const char** description);
+                                hyperdex_client_returncode& status, const char** description);
         int64_t sorted_search(const char* space,
                               const hyperdex_client_attribute_check* checks, size_t checks_sz,
                               const char* sort_by,
                               uint64_t limit,
                               bool maximize,
-                              hyperdex_client_returncode* status,
+                              hyperdex_client_returncode& status,
                               const hyperdex_client_attribute** attrs, size_t* attrs_sz);
         int64_t group_del(const char* space,
                           const hyperdex_client_attribute_check* checks, size_t checks_sz,
-                          hyperdex_client_returncode* status);
+                          hyperdex_client_returncode& status);
         int64_t count(const char* space,
                       const hyperdex_client_attribute_check* checks, size_t checks_sz,
-                      hyperdex_client_returncode* status, uint64_t* result);
+                      hyperdex_client_returncode& status, uint64_t* result);
         // general keyop call
         int64_t perform_funcall(const hyperdex_client_keyop_info* opinfo,
                                 const char* space, const char* key, size_t key_sz,
                                 const hyperdex_client_attribute_check* checks, size_t checks_sz,
                                 const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                hyperdex_client_returncode* status);
+                                hyperdex_client_returncode& status);
+        // general grouped keyop call
+        int64_t perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
+                          const char* space, const hyperdex_client_attribute_check* selection, size_t selections_sz,
+                          const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                          const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                          const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                          hyperdex_client_returncode& status);
         // looping/polling
-        int64_t loop(int timeout, hyperdex_client_returncode* status);
+        int64_t loop(int timeout, hyperdex_client_returncode& status);
         int poll();
         int block(int timeout);
         // error handling
@@ -106,7 +113,7 @@ class client
         void set_error_message(const char* msg);
         // helpers for bindings
         hyperdatatype attribute_type(const char* space, const char* name,
-                                     hyperdex_client_returncode* status);
+                                     hyperdex_client_returncode& status);
 
     private:
         struct pending_server_pair
@@ -130,49 +137,51 @@ class client
         friend class pending_search;
         friend class pending_sorted_search;
 
-    private:
+    public:
+        //TODO move those to a request-superclass
         size_t prepare_checks(const char* space, const schema& sc,
                               const hyperdex_client_attribute_check* chks, size_t chks_sz,
                               arena_t* allocate,
-                              hyperdex_client_returncode* status,
+                              hyperdex_client_returncode& status,
                               std::vector<attribute_check>* checks);
         size_t prepare_funcs(const char* space, const schema& sc,
                              const hyperdex_client_keyop_info* opinfo,
                              const hyperdex_client_attribute* attrs, size_t attrs_sz,
                              arena_t* allocate,
-                             hyperdex_client_returncode* status,
+                             hyperdex_client_returncode& status,
                              std::vector<funcall>* funcs);
         size_t prepare_funcs(const char* space, const schema& sc,
                              const hyperdex_client_keyop_info* opinfo,
                              const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                              arena_t* allocate,
-                             hyperdex_client_returncode* status,
+                             hyperdex_client_returncode& status,
                              std::vector<funcall>* funcs);
+    private:
         size_t prepare_searchop(const schema& sc,
                                 const char* space,
                                 const hyperdex_client_attribute_check* chks, size_t chks_sz,
                                 arena_t* allocate,
-                                hyperdex_client_returncode* status,
+                                hyperdex_client_returncode& status,
                                 std::vector<attribute_check>* checks,
                                 std::vector<virtual_server_id>* servers);
         int64_t perform_aggregation(const std::vector<virtual_server_id>& servers,
                                     e::intrusive_ptr<pending_aggregation> op,
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
-                                    hyperdex_client_returncode* status);
-        bool maintain_coord_connection(hyperdex_client_returncode* status);
+                                    hyperdex_client_returncode& status);
+        bool maintain_coord_connection(hyperdex_client_returncode& status);
         bool send(network_msgtype mt,
                   const virtual_server_id& to,
                   uint64_t nonce,
                   std::auto_ptr<e::buffer> msg,
                   e::intrusive_ptr<pending> op,
-                  hyperdex_client_returncode* status);
+                  hyperdex_client_returncode& status);
         int64_t send_keyop(const char* space,
                            const e::slice& key,
                            network_msgtype mt,
                            std::auto_ptr<e::buffer> msg,
                            e::intrusive_ptr<pending> op,
-                           hyperdex_client_returncode* status);
+                           hyperdex_client_returncode& status);
         void handle_disruption(const server_id& si);
 
     private:
@@ -188,6 +197,9 @@ class client
         std::list<e::intrusive_ptr<pending> > m_yieldable;
         e::intrusive_ptr<pending> m_yielding;
         e::intrusive_ptr<pending> m_yielded;
+
+    public:
+        //TODO add setLastError()-call
         e::error m_last_error;
 };
 

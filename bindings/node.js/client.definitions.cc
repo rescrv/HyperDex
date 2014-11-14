@@ -603,6 +603,12 @@ HyperDexClient :: atomic_add(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_atomic_add(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_attributes__status(hyperdex_client_group_atomic_add, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: cond_atomic_add(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_add, args);

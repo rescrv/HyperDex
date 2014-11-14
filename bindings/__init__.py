@@ -113,6 +113,7 @@ Client = [
     Method('del', AsyncCall, (SpaceName, Key), (Status,)),
     Method('cond_del', AsyncCall, (SpaceName, Key, Predicates), (Status,)),
     Method('atomic_add', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('group_atomic_add', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('cond_atomic_add', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('atomic_sub', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('cond_atomic_sub', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),

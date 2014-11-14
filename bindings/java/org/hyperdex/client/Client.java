@@ -156,6 +156,12 @@ public class Client
         return (Boolean) async_atomic_add(spacename, key, attributes).waitForIt();
     }
 
+    public native Deferred async_group_atomic_add(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean group_atomic_add(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Boolean) async_group_atomic_add(spacename, key, attributes).waitForIt();
+    }
+
     public native Deferred async_cond_atomic_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_atomic_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {

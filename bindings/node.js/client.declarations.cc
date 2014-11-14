@@ -50,6 +50,7 @@ static v8::Handle<v8::Value> put_if_not_exist(const v8::Arguments& args);
 static v8::Handle<v8::Value> del(const v8::Arguments& args);
 static v8::Handle<v8::Value> cond_del(const v8::Arguments& args);
 static v8::Handle<v8::Value> atomic_add(const v8::Arguments& args);
+static v8::Handle<v8::Value> group_atomic_add(const v8::Arguments& args);
 static v8::Handle<v8::Value> cond_atomic_add(const v8::Arguments& args);
 static v8::Handle<v8::Value> atomic_sub(const v8::Arguments& args);
 static v8::Handle<v8::Value> cond_atomic_sub(const v8::Arguments& args);

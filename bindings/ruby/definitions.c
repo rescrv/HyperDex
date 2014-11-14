@@ -517,6 +517,18 @@ hyperdex_ruby_client_wait_atomic_add(VALUE self, VALUE spacename, VALUE key, VAL
 }
 
 static VALUE
+hyperdex_ruby_client_group_atomic_add(VALUE self, VALUE spacename, VALUE key, VALUE attributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_key_attributes__status(hyperdex_client_group_atomic_add, self, spacename, key, attributes);
+}
+VALUE
+hyperdex_ruby_client_wait_group_atomic_add(VALUE self, VALUE spacename, VALUE key, VALUE attributes)
+{
+    VALUE deferred = hyperdex_ruby_client_group_atomic_add(self, spacename, key, attributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
 hyperdex_ruby_client_cond_atomic_add(VALUE self, VALUE spacename, VALUE key, VALUE predicates, VALUE attributes)
 {
     return hyperdex_ruby_client_asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_add, self, spacename, key, predicates, attributes);

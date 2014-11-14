@@ -160,6 +160,7 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_del(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_del(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
@@ -1474,6 +1475,11 @@ cdef class Client:
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_add, spacename, key, attributes)
     def atomic_add(self, bytes spacename, key, dict attributes):
         return self.async_atomic_add(spacename, key, attributes).wait()
+
+    def async_group_atomic_add(self, bytes spacename, key, dict attributes):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_group_atomic_add, spacename, key, attributes)
+    def group_atomic_add(self, bytes spacename, key, dict attributes):
+        return self.async_group_atomic_add(spacename, key, attributes).wait()
 
     def async_cond_atomic_add(self, bytes spacename, key, dict predicates, dict attributes):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_add, spacename, key, predicates, attributes)

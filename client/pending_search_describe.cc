@@ -31,7 +31,7 @@
 using hyperdex::pending_search_describe;
 
 pending_search_describe :: pending_search_describe(uint64_t id,
-                                                   hyperdex_client_returncode* status,
+                                                   hyperdex_client_returncode& status,
                                                    const char** description)
     : pending_aggregation(id, status)
     , m_description(description)
@@ -52,7 +52,7 @@ pending_search_describe :: can_yield()
 }
 
 bool
-pending_search_describe :: yield(hyperdex_client_returncode* status, e::error* err)
+pending_search_describe :: yield(hyperdex_client_returncode& status, e::error& err)
 {
     std::ostringstream ostr;
 
@@ -62,9 +62,9 @@ pending_search_describe :: yield(hyperdex_client_returncode* status, e::error* e
     }
 
     m_text = ostr.str();
-    *status = HYPERDEX_CLIENT_SUCCESS;
+    status = HYPERDEX_CLIENT_SUCCESS;
     *m_description = m_text.c_str();
-    *err = e::error();
+    err = e::error();
     assert(this->can_yield());
     m_done = true;
     set_status(HYPERDEX_CLIENT_SUCCESS);
@@ -95,14 +95,14 @@ pending_search_describe :: handle_message(client* cl,
                                           network_msgtype mt,
                                           std::auto_ptr<e::buffer>,
                                           e::unpacker up,
-                                          hyperdex_client_returncode* status,
-                                          e::error* err)
+                                          hyperdex_client_returncode& status,
+                                          e::error& err)
 {
     bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
     assert(handled);
 
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
+    status = HYPERDEX_CLIENT_SUCCESS;
+    err = e::error();
 
     if (mt != RESP_SEARCH_DESCRIBE)
     {

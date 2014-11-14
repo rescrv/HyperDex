@@ -25,6 +25,7 @@ cond_put,                false, true,  false,  hyperdex::FUNC_SET
 put_if_not_exist,        false, false, true,   hyperdex::FUNC_SET
 del,                     true,  true,  false,  hyperdex::FUNC_FAIL
 cond_del,                true,  true,  false,  hyperdex::FUNC_FAIL
+group_atomic_add,        false, true,  false,  hyperdex::FUNC_NUM_ADD
 atomic_add,              false, true,  false,  hyperdex::FUNC_NUM_ADD
 cond_atomic_add,         false, true,  false,  hyperdex::FUNC_NUM_ADD
 atomic_sub,              false, true,  false,  hyperdex::FUNC_NUM_SUB

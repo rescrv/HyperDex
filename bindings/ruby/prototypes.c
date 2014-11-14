@@ -43,6 +43,8 @@ rb_define_method(class_client, "async_cond_del", hyperdex_ruby_client_cond_del, 
 rb_define_method(class_client, "cond_del", hyperdex_ruby_client_wait_cond_del, 3);
 rb_define_method(class_client, "async_atomic_add", hyperdex_ruby_client_atomic_add, 3);
 rb_define_method(class_client, "atomic_add", hyperdex_ruby_client_wait_atomic_add, 3);
+rb_define_method(class_client, "async_group_atomic_add", hyperdex_ruby_client_group_atomic_add, 3);
+rb_define_method(class_client, "group_atomic_add", hyperdex_ruby_client_wait_group_atomic_add, 3);
 rb_define_method(class_client, "async_cond_atomic_add", hyperdex_ruby_client_cond_atomic_add, 4);
 rb_define_method(class_client, "cond_atomic_add", hyperdex_ruby_client_wait_cond_atomic_add, 4);
 rb_define_method(class_client, "async_atomic_sub", hyperdex_ruby_client_atomic_sub, 3);

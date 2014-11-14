@@ -31,7 +31,7 @@
 using hyperdex::pending_count;
 
 pending_count :: pending_count(uint64_t id,
-                               hyperdex_client_returncode* status,
+                               hyperdex_client_returncode& status,
                                uint64_t* count)
     : pending_aggregation(id, status)
     , m_count(count)
@@ -52,10 +52,10 @@ pending_count :: can_yield()
 }
 
 bool
-pending_count :: yield(hyperdex_client_returncode* status, e::error* err)
+pending_count :: yield(hyperdex_client_returncode& status, e::error& err)
 {
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
+    status = HYPERDEX_CLIENT_SUCCESS;
+    err = e::error();
     assert(this->can_yield());
     m_done = true;
     return true;
@@ -77,14 +77,14 @@ pending_count :: handle_message(client* cl,
                                 network_msgtype mt,
                                 std::auto_ptr<e::buffer> msg,
                                 e::unpacker up,
-                                hyperdex_client_returncode* status,
-                                e::error* err)
+                                hyperdex_client_returncode& status,
+                                e::error& err)
 {
     bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
     assert(handled);
 
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
+    status = HYPERDEX_CLIENT_SUCCESS;
+    err = e::error();
 
     if (mt != RESP_COUNT)
     {

@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Cornell University
+// Copyright (c) 2011-2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,24 +25,42 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// HyperDex
-#include "admin/coord_rpc.h"
+#ifndef hyperdex_client_atomic_request_h_
+#define hyperdex_client_atomic_request_h_
 
-using hyperdex::coord_rpc;
+#include "hyperdex/client.h"
+#include "client/client.h"
 
-coord_rpc :: coord_rpc(uint64_t id,
-                       hyperdex_admin_returncode& s)
-    : yieldable(id, s)
-    , repl_status(REPLICANT_GARBAGE)
-    , repl_output(NULL)
-    , repl_output_sz(0)
+BEGIN_HYPERDEX_NAMESPACE
+
+class atomic_request
 {
-}
+public:
+    atomic_request(client& cl_, const coordinator_link& coord_, const char* space_);
 
-coord_rpc :: ~coord_rpc() throw ()
-{
-    if (repl_output)
-    {
-        replicant_destroy_output(repl_output, repl_output_sz);
-    }
-}
+    // Returns HYPERDEX_SUCCESS if the key is valid
+    hyperdex_client_returncode validate_key(const e::slice& key) const;
+
+    // Prepare the funcall
+    int prepare(const hyperdex_client_keyop_info* opinfo,
+                const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                hyperdex_client_returncode& status,
+                const e::slice& key,
+                e::buffer*& msg);
+
+private:
+    client& cl;
+    const coordinator_link& coord;
+    const char* space;
+
+    // FIXME should be const reference
+    const schema* sc;
+
+    typedef std::list<std::string> arena_t;
+};
+
+END_HYPERDEX_NAMESPACE
+
+#endif // header guard

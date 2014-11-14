@@ -69,7 +69,7 @@ struct pending_perf_counters::perf_counter
 };
 
 pending_perf_counters :: pending_perf_counters(uint64_t id,
-                                               hyperdex_admin_returncode* s,
+                                               hyperdex_admin_returncode& s,
                                                hyperdex_admin_perf_counter* pc)
     : pending(id, s)
     , m_pc(pc)
@@ -87,7 +87,7 @@ pending_perf_counters :: ~pending_perf_counters() throw ()
 void
 pending_perf_counters :: send_perf_reqs(admin* adm,
                                         const configuration* config,
-                                        hyperdex_admin_returncode* status)
+                                        hyperdex_admin_returncode& status)
 {
     std::vector<std::pair<server_id, po6::net::location> > addrs;
     config->get_all_addresses(&addrs);
@@ -168,7 +168,7 @@ pending_perf_counters :: can_yield()
 }
 
 bool
-pending_perf_counters :: yield(hyperdex_admin_returncode* status)
+pending_perf_counters :: yield(hyperdex_admin_returncode& status)
 {
     assert(can_yield());
     m_scratch = m_pcs.front().property;
@@ -177,7 +177,7 @@ pending_perf_counters :: yield(hyperdex_admin_returncode* status)
     m_pc->property = m_scratch.c_str();
     m_pc->measurement = m_pcs.front().measurement;
     m_pcs.pop_front();
-    *status = HYPERDEX_ADMIN_SUCCESS;
+    status = HYPERDEX_ADMIN_SUCCESS;
     return true;
 }
 
@@ -197,9 +197,9 @@ pending_perf_counters :: handle_message(admin*,
                                         network_msgtype mt,
                                         std::auto_ptr<e::buffer>,
                                         e::unpacker up,
-                                        hyperdex_admin_returncode* status)
+                                        hyperdex_admin_returncode& status)
 {
-    *status = HYPERDEX_ADMIN_SUCCESS;
+    status = HYPERDEX_ADMIN_SUCCESS;
     set_status(HYPERDEX_ADMIN_SUCCESS);
 
     if (mt != PERF_COUNTERS)

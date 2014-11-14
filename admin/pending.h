@@ -49,7 +49,7 @@ class pending : public yieldable
 {
     public:
         pending(uint64_t admin_visible_id,
-                hyperdex_admin_returncode* status);
+                hyperdex_admin_returncode& status);
         virtual ~pending() throw ();
 
     public:
@@ -60,7 +60,7 @@ class pending : public yieldable
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperdex_admin_returncode* status) = 0;
+                                    hyperdex_admin_returncode& status) = 0;
 
     protected:
         friend class e::intrusive_ptr<pending>;
