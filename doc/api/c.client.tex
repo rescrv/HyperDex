@@ -1755,6 +1755,40 @@ int64_t hyperdex_client_document_unset(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%% document_set %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{document\_set}}
+\label{api:c:document_set}
+\index{document\_set!C API}
+\input{\topdir/api/desc/document_set}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_client_document_set(struct hyperdex_client* client,
+        const char* space,
+        const char* key, size_t key_sz,
+        const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+        enum hyperdex_client_returncode* status);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
+\end{itemize}
+
 %%%%%%%%%%%%%%%%%%%% map_atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{map\_atomic\_add}}

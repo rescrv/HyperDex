@@ -849,6 +849,12 @@ HyperDexClient :: document_unset(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: document_set(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_attributes__status(hyperdex_client_document_set, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: map_atomic_add(const v8::Arguments& args)
 {
     return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_add, args);

@@ -69,24 +69,8 @@ class datatype_document : public datatype_info
                         e::slice* value); // OUT: slice to easier access the content of the scratch
 
     private:
-        // Get the last element of a path (and its name and parent)
-        void get_end(const json_object* root, const json_path& path,
-                                json_object*& parent, json_object*& obj, std::string& obj_name) const;
-
-        // Traverse a path to the last node
-        // Returns NULL if the node doesn't exist
-        json_object* traverse_path(const json_object* root, const json_path& path) const;
-
-        // Go down the path as far as possible
-        json_object* get_last_elem_in_path(const json_object* parent, const json_path& path, json_path& child_path) const;
-
-        // Create a new document where one string entry is replaced by a new value
-        bson_t* add_or_replace_string(const bson_t* old_document, const json_path& path, const std::string& new_val) const;
-        void replace_string_recurse(const json_path& path, const std::string& new_value,
-                                    bson_t* parent, bson_iter_t* iter) const;
-
-        bson_t* add_or_replace_int64(const bson_t* old_document, const json_path& path, int64_t new_val) const;
-        void replace_int64_recurse(const json_path& path, const int64_t new_value,
+        bson_t* add_or_replace_value(const bson_t* old_document, const json_path& path, const bson_value_t *value) const;
+        void add_or_replace_value_recurse(const json_path& path, const bson_value_t *value,
                                     bson_t* parent, bson_iter_t* iter) const;
 
         bson_t* unset_value(const bson_t* old_document, const json_path& path) const;

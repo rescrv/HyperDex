@@ -154,6 +154,7 @@ Client = [
     Method('cond_map_remove', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('document_rename', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('document_unset', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('document_set', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('map_atomic_add', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_add', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
     Method('map_atomic_sub', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
