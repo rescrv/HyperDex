@@ -52,9 +52,11 @@
 #include "common/network_msgtype.h"
 #include "common/serialization.h"
 #include "client/atomic_request.h"
+#include "client/atomic_group_request.h"
 #include "client/client.h"
 #include "client/constants.h"
 #include "client/pending_atomic.h"
+#include "client/pending_atomic_group.h"
 #include "client/pending_count.h"
 #include "client/pending_get.h"
 #include "client/pending_get_partial.h"
@@ -363,14 +365,30 @@ client :: count(const char* space,
 
 int64_t
 client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
-                          const char* space, const hyperdex_client_attribute_check* selection, size_t selections_sz,
-                          const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                          const char* space, const hyperdex_client_attribute_check* selection, size_t selection_sz,
                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                           const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                           hyperdex_client_returncode& status)
 {
-    //TODO implement
-    return -1;
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    atomic_group_request request(*this, m_coord, space);
+    int res = request.prepare(*opinfo, selection, selection_sz, attrs, attrs_sz, mapattrs, mapattrs_sz, status);
+
+    if(res < 0)
+    {
+        return res;
+    }
+
+    std::auto_ptr<e::buffer> msg(request.create_message(*opinfo));
+
+    e::intrusive_ptr<pending_aggregation> op;
+    op = new pending_atomic_group(m_next_client_id++, status);
+
+    return perform_aggregation(request.get_servers(), op, REQ_GROUP_ATOMIC, msg, status);
 }
 
 
@@ -397,15 +415,14 @@ client :: perform_funcall(const hyperdex_client_keyop_info* opinfo,
         return -1;
     }
 
-    e::buffer* msg_;
-    int res = request.prepare(opinfo, chks, chks_sz, attrs, attrs_sz, mapattrs, mapattrs_sz, status, key, msg_);
-
-    std::auto_ptr<e::buffer> msg(msg_);
+    int res = request.prepare(*opinfo, chks, chks_sz, attrs, attrs_sz, mapattrs, mapattrs_sz, status);
 
     if(res < 0)
     {
         return res;
     }
+
+    std::auto_ptr<e::buffer> msg(request.create_message(*opinfo, key));
 
     e::intrusive_ptr<pending> op;
     op = new pending_atomic(m_next_client_id++, status);
@@ -738,7 +755,7 @@ client :: prepare_checks(const char* space, const schema& sc,
 
 size_t
 client :: prepare_funcs(const char* space, const schema& sc,
-                        const hyperdex_client_keyop_info* opinfo,
+                        const hyperdex_client_keyop_info& opinfo,
                         const hyperdex_client_attribute* attrs, size_t attrs_sz,
                         arena_t* allocate,
                         hyperdex_client_returncode& status,
@@ -791,7 +808,7 @@ client :: prepare_funcs(const char* space, const schema& sc,
 
         funcall o;
         o.attr = attrnum;
-        o.name = opinfo->fname;
+        o.name = opinfo.fname;
         o.arg1_datatype = datatype;
 
         if (datatype == HYPERDATATYPE_DOCUMENT)
@@ -845,7 +862,7 @@ client :: prepare_funcs(const char* space, const schema& sc,
 
 size_t
 client :: prepare_funcs(const char* space, const schema& sc,
-                        const hyperdex_client_keyop_info* opinfo,
+                        const hyperdex_client_keyop_info& opinfo,
                         const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                         arena_t*,
                         hyperdex_client_returncode& status,
@@ -893,7 +910,7 @@ client :: prepare_funcs(const char* space, const schema& sc,
 
         funcall o;
         o.attr = attrnum;
-        o.name = opinfo->fname;
+        o.name = opinfo.fname;
         o.arg2 = e::slice(mapattrs[i].map_key, mapattrs[i].map_key_sz);
         o.arg2_datatype = k_datatype;
         o.arg1 = e::slice(mapattrs[i].value, mapattrs[i].value_sz);

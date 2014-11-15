@@ -27,30 +27,30 @@
 
 // HyperDex
 #include "common/network_returncode.h"
-#include "client/pending_atomic.h"
+#include "client/pending_atomic_group.h"
 
-using hyperdex::pending_atomic;
+using hyperdex::pending_atomic_group;
 
-pending_atomic :: pending_atomic(uint64_t id,
+pending_atomic_group :: pending_atomic_group(uint64_t id,
                                  hyperdex_client_returncode& status)
-    : pending(id, status)
+    : pending_aggregation(id, status)
     , m_state(INITIALIZED)
 {
 }
 
-pending_atomic :: ~pending_atomic() throw ()
+pending_atomic_group :: ~pending_atomic_group() throw ()
 {
 }
 
 bool
-pending_atomic :: can_yield()
+pending_atomic_group :: can_yield()
 {
     assert(m_state == RECV || m_state == YIELDED);
     return m_state == RECV;
 }
 
 bool
-pending_atomic :: yield(hyperdex_client_returncode& status, e::error& err)
+pending_atomic_group :: yield(hyperdex_client_returncode& status, e::error& err)
 {
     status = HYPERDEX_CLIENT_SUCCESS;
     err = e::error();
@@ -59,7 +59,7 @@ pending_atomic :: yield(hyperdex_client_returncode& status, e::error& err)
 }
 
 void
-pending_atomic :: handle_sent_to(const server_id&,
+pending_atomic_group :: handle_sent_to(const server_id&,
                                  const virtual_server_id&)
 {
     assert(m_state == INITIALIZED);
@@ -67,7 +67,7 @@ pending_atomic :: handle_sent_to(const server_id&,
 }
 
 void
-pending_atomic :: handle_failure(const server_id& si,
+pending_atomic_group :: handle_failure(const server_id& si,
                                  const virtual_server_id& vsi)
 {
     assert(m_state == SENT);
@@ -77,7 +77,7 @@ pending_atomic :: handle_failure(const server_id& si,
 }
 
 bool
-pending_atomic :: handle_message(client*,
+pending_atomic_group :: handle_message(client*,
                                  const server_id& si,
                                  const virtual_server_id& vsi,
                                  network_msgtype mt,

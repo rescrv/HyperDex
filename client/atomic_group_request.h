@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_atomic_request_h_
-#define hyperdex_client_atomic_request_h_
+#ifndef hyperdex_client_atomic_group_request_h_
+#define hyperdex_client_atomic_group_request_h_
 
 #include "hyperdex/client.h"
 #include "client/client.h"
@@ -35,24 +35,26 @@ BEGIN_HYPERDEX_NAMESPACE
 
 // Use this prepare an atomic request
 // Can only be used once, i.e. create one for each funcall
-class atomic_request
+class atomic_group_request
 {
 public:
-    atomic_request(client& cl_, const coordinator_link& coord_, const char* space_);
-    atomic_request(const atomic_request& other);
-    atomic_request& operator=(const atomic_request& other);
-
-    // Returns HYPERDEX_SUCCESS if the key is valid
-    hyperdex_client_returncode validate_key(const e::slice& key) const;
+    atomic_group_request(client& cl_, const coordinator_link& coord_, const char* space_);
+    atomic_group_request(const atomic_group_request& other);
+    atomic_group_request& operator=(const atomic_group_request& other);
 
     // Prepare the funcall
     int prepare(const hyperdex_client_keyop_info& opinfo,
-                const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                const hyperdex_client_attribute_check* select, size_t select_sz,
                 const hyperdex_client_attribute* attrs, size_t attrs_sz,
                 const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                 hyperdex_client_returncode& status);
 
-    e::buffer* create_message(const hyperdex_client_keyop_info& opinfo, const e::slice& key);
+    e::buffer* create_message(const hyperdex_client_keyop_info& opinfo);
+
+    const std::vector<virtual_server_id>& get_servers() const
+    {
+        return servers;
+    }
 
 private:
     client& cl;
@@ -65,10 +67,12 @@ private:
     typedef std::list<std::string> arena_t;
 
     arena_t allocate;
-    std::vector<attribute_check> checks;
+    std::vector<attribute_check> select;
+    std::vector<virtual_server_id> servers;
     std::vector<funcall> funcs;
 };
 
 END_HYPERDEX_NAMESPACE
 
 #endif // header guard
+

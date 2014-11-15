@@ -27,7 +27,7 @@
 
 #include <e/strescape.h>
 
-#include "client/atomic_request.h"
+#include "client/atomic_group_request.h"
 #include "client/util.h"
 #include "client/constants.h"
 
@@ -44,62 +44,44 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
-atomic_request::atomic_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : cl(cl_), coord(coord_), space(space_), sc(NULL), allocate(), checks(), funcs()
+atomic_group_request::atomic_group_request(client& cl_, const coordinator_link& coord_, const char* space_)
+    : cl(cl_), coord(coord_), space(space_), sc(NULL), allocate(), select(), servers(), funcs()
 {
     sc = coord.config()->get_schema(space);
 }
 
-atomic_request::atomic_request(const atomic_request& other)
-    : cl(other.cl), coord(other.coord), space(other.space), sc(other.sc), allocate(), checks(), funcs()
+atomic_group_request::atomic_group_request(const atomic_group_request& other)
+    : cl(other.cl), coord(other.coord), space(other.space), sc(other.sc), allocate(), select(), servers(), funcs()
 {
     // TODO: Use c++11 operator deletion
     throw std::runtime_error("Atomic requests must not be copied");
 }
 
-atomic_request& atomic_request::operator=(const atomic_request&)
+atomic_group_request& atomic_group_request::operator=(const atomic_group_request&)
 {
     // TODO: Use c++11 operator deletion
     throw std::runtime_error("Atomic requests must not be copied");
     return *this;
 }
 
-hyperdex_client_returncode atomic_request::validate_key(const e::slice& key) const
-{
-    hyperdex_client_returncode status = HYPERDEX_CLIENT_SUCCESS;
-
-    if (!sc)
-    {
-        ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist";
-        return status;
-    }
-
-    datatype_info* di = datatype_info::lookup(sc->attrs[0].type);
-    assert(di);
-
-    if (!di->validate(key))
-    {
-        // This will update the status on error
-        ERROR(WRONGTYPE) << "key must be type " << sc->attrs[0].type;
-    }
-
-    return status;
-}
-
-int atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
-                           const hyperdex_client_attribute_check* chks, size_t chks_sz,
+int atomic_group_request::prepare(const hyperdex_client_keyop_info& opinfo,
+                           const hyperdex_client_attribute_check* selection, size_t selection_sz,
                            const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                            hyperdex_client_returncode& status)
 {
     size_t idx = 0;
 
-    // Prepare the checks
-    idx = cl.prepare_checks(space, *sc, chks, chks_sz, &allocate, status, &checks);
-
-    if (idx < chks_sz)
+    if (!sc)
     {
-        return -2 - idx;
+        ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist";
+        return -1;
+    }
+
+    int64_t ret = cl.prepare_searchop(*sc, space, selection, selection_sz, &allocate, status, &select, &servers);
+    if (ret < 0)
+    {
+        return ret;
     }
 
     // Prepare the attrs
@@ -107,7 +89,7 @@ int atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
 
     if (idx < attrs_sz)
     {
-        return -2 - chks_sz - idx;
+        return -2 - selection_sz - idx;
     }
 
     // Prepare the mapattrs
@@ -115,20 +97,19 @@ int atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
 
     if (idx < mapattrs_sz)
     {
-        return -2 - chks_sz - attrs_sz - idx;
+        return -2 - selection_sz - attrs_sz - idx;
     }
 
     return 0;
 }
 
-e::buffer* atomic_request::create_message(const hyperdex_client_keyop_info& opinfo, const e::slice& key)
+e::buffer* atomic_group_request::create_message(const hyperdex_client_keyop_info& opinfo)
 {
-    std::stable_sort(checks.begin(), checks.end());
+    std::stable_sort(select.begin(), select.end());
     std::stable_sort(funcs.begin(), funcs.end());
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
               + sizeof(uint8_t)
-              + pack_size(key)
-              + pack_size(checks)
+              + pack_size(select)
               + pack_size(funcs);
 
     e::buffer *msg = e::buffer::create(sz);
@@ -136,7 +117,7 @@ e::buffer* atomic_request::create_message(const hyperdex_client_keyop_info& opin
                   | (opinfo.fail_if_found ? 2 : 0)
                   | (opinfo.erase ? 0 : 128);
     msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ)
-        << key << flags << checks << funcs;
+        << flags << select << funcs;
 
     return msg;
 }

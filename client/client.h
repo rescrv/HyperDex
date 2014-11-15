@@ -99,7 +99,6 @@ class client
         // general grouped keyop call
         int64_t perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
                           const char* space, const hyperdex_client_attribute_check* selection, size_t selections_sz,
-                          const hyperdex_client_attribute_check* chks, size_t chks_sz,
                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                           const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                           hyperdex_client_returncode& status);
@@ -145,18 +144,18 @@ class client
                               hyperdex_client_returncode& status,
                               std::vector<attribute_check>* checks);
         size_t prepare_funcs(const char* space, const schema& sc,
-                             const hyperdex_client_keyop_info* opinfo,
+                             const hyperdex_client_keyop_info& opinfo,
                              const hyperdex_client_attribute* attrs, size_t attrs_sz,
                              arena_t* allocate,
                              hyperdex_client_returncode& status,
                              std::vector<funcall>* funcs);
         size_t prepare_funcs(const char* space, const schema& sc,
-                             const hyperdex_client_keyop_info* opinfo,
+                             const hyperdex_client_keyop_info& opinfo,
                              const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                              arena_t* allocate,
                              hyperdex_client_returncode& status,
                              std::vector<funcall>* funcs);
-    private:
+        bool maintain_coord_connection(hyperdex_client_returncode& status);
         size_t prepare_searchop(const schema& sc,
                                 const char* space,
                                 const hyperdex_client_attribute_check* chks, size_t chks_sz,
@@ -164,12 +163,12 @@ class client
                                 hyperdex_client_returncode& status,
                                 std::vector<attribute_check>* checks,
                                 std::vector<virtual_server_id>* servers);
+    private:
         int64_t perform_aggregation(const std::vector<virtual_server_id>& servers,
                                     e::intrusive_ptr<pending_aggregation> op,
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     hyperdex_client_returncode& status);
-        bool maintain_coord_connection(hyperdex_client_returncode& status);
         bool send(network_msgtype mt,
                   const virtual_server_id& to,
                   uint64_t nonce,

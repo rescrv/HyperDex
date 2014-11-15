@@ -25,50 +25,46 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_atomic_request_h_
-#define hyperdex_client_atomic_request_h_
+#ifndef hyperdex_client_pending_atomic_group_h_
+#define hyperdex_client_pending_atomic_group_h_
 
-#include "hyperdex/client.h"
-#include "client/client.h"
+// HyperDex
+#include "namespace.h"
+#include "client/pending_aggregation.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-// Use this prepare an atomic request
-// Can only be used once, i.e. create one for each funcall
-class atomic_request
+class pending_atomic_group : public pending_aggregation
 {
-public:
-    atomic_request(client& cl_, const coordinator_link& coord_, const char* space_);
-    atomic_request(const atomic_request& other);
-    atomic_request& operator=(const atomic_request& other);
+    public:
+        pending_atomic_group(uint64_t client_visible_id,
+                       hyperdex_client_returncode& status);
+        virtual ~pending_atomic_group() throw ();
 
-    // Returns HYPERDEX_SUCCESS if the key is valid
-    hyperdex_client_returncode validate_key(const e::slice& key) const;
+    // return to client
+    public:
+        virtual bool can_yield();
+        virtual bool yield(hyperdex_client_returncode& status, e::error& error);
 
-    // Prepare the funcall
-    int prepare(const hyperdex_client_keyop_info& opinfo,
-                const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                const hyperdex_client_attribute* attrs, size_t attrs_sz,
-                const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                hyperdex_client_returncode& status);
+    // events
+    public:
+        virtual void handle_sent_to(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual void handle_failure(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual bool handle_message(client*,
+                                    const server_id& si,
+                                    const virtual_server_id& vsi,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer> msg,
+                                    e::unpacker up,
+                                    hyperdex_client_returncode& status,
+                                    e::error& error);
 
-    e::buffer* create_message(const hyperdex_client_keyop_info& opinfo, const e::slice& key);
-
-private:
-    client& cl;
-    const coordinator_link& coord;
-    const char* space;
-
-    // FIXME should be const reference
-    const schema* sc;
-
-    typedef std::list<std::string> arena_t;
-
-    arena_t allocate;
-    std::vector<attribute_check> checks;
-    std::vector<funcall> funcs;
+    private:
+        enum { INITIALIZED, SENT, RECV, YIELDED } m_state;
 };
 
 END_HYPERDEX_NAMESPACE
 
-#endif // header guard
+#endif // hyperdex_client_pending_atomic_h_
