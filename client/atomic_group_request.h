@@ -40,8 +40,6 @@ class atomic_group_request : public group_request
 {
 public:
     atomic_group_request(client& cl_, const coordinator_link& coord_, const char* space_);
-    atomic_group_request(const atomic_group_request& other);
-    atomic_group_request& operator=(const atomic_group_request& other);
 
     // Prepare the funcall
     int prepare(const hyperdex_client_keyop_info& opinfo,

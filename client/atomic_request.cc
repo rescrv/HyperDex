@@ -45,45 +45,34 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 atomic_request::atomic_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : cl(cl_), coord(coord_), space(space_), sc(NULL), allocate(), checks(), funcs()
+    : request(cl_, coord_, space_), checks(), funcs()
 {
-    sc = coord.config()->get_schema(space);
-}
-
-atomic_request::atomic_request(const atomic_request& other)
-    : cl(other.cl), coord(other.coord), space(other.space), sc(other.sc), allocate(), checks(), funcs()
-{
-    // TODO: Use c++11 operator deletion
-    throw std::runtime_error("Atomic requests must not be copied");
-}
-
-atomic_request& atomic_request::operator=(const atomic_request&)
-{
-    // TODO: Use c++11 operator deletion
-    throw std::runtime_error("Atomic requests must not be copied");
-    return *this;
 }
 
 hyperdex_client_returncode atomic_request::validate_key(const e::slice& key) const
 {
     hyperdex_client_returncode status = HYPERDEX_CLIENT_SUCCESS;
 
-    if (!sc)
+    try
     {
-        ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist";
+        const schema& sc = request::get_schema();
+
+        datatype_info* di = datatype_info::lookup(sc.attrs[0].type);
+        assert(di);
+
+        if (!di->validate(key))
+        {
+            // This will update the status on error
+            ERROR(WRONGTYPE) << "key must be type " << sc.attrs[0].type;
+        }
+
         return status;
     }
-
-    datatype_info* di = datatype_info::lookup(sc->attrs[0].type);
-    assert(di);
-
-    if (!di->validate(key))
+    catch(std::exception& e)
     {
-        // This will update the status on error
-        ERROR(WRONGTYPE) << "key must be type " << sc->attrs[0].type;
+        ERROR(UNKNOWNSPACE) << e.what();
+        return HYPERDEX_CLIENT_UNKNOWNSPACE;
     }
-
-    return status;
 }
 
 int atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
@@ -92,33 +81,42 @@ int atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
                            const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                            hyperdex_client_returncode& status)
 {
-    size_t idx = 0;
-
-    // Prepare the checks
-    idx = cl.prepare_checks(space, *sc, chks, chks_sz, &allocate, status, &checks);
-
-    if (idx < chks_sz)
+    try
     {
-        return -2 - idx;
+        const schema& sc = request::get_schema();
+        size_t idx = 0;
+
+        // Prepare the checks
+        idx = cl.prepare_checks(space.c_str(), sc, chks, chks_sz, &allocate, status, &checks);
+
+        if (idx < chks_sz)
+        {
+            return -2 - idx;
+        }
+
+        // Prepare the attrs
+        idx = cl.prepare_funcs(space.c_str(), sc, opinfo, attrs, attrs_sz, &allocate, status, &funcs);
+
+        if (idx < attrs_sz)
+        {
+            return -2 - chks_sz - idx;
+        }
+
+        // Prepare the mapattrs
+        idx = cl.prepare_funcs(space.c_str(), sc, opinfo, mapattrs, mapattrs_sz, &allocate, status, &funcs);
+
+        if (idx < mapattrs_sz)
+        {
+            return -2 - chks_sz - attrs_sz - idx;
+        }
+
+        return 0;
     }
-
-    // Prepare the attrs
-    idx = cl.prepare_funcs(space, *sc, opinfo, attrs, attrs_sz, &allocate, status, &funcs);
-
-    if (idx < attrs_sz)
+    catch(std::exception& e)
     {
-        return -2 - chks_sz - idx;
+        ERROR(UNKNOWNSPACE) << e.what();
+        return HYPERDEX_CLIENT_UNKNOWNSPACE;
     }
-
-    // Prepare the mapattrs
-    idx = cl.prepare_funcs(space, *sc, opinfo, mapattrs, mapattrs_sz, &allocate, status, &funcs);
-
-    if (idx < mapattrs_sz)
-    {
-        return -2 - chks_sz - attrs_sz - idx;
-    }
-
-    return 0;
 }
 
 e::buffer* atomic_request::create_message(const hyperdex_client_keyop_info& opinfo, const e::slice& key)

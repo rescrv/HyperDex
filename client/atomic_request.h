@@ -29,18 +29,16 @@
 #define hyperdex_client_atomic_request_h_
 
 #include "hyperdex/client.h"
-#include "client/client.h"
+#include "client/request.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
 // Use this prepare an atomic request
 // Can only be used once, i.e. create one for each funcall
-class atomic_request
+class atomic_request : public request
 {
 public:
     atomic_request(client& cl_, const coordinator_link& coord_, const char* space_);
-    atomic_request(const atomic_request& other);
-    atomic_request& operator=(const atomic_request& other);
 
     // Returns HYPERDEX_SUCCESS if the key is valid
     hyperdex_client_returncode validate_key(const e::slice& key) const;
@@ -55,14 +53,6 @@ public:
     e::buffer* create_message(const hyperdex_client_keyop_info& opinfo, const e::slice& key);
 
 private:
-    client& cl;
-    const coordinator_link& coord;
-    const char* space;
-
-    // FIXME should be const reference
-    const schema* sc;
-
-    client::arena_t allocate;
     std::vector<attribute_check> checks;
     std::vector<funcall> funcs;
 };

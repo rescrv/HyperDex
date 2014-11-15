@@ -29,15 +29,14 @@
 #ifndef hyperdex_client_group_request_h_
 #define hyperdex_client_group_request_h_
 
-#include "hyperdex/client.h"
-#include "client/client.h"
+#include "client/request.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-class group_request
+class group_request : public request
 {
 public:
-    group_request(client& cl_, const coordinator_link& coord_, const char* space_);
+    group_request(client& cl_, const coordinator_link& coord_, const std::string& space_);
     virtual ~group_request() {};
 
     const std::vector<virtual_server_id>& get_servers() const
@@ -48,20 +47,9 @@ public:
     int prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
                            hyperdex_client_returncode& status);
 
-
 protected:
-    client& cl;
-    const coordinator_link& coord;
-    const char* space;
-
-    // FIXME should be const reference
-    const schema* sc;
-
     std::vector<attribute_check> select;
     std::vector<virtual_server_id> servers;
-
-    typedef std::list<std::string> arena_t;
-    arena_t allocate;
 };
 
 END_HYPERDEX_NAMESPACE

@@ -49,20 +49,6 @@ group_del_request::group_del_request(client& cl_, const coordinator_link& coord_
 {
 }
 
-group_del_request::group_del_request(const group_del_request& other)
-    : group_request(other.cl, other.coord, other.space)
-{
-    // TODO: Use c++11 operator deletion
-    throw std::runtime_error("Atomic requests must not be copied");
-}
-
-group_del_request& group_del_request::operator=(const group_del_request&)
-{
-    // TODO: Use c++11 operator deletion
-    throw std::runtime_error("Atomic requests must not be copied");
-    return *this;
-}
-
 e::buffer* group_del_request::create_message()
 {
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ

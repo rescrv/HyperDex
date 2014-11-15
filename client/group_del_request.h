@@ -40,8 +40,6 @@ class group_del_request : public group_request
 {
 public:
     group_del_request(client& cl_, const coordinator_link& coord_, const char* space_);
-    group_del_request(const group_del_request& other);
-    group_del_request& operator=(const group_del_request& other);
 
     e::buffer* create_message();
 };

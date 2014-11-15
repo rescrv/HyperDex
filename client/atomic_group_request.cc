@@ -49,49 +49,45 @@ atomic_group_request::atomic_group_request(client& cl_, const coordinator_link& 
 {
 }
 
-atomic_group_request::atomic_group_request(const atomic_group_request& other)
-    :  group_request(other.cl, other.coord, other.space), funcs()
-{
-    // TODO: Use c++11 operator deletion
-    throw std::runtime_error("Atomic requests must not be copied");
-}
-
-atomic_group_request& atomic_group_request::operator=(const atomic_group_request&)
-{
-    // TODO: Use c++11 operator deletion
-    throw std::runtime_error("Atomic requests must not be copied");
-    return *this;
-}
-
 int atomic_group_request::prepare(const hyperdex_client_keyop_info& opinfo,
                            const hyperdex_client_attribute_check* selection, size_t selection_sz,
                            const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                            hyperdex_client_returncode& status)
 {
-    int ret = group_request::prepare(selection, selection_sz, status);
-
-    if(ret < 0)
+    try
     {
-        return ret;
+        const schema& sc = request::get_schema();
+
+        int ret = group_request::prepare(selection, selection_sz, status);
+
+        if(ret < 0)
+        {
+            return ret;
+        }
+
+        size_t idx = 0;
+
+        // Prepare the attrs
+        idx = cl.prepare_funcs(space.c_str(), sc, opinfo, attrs, attrs_sz, &allocate, status, &funcs);
+
+        if (idx < attrs_sz)
+        {
+            return -2 - selection_sz - idx;
+        }
+
+        // Prepare the mapattrs
+        idx = cl.prepare_funcs(space.c_str(), sc, opinfo, mapattrs, mapattrs_sz, &allocate, status, &funcs);
+
+        if (idx < mapattrs_sz)
+        {
+            return -2 - selection_sz - attrs_sz - idx;
+        }
     }
-
-    size_t idx = 0;
-
-    // Prepare the attrs
-    idx = cl.prepare_funcs(space, *sc, opinfo, attrs, attrs_sz, &allocate, status, &funcs);
-
-    if (idx < attrs_sz)
+    catch(std::exception& e)
     {
-        return -2 - selection_sz - idx;
-    }
-
-    // Prepare the mapattrs
-    idx = cl.prepare_funcs(space, *sc, opinfo, mapattrs, mapattrs_sz, &allocate, status, &funcs);
-
-    if (idx < mapattrs_sz)
-    {
-        return -2 - selection_sz - attrs_sz - idx;
+        ERROR(UNKNOWNSPACE) << e.what();
+        return -1;
     }
 
     return 0;

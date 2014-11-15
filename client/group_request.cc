@@ -44,28 +44,31 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
-group_request::group_request(client& cl_, const coordinator_link& coord_, const char* space_)
- : cl(cl_), coord(coord_), space(space_), sc(NULL), servers()
+group_request::group_request(client& cl_, const coordinator_link& coord_, const std::string& space_)
+ : request(cl_, coord_, space_), select(), servers()
 {
-    sc = coord.config()->get_schema(space);
 }
 
 int group_request::prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
                            hyperdex_client_returncode& status)
 {
-    if (!sc)
+    try
     {
-        ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist";
+        const schema& sc = request::get_schema();
+
+        int64_t ret = cl.prepare_searchop(sc, space.c_str(), selection, selection_sz, &allocate, status, &select, &servers);
+        if (ret < 0)
+        {
+            return ret;
+        }
+
+        return 0;
+    }
+    catch(std::exception& e)
+    {
+        ERROR(UNKNOWNSPACE) << e.what();
         return -1;
     }
-
-    int64_t ret = cl.prepare_searchop(*sc, space, selection, selection_sz, &allocate, status, &select, &servers);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    return 0;
 }
 
 END_HYPERDEX_NAMESPACE

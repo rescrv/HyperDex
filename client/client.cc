@@ -54,6 +54,7 @@
 #include "client/atomic_request.h"
 #include "client/atomic_group_request.h"
 #include "client/group_del_request.h"
+#include "client/search_request.h"
 #include "client/client.h"
 #include "client/constants.h"
 #include "client/pending_atomic.h"
@@ -255,20 +256,30 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
 
 int64_t
 client :: search(const char* space,
-                 const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                 const hyperdex_client_attribute_check* selection, size_t selection_sz,
                  hyperdex_client_returncode& status,
                  const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 {
-    SEARCH_BOILERPLATE
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    search_request request(*this, m_coord, space);
+    int res = request.prepare(selection, selection_sz, status);
+
+    if(res < 0)
+    {
+        return res;
+    }
+
     int64_t client_id = m_next_client_id++;
+    std::auto_ptr<e::buffer> msg(request.create_message(client_id));
+
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_search(client_id, status, attrs, attrs_sz);
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + sizeof(uint64_t)
-              + pack_size(checks);
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << client_id << checks;
-    return perform_aggregation(servers, op, REQ_SEARCH_START, msg, status);
+
+    return perform_aggregation(request.get_servers(), op, REQ_SEARCH_START, msg, status);
 }
 
 int64_t
