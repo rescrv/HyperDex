@@ -130,13 +130,14 @@ class client
         };
         typedef std::map<uint64_t, pending_server_pair> pending_map_t;
         typedef std::list<pending_server_pair> pending_queue_t;
-        typedef std::list<std::string> arena_t;
         friend class pending_get;
         friend class pending_get_partial;
         friend class pending_search;
         friend class pending_sorted_search;
 
     public:
+        typedef std::list<std::string> arena_t;
+
         //TODO move those to a request-superclass
         size_t prepare_checks(const char* space, const schema& sc,
                               const hyperdex_client_attribute_check* chks, size_t chks_sz,

@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2014, Cornell University
+// Copyright (c) 2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,48 +25,53 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_atomic_request_h_
-#define hyperdex_client_atomic_request_h_
+#include <e/strescape.h>
 
-#include "hyperdex/client.h"
-#include "client/client.h"
+#include "client/group_del_request.h"
+#include "client/util.h"
+#include "client/constants.h"
+
+#include "common/attribute_check.h"
+#include "common/datatype_info.h"
+#include "common/funcall.h"
+#include "common/macros.h"
+#include "common/serialization.h"
+
+#define ERROR(CODE) \
+    status = HYPERDEX_CLIENT_ ## CODE; \
+    cl.m_last_error.set_loc(__FILE__, __LINE__); \
+    cl.m_last_error.set_msg()
 
 BEGIN_HYPERDEX_NAMESPACE
 
-// Use this prepare an atomic request
-// Can only be used once, i.e. create one for each funcall
-class atomic_request
+group_del_request::group_del_request(client& cl_, const coordinator_link& coord_, const char* space_)
+    : group_request(cl_, coord_, space_)
 {
-public:
-    atomic_request(client& cl_, const coordinator_link& coord_, const char* space_);
-    atomic_request(const atomic_request& other);
-    atomic_request& operator=(const atomic_request& other);
+}
 
-    // Returns HYPERDEX_SUCCESS if the key is valid
-    hyperdex_client_returncode validate_key(const e::slice& key) const;
+group_del_request::group_del_request(const group_del_request& other)
+    : group_request(other.cl, other.coord, other.space)
+{
+    // TODO: Use c++11 operator deletion
+    throw std::runtime_error("Atomic requests must not be copied");
+}
 
-    // Prepare the funcall
-    int prepare(const hyperdex_client_keyop_info& opinfo,
-                const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                const hyperdex_client_attribute* attrs, size_t attrs_sz,
-                const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                hyperdex_client_returncode& status);
+group_del_request& group_del_request::operator=(const group_del_request&)
+{
+    // TODO: Use c++11 operator deletion
+    throw std::runtime_error("Atomic requests must not be copied");
+    return *this;
+}
 
-    e::buffer* create_message(const hyperdex_client_keyop_info& opinfo, const e::slice& key);
+e::buffer* group_del_request::create_message()
+{
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+              + pack_size(select);
 
-private:
-    client& cl;
-    const coordinator_link& coord;
-    const char* space;
+    e::buffer* msg = e::buffer::create(sz);
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << select;
 
-    // FIXME should be const reference
-    const schema* sc;
-
-    client::arena_t allocate;
-    std::vector<attribute_check> checks;
-    std::vector<funcall> funcs;
-};
+    return msg;
+}
 
 END_HYPERDEX_NAMESPACE
-
-#endif // header guard

@@ -45,13 +45,12 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 atomic_group_request::atomic_group_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : cl(cl_), coord(coord_), space(space_), sc(NULL), allocate(), select(), servers(), funcs()
+    :  group_request(cl_, coord_, space_), funcs()
 {
-    sc = coord.config()->get_schema(space);
 }
 
 atomic_group_request::atomic_group_request(const atomic_group_request& other)
-    : cl(other.cl), coord(other.coord), space(other.space), sc(other.sc), allocate(), select(), servers(), funcs()
+    :  group_request(other.cl, other.coord, other.space), funcs()
 {
     // TODO: Use c++11 operator deletion
     throw std::runtime_error("Atomic requests must not be copied");
@@ -70,21 +69,14 @@ int atomic_group_request::prepare(const hyperdex_client_keyop_info& opinfo,
                            const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                            hyperdex_client_returncode& status)
 {
-    size_t idx = 0;
+    int ret = group_request::prepare(selection, selection_sz, status);
 
-    if (!sc)
-    {
-        ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist";
-        return -1;
-    }
-
-    std::cout << "GROUP ATOMIC 0" << std::endl;
-
-    int64_t ret = cl.prepare_searchop(*sc, space, selection, selection_sz, &allocate, status, &select, &servers);
-    if (ret < 0)
+    if(ret < 0)
     {
         return ret;
     }
+
+    size_t idx = 0;
 
     // Prepare the attrs
     idx = cl.prepare_funcs(space, *sc, opinfo, attrs, attrs_sz, &allocate, status, &funcs);

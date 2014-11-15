@@ -53,6 +53,7 @@
 #include "common/serialization.h"
 #include "client/atomic_request.h"
 #include "client/atomic_group_request.h"
+#include "client/group_del_request.h"
 #include "client/client.h"
 #include "client/constants.h"
 #include "client/pending_atomic.h"
@@ -332,18 +333,28 @@ client :: sorted_search(const char* space,
 
 int64_t
 client :: group_del(const char* space,
-                    const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                    const hyperdex_client_attribute_check* selection, size_t selection_sz,
                     hyperdex_client_returncode& status)
 {
-    SEARCH_BOILERPLATE
-    int64_t client_id = m_next_client_id++;
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    group_del_request request(*this, m_coord, space);
+    int res = request.prepare(selection, selection_sz, status);
+
+    if(res < 0)
+    {
+        return res;
+    }
+
+    std::auto_ptr<e::buffer> msg(request.create_message());
+
     e::intrusive_ptr<pending_aggregation> op;
-    op = new pending_group_del(client_id, status);
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + pack_size(checks);
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << checks;
-    return perform_aggregation(servers, op, REQ_GROUP_DEL, msg, status);
+    op = new pending_group_del(m_next_client_id++, status);
+
+    return perform_aggregation(request.get_servers(), op, REQ_GROUP_DEL, msg, status);
 }
 
 int64_t

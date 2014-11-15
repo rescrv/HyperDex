@@ -80,6 +80,8 @@ class search_manager
                            bool maximize);
 
         // Find keys that match the check and forward ops to the corresponding servers
+        // Essentially this splits out the group operation in several seperate operations
+        // (by acting like it was a client)
         void group_keyop(const server_id& from,
                          const virtual_server_id& to,
                          uint64_t nonce,

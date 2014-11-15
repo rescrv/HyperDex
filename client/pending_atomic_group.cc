@@ -45,8 +45,7 @@ pending_atomic_group :: ~pending_atomic_group() throw ()
 bool
 pending_atomic_group :: can_yield()
 {
-    assert(m_state == RECV || m_state == YIELDED);
-    return m_state == RECV;
+    return this->aggregation_done() && m_state == RECV;
 }
 
 bool
@@ -54,6 +53,7 @@ pending_atomic_group :: yield(hyperdex_client_returncode& status, e::error& err)
 {
     status = HYPERDEX_CLIENT_SUCCESS;
     err = e::error();
+    assert(this->can_yield());
     m_state = YIELDED;
     return true;
 }
@@ -95,6 +95,8 @@ pending_atomic_group :: handle_message(client*,
         PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to ATOMIC with " << mt;
         return true;
     }
+
+    std::cout << "RESPONSE" << std::endl;
 
     uint16_t response;
     up = up >> response;

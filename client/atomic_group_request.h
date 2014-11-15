@@ -30,12 +30,13 @@
 
 #include "hyperdex/client.h"
 #include "client/client.h"
+#include "client/group_request.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
 // Use this prepare an atomic request
 // Can only be used once, i.e. create one for each funcall
-class atomic_group_request
+class atomic_group_request : public group_request
 {
 public:
     atomic_group_request(client& cl_, const coordinator_link& coord_, const char* space_);
@@ -51,24 +52,7 @@ public:
 
     e::buffer* create_message(const hyperdex_client_keyop_info& opinfo);
 
-    const std::vector<virtual_server_id>& get_servers() const
-    {
-        return servers;
-    }
-
 private:
-    client& cl;
-    const coordinator_link& coord;
-    const char* space;
-
-    // FIXME should be const reference
-    const schema* sc;
-
-    typedef std::list<std::string> arena_t;
-
-    arena_t allocate;
-    std::vector<attribute_check> select;
-    std::vector<virtual_server_id> servers;
     std::vector<funcall> funcs;
 };
 
