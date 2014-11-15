@@ -135,6 +135,8 @@
 		<Unit filename="bindings/ruby/prototypes.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="client/atomic_group_request.cc" />
+		<Unit filename="client/atomic_group_request.h" />
 		<Unit filename="client/c.cc" />
 		<Unit filename="client/client.cc" />
 		<Unit filename="client/client.h" />
@@ -148,6 +150,7 @@
 		<Unit filename="client/pending_aggregation.h" />
 		<Unit filename="client/pending_atomic.cc" />
 		<Unit filename="client/pending_atomic.h" />
+		<Unit filename="client/pending_atomic_group.cc" />
 		<Unit filename="client/pending_count.cc" />
 		<Unit filename="client/pending_count.h" />
 		<Unit filename="client/pending_get.cc" />

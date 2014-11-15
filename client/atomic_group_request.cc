@@ -78,6 +78,8 @@ int atomic_group_request::prepare(const hyperdex_client_keyop_info& opinfo,
         return -1;
     }
 
+    std::cout << "GROUP ATOMIC 0" << std::endl;
+
     int64_t ret = cl.prepare_searchop(*sc, space, selection, selection_sz, &allocate, status, &select, &servers);
     if (ret < 0)
     {

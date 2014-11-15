@@ -90,7 +90,7 @@ pending_atomic_group :: handle_message(client*,
     status = HYPERDEX_CLIENT_SUCCESS;
     err = e::error();
 
-    if (mt != RESP_ATOMIC)
+    if (mt != RESP_GROUP_ATOMIC)
     {
         PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to ATOMIC with " << mt;
         return true;

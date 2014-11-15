@@ -211,6 +211,37 @@ hyperdex_ruby_client_asynccall__spacename_key_predicates__status(int64_t (*f)(st
 }
 
 static VALUE
+hyperdex_ruby_client_asynccall__spacename_predicates_attributes__status(int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_attribute* attrs, size_t attrs_sz, enum hyperdex_client_returncode* status), VALUE self, VALUE spacename, VALUE predicates, VALUE attributes)
+{
+    VALUE op;
+    const char* in_space;
+    const struct hyperdex_client_attribute_check* in_checks;
+    size_t in_checks_sz;
+    const struct hyperdex_client_attribute* in_attrs;
+    size_t in_attrs_sz;
+    struct hyperdex_client* client;
+    struct hyperdex_ruby_client_deferred* o;
+    op = rb_class_new_instance(1, &self, class_deferred);
+    rb_iv_set(self, "tmp", op);
+    Data_Get_Struct(self, struct hyperdex_client, client);
+    Data_Get_Struct(op, struct hyperdex_ruby_client_deferred, o);
+    hyperdex_ruby_client_convert_spacename(o->arena, spacename, &in_space);
+    hyperdex_ruby_client_convert_predicates(o->arena, predicates, &in_checks, &in_checks_sz);
+    hyperdex_ruby_client_convert_attributes(o->arena, attributes, &in_attrs, &in_attrs_sz);
+    o->reqid = f(client, in_space, in_checks, in_checks_sz, in_attrs, in_attrs_sz, &o->status);
+
+    if (o->reqid < 0)
+    {
+        hyperdex_ruby_client_throw_exception(o->status, hyperdex_client_error_message(client));
+    }
+
+    o->encode_return = hyperdex_ruby_client_deferred_encode_status;
+    rb_hash_aset(rb_iv_get(self, "ops"), LONG2NUM(o->reqid), op);
+    rb_iv_set(self, "tmp", Qnil);
+    return op;
+}
+
+static VALUE
 hyperdex_ruby_client_asynccall__spacename_key_mapattributes__status(int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, enum hyperdex_client_returncode* status), VALUE self, VALUE spacename, VALUE key, VALUE mapattributes)
 {
     VALUE op;
@@ -517,14 +548,14 @@ hyperdex_ruby_client_wait_atomic_add(VALUE self, VALUE spacename, VALUE key, VAL
 }
 
 static VALUE
-hyperdex_ruby_client_group_atomic_add(VALUE self, VALUE spacename, VALUE key, VALUE attributes)
+hyperdex_ruby_client_group_atomic_add(VALUE self, VALUE spacename, VALUE predicates, VALUE attributes)
 {
-    return hyperdex_ruby_client_asynccall__spacename_key_attributes__status(hyperdex_client_group_atomic_add, self, spacename, key, attributes);
+    return hyperdex_ruby_client_asynccall__spacename_predicates_attributes__status(hyperdex_client_group_atomic_add, self, spacename, predicates, attributes);
 }
 VALUE
-hyperdex_ruby_client_wait_group_atomic_add(VALUE self, VALUE spacename, VALUE key, VALUE attributes)
+hyperdex_ruby_client_wait_group_atomic_add(VALUE self, VALUE spacename, VALUE predicates, VALUE attributes)
 {
-    VALUE deferred = hyperdex_ruby_client_group_atomic_add(self, spacename, key, attributes);
+    VALUE deferred = hyperdex_ruby_client_group_atomic_add(self, spacename, predicates, attributes);
     return rb_funcall(deferred, rb_intern("wait"), 0);
 }
 

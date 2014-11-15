@@ -225,14 +225,14 @@ atomic_add(spacename, key, attributes, function (success, err) {})
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-group_atomic_add(spacename, key, attributes, function (success, err) {})
+group_atomic_add(spacename, predicates, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
 \item \code{spacename}\\
 \input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
-\item \code{key}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
 \item \code{attributes}\\
 \input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
 \end{itemize}

@@ -627,6 +627,10 @@ daemon :: loop(size_t thread)
                 process_req_get_partial(from, vfrom, vto, msg, up);
                 m_perf_req_get_partial.tap();
                 break;
+            case REQ_GROUP_ATOMIC:
+                process_req_group_atomic(from, vfrom, vto, msg, up);
+                m_perf_req_atomic.tap();
+                break;
             case REQ_ATOMIC:
                 process_req_atomic(from, vfrom, vto, msg, up);
                 m_perf_req_atomic.tap();
@@ -705,6 +709,7 @@ daemon :: loop(size_t thread)
             case RESP_GET:
             case RESP_GET_PARTIAL:
             case RESP_ATOMIC:
+            case RESP_GROUP_ATOMIC:
             case RESP_SEARCH_ITEM:
             case RESP_SEARCH_DONE:
             case RESP_SORTED_SEARCH:
@@ -866,6 +871,27 @@ daemon :: process_req_atomic(server_id from,
     }
 
     m_repl.client_atomic(from, vto, nonce, kc, msg);
+}
+
+
+void
+daemon :: process_req_group_atomic(server_id from,
+                             virtual_server_id,
+                             virtual_server_id vto,
+                             std::auto_ptr<e::buffer> msg,
+                             e::unpacker up)
+{
+    uint64_t nonce;
+    std::vector<attribute_check> checks;
+
+    if ((up >> nonce >> checks).error())
+    {
+        LOG(WARNING) << "unpack of REQ_GROUP_ATOMIC failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    e::slice sl("\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9);
+    m_sm.group_keyop(from, vto, nonce, &checks, REQ_ATOMIC, sl, RESP_GROUP_ATOMIC);
 }
 
 void

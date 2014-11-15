@@ -391,7 +391,6 @@ client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
     return perform_aggregation(request.get_servers(), op, REQ_GROUP_ATOMIC, msg, status);
 }
 
-
 int64_t
 client :: perform_funcall(const hyperdex_client_keyop_info* opinfo,
                           const char* space, const char* _key, size_t _key_sz,

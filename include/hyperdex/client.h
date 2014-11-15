@@ -170,7 +170,7 @@ hyperdex_client_atomic_add(struct hyperdex_client* client,
 int64_t
 hyperdex_client_group_atomic_add(struct hyperdex_client* client,
                                  const char* space,
-                                 const char* key, size_t key_sz,
+                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
                                  const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
                                  enum hyperdex_client_returncode* status);
 
