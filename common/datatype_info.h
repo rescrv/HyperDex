@@ -45,6 +45,8 @@ class key_change;
 class datatype_info
 {
     public:
+        // Return a pointer to the datatype_info representing the specific datatyp
+        // Must not be deleted
         static datatype_info* lookup(hyperdatatype datatype);
 
     public:

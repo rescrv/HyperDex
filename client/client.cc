@@ -284,7 +284,7 @@ client :: search_describe(const char* space,
     }
 
     int64_t client_id = m_next_client_id++;
-    std::auto_ptr<e::buffer> msg(request.create_message(client_id));
+    std::auto_ptr<e::buffer> msg(request.create_message());
 
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_search_describe(client_id, status, description);

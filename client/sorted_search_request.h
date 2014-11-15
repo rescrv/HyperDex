@@ -49,14 +49,10 @@ public:
         return sort_by_num;
     }
 
-    const datatype_info& get_sort_di() const
-    {
-        return *sort_di;
-    }
+    const datatype_info& get_sort_di() const;
 
 private:
     uint16_t sort_by_num;
-    std::auto_ptr<datatype_info> sort_di;
 };
 
 END_HYPERDEX_NAMESPACE

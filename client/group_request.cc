@@ -47,21 +47,19 @@ group_request::group_request(client& cl_, const coordinator_link& coord_, const 
 size_t
 group_request :: prepare_searchop(const schema& sc,
                            const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                           hyperdex_client_returncode& status,
-                           std::vector<attribute_check>* checks,
-                           std::vector<virtual_server_id>* servers)
+                           hyperdex_client_returncode& status)
 {
-    size_t num_checks = prepare_checks(sc, chks, chks_sz, status, checks);
+    size_t num_checks = prepare_checks(sc, chks, chks_sz, status, &select);
 
     if (num_checks != chks_sz)
     {
         return -1 - num_checks;
     }
 
-    std::stable_sort(checks->begin(), checks->end());
-    coord.config()->lookup_search(space.c_str(), *checks, servers); // XXX search guaranteed empty vs. search encounters offline server
+    std::stable_sort(select.begin(), select.end());
+    coord.config()->lookup_search(space.c_str(), select, &servers); // XXX search guaranteed empty vs. search encounters offline server
 
-    if (servers->empty())
+    if (servers.empty())
     {
         // XXX NOCOMMIT
         ERROR(INTERNAL) << "there are no servers for the search";
@@ -79,7 +77,7 @@ int group_request::prepare(const hyperdex_client_attribute_check* selection, siz
     {
         const schema& sc = request::get_schema();
 
-        int64_t ret = prepare_searchop(sc, selection, selection_sz, status, &select, &servers);
+        int64_t ret = prepare_searchop(sc, selection, selection_sz, status);
         if (ret < 0)
         {
             return ret;

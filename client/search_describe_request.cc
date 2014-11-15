@@ -37,11 +37,6 @@
 #include "common/macros.h"
 #include "common/serialization.h"
 
-#define ERROR(CODE) \
-    status = HYPERDEX_CLIENT_ ## CODE; \
-    cl.m_last_error.set_loc(__FILE__, __LINE__); \
-    cl.m_last_error.set_msg()
-
 BEGIN_HYPERDEX_NAMESPACE
 
 search_describe_request::search_describe_request(client& cl_, const coordinator_link& coord_, const char* space_)
@@ -49,10 +44,9 @@ search_describe_request::search_describe_request(client& cl_, const coordinator_
 {
 }
 
-e::buffer* search_describe_request::create_message(int64_t client_id)
+e::buffer* search_describe_request::create_message()
 {
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + pack_size(select);
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ + pack_size(select);
 
     e::buffer* msg = e::buffer::create(sz);
     msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << select;

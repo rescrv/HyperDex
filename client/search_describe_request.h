@@ -41,7 +41,7 @@ class search_describe_request : public group_request
 public:
     search_describe_request(client& cl_, const coordinator_link& coord_, const char* space_);
 
-    e::buffer* create_message(int64_t client_id);
+    e::buffer* create_message();
 };
 
 END_HYPERDEX_NAMESPACE
