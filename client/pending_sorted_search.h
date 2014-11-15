@@ -46,7 +46,7 @@ class pending_sorted_search : public pending_aggregation
                               bool maximize,
                               uint64_t limit,
                               uint16_t sort_by_idx,
-                              datatype_info* sort_by_di,
+                              const datatype_info& sort_by_di,
                               hyperdex_client_returncode& status,
                               const hyperdex_client_attribute** attrs,
                               size_t* attrs_sz);
@@ -87,7 +87,7 @@ class pending_sorted_search : public pending_aggregation
         bool m_maximize;
         const uint64_t m_limit;
         const uint16_t m_sort_by_idx;
-        datatype_info* m_sort_by_di;
+        const datatype_info& m_sort_by_di;
         const hyperdex_client_attribute** m_attrs;
         size_t* m_attrs_sz;
         std::vector<item> m_results;

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013, Cornell University
+// Copyright (c) 2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,27 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_pending_count_h_
-#define hyperdex_client_pending_count_h_
+#ifndef hyperdex_client_search_describe_request_h_
+#define hyperdex_client_search_describe_request_h_
 
-// HyperDex
-#include "namespace.h"
-#include "client/pending_aggregation.h"
+#include "hyperdex/client.h"
+#include "client/client.h"
+#include "client/group_request.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-class pending_count : public pending_aggregation
+// Use this prepare an group deletion request
+// Can only be used once, i.e. create one for each funcall
+class search_describe_request : public group_request
 {
-    public:
-        pending_count(uint64_t client_visible_id,
-                      hyperdex_client_returncode& status,
-                      uint64_t& count);
-        virtual ~pending_count() throw ();
+public:
+    search_describe_request(client& cl_, const coordinator_link& coord_, const char* space_);
 
-    // return to client
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode& status, e::error& error);
-
-    // events
-    public:
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode& status,
-                                    e::error& error);
-
-    // noncopyable
-    private:
-        pending_count(const pending_count& other);
-        pending_count& operator = (const pending_count& rhs);
-
-    private:
-        uint64_t& m_count;
-        bool m_done;
+    e::buffer* create_message(int64_t client_id);
 };
 
 END_HYPERDEX_NAMESPACE
 
-#endif // hyperdex_client_pending_count_h_
+#endif // header guard
+
+

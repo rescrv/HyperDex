@@ -236,7 +236,7 @@ compare(const e::slice& lhs,
 }
 
 int
-datatype_float :: compare(const e::slice& lhs, const e::slice& rhs)
+datatype_float :: compare(const e::slice& lhs, const e::slice& rhs) const
 {
     return ::compare(lhs, rhs);
 }

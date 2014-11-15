@@ -222,7 +222,7 @@ datatype_info :: comparable() const
 }
 
 int
-datatype_info :: compare(const e::slice&, const e::slice&)
+datatype_info :: compare(const e::slice&, const e::slice&) const
 {
     // if you see an abort here, you overrode "comparable", but not this
     // method

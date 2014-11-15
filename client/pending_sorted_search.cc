@@ -41,7 +41,7 @@ pending_sorted_search :: pending_sorted_search(client* cl,
                                                bool maximize,
                                                uint64_t limit,
                                                uint16_t sort_by_idx,
-                                               datatype_info* sort_by_di,
+                                               const datatype_info& sort_by_di,
                                                hyperdex_client_returncode& status,
                                                const hyperdex_client_attribute** attrs,
                                                size_t* attrs_sz)
@@ -135,7 +135,7 @@ class sorted_search_comparator
     public:
         sorted_search_comparator(bool maximize,
                                  uint16_t sort_by_idx,
-                                 datatype_info* sort_by_di);
+                                 const datatype_info& sort_by_di);
 
     public:
         bool operator () (const pending_sorted_search::item& lhs,
@@ -144,14 +144,14 @@ class sorted_search_comparator
     private:
         bool m_maximize;
         uint16_t m_sort_by_idx;
-        datatype_info* m_sort_by_di;
+        const datatype_info& m_sort_by_di;
 };
 
 } // namespace
 
 sorted_search_comparator :: sorted_search_comparator(bool maximize,
                                                      uint16_t sort_by_idx,
-                                                     datatype_info* sort_by_di)
+                                                     const datatype_info& sort_by_di)
     : m_maximize(maximize)
     , m_sort_by_idx(sort_by_idx)
     , m_sort_by_di(sort_by_di)
@@ -183,7 +183,7 @@ sorted_search_comparator :: operator () (const pending_sorted_search::item& lhs,
         rhs_attr = rhs.value[m_sort_by_idx - 1];
     }
 
-    int cmp = m_sort_by_di->compare(lhs_attr, rhs_attr);
+    int cmp = m_sort_by_di.compare(lhs_attr, rhs_attr);
     return m_maximize ? (cmp > 0) : (cmp < 0);
 }
 

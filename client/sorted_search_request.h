@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013, Cornell University
+// Copyright (c) 2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,42 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_pending_count_h_
-#define hyperdex_client_pending_count_h_
+#ifndef hyperdex_client_sorted_search_request_h_
+#define hyperdex_client_sorted_search_request_h_
 
-// HyperDex
-#include "namespace.h"
-#include "client/pending_aggregation.h"
+#include "common/datatype_info.h"
+#include "client/group_request.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-class pending_count : public pending_aggregation
+// Use this prepare a sorted search request
+// Can only be used once, i.e. create one for each funcall
+class sorted_search_request : public group_request
 {
-    public:
-        pending_count(uint64_t client_visible_id,
-                      hyperdex_client_returncode& status,
-                      uint64_t& count);
-        virtual ~pending_count() throw ();
+public:
+    sorted_search_request(client& cl_, const coordinator_link& coord_, const char* space_);
 
-    // return to client
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode& status, e::error& error);
+    int prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                           hyperdex_client_returncode& status, const char* sort_by);
+    e::buffer* create_message(uint64_t limit, bool maximize);
 
-    // events
-    public:
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode& status,
-                                    e::error& error);
+    uint16_t get_sort_by_index() const
+    {
+        return sort_by_num;
+    }
 
-    // noncopyable
-    private:
-        pending_count(const pending_count& other);
-        pending_count& operator = (const pending_count& rhs);
+    const datatype_info& get_sort_di() const
+    {
+        return *sort_di;
+    }
 
-    private:
-        uint64_t& m_count;
-        bool m_done;
+private:
+    uint16_t sort_by_num;
+    std::auto_ptr<datatype_info> sort_di;
 };
 
 END_HYPERDEX_NAMESPACE
 
-#endif // hyperdex_client_pending_count_h_
+#endif // header guard
+
+

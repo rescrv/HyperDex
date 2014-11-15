@@ -30,17 +30,7 @@
 #include "client/group_del_request.h"
 #include "client/util.h"
 #include "client/constants.h"
-
-#include "common/attribute_check.h"
-#include "common/datatype_info.h"
-#include "common/funcall.h"
-#include "common/macros.h"
 #include "common/serialization.h"
-
-#define ERROR(CODE) \
-    status = HYPERDEX_CLIENT_ ## CODE; \
-    cl.m_last_error.set_loc(__FILE__, __LINE__); \
-    cl.m_last_error.set_msg()
 
 BEGIN_HYPERDEX_NAMESPACE
 

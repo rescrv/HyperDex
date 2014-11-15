@@ -103,7 +103,7 @@ class datatype_info
     // override these if the type can be compared
     public:
         virtual bool comparable() const;
-        virtual int compare(const e::slice& lhs, const e::slice& rhs);
+        virtual int compare(const e::slice& lhs, const e::slice& rhs) const;
         typedef bool (*compares_less)(const e::slice& lhs, const e::slice& rhs);
         virtual compares_less compare_less();
 

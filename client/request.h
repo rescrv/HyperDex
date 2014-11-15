@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013, Cornell University
+// Copyright (c) 2011-2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,39 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_pending_count_h_
-#define hyperdex_client_pending_count_h_
+#ifndef hyperdex_client_request_h_
+#define hyperdex_client_request_h_
 
-// HyperDex
-#include "namespace.h"
-#include "client/pending_aggregation.h"
+#include "hyperdex/client.h"
+#include "client/client.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-class pending_count : public pending_aggregation
+// Use this prepare an atomic request
+// Can only be used once, i.e. create one for each funcall
+class request
 {
-    public:
-        pending_count(uint64_t client_visible_id,
-                      hyperdex_client_returncode& status,
-                      uint64_t& count);
-        virtual ~pending_count() throw ();
+protected:
+    request(client& cl_, const coordinator_link& coord_, const std::string& space_);
+    virtual ~request() {};
 
-    // return to client
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode& status, e::error& error);
+    // Get a reference to the schema of the space we are using
+    // Throws an exception if non existant (i.e. no such space)
+    const schema& get_schema() const throw(std::runtime_error);
 
-    // events
-    public:
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode& status,
-                                    e::error& error);
+    size_t prepare_checks(const schema& sc,
+                              const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                              hyperdex_client_returncode& status,
+                              std::vector<attribute_check>* checks);
 
-    // noncopyable
-    private:
-        pending_count(const pending_count& other);
-        pending_count& operator = (const pending_count& rhs);
+    client& cl;
+    const coordinator_link& coord;
+    const std::string space;
 
-    private:
-        uint64_t& m_count;
-        bool m_done;
+    client::arena_t allocate;
 };
 
 END_HYPERDEX_NAMESPACE
 
-#endif // hyperdex_client_pending_count_h_
+#endif // header guard
+

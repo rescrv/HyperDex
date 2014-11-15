@@ -32,7 +32,7 @@ using hyperdex::pending_count;
 
 pending_count :: pending_count(uint64_t id,
                                hyperdex_client_returncode& status,
-                               uint64_t* count)
+                               uint64_t& count)
     : pending_aggregation(id, status)
     , m_count(count)
     , m_done(false)
@@ -104,7 +104,7 @@ pending_count :: handle_message(client* cl,
         return true;
     }
 
-    *m_count += local_count;
+    m_count += local_count;
     // Don't set the status or error so that errors will carry through.  It was
     // set to the success state in the constructor
     return true;

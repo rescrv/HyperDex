@@ -61,7 +61,7 @@ class datatype_float : public datatype_info
         virtual uint8_t* write(uint8_t* writeto,
                                const e::slice& elem);
         virtual bool comparable() const;
-        virtual int compare(const e::slice& lhs, const e::slice& rhs);
+        virtual int compare(const e::slice& lhs, const e::slice& rhs) const;
         virtual compares_less compare_less();
 };
 

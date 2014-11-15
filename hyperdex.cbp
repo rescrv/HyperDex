@@ -146,6 +146,7 @@
 		<Unit filename="client/datastructures.cc" />
 		<Unit filename="client/group_del_request.cc" />
 		<Unit filename="client/group_del_request.h" />
+		<Unit filename="client/group_request.cc" />
 		<Unit filename="client/group_request.h" />
 		<Unit filename="client/keyop_info.cc" />
 		<Unit filename="client/keyop_info.h" />
@@ -171,6 +172,11 @@
 		<Unit filename="client/pending_search_describe.h" />
 		<Unit filename="client/pending_sorted_search.cc" />
 		<Unit filename="client/pending_sorted_search.h" />
+		<Unit filename="client/request.cc" />
+		<Unit filename="client/request.h" />
+		<Unit filename="client/search_request.cc" />
+		<Unit filename="client/sorted_search_request.cc" />
+		<Unit filename="client/sorted_search_request.h" />
 		<Unit filename="client/test/datastructures.cc" />
 		<Unit filename="client/util.cc" />
 		<Unit filename="client/util.h" />

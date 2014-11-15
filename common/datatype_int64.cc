@@ -264,7 +264,7 @@ compare(const e::slice& lhs,
 }
 
 int
-datatype_int64 :: compare(const e::slice& lhs, const e::slice& rhs)
+datatype_int64 :: compare(const e::slice& lhs, const e::slice& rhs) const
 {
     return ::compare(lhs, rhs);
 }

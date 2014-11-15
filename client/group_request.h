@@ -48,6 +48,12 @@ public:
                            hyperdex_client_returncode& status);
 
 protected:
+    size_t prepare_searchop(const schema& sc,
+                                const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                                hyperdex_client_returncode& status,
+                                std::vector<attribute_check>* checks,
+                                std::vector<virtual_server_id>* servers);
+
     std::vector<attribute_check> select;
     std::vector<virtual_server_id> servers;
 };

@@ -87,7 +87,7 @@ int atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
         size_t idx = 0;
 
         // Prepare the checks
-        idx = cl.prepare_checks(space.c_str(), sc, chks, chks_sz, &allocate, status, &checks);
+        idx = prepare_checks(sc, chks, chks_sz, status, &checks);
 
         if (idx < chks_sz)
         {

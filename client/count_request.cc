@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013, Cornell University
+// Copyright (c) 2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,34 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_pending_count_h_
-#define hyperdex_client_pending_count_h_
+#include <e/strescape.h>
 
-// HyperDex
-#include "namespace.h"
-#include "client/pending_aggregation.h"
+#include "client/count_request.h"
+#include "client/util.h"
+#include "client/constants.h"
+
+#include "common/attribute_check.h"
+#include "common/datatype_info.h"
+#include "common/funcall.h"
+#include "common/macros.h"
+#include "common/serialization.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-class pending_count : public pending_aggregation
+count_request::count_request(client& cl_, const coordinator_link& coord_, const char* space_)
+    : group_request(cl_, coord_, space_)
 {
-    public:
-        pending_count(uint64_t client_visible_id,
-                      hyperdex_client_returncode& status,
-                      uint64_t& count);
-        virtual ~pending_count() throw ();
+}
 
-    // return to client
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode& status, e::error& error);
+e::buffer* count_request::create_message()
+{
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+              + pack_size(select);
 
-    // events
-    public:
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode& status,
-                                    e::error& error);
+    e::buffer* msg = e::buffer::create(sz);
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << select;
 
-    // noncopyable
-    private:
-        pending_count(const pending_count& other);
-        pending_count& operator = (const pending_count& rhs);
-
-    private:
-        uint64_t& m_count;
-        bool m_done;
-};
+    return msg;
+}
 
 END_HYPERDEX_NAMESPACE
-
-#endif // hyperdex_client_pending_count_h_

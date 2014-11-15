@@ -27,9 +27,14 @@
 
 #include <e/strescape.h>
 
-#include "client/group_request.h"
+#include "client/sorted_search_request.h"
 #include "client/util.h"
 #include "client/constants.h"
+
+#include "common/attribute_check.h"
+#include "common/datatype_info.h"
+#include "common/funcall.h"
+#include "common/macros.h"
 #include "common/serialization.h"
 
 #define ERROR(CODE) \
@@ -39,50 +44,41 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
-group_request::group_request(client& cl_, const coordinator_link& coord_, const std::string& space_)
- : request(cl_, coord_, space_), select(), servers()
+sorted_search_request::sorted_search_request(client& cl_, const coordinator_link& coord_, const char* space_)
+    : group_request(cl_, coord_, space_), sort_by_num(-1), sort_di(NULL)
 {
 }
 
-size_t
-group_request :: prepare_searchop(const schema& sc,
-                           const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                           hyperdex_client_returncode& status,
-                           std::vector<attribute_check>* checks,
-                           std::vector<virtual_server_id>* servers)
+int sorted_search_request::prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                           hyperdex_client_returncode& status, const char* sort_by)
 {
-    size_t num_checks = prepare_checks(sc, chks, chks_sz, status, checks);
-
-    if (num_checks != chks_sz)
+    int res = group_request::prepare(selection, selection_sz, status);
+    if(res < 0)
     {
-        return -1 - num_checks;
+        return res;
     }
 
-    std::stable_sort(checks->begin(), checks->end());
-    coord.config()->lookup_search(space.c_str(), *checks, servers); // XXX search guaranteed empty vs. search encounters offline server
-
-    if (servers->empty())
-    {
-        // XXX NOCOMMIT
-        ERROR(INTERNAL) << "there are no servers for the search";
-        status = HYPERDEX_CLIENT_INTERNAL;
-        return -1;
-    }
-
-    return 0;
-}
-
-int group_request::prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
-                           hyperdex_client_returncode& status)
-{
     try
     {
         const schema& sc = request::get_schema();
+        sort_by_num = sc.lookup_attr(sort_by);
 
-        int64_t ret = prepare_searchop(sc, selection, selection_sz, status, &select, &servers);
-        if (ret < 0)
+        if (sort_by_num == sc.attrs_sz)
         {
-            return ret;
+            ERROR(UNKNOWNATTR) << "\"" << e::strescape(sort_by)
+                               << "\" is not an attribute of space \""
+                               << e::strescape(space) << "\"";
+            return -1 - selection_sz;
+        }
+
+        sort_di = std::auto_ptr<datatype_info>(datatype_info::lookup(sc.attrs[sort_by_num].type));
+
+        if (!sort_di->comparable())
+        {
+            ERROR(WRONGTYPE) << "cannot sort by attribute \""
+                             << e::strescape(sort_by)
+                             << "\": it is not comparable";
+            return -1 - selection_sz;
         }
 
         return 0;
@@ -94,4 +90,19 @@ int group_request::prepare(const hyperdex_client_attribute_check* selection, siz
     }
 }
 
+e::buffer* sorted_search_request::create_message(uint64_t limit, bool maximize)
+{
+    int8_t max = maximize ? 1 : 0;
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+              + pack_size(select)
+              + sizeof(limit)
+              + sizeof(sort_by_num)
+              + sizeof(max);
+
+    e::buffer* msg = e::buffer::create(sz);
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << select << limit << sort_by_num << max;
+    return msg;
+}
+
 END_HYPERDEX_NAMESPACE
+

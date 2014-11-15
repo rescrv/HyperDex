@@ -237,7 +237,7 @@ compare(const e::slice& lhs,
 }
 
 int
-datatype_string :: compare(const e::slice& lhs, const e::slice& rhs)
+datatype_string :: compare(const e::slice& lhs, const e::slice& rhs) const
 {
     return ::compare(lhs, rhs);
 }
