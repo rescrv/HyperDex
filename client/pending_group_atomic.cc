@@ -27,11 +27,11 @@
 
 // HyperDex
 #include "common/network_returncode.h"
-#include "client/pending_atomic_group.h"
+#include "client/pending_group_atomic.h"
 
-using hyperdex::pending_atomic_group;
+using hyperdex::pending_group_atomic;
 
-pending_atomic_group :: pending_atomic_group(uint64_t id,
+pending_group_atomic :: pending_group_atomic(uint64_t id,
                                  hyperdex_client_returncode& status, uint64_t& update_count)
     : pending_aggregation(id, status)
     , m_state(INITIALIZED), m_update_count(update_count)
@@ -39,18 +39,18 @@ pending_atomic_group :: pending_atomic_group(uint64_t id,
     m_update_count = 0;
 }
 
-pending_atomic_group :: ~pending_atomic_group() throw ()
+pending_group_atomic :: ~pending_group_atomic() throw ()
 {
 }
 
 bool
-pending_atomic_group :: can_yield()
+pending_group_atomic :: can_yield()
 {
     return m_state == DONE || m_state == FAILURE;
 }
 
 bool
-pending_atomic_group :: yield(hyperdex_client_returncode& status, e::error& err)
+pending_group_atomic :: yield(hyperdex_client_returncode& status, e::error& err)
 {
     status = HYPERDEX_CLIENT_SUCCESS;
     err = e::error();
@@ -60,7 +60,7 @@ pending_atomic_group :: yield(hyperdex_client_returncode& status, e::error& err)
 }
 
 void
-pending_atomic_group :: handle_sent_to(const server_id& sid,
+pending_group_atomic :: handle_sent_to(const server_id& sid,
                                  const virtual_server_id& vid)
 {
     pending_aggregation::handle_sent_to(sid, vid);
@@ -73,7 +73,7 @@ pending_atomic_group :: handle_sent_to(const server_id& sid,
 }
 
 void
-pending_atomic_group :: handle_failure(const server_id& si,
+pending_group_atomic :: handle_failure(const server_id& si,
                                  const virtual_server_id& vsi)
 {
     pending_aggregation::handle_failure(si, vsi);
@@ -85,7 +85,7 @@ pending_atomic_group :: handle_failure(const server_id& si,
 }
 
 bool
-pending_atomic_group :: handle_message(client* cl,
+pending_group_atomic :: handle_message(client* cl,
                                  const server_id& si,
                                  const virtual_server_id& vsi,
                                  network_msgtype mt,

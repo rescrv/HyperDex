@@ -27,7 +27,7 @@
 
 #include <e/strescape.h>
 
-#include "client/atomic_group_request.h"
+#include "client/group_atomic_request.h"
 #include "client/util.h"
 #include "client/constants.h"
 
@@ -44,12 +44,12 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
-atomic_group_request::atomic_group_request(client& cl_, const coordinator_link& coord_, const char* space_)
+group_atomic_request::group_atomic_request(client& cl_, const coordinator_link& coord_, const char* space_)
     :  group_request(cl_, coord_, space_), funcs()
 {
 }
 
-int atomic_group_request::prepare(const hyperdex_client_keyop_info& opinfo,
+int group_atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
                            const hyperdex_client_attribute_check* selection, size_t selection_sz,
                            const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
@@ -93,7 +93,7 @@ int atomic_group_request::prepare(const hyperdex_client_keyop_info& opinfo,
     return 0;
 }
 
-e::buffer* atomic_group_request::create_message(const hyperdex_client_keyop_info& opinfo)
+e::buffer* group_atomic_request::create_message(const hyperdex_client_keyop_info& opinfo)
 {
     // Currently not used
     std::vector<attribute_check> checks;

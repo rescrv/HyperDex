@@ -25,48 +25,36 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_pending_atomic_group_h_
-#define hyperdex_client_pending_atomic_group_h_
+#ifndef hyperdex_client_group_atomic_request_h_
+#define hyperdex_client_group_atomic_request_h_
 
-// HyperDex
-#include "namespace.h"
-#include "client/pending_aggregation.h"
+#include "hyperdex/client.h"
+#include "client/client.h"
+#include "client/group_request.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-class pending_atomic_group : public pending_aggregation
+// Use this prepare an atomic request
+// Can only be used once, i.e. create one for each funcall
+class group_atomic_request : public group_request
 {
-    public:
-        pending_atomic_group(uint64_t client_visible_id,
-                       hyperdex_client_returncode& status, uint64_t& update_count);
-        virtual ~pending_atomic_group() throw ();
+public:
+    group_atomic_request(client& cl_, const coordinator_link& coord_, const char* space_);
 
-    // return to client
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode& status, e::error& error);
+    // Prepare the funcall
+    int prepare(const hyperdex_client_keyop_info& opinfo,
+                const hyperdex_client_attribute_check* select, size_t select_sz,
+                const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                hyperdex_client_returncode& status);
 
-    // events
-    public:
-        virtual void handle_sent_to(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode& status,
-                                    e::error& error);
+    e::buffer* create_message(const hyperdex_client_keyop_info& opinfo);
 
-    private:
-        enum { INITIALIZED, SENT, RECV, DONE, FAILURE, YIELDED } m_state;
-
-        uint64_t& m_update_count;
+private:
+    std::vector<funcall> funcs;
 };
 
 END_HYPERDEX_NAMESPACE
 
-#endif // hyperdex_client_pending_atomic_h_
+#endif // header guard
+

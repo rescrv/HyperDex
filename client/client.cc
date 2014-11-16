@@ -52,7 +52,7 @@
 #include "common/network_msgtype.h"
 #include "common/serialization.h"
 #include "client/atomic_request.h"
-#include "client/atomic_group_request.h"
+#include "client/group_atomic_request.h"
 #include "client/group_del_request.h"
 #include "client/sorted_search_request.h"
 #include "client/search_describe_request.h"
@@ -61,7 +61,7 @@
 #include "client/client.h"
 #include "client/constants.h"
 #include "client/pending_atomic.h"
-#include "client/pending_atomic_group.h"
+#include "client/pending_group_atomic.h"
 #include "client/pending_count.h"
 #include "client/pending_get.h"
 #include "client/pending_get_partial.h"
@@ -385,7 +385,7 @@ client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
         return -1;
     }
 
-    atomic_group_request request(*this, m_coord, space);
+    group_atomic_request request(*this, m_coord, space);
     int res = request.prepare(*opinfo, selection, selection_sz, attrs, attrs_sz, mapattrs, mapattrs_sz, status);
 
     if(res < 0)
@@ -396,7 +396,7 @@ client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
     std::auto_ptr<e::buffer> msg(request.create_message(*opinfo));
 
     e::intrusive_ptr<pending_aggregation> op;
-    op = new pending_atomic_group(m_next_client_id++, status, update_count);
+    op = new pending_group_atomic(m_next_client_id++, status, update_count);
 
     return perform_aggregation(request.get_servers(), op, REQ_GROUP_ATOMIC, msg, status);
 }
