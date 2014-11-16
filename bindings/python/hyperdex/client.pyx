@@ -159,29 +159,40 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_put_if_not_exist(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_del(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_del(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_atomic_add(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
+    int64_t hyperdex_client_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_atomic_sub(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_atomic_mul(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_atomic_div(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_atomic_mod(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_mod(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_mod(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_atomic_and(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_and(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_and(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_atomic_or(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_or(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_or(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_atomic_xor(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_xor(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_xor(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_atomic_min(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_min(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_min(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_atomic_max(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_max(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_max(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_string_prepend(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_string_append(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_list_lpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
@@ -200,8 +211,11 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_cond_map_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_document_rename(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_document_rename(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_document_unset(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_document_unset(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_document_set(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_document_set(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
@@ -1489,20 +1503,25 @@ cdef class Client:
     def cond_del(self, bytes spacename, key, dict predicates):
         return self.async_cond_del(spacename, key, predicates).wait()
 
-    def async_atomic_add(self, bytes spacename, key, dict attributes):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_add, spacename, key, attributes)
-    def atomic_add(self, bytes spacename, key, dict attributes):
-        return self.async_atomic_add(spacename, key, attributes).wait()
-
     def async_group_atomic_add(self, bytes spacename, dict predicates, dict attributes):
         return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_add, spacename, predicates, attributes)
     def group_atomic_add(self, bytes spacename, dict predicates, dict attributes):
         return self.async_group_atomic_add(spacename, predicates, attributes).wait()
 
+    def async_atomic_add(self, bytes spacename, key, dict attributes):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_add, spacename, key, attributes)
+    def atomic_add(self, bytes spacename, key, dict attributes):
+        return self.async_atomic_add(spacename, key, attributes).wait()
+
     def async_cond_atomic_add(self, bytes spacename, key, dict predicates, dict attributes):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_add, spacename, key, predicates, attributes)
     def cond_atomic_add(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_atomic_add(spacename, key, predicates, attributes).wait()
+
+    def async_group_atomic_sub(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_sub, spacename, predicates, attributes)
+    def group_atomic_sub(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_atomic_sub(spacename, predicates, attributes).wait()
 
     def async_atomic_sub(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_sub, spacename, key, attributes)
@@ -1514,6 +1533,11 @@ cdef class Client:
     def cond_atomic_sub(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_atomic_sub(spacename, key, predicates, attributes).wait()
 
+    def async_group_atomic_mul(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_mul, spacename, predicates, attributes)
+    def group_atomic_mul(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_atomic_mul(spacename, predicates, attributes).wait()
+
     def async_atomic_mul(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_mul, spacename, key, attributes)
     def atomic_mul(self, bytes spacename, key, dict attributes):
@@ -1523,6 +1547,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_mul, spacename, key, predicates, attributes)
     def cond_atomic_mul(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_atomic_mul(spacename, key, predicates, attributes).wait()
+
+    def async_group_atomic_div(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_div, spacename, predicates, attributes)
+    def group_atomic_div(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_atomic_div(spacename, predicates, attributes).wait()
 
     def async_atomic_div(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_div, spacename, key, attributes)
@@ -1534,6 +1563,11 @@ cdef class Client:
     def cond_atomic_div(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_atomic_div(spacename, key, predicates, attributes).wait()
 
+    def async_group_atomic_mod(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_mod, spacename, predicates, attributes)
+    def group_atomic_mod(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_atomic_mod(spacename, predicates, attributes).wait()
+
     def async_atomic_mod(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_mod, spacename, key, attributes)
     def atomic_mod(self, bytes spacename, key, dict attributes):
@@ -1543,6 +1577,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_mod, spacename, key, predicates, attributes)
     def cond_atomic_mod(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_atomic_mod(spacename, key, predicates, attributes).wait()
+
+    def async_group_atomic_and(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_and, spacename, predicates, attributes)
+    def group_atomic_and(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_atomic_and(spacename, predicates, attributes).wait()
 
     def async_atomic_and(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_and, spacename, key, attributes)
@@ -1554,6 +1593,11 @@ cdef class Client:
     def cond_atomic_and(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_atomic_and(spacename, key, predicates, attributes).wait()
 
+    def async_group_atomic_or(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_or, spacename, predicates, attributes)
+    def group_atomic_or(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_atomic_or(spacename, predicates, attributes).wait()
+
     def async_atomic_or(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_or, spacename, key, attributes)
     def atomic_or(self, bytes spacename, key, dict attributes):
@@ -1563,6 +1607,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_or, spacename, key, predicates, attributes)
     def cond_atomic_or(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_atomic_or(spacename, key, predicates, attributes).wait()
+
+    def async_group_atomic_xor(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_xor, spacename, predicates, attributes)
+    def group_atomic_xor(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_atomic_xor(spacename, predicates, attributes).wait()
 
     def async_atomic_xor(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_xor, spacename, key, attributes)
@@ -1574,6 +1623,11 @@ cdef class Client:
     def cond_atomic_xor(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_atomic_xor(spacename, key, predicates, attributes).wait()
 
+    def async_group_atomic_min(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_min, spacename, predicates, attributes)
+    def group_atomic_min(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_atomic_min(spacename, predicates, attributes).wait()
+
     def async_atomic_min(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_min, spacename, key, attributes)
     def atomic_min(self, bytes spacename, key, dict attributes):
@@ -1583,6 +1637,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_min, spacename, key, predicates, attributes)
     def cond_atomic_min(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_atomic_min(spacename, key, predicates, attributes).wait()
+
+    def async_group_atomic_max(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_max, spacename, predicates, attributes)
+    def group_atomic_max(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_atomic_max(spacename, predicates, attributes).wait()
 
     def async_atomic_max(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_max, spacename, key, attributes)
@@ -1594,6 +1653,11 @@ cdef class Client:
     def cond_atomic_max(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_atomic_max(spacename, key, predicates, attributes).wait()
 
+    def async_group_string_prepend(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_string_prepend, spacename, predicates, attributes)
+    def group_string_prepend(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_string_prepend(spacename, predicates, attributes).wait()
+
     def async_string_prepend(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_string_prepend, spacename, key, attributes)
     def string_prepend(self, bytes spacename, key, dict attributes):
@@ -1603,6 +1667,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_prepend, spacename, key, predicates, attributes)
     def cond_string_prepend(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_string_prepend(spacename, key, predicates, attributes).wait()
+
+    def async_group_string_append(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_string_append, spacename, predicates, attributes)
+    def group_string_append(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_string_append(spacename, predicates, attributes).wait()
 
     def async_string_append(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_string_append, spacename, key, attributes)
@@ -1694,15 +1763,30 @@ cdef class Client:
     def cond_map_remove(self, bytes spacename, key, dict predicates, dict attributes):
         return self.async_cond_map_remove(spacename, key, predicates, attributes).wait()
 
+    def async_group_document_rename(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_document_rename, spacename, predicates, attributes)
+    def group_document_rename(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_document_rename(spacename, predicates, attributes).wait()
+
     def async_document_rename(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_document_rename, spacename, key, attributes)
     def document_rename(self, bytes spacename, key, dict attributes):
         return self.async_document_rename(spacename, key, attributes).wait()
 
+    def async_group_document_unset(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_document_unset, spacename, predicates, attributes)
+    def group_document_unset(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_document_unset(spacename, predicates, attributes).wait()
+
     def async_document_unset(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_document_unset, spacename, key, attributes)
     def document_unset(self, bytes spacename, key, dict attributes):
         return self.async_document_unset(spacename, key, attributes).wait()
+
+    def async_group_document_set(self, bytes spacename, dict predicates, dict attributes):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_document_set, spacename, predicates, attributes)
+    def group_document_set(self, bytes spacename, dict predicates, dict attributes):
+        return self.async_group_document_set(spacename, predicates, attributes).wait()
 
     def async_document_set(self, bytes spacename, key, dict attributes):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_document_set, spacename, key, attributes)

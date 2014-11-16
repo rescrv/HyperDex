@@ -592,21 +592,27 @@ Java_org_hyperdex_client_Client_async_1cond_1del(JNIEnv* env, jobject obj, jstri
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
-Java_org_hyperdex_client_Client_async_1atomic_1add(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
-{
-    return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_atomic_add, spacename, key, attributes);
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1group_1atomic_1add(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_atomic_add, spacename, predicates, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1atomic_1add(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_atomic_add, spacename, key, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1atomic_1add(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_atomic_add, spacename, key, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1atomic_1sub(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_atomic_sub, spacename, predicates, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -622,6 +628,12 @@ Java_org_hyperdex_client_Client_async_1cond_1atomic_1sub(JNIEnv* env, jobject ob
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1atomic_1mul(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_atomic_mul, spacename, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1atomic_1mul(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_atomic_mul, spacename, key, attributes);
@@ -631,6 +643,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1atomic_1mul(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_atomic_mul, spacename, key, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1atomic_1div(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_atomic_div, spacename, predicates, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -646,6 +664,12 @@ Java_org_hyperdex_client_Client_async_1cond_1atomic_1div(JNIEnv* env, jobject ob
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1atomic_1mod(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_atomic_mod, spacename, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1atomic_1mod(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_atomic_mod, spacename, key, attributes);
@@ -655,6 +679,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1atomic_1mod(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_atomic_mod, spacename, key, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1atomic_1and(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_atomic_and, spacename, predicates, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -670,6 +700,12 @@ Java_org_hyperdex_client_Client_async_1cond_1atomic_1and(JNIEnv* env, jobject ob
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1atomic_1or(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_atomic_or, spacename, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1atomic_1or(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_atomic_or, spacename, key, attributes);
@@ -679,6 +715,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1atomic_1or(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_atomic_or, spacename, key, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1atomic_1xor(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_atomic_xor, spacename, predicates, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -694,6 +736,12 @@ Java_org_hyperdex_client_Client_async_1cond_1atomic_1xor(JNIEnv* env, jobject ob
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1atomic_1min(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_atomic_min, spacename, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1atomic_1min(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_atomic_min, spacename, key, attributes);
@@ -703,6 +751,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1atomic_1min(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_atomic_min, spacename, key, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1atomic_1max(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_atomic_max, spacename, predicates, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -718,6 +772,12 @@ Java_org_hyperdex_client_Client_async_1cond_1atomic_1max(JNIEnv* env, jobject ob
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1string_1prepend(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_string_prepend, spacename, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1string_1prepend(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_string_prepend, spacename, key, attributes);
@@ -727,6 +787,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1string_1prepend(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_string_prepend, spacename, key, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1string_1append(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_string_append, spacename, predicates, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -838,15 +904,33 @@ Java_org_hyperdex_client_Client_async_1cond_1map_1remove(JNIEnv* env, jobject ob
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1document_1rename(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_document_rename, spacename, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1document_1rename(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_document_rename, spacename, key, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1document_1unset(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_document_unset, spacename, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1document_1unset(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_document_unset, spacename, key, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1group_1document_1set(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_document_set, spacename, predicates, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL

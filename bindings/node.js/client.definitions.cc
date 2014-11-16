@@ -637,21 +637,27 @@ HyperDexClient :: cond_del(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
-HyperDexClient :: atomic_add(const v8::Arguments& args)
-{
-    return asynccall__spacename_key_attributes__status(hyperdex_client_atomic_add, args);
-}
-
-v8::Handle<v8::Value>
 HyperDexClient :: group_atomic_add(const v8::Arguments& args)
 {
     return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_add, args);
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: atomic_add(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_attributes__status(hyperdex_client_atomic_add, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: cond_atomic_add(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_add, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_atomic_sub(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_sub, args);
 }
 
 v8::Handle<v8::Value>
@@ -667,6 +673,12 @@ HyperDexClient :: cond_atomic_sub(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_atomic_mul(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_mul, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: atomic_mul(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_atomic_mul, args);
@@ -676,6 +688,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_atomic_mul(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_mul, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_atomic_div(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_div, args);
 }
 
 v8::Handle<v8::Value>
@@ -691,6 +709,12 @@ HyperDexClient :: cond_atomic_div(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_atomic_mod(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_mod, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: atomic_mod(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_atomic_mod, args);
@@ -700,6 +724,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_atomic_mod(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_mod, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_atomic_and(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_and, args);
 }
 
 v8::Handle<v8::Value>
@@ -715,6 +745,12 @@ HyperDexClient :: cond_atomic_and(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_atomic_or(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_or, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: atomic_or(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_atomic_or, args);
@@ -724,6 +760,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_atomic_or(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_or, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_atomic_xor(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_xor, args);
 }
 
 v8::Handle<v8::Value>
@@ -739,6 +781,12 @@ HyperDexClient :: cond_atomic_xor(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_atomic_min(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_min, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: atomic_min(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_atomic_min, args);
@@ -748,6 +796,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_atomic_min(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_min, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_atomic_max(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_max, args);
 }
 
 v8::Handle<v8::Value>
@@ -763,6 +817,12 @@ HyperDexClient :: cond_atomic_max(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_string_prepend(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_string_prepend, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: string_prepend(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_string_prepend, args);
@@ -772,6 +832,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_string_prepend(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_prepend, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_string_append(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_string_append, args);
 }
 
 v8::Handle<v8::Value>
@@ -883,15 +949,33 @@ HyperDexClient :: cond_map_remove(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_document_rename(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_document_rename, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: document_rename(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_document_rename, args);
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_document_unset(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_document_unset, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: document_unset(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_document_unset, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_document_set(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_document_set, args);
 }
 
 v8::Handle<v8::Value>

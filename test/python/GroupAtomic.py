@@ -39,4 +39,10 @@ assertEquals(c.get('kv', 'k2')['v'], Document({'a': 'b', 'c': {'d' : 1, 'e': 'f'
 assertEquals(c.group_atomic_add('kv', {'v.a':'b'},  {'v.c.d': 20}), 2)
 assertEquals(c.get('kv', 'k1')['v'], Document({'a': 'b', 'c': {'d' : 21, 'e': 'f', 'g': -2 }}))
 assertEquals(c.get('kv', 'k2')['v'], Document({'a': 'b', 'c': {'d' : 21, 'e': 'f', 'g': -2 }}))
+assertEquals(c.group_atomic_mul('kv', {'v.a':'b'},  {'v.c.d': 2.5}), 2)
+assertEquals(c.get('kv', 'k1')['v'], Document({'a': 'b', 'c': {'d' : 52.5, 'e': 'f', 'g': -2 }}))
+assertEquals(c.get('kv', 'k2')['v'], Document({'a': 'b', 'c': {'d' : 52.5, 'e': 'f', 'g': -2 }}))
+assertEquals(c.group_atomic_div('kv', {'v.a':'b'},  {'v.c.d': -21}), 2)
+assertEquals(c.get('kv', 'k1')['v'], Document({'a': 'b', 'c': {'d' : -2.5, 'e': 'f', 'g': -2 }}))
+assertEquals(c.get('kv', 'k2')['v'], Document({'a': 'b', 'c': {'d' : -2.5, 'e': 'f', 'g': -2 }}))
 

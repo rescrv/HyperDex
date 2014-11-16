@@ -34,7 +34,7 @@ cond_atomic_sub,         false, true,  false,  hyperdex::FUNC_NUM_SUB
 group_atomic_mul,        false, true,  false,  hyperdex::FUNC_NUM_MUL
 atomic_mul,              false, true,  false,  hyperdex::FUNC_NUM_MUL
 cond_atomic_mul,         false, true,  false,  hyperdex::FUNC_NUM_MUL
-group_atomic_div,        false, true,  false,  hyperdex::FUNC_NUM_DIB
+group_atomic_div,        false, true,  false,  hyperdex::FUNC_NUM_DIV
 atomic_div,              false, true,  false,  hyperdex::FUNC_NUM_DIV
 cond_atomic_div,         false, true,  false,  hyperdex::FUNC_NUM_DIV
 group_atomic_mod,        false, true,  false,  hyperdex::FUNC_NUM_MOD
@@ -82,8 +82,8 @@ group_document_rename,   false, true,  false,  hyperdex::FUNC_DOC_RENAME
 document_rename,         false, true,  false,  hyperdex::FUNC_DOC_RENAME
 group_document_set,      false, true,  false,  hyperdex::FUNC_DOC_SET
 document_set,            false, true,  false,  hyperdex::FUNC_DOC_SET
+group_document_unset,    false, true,  false,  hyperdex::FUNC_DOC_UNSET
 document_unset,          false, true,  false,  hyperdex::FUNC_DOC_UNSET
-document_unset,            false, true,  false,  hyperdex::FUNC_DOC_UNSET
 cond_map_atomic_add,     false, true,  false,  hyperdex::FUNC_NUM_ADD
 map_atomic_sub,          false, true,  false,  hyperdex::FUNC_NUM_SUB
 cond_map_atomic_sub,     false, true,  false,  hyperdex::FUNC_NUM_SUB
