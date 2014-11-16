@@ -752,8 +752,8 @@ client :: prepare_funcs(const char* space, const schema& sc,
 
             if(!bson)
             {
-                //TODO parse error
-                ERROR(WRONGTYPE) << "invalid document \"" << e::strescape(attr) << "\"";
+                ERROR(WRONGTYPE) << "invalid document for attribute \"" << e::strescape(attr) << "\": " << error.message;
+                return i;
             }
 
             size_t len = bson->len;

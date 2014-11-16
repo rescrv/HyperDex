@@ -135,15 +135,17 @@
 		<Unit filename="bindings/ruby/prototypes.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="client/atomic_group_request.cc" />
-		<Unit filename="client/atomic_group_request.h" />
 		<Unit filename="client/atomic_request.cc" />
 		<Unit filename="client/atomic_request.h" />
 		<Unit filename="client/c.cc" />
 		<Unit filename="client/client.cc" />
 		<Unit filename="client/client.h" />
 		<Unit filename="client/constants.h" />
+		<Unit filename="client/count_request.cc" />
+		<Unit filename="client/count_request.h" />
 		<Unit filename="client/datastructures.cc" />
+		<Unit filename="client/group_atomic_request.cc" />
+		<Unit filename="client/group_atomic_request.h" />
 		<Unit filename="client/group_del_request.cc" />
 		<Unit filename="client/group_del_request.h" />
 		<Unit filename="client/group_request.cc" />
@@ -156,14 +158,14 @@
 		<Unit filename="client/pending_aggregation.h" />
 		<Unit filename="client/pending_atomic.cc" />
 		<Unit filename="client/pending_atomic.h" />
-		<Unit filename="client/pending_atomic_group.cc" />
-		<Unit filename="client/pending_atomic_group.h" />
 		<Unit filename="client/pending_count.cc" />
 		<Unit filename="client/pending_count.h" />
 		<Unit filename="client/pending_get.cc" />
 		<Unit filename="client/pending_get.h" />
 		<Unit filename="client/pending_get_partial.cc" />
 		<Unit filename="client/pending_get_partial.h" />
+		<Unit filename="client/pending_group_atomic.cc" />
+		<Unit filename="client/pending_group_atomic.h" />
 		<Unit filename="client/pending_group_del.cc" />
 		<Unit filename="client/pending_group_del.h" />
 		<Unit filename="client/pending_search.cc" />
@@ -174,6 +176,7 @@
 		<Unit filename="client/pending_sorted_search.h" />
 		<Unit filename="client/request.cc" />
 		<Unit filename="client/request.h" />
+		<Unit filename="client/search_describe_request.cc" />
 		<Unit filename="client/search_request.cc" />
 		<Unit filename="client/sorted_search_request.cc" />
 		<Unit filename="client/sorted_search_request.h" />
