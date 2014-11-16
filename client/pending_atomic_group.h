@@ -38,7 +38,7 @@ class pending_atomic_group : public pending_aggregation
 {
     public:
         pending_atomic_group(uint64_t client_visible_id,
-                       hyperdex_client_returncode& status);
+                       hyperdex_client_returncode& status, uint64_t& update_count);
         virtual ~pending_atomic_group() throw ();
 
     // return to client
@@ -62,7 +62,9 @@ class pending_atomic_group : public pending_aggregation
                                     e::error& error);
 
     private:
-        enum { INITIALIZED, SENT, RECV, YIELDED } m_state;
+        enum { INITIALIZED, SENT, RECV, DONE, FAILURE, YIELDED } m_state;
+
+        uint64_t& m_update_count;
 };
 
 END_HYPERDEX_NAMESPACE

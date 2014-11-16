@@ -34,30 +34,31 @@ assert (numCalls * addGap) < numDocs
 
 # Setup
 db = HyperDatabase(sys.argv[1], int(sys.argv[2]))
+assert addGap > 0
+assert (numCalls * addGap) < numDocs
+
+# Setup
+db = HyperDatabase(sys.argv[1], int(sys.argv[2]))
 
 # Run
-for n in range(500, 10000, 250):
+for n in range(100, 1000, 100):
         pendingInserts = []
 
         for i in range(numDocs):
-                p = db.bench.async_insert(createDoc('myval' + str(i), n))
+                p = db.bench.insert(createDoc('myval' + str(i), n))
                 pendingInserts.append(p)
 
-        while len(pendingInserts) > 0:
-                pendingInserts[0].wait()
-                pendingInserts.pop(0)
-        
-        time.sleep(1)
-        
+        time.sleep(5)
+
         pendingOps = []
 
         bench = Benchmark()
         bench.start()
-        
+
         for i in range(numCalls):
                 p = db.bench.async_atomic_add('myval' + str(i*addGap), {'elem50' : 10})
                 pendingOps.append(p)
-        
+
         while len(pendingOps) > 0:
                 pendingOps[0].wait()
                 pendingOps.pop(0)
@@ -68,3 +69,5 @@ for n in range(500, 10000, 250):
         print str(n) + ',' + str(elapsed)
 
         db.bench.clear()
+        time.sleep(5)
+

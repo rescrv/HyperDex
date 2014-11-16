@@ -156,7 +156,7 @@ def generate_client_c_wrapper(x):
     elif x.name == 'group_del':
         func += '    return cl->group_del(space, checks, checks_sz, *status);\n'
     elif x.name == 'count':
-        func += '    return cl->count(space, checks, checks_sz, *status, count);\n'
+        func += '    return cl->count(space, checks, checks_sz, *status, *count);\n'
     elif 'group_' in x.name:
         args = ('opinfo', 'space', )
         if bindings.Predicates in x.args_in:
@@ -171,7 +171,7 @@ def generate_client_c_wrapper(x):
             args += ('mapattrs', 'mapattrs_sz')
         else:
             args += ('NULL', '0')
-        args += ('*status',)
+        args += ('*status', '*count')
         func += '    const hyperdex_client_keyop_info* opinfo;\n'
         func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
         func += '    return cl->perform_group_funcall('

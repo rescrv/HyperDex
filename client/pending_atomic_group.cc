@@ -32,10 +32,11 @@
 using hyperdex::pending_atomic_group;
 
 pending_atomic_group :: pending_atomic_group(uint64_t id,
-                                 hyperdex_client_returncode& status)
+                                 hyperdex_client_returncode& status, uint64_t& update_count)
     : pending_aggregation(id, status)
-    , m_state(INITIALIZED)
+    , m_state(INITIALIZED), m_update_count(update_count)
 {
+    m_update_count = 0;
 }
 
 pending_atomic_group :: ~pending_atomic_group() throw ()
@@ -45,7 +46,7 @@ pending_atomic_group :: ~pending_atomic_group() throw ()
 bool
 pending_atomic_group :: can_yield()
 {
-    return this->aggregation_done() && m_state == RECV;
+    return m_state == DONE || m_state == FAILURE;
 }
 
 bool
@@ -59,17 +60,24 @@ pending_atomic_group :: yield(hyperdex_client_returncode& status, e::error& err)
 }
 
 void
-pending_atomic_group :: handle_sent_to(const server_id&,
-                                 const virtual_server_id&)
+pending_atomic_group :: handle_sent_to(const server_id& sid,
+                                 const virtual_server_id& vid)
 {
-    assert(m_state == INITIALIZED);
-    m_state = SENT;
+    pending_aggregation::handle_sent_to(sid, vid);
+
+    // We could already have received something
+    if(m_state == INITIALIZED)
+    {
+        m_state = SENT;
+    }
 }
 
 void
 pending_atomic_group :: handle_failure(const server_id& si,
                                  const virtual_server_id& vsi)
 {
+    pending_aggregation::handle_failure(si, vsi);
+
     assert(m_state == SENT);
     m_state = RECV;
     PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
@@ -77,7 +85,7 @@ pending_atomic_group :: handle_failure(const server_id& si,
 }
 
 bool
-pending_atomic_group :: handle_message(client*,
+pending_atomic_group :: handle_message(client* cl,
                                  const server_id& si,
                                  const virtual_server_id& vsi,
                                  network_msgtype mt,
@@ -86,71 +94,36 @@ pending_atomic_group :: handle_message(client*,
                                  hyperdex_client_returncode& status,
                                  e::error& err)
 {
-    m_state = RECV;
-    status = HYPERDEX_CLIENT_SUCCESS;
-    err = e::error();
+    bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
+    assert(handled);
 
     if (mt != RESP_GROUP_ATOMIC)
     {
-        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to ATOMIC with " << mt;
+        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to GROUP_ATOMIC with " << mt;
         return true;
     }
 
-    std::cout << "RESPONSE" << std::endl;
-
-    uint16_t response;
+    uint64_t response;
     up = up >> response;
+
+    // Remember how many fields we updated
+    m_update_count += response;
 
     if (up.error())
     {
         PENDING_ERROR(SERVERERROR) << "communication error: server "
                                    << vsi << " sent corrupt message="
                                    << msg->as_slice().hex()
-                                   << " in response to an ATOMIC";
+                                   << " in response to a GROUP_ATOMIC";
         return true;
     }
 
-    switch (static_cast<network_returncode>(response))
+    if(this->aggregation_done())
     {
-        case NET_SUCCESS:
-            set_status(HYPERDEX_CLIENT_SUCCESS);
-            set_error(e::error());
-            return true;
-        case NET_NOTFOUND:
-            set_status(HYPERDEX_CLIENT_NOTFOUND);
-            set_error(e::error());
-            return true;
-        case NET_CMPFAIL:
-            set_status(HYPERDEX_CLIENT_CMPFAIL);
-            set_error(e::error());
-            return true;
-        case NET_BADDIMSPEC:
-            PENDING_ERROR(SERVERERROR) << "server " << si
-                                       << " reports that our request was invalid;"
-                                       << " check its log for details";
-            return true;
-        case NET_NOTUS:
-            PENDING_ERROR(RECONFIGURE) << "server " << si
-                                       << " reports that it is no longer reponsible"
-                                       << " for the requested object";
-            return true;
-        case NET_OVERFLOW:
-            PENDING_ERROR(OVERFLOW) << "server " << si
-                                    << " reports that the operation would"
-                                    << " cause a number overflow";
-            return true;
-        case NET_READONLY:
-            PENDING_ERROR(READONLY) << "cluster is in read-only mode";
-            return true;
-        case NET_SERVERERROR:
-            PENDING_ERROR(SERVERERROR) << "server " << si
-                                       << " reports a server error;"
-                                       << " check its log for details";
-            return true;
-        default:
-            PENDING_ERROR(SERVERERROR) << "server " << si
-                                       << " returned non-sensical returncode"
-                                       << response;
-            return true;
+        m_state = DONE;
+        set_status(HYPERDEX_CLIENT_SUCCESS);
+        set_error(e::error());
     }
+
+    return true;
 }

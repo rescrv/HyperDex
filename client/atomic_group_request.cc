@@ -95,11 +95,15 @@ int atomic_group_request::prepare(const hyperdex_client_keyop_info& opinfo,
 
 e::buffer* atomic_group_request::create_message(const hyperdex_client_keyop_info& opinfo)
 {
+    // Currently not used
+    std::vector<attribute_check> checks;
+
     std::stable_sort(select.begin(), select.end());
     std::stable_sort(funcs.begin(), funcs.end());
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + sizeof(uint8_t)
               + pack_size(select)
+              + sizeof(uint8_t)
+              + pack_size(checks)
               + pack_size(funcs);
 
     e::buffer *msg = e::buffer::create(sz);
@@ -107,7 +111,7 @@ e::buffer* atomic_group_request::create_message(const hyperdex_client_keyop_info
                   | (opinfo.fail_if_found ? 2 : 0)
                   | (opinfo.erase ? 0 : 128);
     msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ)
-        << flags << select << funcs;
+        << select << flags << checks << funcs;
 
     return msg;
 }

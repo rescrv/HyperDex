@@ -211,7 +211,7 @@ hyperdex_ruby_client_asynccall__spacename_key_predicates__status(int64_t (*f)(st
 }
 
 static VALUE
-hyperdex_ruby_client_asynccall__spacename_predicates_attributes__status(int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_attribute* attrs, size_t attrs_sz, enum hyperdex_client_returncode* status), VALUE self, VALUE spacename, VALUE predicates, VALUE attributes)
+hyperdex_ruby_client_asynccall__spacename_predicates_attributes__status_count(int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_attribute* attrs, size_t attrs_sz, enum hyperdex_client_returncode* status, uint64_t* count), VALUE self, VALUE spacename, VALUE predicates, VALUE attributes)
 {
     VALUE op;
     const char* in_space;
@@ -228,14 +228,14 @@ hyperdex_ruby_client_asynccall__spacename_predicates_attributes__status(int64_t 
     hyperdex_ruby_client_convert_spacename(o->arena, spacename, &in_space);
     hyperdex_ruby_client_convert_predicates(o->arena, predicates, &in_checks, &in_checks_sz);
     hyperdex_ruby_client_convert_attributes(o->arena, attributes, &in_attrs, &in_attrs_sz);
-    o->reqid = f(client, in_space, in_checks, in_checks_sz, in_attrs, in_attrs_sz, &o->status);
+    o->reqid = f(client, in_space, in_checks, in_checks_sz, in_attrs, in_attrs_sz, &o->status, &o->count);
 
     if (o->reqid < 0)
     {
         hyperdex_ruby_client_throw_exception(o->status, hyperdex_client_error_message(client));
     }
 
-    o->encode_return = hyperdex_ruby_client_deferred_encode_status;
+    o->encode_return = hyperdex_ruby_client_deferred_encode_status_count;
     rb_hash_aset(rb_iv_get(self, "ops"), LONG2NUM(o->reqid), op);
     rb_iv_set(self, "tmp", Qnil);
     return op;
@@ -550,7 +550,7 @@ hyperdex_ruby_client_wait_atomic_add(VALUE self, VALUE spacename, VALUE key, VAL
 static VALUE
 hyperdex_ruby_client_group_atomic_add(VALUE self, VALUE spacename, VALUE predicates, VALUE attributes)
 {
-    return hyperdex_ruby_client_asynccall__spacename_predicates_attributes__status(hyperdex_client_group_atomic_add, self, spacename, predicates, attributes);
+    return hyperdex_ruby_client_asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_add, self, spacename, predicates, attributes);
 }
 VALUE
 hyperdex_ruby_client_wait_group_atomic_add(VALUE self, VALUE spacename, VALUE predicates, VALUE attributes)

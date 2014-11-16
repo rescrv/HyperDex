@@ -37,6 +37,8 @@ pending_count :: pending_count(uint64_t id,
     , m_count(count)
     , m_done(false)
 {
+    m_count = 0;
+
     set_status(HYPERDEX_CLIENT_SUCCESS);
     set_error(e::error());
 }

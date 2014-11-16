@@ -883,14 +883,16 @@ daemon :: process_req_group_atomic(server_id from,
 {
     uint64_t nonce;
     std::vector<attribute_check> checks;
+    up = up >> nonce >> checks;
 
-    if ((up >> nonce >> checks).error())
+    if (up.error())
     {
         LOG(WARNING) << "unpack of REQ_GROUP_ATOMIC failed; here's some hex:  " << msg->hex();
         return;
     }
 
-    e::slice sl("\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9);
+    // Only forward the actual atomic operation
+    e::slice sl = up.as_slice();
     m_sm.group_keyop(from, vto, nonce, &checks, REQ_ATOMIC, sl, RESP_GROUP_ATOMIC);
 }
 
@@ -990,6 +992,7 @@ daemon :: process_req_group_del(server_id from,
         return;
     }
 
+    // Encode a keychange with the erase bit set to true
     e::slice sl("\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9);
     m_sm.group_keyop(from, vto, nonce, &checks, REQ_ATOMIC, sl, RESP_GROUP_DEL);
 }

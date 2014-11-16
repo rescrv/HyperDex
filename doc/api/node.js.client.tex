@@ -225,7 +225,7 @@ atomic_add(spacename, key, attributes, function (success, err) {})
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-group_atomic_add(spacename, predicates, attributes, function (success, err) {})
+group_atomic_add(spacename, predicates, attributes, function (count, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -238,7 +238,7 @@ group_atomic_add(spacename, predicates, attributes, function (success, err) {})
 \end{itemize}
 
 \paragraph{Returns:}
-\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak

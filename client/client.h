@@ -88,7 +88,7 @@ class client
                           hyperdex_client_returncode& status);
         int64_t count(const char* space,
                       const hyperdex_client_attribute_check* checks, size_t checks_sz,
-                      hyperdex_client_returncode& status, uint64_t* result);
+                      hyperdex_client_returncode& status, uint64_t& result);
         // general keyop call
         int64_t perform_funcall(const hyperdex_client_keyop_info* opinfo,
                                 const char* space, const char* key, size_t key_sz,
@@ -101,7 +101,8 @@ class client
                           const char* space, const hyperdex_client_attribute_check* selection, size_t selections_sz,
                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                           const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                          hyperdex_client_returncode& status);
+                          hyperdex_client_returncode& status,
+                          uint64_t &update_count);
         // looping/polling
         int64_t loop(int timeout, hyperdex_client_returncode& status);
         int poll();

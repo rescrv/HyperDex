@@ -265,7 +265,7 @@ HyperDexClient :: asynccall__spacename_key_predicates__status(int64_t (*f)(struc
 }
 
 v8::Handle<v8::Value>
-HyperDexClient :: asynccall__spacename_predicates_attributes__status(int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_attribute* attrs, size_t attrs_sz, enum hyperdex_client_returncode* status), const v8::Arguments& args)
+HyperDexClient :: asynccall__spacename_predicates_attributes__status_count(int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_attribute* attrs, size_t attrs_sz, enum hyperdex_client_returncode* status, uint64_t* count), const v8::Arguments& args)
 {
     v8::HandleScope scope;
     v8::Local<v8::Object> client_obj = args.This();
@@ -291,7 +291,7 @@ HyperDexClient :: asynccall__spacename_predicates_attributes__status(int64_t (*f
     size_t in_attrs_sz;
     v8::Local<v8::Value> attributes = args[2];
     if (!op->convert_attributes(attributes, &in_attrs, &in_attrs_sz)) return scope.Close(v8::Undefined());
-    op->reqid = f(client->client(), in_space, in_checks, in_checks_sz, in_attrs, in_attrs_sz, &op->status);
+    op->reqid = f(client->client(), in_space, in_checks, in_checks_sz, in_attrs, in_attrs_sz, &op->status, &op->count);
 
     if (op->reqid < 0)
     {
@@ -299,7 +299,7 @@ HyperDexClient :: asynccall__spacename_predicates_attributes__status(int64_t (*f
         return scope.Close(v8::Undefined());
     }
 
-    op->encode_return = &Operation::encode_asynccall_status;
+    op->encode_return = &Operation::encode_asynccall_status_count;
     client->add(op->reqid, op);
     return scope.Close(v8::Undefined());
 }
@@ -645,7 +645,7 @@ HyperDexClient :: atomic_add(const v8::Arguments& args)
 v8::Handle<v8::Value>
 HyperDexClient :: group_atomic_add(const v8::Arguments& args)
 {
-    return asynccall__spacename_predicates_attributes__status(hyperdex_client_group_atomic_add, args);
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_atomic_add, args);
 }
 
 v8::Handle<v8::Value>

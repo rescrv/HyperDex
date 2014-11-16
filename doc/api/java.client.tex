@@ -483,7 +483,7 @@ public Deferred async_atomic_add(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Boolean group_atomic_add(
+public Long group_atomic_add(
         String spacename,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
@@ -500,7 +500,7 @@ public Boolean group_atomic_add(
 \end{itemize}
 
 \paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_asynccall__status}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
 
 \pagebreak
 \subsubsection{\code{async\_group\_atomic\_add}}
@@ -527,7 +527,7 @@ public Deferred async_group_atomic_add(
 \end{itemize}
 
 \paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
 
 \paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_add}.
 

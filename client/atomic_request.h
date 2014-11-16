@@ -39,6 +39,7 @@ class atomic_request : public request
 {
 public:
     atomic_request(client& cl_, const coordinator_link& coord_, const char* space_);
+    ~atomic_request() {};
 
     // Returns HYPERDEX_SUCCESS if the key is valid
     hyperdex_client_returncode validate_key(const e::slice& key) const;

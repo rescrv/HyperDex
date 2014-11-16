@@ -361,12 +361,13 @@ hyperdex_client_group_atomic_add(struct hyperdex_client* _cl,
                                  const char* space,
                                  const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
                                  const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status)
+                                 enum hyperdex_client_returncode* status,
+                                 uint64_t* count)
 {
     C_WRAP_EXCEPT(
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_add), strlen(XSTR(group_atomic_add)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, *status);
+    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, *status, *count);
     );
 }
 
@@ -1384,7 +1385,7 @@ hyperdex_client_count(struct hyperdex_client* _cl,
                       uint64_t* count)
 {
     C_WRAP_EXCEPT(
-    return cl->count(space, checks, checks_sz, *status, count);
+    return cl->count(space, checks, checks_sz, *status, *count);
     );
 }
 

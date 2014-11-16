@@ -349,7 +349,7 @@ int64_t
 client :: count(const char* space,
                 const hyperdex_client_attribute_check* selection, size_t selection_sz,
                 hyperdex_client_returncode& status,
-                uint64_t* result)
+                uint64_t& result)
 {
     if (!maintain_coord_connection(status))
     {
@@ -367,7 +367,7 @@ client :: count(const char* space,
     std::auto_ptr<e::buffer> msg(request.create_message());
 
     e::intrusive_ptr<pending_aggregation> op;
-    op = new pending_count(m_next_client_id++, status, *result);
+    op = new pending_count(m_next_client_id++, status, result);
 
     return perform_aggregation(request.get_servers(), op, REQ_COUNT, msg, status);
 }
@@ -377,7 +377,8 @@ client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
                           const char* space, const hyperdex_client_attribute_check* selection, size_t selection_sz,
                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                           const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                          hyperdex_client_returncode& status)
+                          hyperdex_client_returncode& status,
+                          uint64_t &update_count)
 {
     if (!maintain_coord_connection(status))
     {
@@ -395,7 +396,7 @@ client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
     std::auto_ptr<e::buffer> msg(request.create_message(*opinfo));
 
     e::intrusive_ptr<pending_aggregation> op;
-    op = new pending_atomic_group(m_next_client_id++, status);
+    op = new pending_atomic_group(m_next_client_id++, status, update_count);
 
     return perform_aggregation(request.get_servers(), op, REQ_GROUP_ATOMIC, msg, status);
 }
