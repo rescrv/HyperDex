@@ -1,34 +1,35 @@
 \chapter{Authorization}
 \label{chap:auth}
 
-In previous chapters, we developed applications that have complete
-access to all data stored within HyperDex.  For some applications, the stored
-data is sensitive, and should be protected against unathorized reads and writes.
-The compromise of a single web-facing client, for instance, should not allow the 
+In previous chapters, we developed applications that have complete access to all
+data stored within HyperDex.  For some applications, the stored data is
+sensitive, and should be protected against unauthorized reads and writes.  The
+compromise of a single web-facing client, for instance, should not allow the
 attacker to access all of the database.
 
 HyperDex provides a fine-grained authorization mechanism that enables clients to
-be restricted.  Authorization in HyperDex uses macaroons, a new
-decentralized authorization framework developed within Google for use in
-distributed systems. In particular, macaroons enable a system administrator
-to enforce security policies per object, as opposed to per table or per database.
-This ensures that a client compromise does not lead to loss of the entire database.
-Further, macaroons are very flexible and expressive, able to capture such security
+be restricted.  Authorization in HyperDex uses macaroons, a new decentralized
+authorization framework developed within Google for use in distributed systems.
+In particular, macaroons enable an application developer to enforce security
+policies per object, as opposed to per table or per database.  This ensures that
+a client compromise does not lead to loss of the entire database.  Further,
+macaroons are very flexible and expressive, able to capture such security
 policies as ``allow access to this object only if the client is accessing it on
 behalf of an employee, and only between the hours of 9am and 5pm.'' Finally,
-macaroons scale well and can integrate external authentication mechanisms naturallly.
+macaroons scale well and can integrate external authentication mechanisms
+naturally.
 
-Let's go through a quick tutorial that demonstrates the use and power of macaroons. 
-We'll start slow, show you some familiar operations, and build up to an example
-towards the end where we express an interesting, rich security policy that can 
-only be expressed using Macaroons. 
+Let's go through a quick tutorial that demonstrates the use and power of
+macaroons.  We'll start slow, show you some familiar operations, and build up to
+an example towards the end where we express an interesting, rich security policy
+that can only be expressed using Macaroons.
 
 \section{Setup}
 \label{sec:documents:setup}
 
 As in the previous chapters, the first step is to deploy the cluster and connect
-a client.  The cluster setup below is similar to the previous chapters, so if you
-have a running cluster, you can skip to the space creation step.
+a client.  The cluster setup below is similar to the previous chapters, so if
+you have a running cluster, you can skip to the space creation step.
 
 First, we launch and initialize the coordinator:
 
@@ -43,7 +44,7 @@ hyperdex daemon -f --listen=127.0.0.1 --listen-port=2012 \
                    --coordinator=127.0.0.1 --coordinator-port=1982 --data=/path/to/data
 \end{consolecode}
 
-We now have a HyperDex cluster ready to serve our data.  Now, we create a space 
+We now have a HyperDex cluster ready to serve our data.  Now, we create a space
 and declare that we will be using macaroons.
 
 % Bank account application
@@ -63,8 +64,8 @@ True
 >>> c = hyperdex.client.Client('127.0.0.1', 1982)
 \end{pythoncode}
 
-The added statement, ``with authorization,'' indicates to HyperDex
-that we wish to have Macaroons enabled for this space. 
+The added statement, ``with authorization,'' indicates to HyperDex that we wish
+to have Macaroons enabled for this space.
 
 Now that the space is ready, let's create some objects.
 
@@ -78,41 +79,43 @@ granted unfettered access to the object, as if they created it.
 % Create a bank account for John Smith
 \begin{pythoncode}
 >>> SECRET = 'super secret password'
->>> KEY = 'some key'
->>> c.put('accounts', key, {'name': 'John Smith', 'balance': 10}, secret=SECRET)
+>>> account = 'account number of john smith'
+>>> c.put('accounts', account, {'name': 'John Smith', 'balance': 10}, secret=SECRET)
 True
 \end{pythoncode}
 
-The secret functions very much like a password for the object, and is forever associated with that object.
-Any application that tries to read or write the object that does not supply a macaroon that contains the secret 
-will be denied with an error message reporting that the request was unauthorized.
+The secret functions very much like a password for the object, and is forever
+associated with that object.  Any application that tries to read or write the
+object that does not supply a macaroon derived from the secret will be denied
+with an error message reporting that the request was unauthorized.
 
 % You cannot get the bank account without authorization
 \begin{pythoncode}
->>> c.get('accounts', key)
+>>> c.get('accounts', account)
 Traceback (most recent call last):
-HyperDexClientException: HyperDexClientException: server ... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
+... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
 \end{pythoncode}
 
 % If you provide authorization, you can get the object
 To access the object, the application must present a macaroon that proves to
-HyperDex that the request is authorized.  Such a macaroon is called a {\em discharge macaroon}. 
+HyperDex that the request is authorized.  Such a macaroon is called a {\em
+target macaroon}.
 
-There are two ways to obtain a discharge macaroon. The simplest is to have
-someone else, typically a server, hand one over to the client. 
-Another way is to create a discharge macaroon out of the thin air by specifying the secret. 
+There are two ways to obtain a target macaroon. The simplest is to have someone
+else, typically a server, hand one over to the client.  Another way is to create
+a discharge macaroon out of the thin air by specifying the secret.
 
 Let's do the latter, and create a macaroon from scratch:
 
 % Start by creating a macaroon
 \begin{pythoncode}
 >>> import macaroons
->>> M = macaroons.create('account key', SECRET, '')
+>>> M = macaroons.create('account number', SECRET, '')
 >>> token = M.serialize()
 \end{pythoncode}
 
 This macaroon provides full access to John Smith's account, and may be used to
-read the account information or update the account balance.  
+read the account information or update the account balance.
 
 Now that we have a macaroon that proves that we possess the secret, we can use
 it to gain access to the object:
@@ -120,50 +123,79 @@ it to gain access to the object:
 % Now we can do a Get
 % Or alter the bank account balance
 \begin{pythoncode}
->>> c.get('accounts', key, auth=[token])
+>>> c.get('accounts', account, auth=[token])
 {'name': 'John Smith', 'balance': 10}
->>> c.atomic_add('accounts', key, {'balance': 5}, auth=[token])
+>>> c.atomic_add('accounts', account, {'balance': 5}, auth=[token])
 True
->>> c.get('accounts', key, auth=[token])
+>>> c.get('accounts', account, auth=[token])
 {'name': 'John Smith', 'balance': 15}
 \end{pythoncode}
 
 While this basic example shows how to use macaroons, it doesn't fully exploit
-their power. The true power of macaroons stems
-from the ability to embed {\em caveats} to discharge macaroons. A caveat is essentially
-a restriction to be enforced at the point of call. 
+their power. The true power of macaroons stems from the ability to embed {\em
+caveats} into macaroons. A caveat is essentially a restriction on what the
+macaroon authorizes.
 
-For instance, in our running example, we might want to prohibit the clients
-from altering the account balance, while enabling them to read it. We can
-easily accomplish this macaroons:
+For instance, in our running example, we might want to prohibit the clients from
+altering the account balance, while enabling them to read it. We can easily
+accomplish this with macaroons:
 
-% If we want to give access to something like Mint.com, we could give them
-% "token", but that's dangerous!  It allows them to do everything to the bank
-% balance.  Let's give them a restricted token
 \begin{pythoncode}
->>> M = macaroons.create('account key', SECRET, '')
+>>> M = macaroons.create('account number', SECRET, '')
 >>> M = M.add_first_party_caveat('op = read')
 >>> token = M.serialize()
 \end{pythoncode}
 
-This new macaron has the caveat that it is useful solely for read operations. 
+This new macaroon has the caveat that it is useful solely for read operations.
 Attempts to write with this macaroon will fail, as desired:
 
 % We can read the balance just fine
 % Writes are unauthorized at the HyperDex level
 \begin{pythoncode}
->>> c.get('accounts', key, auth=[token])
+>>> c.get('accounts', account, auth=[token])
 {'name': 'John Smith', 'balance': 15}
->>> c.atomic_add('accounts', key, {'balance': 5}, auth=[token])
+>>> c.atomic_add('accounts', account, {'balance': 5}, auth=[token])
 Traceback (most recent call last):
-HyperDexClientException: HyperDexClientException: server ... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
+... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
 \end{pythoncode}
 
+This new read-only token is valid so long as it exists in the client's
+possession.  Using caveats, we can add an additional restriction that expires
+the token one minute into the future.  After one minute passes, the token will
+become invalid, and any authorization attempts will fail.
+
+% Now try it (it'll be dead after 15s)
+\begin{pythoncode}
+>>> M = macaroons.create('account number', SECRET, '')
+>>> M = M.add_first_party_caveat('op = read')
+>>> import time
+>>> expiration = int(time.time()) + 30
+>>> M = M.add_first_party_caveat('time < %d' % expiration)
+>>> token = M.serialize()
+>>> c.get('accounts', key, auth=[token])
+{'name': 'John Smith', 'balance': 15}
+>>> time.sleep(31)
+>>> c.get('accounts', key, auth=[token])
+Traceback (most recent call last):
+... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
+\end{pythoncode}
+
+Macaroons are extremely easy to construct and verify, which means that clients
+may generate a new macaroon-based token for each request.  Each of these tokens
+may have a unique expiration time very near in the future.  Even if the token
+makes its way into the hands of a malicious user, the token can only be used for
+a short period of time (and only for read operations)---even if the adversary
+has compromised the front-end server talking to HyperDex.  This is a step up
+from per-table or per-cluster authorization schemes, where a single leaked
+password can provide the adversary with access to the entire cluster.
+
+\section{Advanced Caveats}
+
 Caveats need not be restricted to operation types. In fact, macaroons enable
-rich security policies, which integrate third-parties, to be enforced. 
-Specifically, macaroons enable {\em third-party caveats}, which require that
-the macaroon-holder obtain a third-party's approval for access. 
-Such third-parties may verify property of an applicaton including:
+rich security policies, which integrate third-parties, to be enforced.
+Specifically, macaroons enable {\em third-party caveats}, which require that the
+macaroon-holder obtain a third-party's approval for access.  Such third-parties
+may verify property of an applicaton including:
 
 \begin{itemize}
     \item User authentication:  The third party service can authenticate the
@@ -173,153 +205,122 @@ Such third-parties may verify property of an applicaton including:
     \item Auditing and logging:  The third party service can log the
         interaction, and issue a proof that the request was logged securely in a
         centralized logging location.
-    \item Time: The third party can check to make sure that the access is 
-        occurring before, after, or inside a desired time window.
     \item Usage limits: The third party can check to ensure that the user
-        does not perform a given operation more than a desired number of 
-        times. 
+        does not perform a given operation more than a desired number of
+        times.
 \end{itemize}
 
+Adding a third-party caveat is almost as simple as adding a first-party caveat,
+but requires interacting with the third party to generate the caveat.  The
+client who is adding the caveat contacts the third party service with the caveat
+to be enforced, and a unique secret key generated for the caveat.  In response,
+the third party returns an opaque identifier that it can use to recall the
+caveat and key at a later time.  The identifier is meaningless to everyone but
+the third party, so that only the third party can recover the caveat and key
+from the identifier.  Possible implementations include encrypting the
+client-provided key and caveat with a secret known to the third party, and
+returning the resulting ciphertext.  Other possible implementations include
+storing the key and caveat in a hash table (possibly HyperDex) under a random
+key, and returning this random key to the client.
 
+We can use third-party caveats to implement a user authentication service for
+macaroons.  This service provides a means of generating third party caveats, and
+a method for clients to authenticate themselves with macaroons.  The service
+exposes a call to generate caveats, whose implementation looks like this:
 
-
-
-Each third party service implements two interfaces.  The first interface, {\em
-add-caveat}, enables applications to add additional caveats to macaroons, while
-the second interface enables applications to request {\em discharge macaroons} that
-prove that the caveats hold true for the request.
-
-The add-caveat interface interface can be thought of as a function that takes a
-secret key and the predicate to
-enforce with the caveat.  It returns a unique identifier for the (key,
-predicate) combination that enables it to recall them at a later time.  The
-service is free to do this however it would prefer; typically, services will
-either encrypt the key and predicate with their own secret key, and return the
-secret; or will store the key and predicate in a database associated with a
-random number, and return this random number.
-
-Here's an example of the add-caveat call that ensures that the caller is using a
-host with a confirmed hostname:
-
-% Let's add a third party restriction, that requires that Mint.com check in with
-% a third party audit service ten seconds prior to querying our bank.
-%  - Audit service can be anywhere
-%  - This service provides two functions.  The first is an RPC that takes a key,
-%    and returns an identifier for the key
 \begin{pythoncode}
 >>> keys = {}
->>> def add_caveat_rpc(key, host):
-...     r = 'a random number' # your implementation should gen a rand number
-...     keys[r] = (key, host)
+>>> def add_caveat_rpc(key, user password):
+...     r = 'a random string' # your implementation should gen a rand string
+...     keys[r] = (key, user, password)
 ...     return r
 ...
 \end{pythoncode}
 
-The application can then call this RPC (for sake of example, we've omitted the
-networking portion of this, but it's easy to imagine making the RPC using HTTP
-or some other method), and retrieve the identifier for the third-party caveat.
+The client can then call this method (over HTTP or some other service-like
+interface), and retrieve an identifier for the third-party caveat.
 
-% We generate a key, and send it to the service in exchange for an ID
 \begin{pythoncode}
 >>> key = 'a unique key for this caveat; should be random in the crypto sense'
->>> # then "call" the RPC on the server
->>> ident = add_caveat_rpc(key, 'mint.com')
+>>> ident = add_caveat_rpc(key, 'jane.doe@example.org', "jane's password")
 \end{pythoncode}
 
-We can then use our chosen key and the identifier provided by the third party to
-construct a new macaroon with this caveat embedded within.
+The identifier returned from the \code{add\_caveat\_rpc} call can be embedded in
+a macaroon as a third party caveat:
 
-% Now we create our own even-more-restricted macaroon and give token to mint
 \begin{pythoncode}
+>>> M = macaroons.create('account number', SECRET, '')
+>>> M = M.add_first_party_caveat('op = read')
 >>> M = M.add_third_party_caveat('http://auth.service/', key, ident)
->>> print M.inspect()
 >>> token = M.serialize()
 \end{pythoncode}
 
-When the service tries to use our new token, the request will be denied because
+Notice that the client constructs the third-party caveat using the key it
+provided to the third-party, and the identifier returned from the third party.
+The URL ``http://auth.service/'' is a location-hint as to where the service for
+the third-party caveat resides.
+
+When the client tries to use our new token, the request will be denied because
 the macaroon does not carry a full proof authorizing access to the object.
 
-% When Mint wants to use this token, they cannot use it in isolation:
 \begin{pythoncode}
 >>> c.get('accounts', key, auth=[token])
 Traceback (most recent call last):
-HyperDexClientException: HyperDexClientException: server ... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
+... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
 \end{pythoncode}
 
-To obtain this access, the application must go back to the third party and
-request a {\em discharge macaroon} that proves that the host is indeed
-``mint.com''.  On the server side, this third party simply recalls the key and
-host that were passed in when the identity was generated, and generates a
-discharge macaroon using this information.
+To obtain this access, the client must go back to the third party and request a
+{\em discharge macaroon} that proves that the user authenticates using Jane's
+email and password.  The implementation within the third-party recalls the key,
+checks the username and password, and returns a discharge macaroon if and only
+if the user authenticates successfully.
 
-% Instead, they must go back to the audit.service and get a discharge macaroon
 \begin{pythoncode}
->>> def generate_discharge_rpc(ident):
-...     key, host = keys[ident]
-...     # Check if the requesting host == the "host" variable; if not, return None.
-...     # Replace "False" with this check in your own code; for sake of example,
-...     # we assume this check passes.
-...     if False:
+>>> def generate_discharge_rpc(ident, user, password):
+...     if ident not in keys:
+...         # unknown caveat
 ...         return None
-...     return macaroons.create('', key, ident)
-...
-\end{pythoncode}
-
-The application may then request a discharge macaroon from this third party
-service at any time, by providing the identifier present within its macaroon to
-the service.  It can then prepare the macaroons for the request, and perform a
-\code{get} of John Smith's account balance.  Notice how we provide both the
-original token, and the discharge token, as parameters to the call to HyperDex.
-The request is authorized only when both tokens are provided together.
-
-% Now mint gets this discharge macaroon and provides it with the original to the
-% call
-\begin{pythoncode}
->>> D = generate_discharge_rpc(ident)
->>> DP = M.prepare_for_request(D)
->>> c.get('accounts', key, auth=[token, DP.serialize()])
-{'name': 'John Smith', 'balance': 15}
-\end{pythoncode}
-
-So far, all of our tokens are valid indefinitely, which opens the potential for
-replay attacks, by reusing previously established tokens.  We can reduce the
-potential damage from replay attacks by adding a caveat to the discharge token
-that limits its lifetime to just a few seconds.  After the token's expiration
-time, the token cannot be used to make additional requests.  Our modified
-third-party service looks like this:
-
-% Of course, this too is weak as M and D can forever authorize the bank account.
-% Let's modify the "generate_discharge_rpc" to add a time constraint
-\begin{pythoncode}
->>> import time
->>> def generate_discharge_rpc(ident):
-...     key, host = keys[ident]
-...     # Check if the requesting host == the "host" variable; if not, return None.
-...     # Replace "False" with this check in your own code; for sake of example,
-...     # we assume this check passes.
-...     if False:
+...     key, exp_user, exp_password = keys[ident]
+...     if exp_user != user or exp_password != password:
+...         # invalid user/password pair
 ...         return None
 ...     D = macaroons.create('', key, ident)
-...     expiration = int(time.time()) + 10
+...     expiration = int(time.time()) + 30
 ...     D = D.add_first_party_caveat('time < %d' % expiration)
 ...     return D
 ...
 \end{pythoncode}
 
-This token will be valid for only ten seconds after its creation; after that
-point in time, the application will need to make a request for another discharge
-token.
+The application may then request a discharge macaroon from this third party
+service at any time, by providing the identifier present within its macaroon to
+the service, and any other parameters the services needs.  For our example
+authentication service, we can generate a discharge macaroon like this:
 
-% Now try it (it'll be dead after 15s)
 \begin{pythoncode}
->>> D = generate_discharge_rpc(ident)
+>>> D = generate_discharge_rpc(ident, 'jane.doe@gmail.com', "jane's password")
+\end{pythoncode}
+
+With the discharge macaroon in hand, we can provide both our original token, and
+the token for the new discharge macaroon as the auth parameter to HyperDex.
+When both tokens are provided together, the request is authorized, just as
+before:
+
+\begin{pythoncode}
 >>> DP = M.prepare_for_request(D)
->>> c.get('accounts', key, auth=[token, DP.serialize()])
+>>> c.get('accounts', account, auth=[token, DP.serialize()])
 {'name': 'John Smith', 'balance': 15}
->>> time.sleep(15)
->>> c.get('accounts', key, auth=[token, DP.serialize()])
+\end{pythoncode}
+
+One of the nice things about the macaroon structure is that any caveats added to
+discharge macaroons are also enforced by HyperDex.  If we wait until the
+expiration time of the discharge macaroon has passed, the request will fail,
+just as it did before when the expiration was on the root macaroon:
+
+\begin{pythoncode}
+>>> time.sleep(31)
+>>> c.get('accounts', account, auth=[token, DP.serialize()])
 Traceback (most recent call last):
-HyperDexClientException: HyperDexClientException: server ... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
+... denied the request because it is unauthorized [HYPERDEX_CLIENT_UNAUTHORIZED]
 \end{pythoncode}
 
 \section{Efficiency Considerations}
