@@ -29,6 +29,8 @@ assertEquals(c.group_atomic_add('kv', {'k':'k'},  {'v.e': 1}), 1)
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 2, 'e': 'f', 'g': -2 }, 'e' : 1}))
 assertEquals(c.group_atomic_add('kv', {'v.c.d': 2},  {'v.c.g': 5}), 1)
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 2, 'e': 'f', 'g': 3 }, 'e' : 1}))
+assertEquals(c.group_document_set('kv', {'v.a' : 'b'}, {'v.f': 42}), 1)
+assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 2, 'e': 'f', 'g': 3 }, 'e' : 1, 'f' : 42}))
 assertTrue(c.delete('kv',  'k'))
 
 # Group atomic on two documents (the actual interesting stuff)

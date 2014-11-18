@@ -27,11 +27,7 @@ class HyperSpace:
         self.exists = False
 
     def clear(self):
-        # FIXME not atomic
-        keys = self.list_keys()     
-        
-        for key in keys:   
-                self.client.delete(self.name, key)
+        self.cliend.group_del({})
 
     def init(self):
         if self.exists:
@@ -54,7 +50,7 @@ class HyperSpace:
 
         for k, c in conditions.iteritems():
             if isinstance(c, dict):
-            	hyperpreds = []
+                hyperpreds = []
 
                 for pred, val in c.iteritems():
                     if pred == '$lt':
@@ -77,19 +73,19 @@ class HyperSpace:
         return result
 
     def find(self, conditions = {}):
-		self.init()
-		hyperconds = self.convert_conds(conditions)
-		result = self.client.search(self.name, hyperconds)
+        self.init()
+        hyperconds = self.convert_conds(conditions)
+        result = self.client.search(self.name, hyperconds)
 
-		return HyperIterator(result)
+        return HyperIterator(result)
 
     def findOne(self, conditions = {}):
-		it = self.find(conditions)
+        it = self.find(conditions)
 
-		if not it.hasNext():
-			return None
-		else:
-			return it.next()
+        if not it.hasNext():
+            return None
+        else:
+            return it.next()
 
     def get(self, key):
         self.init()
@@ -130,10 +126,12 @@ class HyperSpace:
 
         return result
 
-    def update(self, key, arg):
+    def update(self, select, arg):
+        self.init()
+        
         for k,v in arg.items():
             if k == "$inc":
-                self.atomic_add(key, v)
+                self.group_atomic_add(select, v)
             elif k == '$bit':
                 if not isinstance(v, dict):
                     raise ValueError('$bit argument must a dict')
@@ -141,20 +139,22 @@ class HyperSpace:
                 op, mask = v.iteritems().next()
 
                 if op == 'and':
-                    self.atomic_and(key, mask)
+                    self.group_atomic_and(select, mask)
                 elif op == 'or':
-                    self.atomic_or(key, mask)
+                    self.group_atomic_or(select, mask)
                 elif op == 'mod':
-                    self.atomic_mod(key, mask)
+                    self.group_atomic_mod(select, mask)
                 elif op =='xor':
-                    self.atomic_xor(key, mask)
+                    self.group_atomic_xor(select, mask)
                 else:
                     raise ValueError("Unknown bit-operation")
 
+            elif k == '$set':
+                self.group_set(select, v)
             elif k == '$mul':
-                self.atomic_mul(key, v)
+                self.group_atomic_mul(select, v)
             elif k == '$div':
-                self.atomic_div(key, v)
+                self.group_atomic_div(select, v)
             else:
                 raise ValueError("Unknown command " + k)
 
@@ -169,6 +169,35 @@ class HyperSpace:
 
         return docargs
 
+    def async_group_set(self, select, args):
+        self.init()
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
+
+        return self.client.async_group_document_set(self.name, hyperconds, docargs)
+
+    def group_set(self, select, value):
+        return self.async_group_set(select, value).wait()
+
+    def async_set(self, key, value):
+        docargs = self.convert_docargs(value)
+        self.init()
+
+        return self.client.async_document_set(self.name, key, docargs)
+
+    def set(self, key, value):
+        return self.async_set(key, value).wait()
+        
+    def async_group_string_prepend(self, select, args):
+        self.init()
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
+
+        return self.client.async_group_string_prepend(self.name, hyperconds, docargs)
+
+    def group_string_prepend(self, select, value):
+        return self.async_group_prepend(select, value).wait()
+
     def async_string_prepend(self, key, value):
         docargs = self.convert_docargs(value)
         self.init()
@@ -176,10 +205,7 @@ class HyperSpace:
         return self.client.async_string_prepend(self.name, key, docargs)
 
     def string_prepend(self, key, value):
-        docargs = self.convert_docargs(value)
-        self.init()
-
-        return self.client.string_prepend(self.name, key, docargs)
+        return self.async_string_prepend(key, value).wait()
 
     def async_string_append(self, key, value):
         docargs = self.convert_docargs(value)
@@ -187,11 +213,31 @@ class HyperSpace:
 
         return self.client.async_string_append(self.name, key, docargs)
 
+    def async_group_string_append(self, select, args):
+        self.init()
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
+
+        return self.client.async_group_string_append(self.name, hyperconds, docargs)
+        
+    def group_string_append(self, select, args):
+        return self.async_group_string_append(select, args).wait()
+
     def string_append(self, key, value):
         docargs = self.convert_docargs(value)
         self.init()
 
         return self.client.string_append(self.name, key, docargs)
+
+    def async_group_atomic_add(self, select, args):
+        self.init()
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
+
+        return self.client.async_group_atomic_add(self.name, hyperconds, docargs)
+    
+    def group_atomic_add(self, select, args):
+        return self.async_group_atomic_add(select, args).wait()
 
     def async_atomic_add(self, key, value):
         docargs = self.convert_docargs(value)
@@ -205,6 +251,16 @@ class HyperSpace:
 
         return self.client.atomic_add(self.name, key, docargs)
 
+    def async_group_atomic_sub(self, select, args):
+        self.init()
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
+
+        return self.client.async_group_atomic_sub(self.name, hyperconds, docargs)
+    
+    def group_atomic_sub(self, select, args):
+        return self.async_group_atomic_sub(select, args).wait()
+
     def async_atomic_sub(self, key, value):
         docargs = self.convert_docargs(value)
         self.init()
@@ -212,22 +268,45 @@ class HyperSpace:
         return self.client.async_atomic_sub(self.name, key, docargs)
 
     def atomic_sub(self, key, value):
+        return self.async_atomic_sub(key, value).wait()
+
+    def async_group_atomic_mul(self, select, args):
+        self.init()
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
+
+        return self.client.async_group_atomic_mul(self.name, hyperconds, docargs)
+    
+    def group_atomic_mul(self, select, args):
+        return self.async_group_atomic_mul(select, args).wait()
+
+    def async_atomic_mul(self, key, value):
         docargs = self.convert_docargs(value)
         self.init()
 
-        return self.client.atomic_sub(self.name, key, docargs)
-
+        return self.client.async_atomic_mul(self.name, key, docargs)
+        
     def atomic_mul(self, key, value):
+        return self.client.async_atomic_mul(key, value)
+
+    def async_atomic_div(self, key, value):
         docargs = self.convert_docargs(value)
         self.init()
 
-        return self.client.atomic_mul(self.name, key, docargs)
+        return self.client.async_atomic_div(self.name, key, docargs)
+        
+    def async_group_atomic_mul(self, select, args):
+        self.init()
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
 
+        return self.client.async_group_atomic_div(self.name, hyperconds, docargs)
+    
+    def group_atomic_div(self, select, args):
+        return self.async_group_atomic_div(select, args).wait()
+        
     def atomic_div(self, key, value):
-        docargs = self.convert_docargs(value)
-        self.init()
-
-        return self.client.atomic_div(self.name, key, docargs)
+        return self.client.async_atomic_div(key, value)
 
     def atomic_and(self, key, value):
         docargs = self.convert_docargs(value)

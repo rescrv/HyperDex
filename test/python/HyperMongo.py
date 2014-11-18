@@ -1,0 +1,16 @@
+from testlib import *
+from hyperdex.mongo import *
+import sys
+
+# This tests the mongo-compatibility layer
+db = HyperDatabase(sys.argv[1], int(sys.argv[2]))
+
+assertTrue(db.test.insert({'_id' : 'k1', 'a' : 'b', 'c' : 1}))
+db.test.update({'_id' : 'k1'}, {'$inc' : {'c' : 1}})
+
+res = db.test.findOne({'_id' : 'k1'})
+assertEquals(res, {'_id' : 'k1', 'a' : 'b', 'c' : 2})
+
+db.test.update({'a' : 'b'}, {'$set' : {'d' : 1}})
+res = db.test.findOne({'_id' : 'k1'})
+assertEquals(res, {'_id' : 'k1', 'a' : 'b', 'c' : 2, 'd' : 1})
