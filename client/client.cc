@@ -699,6 +699,10 @@ client :: prepare_funcs(const char* space, const schema& sc,
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
+        // In case we need to allocate memory for a second string
+        std::string attr_buf;
+
+        uint16_t attrnum = 0;
         const char* attr = attrs[i].attr;
         const char* path = strstr(attrs[i].attr, ".");
 
@@ -710,10 +714,13 @@ client :: prepare_funcs(const char* space, const schema& sc,
 
             // Set attribute name to only the first part
             std::string orig(attrs[i].attr);
-            attr = orig.substr(0, orig.find('.')).c_str();
+            size_t pos = orig.find('.');
+
+            attr_buf = orig.substr(0, pos);
+            attr = attr_buf.c_str();
         }
 
-        uint16_t attrnum = sc.lookup_attr(attr);
+        attrnum = sc.lookup_attr(attr);
 
         if (attrnum == sc.attrs_sz)
         {
