@@ -147,7 +147,14 @@ datalayer :: initialize(const po6::pathname& path,
                 return false;
             }
         }
-        else if (rbacking != PACKAGE_VERSION)
+        else if (rbacking != PACKAGE_VERSION &&
+                 rbacking != "1.4.6" &&
+                 rbacking != "1.4.5" &&
+                 rbacking != "1.4.4" &&
+                 rbacking != "1.4.3" &&
+                 rbacking != "1.4.2" &&
+                 rbacking != "1.4.1" &&
+                 rbacking != "1.4.0")
         {
             LOG(ERROR) << "could not restore from disk because "
                        << "the existing data was created by "
