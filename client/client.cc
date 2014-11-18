@@ -378,7 +378,7 @@ client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
                           const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                           hyperdex_client_returncode& status,
                           uint64_t &update_count)
-    {
+{
         if (!maintain_coord_connection(status))
         {
             return -1;

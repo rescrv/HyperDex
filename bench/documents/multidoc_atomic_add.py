@@ -13,9 +13,9 @@ from hyperdex.mongo import HyperDatabase, HyperSpace
 # How many atomic add calls?
 numCalls = 1000
 # How many documents in the space ? 
-numDocs = 100*numCalls
+numDocs = 100000
 # Gaps between calling 
-addGap = 10
+addGap = 1
 ##############
 
 def createDoc(id, numElems):
@@ -41,7 +41,7 @@ assert (numCalls * addGap) < numDocs
 db = HyperDatabase(sys.argv[1], int(sys.argv[2]))
 
 # Run
-for n in range(100, 1000, 100):
+for n in range(100, 2100, 100):
         pendingInserts = []
 
         for i in range(numDocs):

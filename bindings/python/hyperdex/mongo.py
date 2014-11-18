@@ -27,7 +27,7 @@ class HyperSpace:
         self.exists = False
 
     def clear(self):
-        self.cliend.group_del({})
+        self.client.group_del(self.name, {})
 
     def init(self):
         if self.exists:
