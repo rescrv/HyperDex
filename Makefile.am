@@ -855,6 +855,7 @@ python_wrappers += test/sh/bindings.python.DataTypeSetInt.sh
 python_wrappers += test/sh/bindings.python.DataTypeSetString.sh
 python_wrappers += test/sh/bindings.python.DataTypeString.sh
 python_wrappers += test/sh/bindings.python.GroupAtomic.sh
+python_wrappers += test/sh/bindings.python.HyperMongo.sh
 python_wrappers += test/sh/bindings.python.LengthString.sh
 python_wrappers += test/sh/bindings.python.MultiAttribute.sh
 python_wrappers += test/sh/bindings.python.RangeSearchInt.sh
