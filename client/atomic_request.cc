@@ -25,7 +25,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// e
 #include <e/strescape.h>
+
+// BSON
+#include <bson.h>
 
 #include "client/atomic_request.h"
 #include "client/util.h"
@@ -43,11 +47,6 @@
     cl.m_last_error.set_msg()
 
 BEGIN_HYPERDEX_NAMESPACE
-
-atomic_request::atomic_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : request(cl_, coord_, space_), checks(), funcs()
-{
-}
 
 hyperdex_client_returncode atomic_request::validate_key(const e::slice& key) const
 {
@@ -95,7 +94,7 @@ int atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
         }
 
         // Prepare the attrs
-        idx = cl.prepare_funcs(space.c_str(), sc, opinfo, attrs, attrs_sz, &allocate, status, &funcs);
+        idx = prepare_funcs(space.c_str(), sc, opinfo, attrs, attrs_sz, status);
 
         if (idx < attrs_sz)
         {
@@ -103,7 +102,7 @@ int atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
         }
 
         // Prepare the mapattrs
-        idx = cl.prepare_funcs(space.c_str(), sc, opinfo, mapattrs, mapattrs_sz, &allocate, status, &funcs);
+        idx = prepare_funcs(space.c_str(), sc, opinfo, mapattrs, mapattrs_sz, status);
 
         if (idx < mapattrs_sz)
         {
@@ -137,6 +136,187 @@ e::buffer* atomic_request::create_message(const hyperdex_client_keyop_info& opin
         << key << flags << checks << funcs;
 
     return msg;
+}
+
+
+size_t
+atomic_request :: prepare_funcs(const char* space, const schema& sc,
+                        const hyperdex_client_keyop_info& opinfo,
+                        const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                        hyperdex_client_returncode& status)
+{
+    funcs.reserve(funcs.size() + attrs_sz);
+
+    for (size_t i = 0; i < attrs_sz; ++i)
+    {
+        // In case we need to allocate memory for a second string
+        std::string attr_buf;
+
+        uint16_t attrnum = 0;
+        const char* attr = attrs[i].attr;
+        const char* path = strstr(attrs[i].attr, ".");
+
+        // This is a path to a document value
+        if (path != NULL)
+        {
+            // Remove the dot
+            path = path+1;
+
+            // Set attribute name to only the first part
+            std::string orig(attrs[i].attr);
+            size_t pos = orig.find('.');
+
+            attr_buf = orig.substr(0, pos);
+            attr = attr_buf.c_str();
+        }
+
+        attrnum = sc.lookup_attr(attr);
+
+        if (attrnum == sc.attrs_sz)
+        {
+            ERROR(UNKNOWNATTR) << "\"" << e::strescape(attr)
+                               << "\" is not an attribute of space \""
+                               << e::strescape(space) << "\"";
+            return i;
+        }
+
+        if (attrnum == 0)
+        {
+            ERROR(DONTUSEKEY) << "attribute \""
+                              << e::strescape(attr)
+                              << "\" is the key and cannot be changed";
+            return i;
+        }
+
+        hyperdatatype datatype = attrs[i].datatype;
+
+        if (datatype == CONTAINER_TYPE(datatype) &&
+            CONTAINER_TYPE(datatype) == CONTAINER_TYPE(sc.attrs[attrnum].type) &&
+            attrs[i].value_sz == 0)
+        {
+            datatype = sc.attrs[attrnum].type;
+        }
+
+        funcall o;
+        o.attr = attrnum;
+        o.name = opinfo.fname;
+        o.arg1_datatype = datatype;
+
+        if (datatype == HYPERDATATYPE_DOCUMENT)
+        {
+            bson_error_t error;
+            bson_t *bson = bson_new_from_json(reinterpret_cast<const uint8_t*>(attrs[i].value), attrs[i].value_sz, &error);
+
+            if(!bson)
+            {
+                ERROR(WRONGTYPE) << "invalid document for attribute \"" << e::strescape(attr) << "\": " << error.message;
+                return i;
+            }
+
+            size_t len = bson->len;
+            const char* data = reinterpret_cast<const char*>(bson_get_data(bson));
+
+            allocate.push_back(std::string());
+            std::string& s(allocate.back());
+            s.append(data, len);
+
+            o.arg1 = e::slice(s.data(), len);
+            bson_destroy(bson);
+        }
+        else
+        {
+            o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
+        }
+
+        if(path != NULL)
+        {
+            o.arg2 = e::slice(path, strlen(path)+1);
+            o.arg2_datatype = HYPERDATATYPE_STRING;
+        }
+
+        datatype_info* type = datatype_info::lookup(sc.attrs[attrnum].type);
+
+        if (!type->check_args(o))
+        {
+            ERROR(WRONGTYPE) << "invalid attribute \""
+                             << e::strescape(attr)
+                             << "\": attribute has the wrong type";
+            return i;
+        }
+
+        funcs.push_back(o);
+    }
+
+    return attrs_sz;
+}
+
+size_t
+atomic_request :: prepare_funcs(const char* space, const schema& sc,
+                        const hyperdex_client_keyop_info& opinfo,
+                        const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                        hyperdex_client_returncode& status)
+{
+    funcs.reserve(funcs.size() + mapattrs_sz);
+
+    for (size_t i = 0; i < mapattrs_sz; ++i)
+    {
+        uint16_t attrnum = sc.lookup_attr(mapattrs[i].attr);
+
+        if (attrnum == sc.attrs_sz)
+        {
+            ERROR(UNKNOWNATTR) << "\"" << e::strescape(mapattrs[i].attr)
+                               << "\" is not an attribute of space \""
+                               << e::strescape(space) << "\"";
+            return i;
+        }
+
+        if (attrnum == 0)
+        {
+            ERROR(DONTUSEKEY) << "attribute \""
+                              << e::strescape(mapattrs[i].attr)
+                              << "\" is the key and cannot be changed";
+            return i;
+        }
+
+        hyperdatatype k_datatype = mapattrs[i].map_key_datatype;
+
+        if (k_datatype == CONTAINER_TYPE(k_datatype) &&
+            CONTAINER_TYPE(k_datatype) == CONTAINER_TYPE(sc.attrs[attrnum].type) &&
+            mapattrs[i].value_sz == 0)
+        {
+            k_datatype = sc.attrs[attrnum].type;
+        }
+
+        hyperdatatype v_datatype = mapattrs[i].value_datatype;
+
+        if (v_datatype == CONTAINER_TYPE(v_datatype) &&
+            CONTAINER_TYPE(v_datatype) == CONTAINER_TYPE(sc.attrs[attrnum].type) &&
+            mapattrs[i].value_sz == 0)
+        {
+            v_datatype = sc.attrs[attrnum].type;
+        }
+
+        funcall o;
+        o.attr = attrnum;
+        o.name = opinfo.fname;
+        o.arg2 = e::slice(mapattrs[i].map_key, mapattrs[i].map_key_sz);
+        o.arg2_datatype = k_datatype;
+        o.arg1 = e::slice(mapattrs[i].value, mapattrs[i].value_sz);
+        o.arg1_datatype = v_datatype;
+        datatype_info* type = datatype_info::lookup(sc.attrs[attrnum].type);
+
+        if (!type->check_args(o))
+        {
+            ERROR(WRONGTYPE) << "invalid attribute \""
+                             << e::strescape(mapattrs[i].attr)
+                             << "\": attribute has the wrong type";
+            return i;
+        }
+
+        funcs.push_back(o);
+    }
+
+    return mapattrs_sz;
 }
 
 END_HYPERDEX_NAMESPACE

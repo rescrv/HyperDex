@@ -45,7 +45,7 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 sorted_search_request::sorted_search_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : group_request(cl_, coord_, space_), sort_by_num(-1)
+    : group_request(cl_, coord_, space_), request(cl_, coord_, space_), sort_by_num(-1)
 {
 }
 

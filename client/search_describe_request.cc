@@ -40,7 +40,7 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 search_describe_request::search_describe_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : group_request(cl_, coord_, space_)
+    : group_request(cl_, coord_, space_), request(cl_, coord_, space_)
 {
 }
 

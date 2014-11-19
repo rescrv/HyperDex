@@ -40,7 +40,7 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 count_request::count_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : group_request(cl_, coord_, space_)
+    : group_request(cl_, coord_, space_), request(cl_, coord_, space_)
 {
 }
 

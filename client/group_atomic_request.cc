@@ -45,7 +45,7 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 group_atomic_request::group_atomic_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    :  group_request(cl_, coord_, space_), funcs()
+    :  request(cl_, coord_, space_), group_request(cl_, coord_, space_), atomic_request(cl_, coord_, space_)
 {
 }
 
@@ -57,7 +57,7 @@ int group_atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
 {
     try
     {
-        const schema& sc = request::get_schema();
+        const schema& sc = get_schema();
 
         int ret = group_request::prepare(selection, selection_sz, status);
 
@@ -69,7 +69,7 @@ int group_atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
         size_t idx = 0;
 
         // Prepare the attrs
-        idx = cl.prepare_funcs(space.c_str(), sc, opinfo, attrs, attrs_sz, &allocate, status, &funcs);
+        idx = prepare_funcs(space.c_str(), sc, opinfo, attrs, attrs_sz, status);
 
         if (idx < attrs_sz)
         {
@@ -77,7 +77,7 @@ int group_atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
         }
 
         // Prepare the mapattrs
-        idx = cl.prepare_funcs(space.c_str(), sc, opinfo, mapattrs, mapattrs_sz, &allocate, status, &funcs);
+        idx = prepare_funcs(space.c_str(), sc, opinfo, mapattrs, mapattrs_sz, status);
 
         if (idx < mapattrs_sz)
         {
@@ -95,9 +95,6 @@ int group_atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
 
 e::buffer* group_atomic_request::create_message(const hyperdex_client_keyop_info& opinfo)
 {
-    // Currently not used
-    std::vector<attribute_check> checks;
-
     std::stable_sort(select.begin(), select.end());
     std::stable_sort(funcs.begin(), funcs.end());
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ

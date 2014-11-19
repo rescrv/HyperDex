@@ -39,11 +39,6 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
-group_request::group_request(client& cl_, const coordinator_link& coord_, const std::string& space_)
- : request(cl_, coord_, space_), select(), servers()
-{
-}
-
 size_t
 group_request :: prepare_searchop(const schema& sc,
                            const hyperdex_client_attribute_check* chks, size_t chks_sz,

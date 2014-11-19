@@ -139,19 +139,6 @@ class client
     public:
         typedef std::list<std::string> arena_t;
 
-        //TODO move those to a request-superclass
-        size_t prepare_funcs(const char* space, const schema& sc,
-                             const hyperdex_client_keyop_info& opinfo,
-                             const hyperdex_client_attribute* attrs, size_t attrs_sz,
-                             arena_t* allocate,
-                             hyperdex_client_returncode& status,
-                             std::vector<funcall>* funcs);
-        size_t prepare_funcs(const char* space, const schema& sc,
-                             const hyperdex_client_keyop_info& opinfo,
-                             const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                             arena_t* allocate,
-                             hyperdex_client_returncode& status,
-                             std::vector<funcall>* funcs);
         bool maintain_coord_connection(hyperdex_client_returncode& status);
 
     private:

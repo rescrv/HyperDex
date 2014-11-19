@@ -33,10 +33,12 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
-class group_request : public request
+class group_request : virtual public request
 {
 public:
-    group_request(client& cl_, const coordinator_link& coord_, const std::string& space_);
+    group_request(client& cl_, const coordinator_link& coord_, const std::string& space_)
+     : request(cl_, coord_, space_), select(), servers() {}
+
     virtual ~group_request() {};
 
     const std::vector<virtual_server_id>& get_servers() const

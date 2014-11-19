@@ -35,7 +35,7 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 group_del_request::group_del_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : group_request(cl_, coord_, space_)
+    : group_request(cl_, coord_, space_), request(cl_, coord_, space_)
 {
 }
 
