@@ -106,8 +106,8 @@ assertFalse(c.document_rename('kv', 'k7', {'v.a.b' : 'c'}))
 assertFalse(c.document_rename('kv', 'k7', {'v.a.b' : 'b'}))
 
 # Set new values (returns false if they already exist)
-assertTrue(c.put('kv', 'k8', {'v' : Document({'a' : {}})}))
-assertTrue(c.document_set('kv', 'k8', {'v.a.b' : 'c'}))
+assertTrue(c.put('kv', 'k8', {'v' : Document({'a' : { 'b' : 'c'}})}))
+assertFalse(c.document_set('kv', 'k8', {'v.a.b' : 'c'}))
 assertEquals(c.get('kv', 'k8')['v'], Document({'a' : {'b' : 'c'}}))
 assertFalse(c.document_set('kv', 'k8', {'v.a.b' : 'c'}))
 assertEquals(c.get('kv', 'k8')['v'], Document({'a' : {'b' : 'c'}}))
@@ -124,6 +124,18 @@ assertEquals(c.get('kv', 'k8')['v'], Document({'a' : {'b' : 'c', 'c' : 1}, 'b' :
 assertTrue(c.document_set('kv', 'k8', {'v.d' : 2.5}))
 assertEquals(c.get('kv', 'k8')['v'], Document({'a' : {'b' : 'c', 'c' : 1}, 'b' : {'a' : 1, 'b' : 1, 'c' : 'xyz'}, 'c' : {'b' : {'a' : 1, 'b' : 1, 'c' : 'xyz'}}, 'd' : 2.5}))
 
+# Arrays
+assertTrue(c.put('kv', 'k11', {'v' : Document({'a' : [1,2,3]})}))
+assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [1,2,3]}))
+assertTrue(c.document_set('kv', 'k11', {'v.a.3' : 4}))
+assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [1,2,3,4]}))
+assertFalse(c.document_set('kv', 'k11', {'v.a.3.b' : 4}))
+assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [1,2,3,4]}))
+assertTrue(c.list_rpush('kv', 'k11', {'v.a' : "5"}))
+assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [1,2,3,4,"5"]}))
+assertTrue(c.list_rpush('kv', 'k11', {'v.a' : Document({'x':'y'})}))
+assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [1,2,3,4,"5",{'x':'y'}]}))
+
 # Search on Documents
 assertTrue(c.put('kv', 'k9', {'v' : Document({'x' : {'b' : 'c'}})}))
 res1 = c.search('kv', {'v.x.b' : 'c'})
@@ -134,10 +146,3 @@ assertEquals(res1.next(), {'k' : 'k9', 'v' : Document({'x' : {'b' : 'c'}})})
 #assertEquals(res2.next(), {'k' : 'k9', 'v' : Document({'x' : {'b' : 'c'}})})
 #assertEquals(len(c.find('kv', {'v.x.b' : 'd'})), 0)
 
-# Arrays
-assertTrue(c.put('kv', 'k11', {'v' : Document({'a' : [1,2,3]})}))
-assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [1,2,3]}))
-assertTrue(c.document_set('kv', 'k11', {'v.a.3' : 4}))
-assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [1,2,3,4]}))
-assertTrue(c.document_set('kv', 'k11', {'v.a.3.b' : 4}))
-assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [1,2,3,4]}))

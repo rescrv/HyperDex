@@ -51,8 +51,26 @@
 #include <e/guard.h>
 #include <e/safe_math.h>
 
+#include <ctype.h>
+#include <sstream>
+#include <stdexcept>
+
 using hyperdex::datatype_info;
 using hyperdex::datatype_document;
+
+bool is_integer(const std::string& str)
+{
+	for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
+	{
+		if (!isdigit(*it))
+		{
+			return false;
+		}
+	}
+
+	// Non-empty and all chars are digits
+	return str.size() > 0;
+}
 
 datatype_document :: datatype_document()
 {
@@ -82,6 +100,38 @@ datatype_document :: validate(const e::slice& value) const
     return bson_init_static(&b, reinterpret_cast<const uint8_t*>(value.cdata()), value.size());
 }
 
+size_t
+datatype_document :: get_num_children(const bson_t& doc, const json_path& path) const
+{
+    bson_iter_t iter, baz;
+
+    if(!bson_iter_init (&iter, &doc))
+    {
+        throw std::runtime_error("Invalid Document");
+    }
+
+    if(!bson_iter_find_descendant(&iter, path.str().c_str(), &baz))
+    {
+        throw std::runtime_error("No such element");
+    }
+
+    if(!BSON_ITER_HOLDS_ARRAY(&baz) && !BSON_ITER_HOLDS_DOCUMENT(&baz))
+    {
+        throw std::runtime_error("Cannot count children of element that isn't document or array.");
+    }
+
+    size_t count = 0;
+    bson_iter_t sub_iter;
+    bson_iter_recurse(&iter, &sub_iter);
+
+    while(bson_iter_next(&sub_iter))
+    {
+        count++;
+    }
+
+    return count;
+}
+
 bool
 datatype_document :: validate_old_values(const std::vector<e::slice>& old_values, const funcall& func) const
 {
@@ -106,7 +156,7 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
     {
     case FUNC_DOC_SET:
     {
-        return !does_entry_exist(doc, path);
+        return !does_entry_exist(doc, path) && can_create_element(doc, path);
     }
     case FUNC_DOC_UNSET:
     {
@@ -206,7 +256,15 @@ datatype_document :: can_create_element(const bson_t &doc, json_path path) const
         bson_iter_init (&iter, &doc);
         if(bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
         {
-            return BSON_ITER_HOLDS_DOCUMENT(&baz);
+            // An integer can be a document key or an array index
+            if(is_integer(child_name) && BSON_ITER_HOLDS_ARRAY(&baz))
+            {
+                return true;
+            }
+            else
+            {
+                return BSON_ITER_HOLDS_DOCUMENT(&baz);
+            }
         }
     }
 
@@ -449,7 +507,7 @@ datatype_document :: add_or_replace_value(const bson_t* old_document, const json
 
     if(!bson_iter_init (&iter, old_document))
     {
-        return NULL;
+        throw std::runtime_error("Cannot add or replace value: Invalid document");
     }
 
     bson_t *new_doc = bson_new();
@@ -567,6 +625,8 @@ datatype_document :: add_or_replace_value_recurse(const json_path& path, const b
 
     if(!found && !path.empty())
     {
+        std::cout << path.str() << std::endl;
+
         if(path.has_subtree())
         {
             json_path subpath;
@@ -583,6 +643,41 @@ datatype_document :: add_or_replace_value_recurse(const json_path& path, const b
         {
             bson_append_value(parent, path.str().c_str(), path.str().size(), new_value);
         }
+    }
+}
+
+void
+datatype_document :: encode_value(const hyperdatatype type, const e::slice& data, bson_value_t& value) const
+{
+    if(type == HYPERDATATYPE_STRING)
+    {
+        value.value_type = BSON_TYPE_UTF8;
+        value.value.v_utf8.str = const_cast<char*>(data.cdata());
+        value.value.v_utf8.len = data.size();
+    }
+    else if(type == HYPERDATATYPE_FLOAT)
+    {
+        double arg = reinterpret_cast<const double*>(data.data())[0];
+
+        value.value_type = BSON_TYPE_DOUBLE;
+        value.value.v_double = arg;
+    }
+    else if(type == HYPERDATATYPE_INT64)
+    {
+        int64_t arg = reinterpret_cast<const int64_t*>(data.data())[0];
+
+        value.value_type = BSON_TYPE_INT64;
+        value.value.v_int64 = arg;
+    }
+    else if(type == HYPERDATATYPE_DOCUMENT)
+    {
+        value.value_type = BSON_TYPE_DOCUMENT;
+        value.value.v_doc.data = const_cast<uint8_t*>(data.data());
+        value.value.v_doc.data_len = data.size();
+    }
+    else
+    {
+        throw std::runtime_error("Cannot encode value: Unknown datatype");
     }
 }
 
@@ -623,58 +718,13 @@ datatype_document :: apply(const e::slice& old_value,
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
             std::string path = func.arg2.c_str();
 
-            bson_t *new_doc = NULL;
+            bson_value_t value;
+            encode_value(func.arg1_datatype, func.arg1, value);
 
-            if(func.arg1_datatype == HYPERDATATYPE_STRING)
-            {
-                std::string arg(func.arg1.cdata(), func.arg1.size());
+            bson_t *new_doc = add_or_replace_value(bson_root, path, &value);
 
-                bson_value_t value;
-                value.value_type = BSON_TYPE_UTF8;
-                value.value.v_utf8.str = const_cast<char*>(arg.c_str());
-                value.value.v_utf8.len = arg.size();
-
-                new_doc = add_or_replace_value(bson_root, path, &value);
-            }
-            else if(func.arg1_datatype == HYPERDATATYPE_FLOAT)
-            {
-                double arg = reinterpret_cast<const double*>(func.arg1.data())[0];
-
-                bson_value_t value;
-                value.value_type = BSON_TYPE_DOUBLE;
-                value.value.v_double = arg;
-
-                new_doc = add_or_replace_value(bson_root, path, &value);
-            }
-            else if(func.arg1_datatype == HYPERDATATYPE_INT64)
-            {
-                int64_t arg = reinterpret_cast<const int64_t*>(func.arg1.data())[0];
-
-                bson_value_t value;
-                value.value_type = BSON_TYPE_INT64;
-                value.value.v_int64 = arg;
-
-                new_doc = add_or_replace_value(bson_root, path, &value);
-            }
-            else if(func.arg1_datatype == HYPERDATATYPE_DOCUMENT)
-            {
-                bson_value_t value;
-                value.value_type = BSON_TYPE_DOCUMENT;
-                value.value.v_doc.data = const_cast<uint8_t*>(func.arg1.data());
-                value.value.v_doc.data_len = func.arg1.size();
-
-                new_doc = add_or_replace_value(bson_root, path, &value);
-            }
-
-            if(new_doc == NULL)
-            {
-                abort();
-            }
-            else
-            {
-                bson_destroy(bson_root);
-                bson_root = new_doc;
-            }
+            bson_destroy(bson_root);
+            bson_root = new_doc;
             break;
         }
         case FUNC_DOC_UNSET:
@@ -699,11 +749,6 @@ datatype_document :: apply(const e::slice& old_value,
 
             bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
             bson_t* new_doc = rename_value(bson_root, path, new_name);
-
-            if(!new_doc)
-            {
-                abort();
-            }
 
             bson_destroy(bson_root);
             bson_root = new_doc;
@@ -745,11 +790,6 @@ datatype_document :: apply(const e::slice& old_value,
             value.value.v_utf8.len = str.size();
 
             bson_t* new_doc = add_or_replace_value(bson_root, path, &value);
-
-            if(!new_doc)
-            {
-                abort();
-            }
 
             bson_destroy(bson_root);
             bson_root = new_doc;
@@ -971,10 +1011,30 @@ datatype_document :: apply(const e::slice& old_value,
             break;
         }
         case FUNC_LIST_LPUSH:
+        {
+            break;
+        }
         case FUNC_LIST_RPUSH:
         {
+            std::string arg(func.arg1.cdata(), func.arg1.size());
+            json_path path = func.arg2.c_str();
 
+            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
 
+            size_t size = get_num_children(*bson_root, path);
+
+            std::stringstream key;
+            key << size;
+            path.append(key.str());
+
+            bson_value_t value;
+            encode_value(func.arg1_datatype, func.arg1, value);
+
+            bson_t *new_doc = add_or_replace_value(bson_root, path, &value);
+
+            bson_destroy(bson_root);
+            bson_root = new_doc;
+            break;
         }
         case FUNC_FAIL:
         case FUNC_SET_ADD:

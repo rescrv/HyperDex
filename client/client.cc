@@ -379,17 +379,17 @@ client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
                           hyperdex_client_returncode& status,
                           uint64_t &update_count)
 {
-        if (!maintain_coord_connection(status))
-        {
-            return -1;
-        }
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
 
-        group_atomic_request request(*this, m_coord, space);
-        int res = request.prepare(*opinfo, selection, selection_sz, attrs, attrs_sz, mapattrs, mapattrs_sz, status);
+    group_atomic_request request(*this, m_coord, space);
+    int res = request.prepare(*opinfo, selection, selection_sz, attrs, attrs_sz, mapattrs, mapattrs_sz, status);
 
-        if(res < 0)
-        {
-            return res;
+    if(res < 0)
+    {
+        return res;
     }
 
     std::auto_ptr<e::buffer> msg(request.create_message(*opinfo));
