@@ -73,6 +73,11 @@ class datatype_document : public datatype_info
         void add_or_replace_value_recurse(const json_path& path, const bson_value_t *value,
                                     bson_t* parent, bson_iter_t* iter) const;
 
+        bool can_create_element(const bson_t &doc, json_path path) const;
+        bson_type_t get_element_type(const bson_t &document, const json_path& path) const;
+
+        bool does_entry_exist(const bson_t &document, const json_path& path) const;
+
         bson_t* unset_value(const bson_t* old_document, const json_path& path) const;
         void unset_value_recurse(const json_path& path, bson_t* parent, bson_iter_t* iter) const;
 
