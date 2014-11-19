@@ -700,9 +700,9 @@ datatype_document :: apply(const e::slice& old_value,
     // we reuse the same object
     bson_t *bson_root = NULL;
 
-    for (size_t i = 0; i < funcs_sz; ++i)
+    for (size_t pos = 0; pos < funcs_sz; ++pos)
     {
-        const funcall& func = *(funcs + i);
+        const funcall& func = *(funcs + pos);
 
         switch(func.name)
         {
@@ -1012,6 +1012,62 @@ datatype_document :: apply(const e::slice& old_value,
         }
         case FUNC_LIST_LPUSH:
         {
+            std::string arg(func.arg1.cdata(), func.arg1.size());
+            json_path path = func.arg2.c_str();
+
+            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
+
+            size_t size = get_num_children(*bson_root, path);
+            std::vector<bson_value_t> values;
+            values.resize(size+1);
+
+            // Put new value at the front
+            encode_value(func.arg1_datatype, func.arg1, values[0]);
+
+            // Extract all values from the array
+            bson_iter_t iter, baz1, baz2;
+
+            if(!bson_iter_init (&iter, bson_root))
+            {
+                abort();
+            }
+
+            if(!bson_iter_find_descendant (&iter, path.str().c_str(), &baz1))
+            {
+                return false;
+            }
+
+            bson_iter_recurse(&baz1, &baz2);
+
+            for(size_t i = 0; i < size; ++i)
+            {
+                bson_iter_next(&baz2);
+                values[i+1] = *bson_iter_value(&baz2);
+            }
+
+            // Build new array
+            // TODO make this faster...
+            bson_t *prev = bson_root;
+
+            for(size_t i = 0; i < size + 1; ++i)
+            {
+                std::stringstream key;
+                key << i;
+
+                json_path subpath = path;
+                subpath.append(key.str());
+                bson_t* new_doc = add_or_replace_value(prev, subpath, &values[i]);
+
+                if(prev != bson_root)
+                {
+                    bson_destroy(prev);
+                }
+
+                prev = new_doc;
+            }
+
+            bson_destroy(bson_root);
+            bson_root = prev;
             break;
         }
         case FUNC_LIST_RPUSH:

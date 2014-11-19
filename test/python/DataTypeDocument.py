@@ -135,6 +135,8 @@ assertTrue(c.list_rpush('kv', 'k11', {'v.a' : "5"}))
 assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [1,2,3,4,"5"]}))
 assertTrue(c.list_rpush('kv', 'k11', {'v.a' : Document({'x':'y'})}))
 assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [1,2,3,4,"5",{'x':'y'}]}))
+assertTrue(c.list_lpush('kv', 'k11', {'v.a' : 0}))
+assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [0,1,2,3,4,"5",{'x':'y'}]}))
 
 # Search on Documents
 assertTrue(c.put('kv', 'k9', {'v' : Document({'x' : {'b' : 'c'}})}))
