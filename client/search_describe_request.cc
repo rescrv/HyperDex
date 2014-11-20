@@ -40,18 +40,24 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 search_describe_request::search_describe_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : group_request(cl_, coord_, space_), request(cl_, coord_, space_)
+    : req(cl_, coord_, space_), group_req(req)
 {
 }
 
 e::buffer* search_describe_request::create_message()
 {
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ + pack_size(select);
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ + pack_size(group_req.get_selection());
 
     e::buffer* msg = e::buffer::create(sz);
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << select;
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << group_req.get_selection();
 
     return msg;
+}
+
+int search_describe_request::prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                        hyperdex_client_returncode& status)
+{
+    return group_req.prepare(selection, selection_sz, status);
 }
 
 END_HYPERDEX_NAMESPACE

@@ -39,13 +39,13 @@
 
 #define ERROR(CODE) \
     status = HYPERDEX_CLIENT_ ## CODE; \
-    cl.m_last_error.set_loc(__FILE__, __LINE__); \
-    cl.m_last_error.set_msg()
+    req.cl.m_last_error.set_loc(__FILE__, __LINE__); \
+    req.cl.m_last_error.set_msg()
 
 BEGIN_HYPERDEX_NAMESPACE
 
 group_atomic_request::group_atomic_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    :  request(cl_, coord_, space_), group_request(cl_, coord_, space_), atomic_request(cl_, coord_, space_)
+    :  req(cl_, coord_, space_), group_req(req), atomic_req(req)
 {
 }
 
@@ -57,9 +57,9 @@ int group_atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
 {
     try
     {
-        const schema& sc = get_schema();
+        const schema& sc = req.get_schema();
 
-        int ret = group_request::prepare(selection, selection_sz, status);
+        int ret = group_req.prepare(selection, selection_sz, status);
 
         if(ret < 0)
         {
@@ -69,7 +69,7 @@ int group_atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
         size_t idx = 0;
 
         // Prepare the attrs
-        idx = prepare_funcs(space.c_str(), sc, opinfo, attrs, attrs_sz, status);
+        idx = atomic_req.prepare_funcs(sc, opinfo, attrs, attrs_sz, status);
 
         if (idx < attrs_sz)
         {
@@ -77,7 +77,7 @@ int group_atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
         }
 
         // Prepare the mapattrs
-        idx = prepare_funcs(space.c_str(), sc, opinfo, mapattrs, mapattrs_sz, status);
+        idx = atomic_req.prepare_funcs(sc, opinfo, mapattrs, mapattrs_sz, status);
 
         if (idx < mapattrs_sz)
         {
@@ -95,12 +95,15 @@ int group_atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
 
 e::buffer* group_atomic_request::create_message(const hyperdex_client_keyop_info& opinfo)
 {
+    std::vector<attribute_check> select = group_req.get_selection();
+    std::vector<funcall> funcs = atomic_req.get_funcs();
+
     std::stable_sort(select.begin(), select.end());
     std::stable_sort(funcs.begin(), funcs.end());
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
               + pack_size(select)
               + sizeof(uint8_t)
-              + pack_size(checks)
+              + pack_size(atomic_req.get_checks())
               + pack_size(funcs);
 
     e::buffer *msg = e::buffer::create(sz);
@@ -108,7 +111,7 @@ e::buffer* group_atomic_request::create_message(const hyperdex_client_keyop_info
                   | (opinfo.fail_if_found ? 2 : 0)
                   | (opinfo.erase ? 0 : 128);
     msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ)
-        << select << flags << checks << funcs;
+        << select << flags << atomic_req.get_checks() << funcs;
 
     return msg;
 }

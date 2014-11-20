@@ -45,20 +45,25 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 search_request::search_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : group_request(cl_, coord_, space_), request(cl_, coord_, space_)
+    : req(cl_, coord_, space_), group_req(req)
 {
 }
 
-e::buffer* search_request::create_message(int64_t client_id)
+e::buffer* search_request::create_message(int64_t search_id)
 {
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + sizeof(client_id) + pack_size(select);
+              + sizeof(search_id) + pack_size(group_req.get_selection());
 
-    // why is the client_id needed?
     e::buffer* msg = e::buffer::create(sz);
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << client_id << select;
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << search_id << group_req.get_selection();
 
     return msg;
+}
+
+int search_request::prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                        hyperdex_client_returncode& status)
+{
+    return group_req.prepare(selection, selection_sz, status);
 }
 
 END_HYPERDEX_NAMESPACE

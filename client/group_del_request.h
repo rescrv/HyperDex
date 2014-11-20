@@ -36,12 +36,25 @@ BEGIN_HYPERDEX_NAMESPACE
 
 // Use this prepare an group deletion request
 // Can only be used once, i.e. create one for each funcall
-class group_del_request : public group_request
+class group_del_request
 {
 public:
     group_del_request(client& cl_, const coordinator_link& coord_, const char* space_);
 
     e::buffer* create_message();
+
+
+    const group_request group() const
+    {
+        return group_req;
+    }
+
+    int prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                    hyperdex_client_returncode& status);
+
+private:
+    request req;
+    group_request group_req;
 };
 
 END_HYPERDEX_NAMESPACE

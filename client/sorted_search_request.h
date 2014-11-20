@@ -35,7 +35,7 @@ BEGIN_HYPERDEX_NAMESPACE
 
 // Use this prepare a sorted search request
 // Can only be used once, i.e. create one for each funcall
-class sorted_search_request : public group_request
+class sorted_search_request
 {
 public:
     sorted_search_request(client& cl_, const coordinator_link& coord_, const char* space_);
@@ -51,7 +51,14 @@ public:
 
     const datatype_info& get_sort_di() const;
 
+    const group_request group() const
+    {
+        return group_req;
+    }
+
 private:
+    request req;
+    group_request group_req;
     uint16_t sort_by_num;
 };
 

@@ -37,7 +37,7 @@ BEGIN_HYPERDEX_NAMESPACE
 // Can only be used once, i.e. create one for each funcall
 class request
 {
-protected:
+public:
     request(client& cl_, const coordinator_link& coord_, const std::string& space_);
     virtual ~request() {};
 

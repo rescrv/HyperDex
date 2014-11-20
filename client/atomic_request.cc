@@ -43,8 +43,8 @@
 
 #define ERROR(CODE) \
     status = HYPERDEX_CLIENT_ ## CODE; \
-    cl.m_last_error.set_loc(__FILE__, __LINE__); \
-    cl.m_last_error.set_msg()
+    req.cl.m_last_error.set_loc(__FILE__, __LINE__); \
+    req.cl.m_last_error.set_msg()
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -54,7 +54,7 @@ hyperdex_client_returncode atomic_request::validate_key(const e::slice& key) con
 
     try
     {
-        const schema& sc = request::get_schema();
+        const schema& sc = req.get_schema();
 
         datatype_info* di = datatype_info::lookup(sc.attrs[0].type);
         assert(di);
@@ -82,11 +82,11 @@ int atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
 {
     try
     {
-        const schema& sc = request::get_schema();
+        const schema& sc = req.get_schema();
         size_t idx = 0;
 
         // Prepare the checks
-        idx = prepare_checks(sc, chks, chks_sz, status, &checks);
+        idx = req.prepare_checks(sc, chks, chks_sz, status, &checks);
 
         if (idx < chks_sz)
         {
@@ -94,7 +94,7 @@ int atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
         }
 
         // Prepare the attrs
-        idx = prepare_funcs(space.c_str(), sc, opinfo, attrs, attrs_sz, status);
+        idx = prepare_funcs(sc, opinfo, attrs, attrs_sz, status);
 
         if (idx < attrs_sz)
         {
@@ -102,7 +102,7 @@ int atomic_request::prepare(const hyperdex_client_keyop_info& opinfo,
         }
 
         // Prepare the mapattrs
-        idx = prepare_funcs(space.c_str(), sc, opinfo, mapattrs, mapattrs_sz, status);
+        idx = prepare_funcs(sc, opinfo, mapattrs, mapattrs_sz, status);
 
         if (idx < mapattrs_sz)
         {
@@ -140,7 +140,7 @@ e::buffer* atomic_request::create_message(const hyperdex_client_keyop_info& opin
 
 
 size_t
-atomic_request :: prepare_funcs(const char* space, const schema& sc,
+atomic_request :: prepare_funcs(const schema& sc,
                         const hyperdex_client_keyop_info& opinfo,
                         const hyperdex_client_attribute* attrs, size_t attrs_sz,
                         hyperdex_client_returncode& status)
@@ -176,7 +176,7 @@ atomic_request :: prepare_funcs(const char* space, const schema& sc,
         {
             ERROR(UNKNOWNATTR) << "\"" << e::strescape(attr)
                                << "\" is not an attribute of space \""
-                               << e::strescape(space) << "\"";
+                               << e::strescape(req.space) << "\"";
             return i;
         }
 
@@ -216,8 +216,8 @@ atomic_request :: prepare_funcs(const char* space, const schema& sc,
             size_t len = bson->len;
             const char* data = reinterpret_cast<const char*>(bson_get_data(bson));
 
-            allocate.push_back(std::string());
-            std::string& s(allocate.back());
+            req.allocate.push_back(std::string());
+            std::string& s(req.allocate.back());
             s.append(data, len);
 
             o.arg1 = e::slice(s.data(), len);
@@ -251,7 +251,7 @@ atomic_request :: prepare_funcs(const char* space, const schema& sc,
 }
 
 size_t
-atomic_request :: prepare_funcs(const char* space, const schema& sc,
+atomic_request :: prepare_funcs(const schema& sc,
                         const hyperdex_client_keyop_info& opinfo,
                         const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                         hyperdex_client_returncode& status)
@@ -266,7 +266,7 @@ atomic_request :: prepare_funcs(const char* space, const schema& sc,
         {
             ERROR(UNKNOWNATTR) << "\"" << e::strescape(mapattrs[i].attr)
                                << "\" is not an attribute of space \""
-                               << e::strescape(space) << "\"";
+                               << e::strescape(req.space) << "\"";
             return i;
         }
 

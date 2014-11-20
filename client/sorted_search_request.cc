@@ -39,20 +39,20 @@
 
 #define ERROR(CODE) \
     status = HYPERDEX_CLIENT_ ## CODE; \
-    cl.m_last_error.set_loc(__FILE__, __LINE__); \
-    cl.m_last_error.set_msg()
+    req.cl.m_last_error.set_loc(__FILE__, __LINE__); \
+    req.cl.m_last_error.set_msg()
 
 BEGIN_HYPERDEX_NAMESPACE
 
 sorted_search_request::sorted_search_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : group_request(cl_, coord_, space_), request(cl_, coord_, space_), sort_by_num(-1)
+    : req(cl_, coord_, space_), group_req(req), sort_by_num(-1)
 {
 }
 
 int sorted_search_request::prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
                            hyperdex_client_returncode& status, const char* sort_by)
 {
-    int res = group_request::prepare(selection, selection_sz, status);
+    int res = group_req.prepare(selection, selection_sz, status);
     if(res < 0)
     {
         return res;
@@ -60,14 +60,14 @@ int sorted_search_request::prepare(const hyperdex_client_attribute_check* select
 
     try
     {
-        const schema& sc = request::get_schema();
+        const schema& sc = req.get_schema();
         sort_by_num = sc.lookup_attr(sort_by);
 
         if (sort_by_num == sc.attrs_sz)
         {
             ERROR(UNKNOWNATTR) << "\"" << e::strescape(sort_by)
                                << "\" is not an attribute of space \""
-                               << e::strescape(space) << "\"";
+                               << e::strescape(req.space) << "\"";
             return -1 - selection_sz;
         }
 
@@ -92,20 +92,20 @@ int sorted_search_request::prepare(const hyperdex_client_attribute_check* select
 
 const datatype_info& sorted_search_request::get_sort_di() const
 {
-    return *datatype_info::lookup(get_schema().attrs[sort_by_num].type);
+    return *datatype_info::lookup(req.get_schema().attrs[sort_by_num].type);
 }
 
 e::buffer* sorted_search_request::create_message(uint64_t limit, bool maximize)
 {
     int8_t max = maximize ? 1 : 0;
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + pack_size(select)
+              + pack_size(group_req.get_selection())
               + sizeof(limit)
               + sizeof(sort_by_num)
               + sizeof(max);
 
     e::buffer* msg = e::buffer::create(sz);
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << select << limit << sort_by_num << max;
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << group_req.get_selection() << limit << sort_by_num << max;
     return msg;
 }
 

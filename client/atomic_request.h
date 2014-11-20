@@ -35,12 +35,11 @@ BEGIN_HYPERDEX_NAMESPACE
 
 // Use this prepare an atomic request
 // Can only be used once, i.e. create one for each funcall
-class atomic_request : virtual public request
+class atomic_request
 {
 public:
-    atomic_request(client& cl_, const coordinator_link& coord_, const char* space_)
-        : request(cl_, coord_, space_), checks(), funcs() {};
-    virtual ~atomic_request() {};
+    atomic_request(request& req_)
+        : req(req_), checks(), funcs() {};
 
     // Returns HYPERDEX_SUCCESS if the key is valid
     hyperdex_client_returncode validate_key(const e::slice& key) const;
@@ -54,17 +53,28 @@ public:
 
     e::buffer* create_message(const hyperdex_client_keyop_info& opinfo, const e::slice& key);
 
-protected:
-    size_t prepare_funcs(const char* space, const schema& sc,
+    size_t prepare_funcs(const schema& sc,
                         const hyperdex_client_keyop_info& opinfo,
                         const hyperdex_client_attribute* attrs, size_t attrs_sz,
                         hyperdex_client_returncode& status);
 
-    size_t prepare_funcs(const char* space, const schema& sc,
+    size_t prepare_funcs(const schema& sc,
                         const hyperdex_client_keyop_info& opinfo,
                         const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                         hyperdex_client_returncode& status);
 
+    const std::vector<attribute_check>& get_checks() const
+    {
+        return checks;
+    }
+
+    const std::vector<funcall>& get_funcs() const
+    {
+        return funcs;
+    }
+
+protected:
+    request& req;
     std::vector<attribute_check> checks;
     std::vector<funcall> funcs;
 };

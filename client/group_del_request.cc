@@ -35,19 +35,25 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 group_del_request::group_del_request(client& cl_, const coordinator_link& coord_, const char* space_)
-    : group_request(cl_, coord_, space_), request(cl_, coord_, space_)
+    : req(cl_, coord_, space_), group_req(req)
 {
 }
 
 e::buffer* group_del_request::create_message()
 {
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + pack_size(select);
+              + pack_size(group_req.get_selection());
 
     e::buffer* msg = e::buffer::create(sz);
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << select;
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << group_req.get_selection();
 
     return msg;
+}
+
+int group_del_request::prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                        hyperdex_client_returncode& status)
+{
+    return group_req.prepare(selection, selection_sz, status);
 }
 
 END_HYPERDEX_NAMESPACE

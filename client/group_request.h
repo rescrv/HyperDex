@@ -33,26 +33,31 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
-class group_request : virtual public request
+class group_request
 {
 public:
-    group_request(client& cl_, const coordinator_link& coord_, const std::string& space_)
-     : request(cl_, coord_, space_), select(), servers() {}
-
-    virtual ~group_request() {};
+    group_request(request& req_)
+     : req(req_), select(), servers() {}
 
     const std::vector<virtual_server_id>& get_servers() const
     {
         return servers;
     }
 
+    const std::vector<attribute_check>& get_selection() const
+    {
+        return select;
+    }
+
     int prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
                            hyperdex_client_returncode& status);
 
-protected:
     size_t prepare_searchop(const schema& sc,
                                 const hyperdex_client_attribute_check* chks, size_t chks_sz,
                                 hyperdex_client_returncode& status);
+
+private:
+    request& req;
 
     std::vector<attribute_check> select;
     std::vector<virtual_server_id> servers;

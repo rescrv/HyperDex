@@ -259,7 +259,7 @@ client :: search(const char* space,
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_search(client_id, status, attrs, attrs_sz);
 
-    return perform_aggregation(request.get_servers(), op, REQ_SEARCH_START, msg, status);
+    return perform_aggregation(request.group().get_servers(), op, REQ_SEARCH_START, msg, status);
 }
 
 int64_t
@@ -286,7 +286,7 @@ client :: search_describe(const char* space,
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_search_describe(client_id, status, description);
 
-    return perform_aggregation(request.get_servers(), op, REQ_SEARCH_DESCRIBE, msg, status);
+    return perform_aggregation(request.group().get_servers(), op, REQ_SEARCH_DESCRIBE, msg, status);
 }
 
 int64_t
@@ -313,7 +313,7 @@ client :: sorted_search(const char* space,
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_sorted_search(this, client_id, maximize, limit,
                 request.get_sort_by_index(), request.get_sort_di(), status, attrs, attrs_sz);
-    return perform_aggregation(request.get_servers(), op, REQ_SORTED_SEARCH, msg, status);
+    return perform_aggregation(request.group().get_servers(), op, REQ_SORTED_SEARCH, msg, status);
 }
 
 int64_t
@@ -339,7 +339,7 @@ client :: group_del(const char* space,
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_group_del(m_next_client_id++, status);
 
-    return perform_aggregation(request.get_servers(), op, REQ_GROUP_DEL, msg, status);
+    return perform_aggregation(request.group().get_servers(), op, REQ_GROUP_DEL, msg, status);
 }
 
 int64_t
@@ -365,7 +365,7 @@ client :: count(const char* space,
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_count(m_next_client_id++, status, result);
 
-    return perform_aggregation(request.get_servers(), op, REQ_COUNT, msg, status);
+    return perform_aggregation(request.group().get_servers(), op, REQ_COUNT, msg, status);
 }
 
 int64_t
@@ -394,7 +394,7 @@ client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_group_atomic(m_next_client_id++, status, update_count);
 
-    return perform_aggregation(request.get_servers(), op, REQ_GROUP_ATOMIC, msg, status);
+    return perform_aggregation(request.group().get_servers(), op, REQ_GROUP_ATOMIC, msg, status);
 }
 
 int64_t
@@ -410,24 +410,25 @@ client :: perform_funcall(const hyperdex_client_keyop_info* opinfo,
         return -1;
     }
 
-    atomic_request request(*this, m_coord, space);
+    request req(*this, m_coord, space);
+    atomic_request atomic_req(req);
 
     e::slice key(_key, _key_sz);
 
-    status = request.validate_key(key);
+    status = atomic_req.validate_key(key);
     if(status != HYPERDEX_CLIENT_SUCCESS)
     {
         return -1;
     }
 
-    int res = request.prepare(*opinfo, chks, chks_sz, attrs, attrs_sz, mapattrs, mapattrs_sz, status);
+    int res = atomic_req.prepare(*opinfo, chks, chks_sz, attrs, attrs_sz, mapattrs, mapattrs_sz, status);
 
     if(res < 0)
     {
         return res;
     }
 
-    std::auto_ptr<e::buffer> msg(request.create_message(*opinfo, key));
+    std::auto_ptr<e::buffer> msg(atomic_req.create_message(*opinfo, key));
 
     e::intrusive_ptr<pending> op;
     op = new pending_atomic(m_next_client_id++, status);

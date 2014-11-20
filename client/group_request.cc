@@ -34,8 +34,8 @@
 
 #define ERROR(CODE) \
     status = HYPERDEX_CLIENT_ ## CODE; \
-    cl.m_last_error.set_loc(__FILE__, __LINE__); \
-    cl.m_last_error.set_msg()
+    req.cl.m_last_error.set_loc(__FILE__, __LINE__); \
+    req.cl.m_last_error.set_msg()
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -44,7 +44,7 @@ group_request :: prepare_searchop(const schema& sc,
                            const hyperdex_client_attribute_check* chks, size_t chks_sz,
                            hyperdex_client_returncode& status)
 {
-    size_t num_checks = prepare_checks(sc, chks, chks_sz, status, &select);
+    size_t num_checks = req.prepare_checks(sc, chks, chks_sz, status, &select);
 
     if (num_checks != chks_sz)
     {
@@ -52,7 +52,7 @@ group_request :: prepare_searchop(const schema& sc,
     }
 
     std::stable_sort(select.begin(), select.end());
-    coord.config()->lookup_search(space.c_str(), select, &servers); // XXX search guaranteed empty vs. search encounters offline server
+    req.coord.config()->lookup_search(req.space.c_str(), select, &servers); // XXX search guaranteed empty vs. search encounters offline server
 
     if (servers.empty())
     {
@@ -70,7 +70,7 @@ int group_request::prepare(const hyperdex_client_attribute_check* selection, siz
 {
     try
     {
-        const schema& sc = request::get_schema();
+        const schema& sc = req.get_schema();
 
         int64_t ret = prepare_searchop(sc, selection, selection_sz, status);
         if (ret < 0)

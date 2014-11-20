@@ -36,12 +36,24 @@ BEGIN_HYPERDEX_NAMESPACE
 
 // Counts all occurences that match a specific check
 // This is done by adding up results from different serverse
-class count_request : public group_request
+class count_request
 {
 public:
     count_request(client& cl_, const coordinator_link& coord_, const char* space_);
 
     e::buffer* create_message();
+
+    const group_request group() const
+    {
+        return group_req;
+    }
+
+    int prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                        hyperdex_client_returncode& status);
+
+private:
+    request req;
+    group_request group_req;
 };
 
 END_HYPERDEX_NAMESPACE

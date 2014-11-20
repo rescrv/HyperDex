@@ -37,7 +37,7 @@ BEGIN_HYPERDEX_NAMESPACE
 
 // Use this prepare an atomic request
 // Can only be used once, i.e. create one for each funcall
-class group_atomic_request : public group_request, public atomic_request
+class group_atomic_request
 {
 public:
     group_atomic_request(client& cl_, const coordinator_link& coord_, const char* space_);
@@ -50,6 +50,16 @@ public:
                 hyperdex_client_returncode& status);
 
     e::buffer* create_message(const hyperdex_client_keyop_info& opinfo);
+
+    const group_request group() const
+    {
+        return group_req;
+    }
+
+private:
+    request req;
+    group_request group_req;
+    atomic_request atomic_req;
 };
 
 END_HYPERDEX_NAMESPACE
