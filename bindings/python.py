@@ -171,9 +171,16 @@ def generate_method(x, lib):
                              for arg in x.args_in])
     arg_list = ', '.join([arg_name(arg) for arg in x.args_in])
     if x.form == bindings.AsyncCall:
-        meth  = 'def async_{0}(self, {1}, auth=None):\n'.format(name(x), typed_args)
+        excess = ''
+        magic_attr = ''
+        if x.name == 'put':
+            excess = ', secret=None'
+            magic_attr = "    if secret is not None: attributes['__secret'] = secret\n"
+        meth  = 'def async_{0}(self, {1}, auth=None{2}):\n'.format(name(x), typed_args, excess)
+        meth += magic_attr
         meth += '    return self.{0}(hyperdex_{3}_{1}, {2}, auth)\n'.format(bindings.call_name(x), x.name, arg_list, lib)
-        meth += 'def {0}(self, {1}, auth=None):\n'.format(name(x), typed_args)
+        meth += 'def {0}(self, {1}, auth=None{2}):\n'.format(name(x), typed_args, excess)
+        meth += magic_attr
         meth += '    return self.async_{0}({1}, auth).wait()\n'.format(name(x), arg_list)
     if x.form == bindings.Iterator:
         meth  = 'def {0}(self, {1}):\n'.format(name(x), typed_args)
