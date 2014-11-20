@@ -59,6 +59,7 @@
 #include "client/pending_search.h"
 #include "client/pending_search_describe.h"
 #include "client/pending_sorted_search.h"
+#include "client/pending_volume_search.h"
 
 #define ERROR(CODE) \
     *status = HYPERDEX_CLIENT_ ## CODE; \
@@ -286,6 +287,24 @@ client :: search(const char* space,
     int64_t client_id = m_next_client_id++;
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_search(client_id, status, attrs, attrs_sz);
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+              + sizeof(uint64_t)
+              + pack_size(checks);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << client_id << checks;
+    return perform_aggregation(servers, op, REQ_SEARCH_START, msg, status);
+}
+
+int64_t
+client :: volume_search(const char* space,
+                 const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                 hyperdex_client_returncode* status,
+                 const hyperdex_client_attribute** attrs, size_t* attrs_sz)
+{
+    SEARCH_BOILERPLATE
+    int64_t client_id = m_next_client_id++;
+    e::intrusive_ptr<pending_aggregation> op;
+    op = new pending_volume_search(client_id, status, attrs, attrs_sz);
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
               + sizeof(uint64_t)
               + pack_size(checks);

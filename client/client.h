@@ -74,6 +74,10 @@ class client
                        const hyperdex_client_attribute_check* checks, size_t checks_sz,
                        hyperdex_client_returncode* status,
                        const hyperdex_client_attribute** attrs, size_t* attrs_sz);
+        int64_t volume_search(const char* space,
+                       const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                       hyperdex_client_returncode* status,
+                       const hyperdex_client_attribute** attrs, size_t* attrs_sz);
         int64_t search_describe(const char* space,
                                 const hyperdex_client_attribute_check* checks, size_t checks_sz,
                                 hyperdex_client_returncode* status, const char** description);
@@ -129,6 +133,7 @@ class client
         friend class pending_get;
         friend class pending_get_partial;
         friend class pending_search;
+        friend class pending_volume_search;
         friend class pending_sorted_search;
 
     private:

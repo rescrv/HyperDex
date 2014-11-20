@@ -394,6 +394,7 @@ noinst_HEADERS += client/pending_group_del.h
 noinst_HEADERS += client/pending.h
 noinst_HEADERS += client/pending_search_describe.h
 noinst_HEADERS += client/pending_search.h
+noinst_HEADERS += client/pending_volume_search.h
 noinst_HEADERS += client/pending_sorted_search.h
 noinst_HEADERS += client/util.h
 
@@ -444,6 +445,7 @@ libhyperdex_client_la_SOURCES += client/pending_group_del.cc
 libhyperdex_client_la_SOURCES += client/pending_search.cc
 libhyperdex_client_la_SOURCES += client/pending_search_describe.cc
 libhyperdex_client_la_SOURCES += client/pending_sorted_search.cc
+libhyperdex_client_la_SOURCES += client/pending_volume_search.cc
 libhyperdex_client_la_SOURCES += client/util.cc
 libhyperdex_client_la_LIBADD =
 libhyperdex_client_la_LIBADD += $(MACAROONS_LIBS)
