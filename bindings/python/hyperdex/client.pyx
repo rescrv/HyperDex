@@ -1559,9 +1559,11 @@ cdef class Client:
     def get_partial(self, bytes spacename, key, attributenames, auth=None):
         return self.async_get_partial(spacename, key, attributenames, auth).wait()
 
-    def async_put(self, bytes spacename, key, dict attributes, auth=None):
+    def async_put(self, bytes spacename, key, dict attributes, auth=None, secret=None):
+        if secret is not None: attributes['__secret'] = secret
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_put, spacename, key, attributes, auth)
-    def put(self, bytes spacename, key, dict attributes, auth=None):
+    def put(self, bytes spacename, key, dict attributes, auth=None, secret=None):
+        if secret is not None: attributes['__secret'] = secret
         return self.async_put(spacename, key, attributes, auth).wait()
 
     def async_cond_put(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
