@@ -27,6 +27,7 @@
 
 try: import simplejson as json
 except ImportError: import json
+import datetime
 
 from cpython cimport bool
 
@@ -77,6 +78,13 @@ cdef extern from "hyperdex.h":
         HYPERDATATYPE_MAP_FLOAT_STRING   = 9433
         HYPERDATATYPE_MAP_FLOAT_INT64    = 9434
         HYPERDATATYPE_MAP_FLOAT_FLOAT    = 9435
+        HYPERDATATYPE_TIMESTAMP_GENERIC  = 9472
+        HYPERDATATYPE_TIMESTAMP_SECOND   = 9473
+        HYPERDATATYPE_TIMESTAMP_MINUTE   = 9474
+        HYPERDATATYPE_TIMESTAMP_HOUR     = 9475
+        HYPERDATATYPE_TIMESTAMP_DAY      = 9476
+        HYPERDATATYPE_TIMESTAMP_WEEK     = 9477
+        HYPERDATATYPE_TIMESTAMP_MONTH    = 9478
         HYPERDATATYPE_MACAROON_SECRET    = 9664
         HYPERDATATYPE_GARBAGE            = 9727
 
@@ -504,6 +512,9 @@ cdef hyperdex_python_client_convert_type(hyperdex_ds_arena* arena, x,
     elif isinstance(x, Document):
         datatype[0] = HYPERDATATYPE_DOCUMENT
         return hyperdex_python_client_convert_string(arena, x.inner_str(), value, value_sz, &_datatype)
+    elif isinstance(x, datetime.datetime):
+        datatype[0] = HYPERDATATYPE_TIMESTAMP_GENERIC
+        return hyperdex_python_client_convert_int(arena, long(x.strftime("%s")), value, value_sz, &_datatype)
     else:
         raise TypeError("Cannot convert object to a HyperDex type")
 
@@ -795,6 +806,12 @@ cdef hyperdex_python_client_build_attributes(const hyperdex_client_attribute* at
             val = hyperdex_python_client_build_float(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_DOCUMENT:
             val = Document(hyperdex_python_client_build_string(attrs[i].value, attrs[i].value_sz))
+        elif (attrs[i].datatype in
+             [HYPERDATATYPE_TIMESTAMP_SECOND,
+             HYPERDATATYPE_TIMESTAMP_MINUTE,
+             HYPERDATATYPE_TIMESTAMP_HOUR, HYPERDATATYPE_TIMESTAMP_DAY,
+             HYPERDATATYPE_TIMESTAMP_WEEK, HYPERDATATYPE_TIMESTAMP_MONTH]):
+            val = datetime.datetime.utcfromtimestamp(hyperdex_python_client_build_int(attrs[i].value, attrs[i].value_sz))
         elif attrs[i].datatype == HYPERDATATYPE_LIST_STRING:
             val = hyperdex_python_client_build_list_string(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_LIST_INT64:
@@ -921,7 +938,6 @@ cdef class Document:
             return self.doc() != other.doc()
         else:
             raise TypeError('No ordering is possible for Documents.')
-
 
 cdef class Predicate:
 

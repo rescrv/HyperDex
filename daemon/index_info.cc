@@ -32,6 +32,7 @@
 #include "daemon/index_info.h"
 #include "daemon/index_int64.h"
 #include "daemon/index_list.h"
+#include "daemon/index_timestamp.h"
 #include "daemon/index_map.h"
 #include "daemon/index_set.h"
 #include "daemon/index_string.h"
@@ -43,6 +44,7 @@ using hyperdex::index_info;
 static hyperdex::index_encoding_string e_string;
 static hyperdex::index_encoding_int64 e_int64;
 static hyperdex::index_encoding_float e_float;
+static hyperdex::index_encoding_timestamp e_timestamp;
 
 static hyperdex::index_string i_string;
 static hyperdex::index_int64 i_int64;
@@ -63,6 +65,12 @@ static hyperdex::index_map i_map_int64_float(HYPERDATATYPE_INT64, HYPERDATATYPE_
 static hyperdex::index_map i_map_float_string(HYPERDATATYPE_FLOAT, HYPERDATATYPE_STRING);
 static hyperdex::index_map i_map_float_int64(HYPERDATATYPE_FLOAT, HYPERDATATYPE_INT64);
 static hyperdex::index_map i_map_float_float(HYPERDATATYPE_FLOAT, HYPERDATATYPE_FLOAT);
+static hyperdex::index_timestamp i_timestamp_second(HYPERDATATYPE_TIMESTAMP_SECOND);
+static hyperdex::index_timestamp i_timestamp_minute(HYPERDATATYPE_TIMESTAMP_MINUTE);
+static hyperdex::index_timestamp i_timestamp_hour(HYPERDATATYPE_TIMESTAMP_HOUR);
+static hyperdex::index_timestamp i_timestamp_day(HYPERDATATYPE_TIMESTAMP_DAY);
+static hyperdex::index_timestamp i_timestamp_week(HYPERDATATYPE_TIMESTAMP_WEEK);
+static hyperdex::index_timestamp i_timestamp_month(HYPERDATATYPE_TIMESTAMP_MONTH);
 
 index_encoding*
 index_encoding :: lookup(hyperdatatype datatype)
@@ -75,6 +83,13 @@ index_encoding :: lookup(hyperdatatype datatype)
             return &e_int64;
         case HYPERDATATYPE_FLOAT:
             return &e_float;
+        case HYPERDATATYPE_TIMESTAMP_SECOND:
+        case HYPERDATATYPE_TIMESTAMP_MINUTE:
+        case HYPERDATATYPE_TIMESTAMP_HOUR:
+        case HYPERDATATYPE_TIMESTAMP_DAY:
+        case HYPERDATATYPE_TIMESTAMP_WEEK:
+        case HYPERDATATYPE_TIMESTAMP_MONTH:
+            return &e_timestamp;
         case HYPERDATATYPE_GENERIC:
         case HYPERDATATYPE_DOCUMENT:
         case HYPERDATATYPE_LIST_GENERIC:
@@ -86,6 +101,7 @@ index_encoding :: lookup(hyperdatatype datatype)
         case HYPERDATATYPE_SET_INT64:
         case HYPERDATATYPE_SET_FLOAT:
         case HYPERDATATYPE_MAP_GENERIC:
+        case HYPERDATATYPE_TIMESTAMP_GENERIC:
         case HYPERDATATYPE_MAP_STRING_KEYONLY:
         case HYPERDATATYPE_MAP_STRING_STRING:
         case HYPERDATATYPE_MAP_STRING_INT64:
@@ -124,6 +140,18 @@ index_info :: lookup(hyperdatatype datatype)
             return &i_int64;
         case HYPERDATATYPE_FLOAT:
             return &i_float;
+        case HYPERDATATYPE_TIMESTAMP_SECOND:
+            return &i_timestamp_second;
+        case HYPERDATATYPE_TIMESTAMP_MINUTE:
+            return &i_timestamp_minute;
+        case HYPERDATATYPE_TIMESTAMP_HOUR:
+            return &i_timestamp_hour;
+        case HYPERDATATYPE_TIMESTAMP_DAY:
+            return &i_timestamp_day;
+        case HYPERDATATYPE_TIMESTAMP_WEEK:
+            return &i_timestamp_week;
+        case HYPERDATATYPE_TIMESTAMP_MONTH:
+            return &i_timestamp_month;
         case HYPERDATATYPE_DOCUMENT:
             return &i_document;
         case HYPERDATATYPE_LIST_STRING:
@@ -163,6 +191,7 @@ index_info :: lookup(hyperdatatype datatype)
         case HYPERDATATYPE_MAP_STRING_KEYONLY:
         case HYPERDATATYPE_MAP_INT64_KEYONLY:
         case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+        case HYPERDATATYPE_TIMESTAMP_GENERIC:
         case HYPERDATATYPE_MACAROON_SECRET:
         case HYPERDATATYPE_GARBAGE:
         default:
