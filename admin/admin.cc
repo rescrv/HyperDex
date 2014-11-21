@@ -227,6 +227,7 @@ admin :: validate_space(const char* description,
 
     if (hyperspace_error(space_builder))
     {
+        std::cout << "bad space " << hyperspace_error(space_builder);
         ERROR(BADSPACE) << "bad space " << hyperspace_error(space_builder);
         return -1;
     }
@@ -253,6 +254,7 @@ admin :: add_space(const char* description,
 
     if (hyperspace_error(space_builder))
     {
+        std::cout << "bad space " << hyperspace_error(space_builder);
         ERROR(BADSPACE) << "bad space " << hyperspace_error(space_builder);
         return -1;
     }

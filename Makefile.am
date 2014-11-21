@@ -122,6 +122,7 @@ noinst_HEADERS += common/datatype_document.h
 noinst_HEADERS += common/datatype_float.h
 noinst_HEADERS += common/datatype_info.h
 noinst_HEADERS += common/datatype_int64.h
+noinst_HEADERS += common/datatype_timestamp.h
 noinst_HEADERS += common/datatype_list.h
 noinst_HEADERS += common/datatype_macaroon_secret.h
 noinst_HEADERS += common/datatype_map.h
@@ -235,6 +236,7 @@ hyperdex_daemon_SOURCES += common/datatype_float.cc
 hyperdex_daemon_SOURCES += common/datatype_info.cc
 hyperdex_daemon_SOURCES += common/datatype_int64.cc
 hyperdex_daemon_SOURCES += common/datatype_list.cc
+hyperdex_daemon_SOURCES += common/datatype_timestamp.cc
 hyperdex_daemon_SOURCES += common/datatype_macaroon_secret.cc
 hyperdex_daemon_SOURCES += common/datatype_map.cc
 hyperdex_daemon_SOURCES += common/datatype_set.cc
@@ -276,6 +278,7 @@ hyperdex_daemon_SOURCES += daemon/index_float.cc
 hyperdex_daemon_SOURCES += daemon/index_info.cc
 hyperdex_daemon_SOURCES += daemon/index_int64.cc
 hyperdex_daemon_SOURCES += daemon/index_list.cc
+hyperdex_daemon_SOURCES += daemon/index_timestamp.cc
 hyperdex_daemon_SOURCES += daemon/index_map.cc
 hyperdex_daemon_SOURCES += daemon/index_primitive.cc
 hyperdex_daemon_SOURCES += daemon/index_set.cc
@@ -411,6 +414,7 @@ libhyperdex_client_la_SOURCES += common/datatype_list.cc
 libhyperdex_client_la_SOURCES += common/datatype_macaroon_secret.cc
 libhyperdex_client_la_SOURCES += common/datatype_map.cc
 libhyperdex_client_la_SOURCES += common/datatype_set.cc
+libhyperdex_client_la_SOURCES += common/datatype_timestamp.cc
 libhyperdex_client_la_SOURCES += common/datatype_string.cc
 libhyperdex_client_la_SOURCES += common/funcall.cc
 libhyperdex_client_la_SOURCES += common/hash.cc
@@ -504,6 +508,7 @@ libhyperdex_admin_la_SOURCES += common/datatype_list.cc
 libhyperdex_admin_la_SOURCES += common/datatype_macaroon_secret.cc
 libhyperdex_admin_la_SOURCES += common/datatype_map.cc
 libhyperdex_admin_la_SOURCES += common/datatype_set.cc
+libhyperdex_admin_la_SOURCES += common/datatype_timestamp.cc
 libhyperdex_admin_la_SOURCES += common/datatype_string.cc
 libhyperdex_admin_la_SOURCES += common/hash.cc
 libhyperdex_admin_la_SOURCES += common/hyperdex.cc
@@ -1355,7 +1360,7 @@ maintainer-generate:
 	python2 bindings/java.py
 	python2 bindings/nodejs.py
 	python2 bindings/python.py
-	python2 bindings/ruby.py
+	bindings python2/ruby.py
 	python2 maint/generate-replication-shell-stubs.py
 	python2 maint/generate-search-shell-stubs.py
 	python2 maint/generate-doc-shell-stubs.py
