@@ -849,6 +849,7 @@ configuration :: lookup_search(const char* space_name,
                     }
                 }
             }
+
             if (!exclude)
             {
                 this_server_set.push_back(reg.replicas.back().vsi);

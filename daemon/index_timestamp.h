@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Cornell University
+// Copyright (c) 2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,29 +30,29 @@
 
 // HyperDex
 #include "namespace.h"
-#include "daemon/index_primitive.h"
 #include "common/datatype_timestamp.h"
-
+#include "daemon/index_int64.h"
+#include "daemon/index_primitive.h"
 
 BEGIN_HYPERDEX_NAMESPACE
-
 
 class index_timestamp : public index_primitive
 {
     public:
-        index_timestamp(enum timestamp_interval interval);
+        index_timestamp(hyperdatatype t);
         virtual ~index_timestamp() throw ();
 
     public:
         virtual hyperdatatype datatype();
+
     private:
-        enum timestamp_interval interval;
+        hyperdatatype m_type;
 };
 
 class index_encoding_timestamp : public index_encoding
 {
     public:
-        index_encoding_timestamp(enum timestamp_interval);
+        index_encoding_timestamp();
         virtual ~index_encoding_timestamp() throw ();
 
     public:
@@ -63,7 +63,7 @@ class index_encoding_timestamp : public index_encoding
         virtual char* decode(const e::slice& encoded, char* decoded);
 
     private:
-        enum timestamp_interval interval;
+        index_encoding_int64 m_iei;
 };
 
 END_HYPERDEX_NAMESPACE

@@ -1360,7 +1360,7 @@ maintainer-generate:
 	python2 bindings/java.py
 	python2 bindings/nodejs.py
 	python2 bindings/python.py
-	bindings python2/ruby.py
+	python2 bindings/ruby.py
 	python2 maint/generate-replication-shell-stubs.py
 	python2 maint/generate-search-shell-stubs.py
 	python2 maint/generate-doc-shell-stubs.py

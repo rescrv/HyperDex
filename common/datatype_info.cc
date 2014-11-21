@@ -61,12 +61,12 @@ static hyperdex::datatype_map d_map_int64_float(&d_int64, &d_float);
 static hyperdex::datatype_map d_map_float_string(&d_float, &d_string);
 static hyperdex::datatype_map d_map_float_int64(&d_float, &d_int64);
 static hyperdex::datatype_map d_map_float_float(&d_float, &d_float);
-static hyperdex::datatype_timestamp d_timestamp_second(SECOND);
-static hyperdex::datatype_timestamp d_timestamp_minute(MINUTE);
-static hyperdex::datatype_timestamp d_timestamp_hour(HOUR);
-static hyperdex::datatype_timestamp d_timestamp_day(DAY);
-static hyperdex::datatype_timestamp d_timestamp_week(WEEK);
-static hyperdex::datatype_timestamp d_timestamp_month(MONTH);
+static hyperdex::datatype_timestamp d_timestamp_second(HYPERDATATYPE_TIMESTAMP_SECOND);
+static hyperdex::datatype_timestamp d_timestamp_minute(HYPERDATATYPE_TIMESTAMP_MINUTE);
+static hyperdex::datatype_timestamp d_timestamp_hour(HYPERDATATYPE_TIMESTAMP_HOUR);
+static hyperdex::datatype_timestamp d_timestamp_day(HYPERDATATYPE_TIMESTAMP_DAY);
+static hyperdex::datatype_timestamp d_timestamp_week(HYPERDATATYPE_TIMESTAMP_WEEK);
+static hyperdex::datatype_timestamp d_timestamp_month(HYPERDATATYPE_TIMESTAMP_MONTH);
 static hyperdex::datatype_macaroon_secret d_macaroon_secret;
 
 datatype_info*

@@ -37,45 +37,11 @@
 using hyperdex::index_timestamp;
 using hyperdex::index_encoding_timestamp;
 
-
-int64_t
-unpack(const e::slice& value)
+index_timestamp :: index_timestamp(hyperdatatype t)
+    : index_primitive(index_encoding::lookup(t))
+    , m_type(t)
 {
-  assert(value.size() == sizeof(int64_t) || value.empty());
-
-  if (value.empty()) {
-    return 0;
-  }
-
-  int64_t timestamp;
-  e::unpack64le(value.data(),&timestamp);
-
-  return timestamp;
-}
-
-hyperdatatype
-interval_to_type(enum timestamp_interval interval){
-  switch(interval)
-  {
-    case SECOND:
-      return HYPERDATATYPE_TIMESTAMP_SECOND;
-    case MINUTE:
-      return HYPERDATATYPE_TIMESTAMP_MINUTE;
-    case HOUR:
-      return HYPERDATATYPE_TIMESTAMP_HOUR;
-    case DAY:
-      return HYPERDATATYPE_TIMESTAMP_DAY;
-    case WEEK:
-      return HYPERDATATYPE_TIMESTAMP_WEEK;
-    case MONTH:
-      return HYPERDATATYPE_TIMESTAMP_MONTH;
-  }
-}
-
-index_timestamp :: index_timestamp(enum timestamp_interval interval)
-    : index_primitive(index_encoding::lookup(interval_to_type(interval)))
-{
-  this->interval = interval;
+    assert(CONTAINER_TYPE(m_type) == HYPERDATATYPE_TIMESTAMP_GENERIC);
 }
 
 index_timestamp :: ~index_timestamp() throw ()
@@ -85,12 +51,12 @@ index_timestamp :: ~index_timestamp() throw ()
 hyperdatatype
 index_timestamp :: datatype()
 {
-    return interval_to_type(this->interval);
+    return m_type;
 }
 
-index_encoding_timestamp :: index_encoding_timestamp(enum timestamp_interval interval)
+index_encoding_timestamp :: index_encoding_timestamp()
+    : m_iei()
 {
-  this->interval= interval;
 }
 
 index_encoding_timestamp :: ~index_encoding_timestamp() throw ()
@@ -100,38 +66,29 @@ index_encoding_timestamp :: ~index_encoding_timestamp() throw ()
 bool
 index_encoding_timestamp :: encoding_fixed()
 {
-    return true;
+    return m_iei.encoding_fixed();
 }
 
 size_t
-index_encoding_timestamp :: encoded_size(const e::slice&)
+index_encoding_timestamp :: encoded_size(const e::slice& x)
 {
-    return sizeof(int64_t);
+    return m_iei.encoded_size(x);
 }
 
 char*
 index_encoding_timestamp :: encode(const e::slice& decoded, char* encoded)
 {
-    //std::cout << "HASH::ENCODE" << std::hex<< unpack(decoded) << "\n";
-    return e::pack64le(datatype_info::lookup(interval_to_type(this->interval))->hash(decoded), encoded);
+    return m_iei.encode(decoded, encoded);
 }
 
 size_t
-index_encoding_timestamp :: decoded_size(const e::slice&)
+index_encoding_timestamp :: decoded_size(const e::slice& x)
 {
-    return sizeof(int64_t);
+    return m_iei.decoded_size(x);
 }
 
 char*
 index_encoding_timestamp :: decode(const e::slice& encoded, char* decoded)
 {
-    uint64_t x = 0;
-
-    if (encoded.size() == sizeof(int64_t))
-    {
-        e::unpack64be(encoded.data(), &x);
-    }
-
-    int64_t number = ordered_decode_int64(x);
-    return e::pack64le(number, decoded);
+    return m_iei.decode(encoded, decoded);
 }
