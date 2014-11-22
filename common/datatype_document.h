@@ -33,9 +33,8 @@
 #include "common/datatype_info.h"
 #include "common/json_path.h"
 
-class json_object;
-
-#include <bson.h>
+#include <document/path.h>
+#include <document/value.h>
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -62,28 +61,14 @@ class datatype_document : public datatype_info
     public:
         // Retrieve value in a json document by traversing it
         // Will allocate a buffer for the data and a slice referencing it
-        bool extract_value(const std::string& path,
+        bool extract_value(const document::path& p,
                         const e::slice& document, // the whole document
                         hyperdatatype* type, // OUT: the datatype of the result
                         std::vector<char>* scratch, // OUT: the resulting content/value
                         e::slice* value); // OUT: slice to easier access the content of the scratch
 
     private:
-        bson_t* add_or_replace_value(const bson_t* old_document, const json_path& path, const bson_value_t *value) const;
-        void add_or_replace_value_recurse(const json_path& path, const bson_value_t *value,
-                                    bson_t* parent, bson_iter_t* iter) const;
-
-        bool can_create_element(const bson_t &doc, json_path path) const;
-        bson_type_t get_element_type(const bson_t &document, const json_path& path) const;
-        size_t get_num_children(const bson_t& doc, const json_path& path) const;
-        bool does_entry_exist(const bson_t &document, const json_path& path) const;
-        void encode_value(const hyperdatatype type, const e::slice& data, bson_value_t& value) const;
-
-        bson_t* unset_value(const bson_t* old_document, const json_path& path) const;
-        void unset_value_recurse(const json_path& path, bson_t* parent, bson_iter_t* iter) const;
-
-        bson_t* rename_value(const bson_t* old_document, const json_path& path, const std::string& new_name) const;
-        void rename_value_recurse(const json_path& path, const std::string& new_name, bson_t* parent, bson_iter_t* iter) const;
+        document::value* encode_value(const hyperdatatype type, const e::slice& data) const;
 };
 
 END_HYPERDEX_NAMESPACE

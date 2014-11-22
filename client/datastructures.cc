@@ -42,8 +42,8 @@
 // e
 #include <e/endian.h>
 
-// bson
-#include <bson.h>
+#include <document/document.h>
+using namespace document;
 
 // HyperDex
 #include <hyperdex/datastructures.h>
@@ -346,14 +346,15 @@ hyperdex_ds_unpack_document(const char* value, size_t value_sz, const char** out
         return 0;
     }
 
-    bson_t b;
+    std::auto_ptr<document::document> doc(create_document(document_type_bson, reinterpret_cast<const uint8_t*>(value), value_sz));
 
-    if(!bson_init_static(&b, reinterpret_cast<const uint8_t*>(value), value_sz))
+    if(!doc->is_valid())
     {
         return -1;
     }
 
-    *outstr = bson_as_json(&b, outsize);
+    *outstr = doc->c_str();
+    *outsize = strlen(*outstr);
     return 0;
 }
 

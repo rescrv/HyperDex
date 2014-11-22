@@ -28,9 +28,6 @@
 // e
 #include <e/strescape.h>
 
-// BSON
-#include <bson.h>
-
 #include "client/atomic_request.h"
 #include "client/util.h"
 #include "client/constants.h"
@@ -40,6 +37,9 @@
 #include "common/funcall.h"
 #include "common/macros.h"
 #include "common/serialization.h"
+
+#include <document/document.h>
+using namespace document;
 
 #define ERROR(CODE) \
     status = HYPERDEX_CLIENT_ ## CODE; \
@@ -204,24 +204,22 @@ atomic_request :: prepare_funcs(const schema& sc,
 
         if (datatype == HYPERDATATYPE_DOCUMENT)
         {
-            bson_error_t error;
-            bson_t *bson = bson_new_from_json(reinterpret_cast<const uint8_t*>(attrs[i].value), attrs[i].value_sz, &error);
+            std::auto_ptr<document::document> doc( create_document_from_json(document_type_bson, reinterpret_cast<const uint8_t*>(attrs[i].value), attrs[i].value_sz));
 
-            if(!bson)
+            if(!doc->is_valid())
             {
-                ERROR(WRONGTYPE) << "invalid document for attribute \"" << e::strescape(attr) << "\": " << error.message;
+                ERROR(WRONGTYPE) << "invalid document for attribute \"" << e::strescape(attr) << "\": " << doc->get_last_error();
                 return i;
             }
 
-            size_t len = bson->len;
-            const char* data = reinterpret_cast<const char*>(bson_get_data(bson));
+            size_t len = doc->size();
+            const char* data = reinterpret_cast<const char*>(doc->data());
 
             req.allocate.push_back(std::string());
             std::string& s(req.allocate.back());
             s.append(data, len);
 
             o.arg1 = e::slice(s.data(), len);
-            bson_destroy(bson);
         }
         else
         {
