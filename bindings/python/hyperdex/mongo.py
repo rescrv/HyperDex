@@ -157,6 +157,8 @@ class HyperSpace:
                 self.group_atomic_div(select, v)
             elif k == '$push':
                 self.group_list_rpush(select, v)
+            elif k == '$rename':
+                self.group_rename(select, v)
             else:
                 raise ValueError("Unknown command " + k)
 
@@ -177,6 +179,16 @@ class HyperSpace:
         docargs = self.convert_docargs(args)
 
         return self.client.async_group_document_set(self.name, hyperconds, docargs)
+        
+    def group_rename(self, select, args):
+        return self.async_group_rename(select, args).wait()
+
+    def async_group_rename(self, select, args):
+        self.init()
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
+
+        return self.client.async_group_document_rename(self.name, hyperconds, docargs)
 
     def group_set(self, select, value):
         return self.async_group_set(select, value).wait()
