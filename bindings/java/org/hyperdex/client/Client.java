@@ -366,6 +366,12 @@ public class Client
         return (Boolean) async_cond_string_append(spacename, key, predicates, attributes).waitForIt();
     }
 
+    public native Deferred async_group_list_lpush(String spacename, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Long group_list_lpush(String spacename, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Long) async_group_list_lpush(spacename, predicates, attributes).waitForIt();
+    }
+
     public native Deferred async_list_lpush(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean list_lpush(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
@@ -376,6 +382,12 @@ public class Client
     public Boolean cond_list_lpush(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_list_lpush(spacename, key, predicates, attributes).waitForIt();
+    }
+
+    public native Deferred async_group_list_rpush(String spacename, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Long group_list_rpush(String spacename, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Long) async_group_list_rpush(spacename, predicates, attributes).waitForIt();
     }
 
     public native Deferred async_list_rpush(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;

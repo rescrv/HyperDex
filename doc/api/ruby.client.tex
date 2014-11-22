@@ -2263,6 +2263,57 @@ async_cond_string_append(spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_string\_append}.
 
+%%%%%%%%%%%%%%%%%%%% group_list_lpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_lpush}}
+\label{api:ruby:group_list_lpush}
+\index{group\_list\_lpush!Ruby API}
+\input{\topdir/api/desc/group_list_lpush}
+
+\paragraph{Definition:}
+\begin{rubycode}
+group_list_lpush(spacename, predicates, attributes)
+\end{rubycode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/ruby/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_list\_lpush}}
+\label{api:ruby:async_group_list_lpush}
+\index{async\_group\_list\_lpush!Ruby API}
+\input{\topdir/api/desc/group_list_lpush}
+
+\paragraph{Definition:}
+\begin{rubycode}
+async_group_list_lpush(spacename, predicates, attributes)
+\end{rubycode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/ruby/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_list\_lpush}.
+
 %%%%%%%%%%%%%%%%%%%% list_lpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{list\_lpush}}
@@ -2368,6 +2419,57 @@ async_cond_list_lpush(spacename, key, predicates, attributes)
 \input{\topdir/api/fragments/ruby/client/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_list\_lpush}.
+
+%%%%%%%%%%%%%%%%%%%% group_list_rpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_rpush}}
+\label{api:ruby:group_list_rpush}
+\index{group\_list\_rpush!Ruby API}
+\input{\topdir/api/desc/group_list_rpush}
+
+\paragraph{Definition:}
+\begin{rubycode}
+group_list_rpush(spacename, predicates, attributes)
+\end{rubycode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/ruby/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_list\_rpush}}
+\label{api:ruby:async_group_list_rpush}
+\index{async\_group\_list\_rpush!Ruby API}
+\input{\topdir/api/desc/group_list_rpush}
+
+\paragraph{Definition:}
+\begin{rubycode}
+async_group_list_rpush(spacename, predicates, attributes)
+\end{rubycode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/ruby/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/ruby/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_list\_rpush}.
 
 %%%%%%%%%%%%%%%%%%%% list_rpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak

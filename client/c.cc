@@ -891,6 +891,21 @@ hyperdex_client_cond_string_append(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_group_list_lpush(struct hyperdex_client* _cl,
+                                 const char* space,
+                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                 enum hyperdex_client_returncode* status,
+                                 uint64_t* count)
+{
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_list_lpush), strlen(XSTR(group_list_lpush)));
+    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, *status, *count);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_list_lpush(struct hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
@@ -916,6 +931,21 @@ hyperdex_client_cond_list_lpush(struct hyperdex_client* _cl,
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_list_lpush), strlen(XSTR(cond_list_lpush)));
     return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, *status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_group_list_rpush(struct hyperdex_client* _cl,
+                                 const char* space,
+                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                 enum hyperdex_client_returncode* status,
+                                 uint64_t* count)
+{
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_list_rpush), strlen(XSTR(group_list_rpush)));
+    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, *status, *count);
     );
 }
 

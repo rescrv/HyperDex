@@ -14,3 +14,7 @@ assertEquals(res, {'_id' : 'k1', 'a' : 'b', 'c' : 2})
 db.test.update({'a' : 'b'}, {'$set' : {'d' : 1}})
 res = db.test.findOne({'_id' : 'k1'})
 assertEquals(res, {'_id' : 'k1', 'a' : 'b', 'c' : 2, 'd' : 1})
+
+assertTrue(db.test.insert({'_id' : 'k2', 'a' : ['b', 'c'] }))
+db.test.update({'_id' : 'k2'}, {'$push' : {'a' : 1}})
+assertTrue(db.test.insert({'_id' : 'k2', 'a' : ['b', 'c', 1] }))

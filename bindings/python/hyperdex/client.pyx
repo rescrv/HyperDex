@@ -211,8 +211,10 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_group_string_append(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_list_lpush(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_list_lpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_list_lpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_list_rpush(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_list_rpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_list_rpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_set_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
@@ -1758,6 +1760,11 @@ cdef class Client:
     def cond_string_append(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.async_cond_string_append(spacename, key, predicates, attributes, auth).wait()
 
+    def async_group_list_lpush(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_list_lpush, spacename, predicates, attributes, auth)
+    def group_list_lpush(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.async_group_list_lpush(spacename, predicates, attributes, auth).wait()
+
     def async_list_lpush(self, bytes spacename, key, dict attributes, auth=None):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_list_lpush, spacename, key, attributes, auth)
     def list_lpush(self, bytes spacename, key, dict attributes, auth=None):
@@ -1767,6 +1774,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_list_lpush, spacename, key, predicates, attributes, auth)
     def cond_list_lpush(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.async_cond_list_lpush(spacename, key, predicates, attributes, auth).wait()
+
+    def async_group_list_rpush(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_list_rpush, spacename, predicates, attributes, auth)
+    def group_list_rpush(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.async_group_list_rpush(spacename, predicates, attributes, auth).wait()
 
     def async_list_rpush(self, bytes spacename, key, dict attributes, auth=None):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_list_rpush, spacename, key, attributes, auth)

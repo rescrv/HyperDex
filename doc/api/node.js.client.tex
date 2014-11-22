@@ -1082,6 +1082,30 @@ cond_string_append(
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% group_list_lpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_lpush}}
+\label{api:nodejs:group_list_lpush}
+\index{group\_list\_lpush!Node.js API}
+\input{\topdir/api/desc/group_list_lpush}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_list_lpush(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
 %%%%%%%%%%%%%%%%%%%% list_lpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{list\_lpush}}
@@ -1131,6 +1155,30 @@ cond_list_lpush(spacename, key, predicates, attributes, function (success, err) 
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% group_list_rpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_rpush}}
+\label{api:nodejs:group_list_rpush}
+\index{group\_list\_rpush!Node.js API}
+\input{\topdir/api/desc/group_list_rpush}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_list_rpush(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
 
 %%%%%%%%%%%%%%%%%%%% list_rpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak

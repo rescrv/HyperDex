@@ -968,6 +968,18 @@ hyperdex_ruby_client_wait_cond_string_append(VALUE self, VALUE spacename, VALUE 
 }
 
 static VALUE
+hyperdex_ruby_client_group_list_lpush(VALUE self, VALUE spacename, VALUE predicates, VALUE attributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_list_lpush, self, spacename, predicates, attributes);
+}
+VALUE
+hyperdex_ruby_client_wait_group_list_lpush(VALUE self, VALUE spacename, VALUE predicates, VALUE attributes)
+{
+    VALUE deferred = hyperdex_ruby_client_group_list_lpush(self, spacename, predicates, attributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
 hyperdex_ruby_client_list_lpush(VALUE self, VALUE spacename, VALUE key, VALUE attributes)
 {
     return hyperdex_ruby_client_asynccall__spacename_key_attributes__status(hyperdex_client_list_lpush, self, spacename, key, attributes);
@@ -988,6 +1000,18 @@ VALUE
 hyperdex_ruby_client_wait_cond_list_lpush(VALUE self, VALUE spacename, VALUE key, VALUE predicates, VALUE attributes)
 {
     VALUE deferred = hyperdex_ruby_client_cond_list_lpush(self, spacename, key, predicates, attributes);
+    return rb_funcall(deferred, rb_intern("wait"), 0);
+}
+
+static VALUE
+hyperdex_ruby_client_group_list_rpush(VALUE self, VALUE spacename, VALUE predicates, VALUE attributes)
+{
+    return hyperdex_ruby_client_asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_list_rpush, self, spacename, predicates, attributes);
+}
+VALUE
+hyperdex_ruby_client_wait_group_list_rpush(VALUE self, VALUE spacename, VALUE predicates, VALUE attributes)
+{
+    VALUE deferred = hyperdex_ruby_client_group_list_rpush(self, spacename, predicates, attributes);
     return rb_funcall(deferred, rb_intern("wait"), 0);
 }
 

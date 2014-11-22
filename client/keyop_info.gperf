@@ -61,8 +61,10 @@ cond_string_prepend,     false, true,  false,  hyperdex::FUNC_STRING_PREPEND
 group_string_append,     false, true,  false,  hyperdex::FUNC_STRING_APPEND
 string_append,           false, true,  false,  hyperdex::FUNC_STRING_APPEND
 cond_string_append,      false, true,  false,  hyperdex::FUNC_STRING_APPEND
+group_list_lpush,        false, true,  false,  hyperdex::FUNC_LIST_LPUSH
 list_lpush,              false, true,  false,  hyperdex::FUNC_LIST_LPUSH
 cond_list_lpush,         false, true,  false,  hyperdex::FUNC_LIST_LPUSH
+group_list_rpush,        false, true,  false,  hyperdex::FUNC_LIST_RPUSH
 list_rpush,              false, true,  false,  hyperdex::FUNC_LIST_RPUSH
 cond_list_rpush,         false, true,  false,  hyperdex::FUNC_LIST_RPUSH
 set_add,                 false, true,  false,  hyperdex::FUNC_SET_ADD

@@ -155,6 +155,8 @@ class HyperSpace:
                 self.group_atomic_mul(select, v)
             elif k == '$div':
                 self.group_atomic_div(select, v)
+            elif k == '$push':
+                self.group_list_rpush(select, v)
             else:
                 raise ValueError("Unknown command " + k)
 
@@ -235,6 +237,16 @@ class HyperSpace:
         docargs = self.convert_docargs(args)
 
         return self.client.async_group_atomic_add(self.name, hyperconds, docargs)
+    
+    def group_list_rpush(self, select, args):
+        return self.async_group_list_rpush(select, args).wait()
+
+    def async_group_list_rpush(self, select, args):
+        self.init()
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
+
+        return self.client.async_group_list_rpush(self.name, hyperconds, docargs)
     
     def group_atomic_add(self, select, args):
         return self.async_group_atomic_add(select, args).wait()

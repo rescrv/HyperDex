@@ -853,6 +853,12 @@ HyperDexClient :: cond_string_append(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_list_lpush(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_list_lpush, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: list_lpush(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_list_lpush, args);
@@ -862,6 +868,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_list_lpush(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_list_lpush, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_list_rpush(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_list_rpush, args);
 }
 
 v8::Handle<v8::Value>

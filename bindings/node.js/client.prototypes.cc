@@ -71,8 +71,10 @@ NODE_SET_PROTOTYPE_METHOD(tpl, "cond_string_prepend", HyperDexClient::cond_strin
 NODE_SET_PROTOTYPE_METHOD(tpl, "group_string_append", HyperDexClient::group_string_append);
 NODE_SET_PROTOTYPE_METHOD(tpl, "string_append", HyperDexClient::string_append);
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_string_append", HyperDexClient::cond_string_append);
+NODE_SET_PROTOTYPE_METHOD(tpl, "group_list_lpush", HyperDexClient::group_list_lpush);
 NODE_SET_PROTOTYPE_METHOD(tpl, "list_lpush", HyperDexClient::list_lpush);
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_list_lpush", HyperDexClient::cond_list_lpush);
+NODE_SET_PROTOTYPE_METHOD(tpl, "group_list_rpush", HyperDexClient::group_list_rpush);
 NODE_SET_PROTOTYPE_METHOD(tpl, "list_rpush", HyperDexClient::list_rpush);
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_list_rpush", HyperDexClient::cond_list_rpush);
 NODE_SET_PROTOTYPE_METHOD(tpl, "set_add", HyperDexClient::set_add);

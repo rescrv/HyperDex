@@ -2541,6 +2541,63 @@ public Deferred async_cond_string_append(
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_string\_append}.
 
+%%%%%%%%%%%%%%%%%%%% group_list_lpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_lpush}}
+\label{api:java:group_list_lpush}
+\index{group\_list\_lpush!Java API}
+\input{\topdir/api/desc/group_list_lpush}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_list_lpush(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_list\_lpush}}
+\label{api:java:async_group_list_lpush}
+\index{async\_group\_list\_lpush!Java API}
+\input{\topdir/api/desc/group_list_lpush}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_list_lpush(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_list\_lpush}.
+
 %%%%%%%%%%%%%%%%%%%% list_lpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{list\_lpush}}
@@ -2660,6 +2717,63 @@ public Deferred async_cond_list_lpush(
 \input{\topdir/api/fragments/java/client/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_list\_lpush}.
+
+%%%%%%%%%%%%%%%%%%%% group_list_rpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_rpush}}
+\label{api:java:group_list_rpush}
+\index{group\_list\_rpush!Java API}
+\input{\topdir/api/desc/group_list_rpush}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_list_rpush(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_list\_rpush}}
+\label{api:java:async_group_list_rpush}
+\index{async\_group\_list\_rpush!Java API}
+\input{\topdir/api/desc/group_list_rpush}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_list_rpush(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_list\_rpush}.
 
 %%%%%%%%%%%%%%%%%%%% list_rpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak

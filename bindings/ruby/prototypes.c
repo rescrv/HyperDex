@@ -113,10 +113,14 @@ rb_define_method(class_client, "async_string_append", hyperdex_ruby_client_strin
 rb_define_method(class_client, "string_append", hyperdex_ruby_client_wait_string_append, 3);
 rb_define_method(class_client, "async_cond_string_append", hyperdex_ruby_client_cond_string_append, 4);
 rb_define_method(class_client, "cond_string_append", hyperdex_ruby_client_wait_cond_string_append, 4);
+rb_define_method(class_client, "async_group_list_lpush", hyperdex_ruby_client_group_list_lpush, 3);
+rb_define_method(class_client, "group_list_lpush", hyperdex_ruby_client_wait_group_list_lpush, 3);
 rb_define_method(class_client, "async_list_lpush", hyperdex_ruby_client_list_lpush, 3);
 rb_define_method(class_client, "list_lpush", hyperdex_ruby_client_wait_list_lpush, 3);
 rb_define_method(class_client, "async_cond_list_lpush", hyperdex_ruby_client_cond_list_lpush, 4);
 rb_define_method(class_client, "cond_list_lpush", hyperdex_ruby_client_wait_cond_list_lpush, 4);
+rb_define_method(class_client, "async_group_list_rpush", hyperdex_ruby_client_group_list_rpush, 3);
+rb_define_method(class_client, "group_list_rpush", hyperdex_ruby_client_wait_group_list_rpush, 3);
 rb_define_method(class_client, "async_list_rpush", hyperdex_ruby_client_list_rpush, 3);
 rb_define_method(class_client, "list_rpush", hyperdex_ruby_client_wait_list_rpush, 3);
 rb_define_method(class_client, "async_cond_list_rpush", hyperdex_ruby_client_cond_list_rpush, 4);
