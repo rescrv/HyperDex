@@ -40,8 +40,7 @@
 
 #define ERROR(CODE) \
     status = HYPERDEX_CLIENT_ ## CODE; \
-    cl.m_last_error.set_loc(__FILE__, __LINE__); \
-    cl.m_last_error.set_msg()
+    cl.set_last_error(__FILE__, __LINE__)
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -90,7 +89,7 @@ request :: prepare_checks(const schema& sc,
 
         if (datatype == CONTAINER_TYPE(datatype) &&
             CONTAINER_TYPE(datatype) == CONTAINER_TYPE(sc.attrs[attrnum].type) &&
-            chks[i].value_sz == 0)
+            (chks[i].value_sz == 0 || datatype == HYPERDATATYPE_TIMESTAMP_GENERIC))
         {
             datatype = sc.attrs[attrnum].type;
         }

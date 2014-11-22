@@ -34,8 +34,7 @@
 
 #define ERROR(CODE) \
     status = HYPERDEX_CLIENT_ ## CODE; \
-    req.cl.m_last_error.set_loc(__FILE__, __LINE__); \
-    req.cl.m_last_error.set_msg()
+    req.cl.set_last_error(__FILE__, __LINE__)
 
 BEGIN_HYPERDEX_NAMESPACE
 

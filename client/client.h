@@ -145,6 +145,8 @@ class client
 
         auth_wallet get_macaroons() const;
 
+        std::ostream& set_last_error(const char* file, size_t line);
+
     private:
         int64_t perform_aggregation(const std::vector<virtual_server_id>& servers,
                                     e::intrusive_ptr<pending_aggregation> op,
@@ -180,9 +182,6 @@ class client
         e::intrusive_ptr<pending> m_yielded;
         const char** m_macaroons;
         size_t m_macaroons_sz;
-
-    public:
-        //TODO add setLastError()-call
         e::error m_last_error;
 
     private:

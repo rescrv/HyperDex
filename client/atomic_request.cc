@@ -44,8 +44,7 @@ using namespace document;
 
 #define ERROR(CODE) \
     status = HYPERDEX_CLIENT_ ## CODE; \
-    req.cl.m_last_error.set_loc(__FILE__, __LINE__); \
-    req.cl.m_last_error.set_msg()
+    req.cl.set_last_error(__FILE__, __LINE__)
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -131,7 +130,7 @@ e::buffer* atomic_request::create_message(const hyperdex_client_keyop_info& opin
 
     auth_wallet aw = req.cl.get_macaroons();
 
-    if (aw.size())
+    if (!aw.empty())
     {
         sz += pack_size(aw);
     }
@@ -143,7 +142,7 @@ e::buffer* atomic_request::create_message(const hyperdex_client_keyop_info& opin
                   | (!aw.empty() ? 64 : 0);
 
     e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
-    pa << key << flags << checks << funcs;
+    pa = pa << key << flags << checks << funcs;
 
     if (!aw.empty())
     {

@@ -831,7 +831,7 @@ cdef hyperdex_python_client_build_attributes(const hyperdex_client_attribute* at
         elif attrs[i].datatype == HYPERDATATYPE_FLOAT:
             val = hyperdex_python_client_build_float(attrs[i].value, attrs[i].value_sz)
         elif attrs[i].datatype == HYPERDATATYPE_DOCUMENT:
-            val = Document(hyperdex_python_client_build_string(attrs[i].value, attrs[i].value_sz))
+            val = hyperdex_python_client_build_document(attrs[i].value, attrs[i].value_sz)
         elif (attrs[i].datatype in
              [HYPERDATATYPE_TIMESTAMP_SECOND,
              HYPERDATATYPE_TIMESTAMP_MINUTE,

@@ -162,9 +162,9 @@ client :: get(const char* space, const char* _key, size_t _key_sz,
     e::intrusive_ptr<pending> op;
     op = new pending_get(m_next_client_id++, status, attrs, attrs_sz);
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ + sizeof(uint32_t) + key.size();
-    auth_wallet aw(m_macaroons, m_macaroons_sz);
+    auth_wallet aw = get_macaroons();
 
-    if (m_macaroons_sz)
+    if (!aw.empty())
     {
         sz += pack_size(aw);
     }
@@ -172,7 +172,7 @@ client :: get(const char* space, const char* _key, size_t _key_sz,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << key;
 
-    if (m_macaroons_sz)
+    if (!aw.empty())
     {
         pa = pa << aw;
     }
@@ -239,9 +239,9 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
               + sizeof(uint32_t) + key.size()
               + sizeof(uint32_t) + attrnums.size() * sizeof(uint16_t);
-    auth_wallet aw(m_macaroons, m_macaroons_sz);
+    auth_wallet aw = get_macaroons();
 
-    if (m_macaroons_sz)
+    if (!aw.empty())
     {
         sz += pack_size(aw);
     }
@@ -255,7 +255,7 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
         pa = pa << attrnums[i];
     }
 
-    if (m_macaroons_sz)
+    if (!aw.empty())
     {
         pa = pa << aw;
     }
@@ -893,6 +893,13 @@ hyperdex::auth_wallet
 client :: get_macaroons() const
 {
     return auth_wallet(m_macaroons, m_macaroons_sz);
+}
+
+std::ostream&
+client :: set_last_error(const char* file, size_t line)
+{
+    m_last_error.set_loc(file, line);
+    return m_last_error.set_msg();
 }
 
 HYPERDEX_API std::ostream&
