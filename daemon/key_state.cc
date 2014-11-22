@@ -32,6 +32,7 @@
 
 // HyperDex
 #include "common/hash.h"
+#include "daemon/auth.h"
 #include "daemon/daemon.h"
 #include "daemon/key_region.h"
 #include "daemon/key_state.h"
@@ -435,6 +436,12 @@ key_state :: step_state_machine_changes(replication_manager* rm,
     e::intrusive_ptr<deferred_key_change> dkc = m_changes.front();
     m_changes.pop_front();
     key_change* kc = dkc->kc.get();
+
+    if (!auth_verify_write(sc, has_old_value, old_value, *kc))
+    {
+        rm->respond_to_client(us, dkc->from, dkc->nonce, NET_UNAUTHORIZED);
+        return true;
+    }
 
     network_returncode nrc = kc->check(sc, has_old_value, old_value);
 

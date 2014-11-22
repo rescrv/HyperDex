@@ -43,6 +43,7 @@
 #include "common/configuration.h"
 #include "common/coordinator_link.h"
 #include "common/mapper.h"
+#include "common/auth_wallet.h"
 #include "client/keyop_info.h"
 #include "client/pending.h"
 #include "client/pending_aggregation.h"
@@ -57,8 +58,9 @@ class client
         ~client() throw ();
 
     public:
-        hyperdex_client_returncode add_space(const char* description);
-        hyperdex_client_returncode rm_space(const char* space);
+        void clear_auth_context() { m_macaroons = NULL; m_macaroons_sz = 0; }
+        void set_auth_context(const char** macaroons, size_t macaroons_sz)
+        { m_macaroons = macaroons; m_macaroons_sz = macaroons_sz; }
 
     public:
         // specific calls
@@ -141,6 +143,8 @@ class client
 
         bool maintain_coord_connection(hyperdex_client_returncode& status);
 
+        auth_wallet get_macaroons() const;
+
     private:
         int64_t perform_aggregation(const std::vector<virtual_server_id>& servers,
                                     e::intrusive_ptr<pending_aggregation> op,
@@ -174,10 +178,16 @@ class client
         std::list<e::intrusive_ptr<pending> > m_yieldable;
         e::intrusive_ptr<pending> m_yielding;
         e::intrusive_ptr<pending> m_yielded;
+        const char** m_macaroons;
+        size_t m_macaroons_sz;
 
     public:
         //TODO add setLastError()-call
         e::error m_last_error;
+
+    private:
+        client(const client&);
+        client& operator = (const client&);
 };
 
 END_HYPERDEX_NAMESPACE

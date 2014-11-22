@@ -50,6 +50,7 @@
 #include "common/coordinator_returncode.h"
 #include "common/key_change.h"
 #include "common/serialization.h"
+#include "daemon/auth.h"
 #include "daemon/daemon.h"
 
 #ifdef __APPLE__
@@ -739,21 +740,33 @@ daemon :: process_req_get(server_id from,
 {
     uint64_t nonce;
     e::slice key;
+    bool has_auth = false;
+    auth_wallet aw;
+    up = up >> nonce >> key;
 
-    if ((up >> nonce >> key).error())
+    if (up.remain())
+    {
+        has_auth = true;
+        up = up >> aw;
+    }
+
+    if (up.error())
     {
         LOG(WARNING) << "unpack of REQ_GET failed; here's some hex:  " << msg->hex();
         return;
     }
 
+    region_id ri = m_config.get_region_id(vto);
+    bool has_value = false;
     std::vector<e::slice> value;
     uint64_t version;
     datalayer::reference ref;
     network_returncode result;
 
-    switch (m_data.get(m_config.get_region_id(vto), key, &value, &version, &ref))
+    switch (m_data.get(ri, key, &value, &version, &ref))
     {
         case datalayer::SUCCESS:
+            has_value = true;
             result = NET_SUCCESS;
             break;
         case datalayer::NOT_FOUND:
@@ -769,17 +782,31 @@ daemon :: process_req_get(server_id from,
             break;
     }
 
-    size_t sz = HYPERDEX_HEADER_SIZE_VC
-              + sizeof(uint64_t)
-              + sizeof(uint16_t)
-              + pack_size(value);
-    msg.reset(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
-    pa = pa << nonce << static_cast<uint16_t>(result);
+    const schema* sc = m_config.get_schema(ri);
 
-    if (result == NET_SUCCESS)
+    if (!auth_verify_read(*sc, has_value, &value, (has_auth ? &aw : NULL)))
     {
-        pa = pa << value;
+        size_t sz = HYPERDEX_HEADER_SIZE_VC
+                  + sizeof(uint64_t)
+                  + sizeof(uint16_t);
+        msg.reset(e::buffer::create(sz));
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << static_cast<uint16_t>(NET_UNAUTHORIZED);
+    }
+    else
+    {
+        sanitize_secrets(*sc, &value);
+        size_t sz = HYPERDEX_HEADER_SIZE_VC
+                  + sizeof(uint64_t)
+                  + sizeof(uint16_t)
+                  + pack_size(value);
+        msg.reset(e::buffer::create(sz));
+        e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
+        pa = pa << nonce << static_cast<uint16_t>(result);
+
+        if (result == NET_SUCCESS)
+        {
+            pa = pa << value;
+        }
     }
 
     m_comm.send_client(vto, from, RESP_GET, msg);
@@ -795,22 +822,34 @@ daemon :: process_req_get_partial(server_id from,
     uint64_t nonce;
     e::slice key;
     std::vector<uint16_t> attrs;
+    bool has_auth = false;
+    auth_wallet aw;
+    up = up >> nonce >> key >> attrs;
 
-    if ((up >> nonce >> key >> attrs).error())
+    if (up.remain())
+    {
+        has_auth = true;
+        up = up >> aw;
+    }
+
+    if (up.error())
     {
         LOG(WARNING) << "unpack of REQ_GET_PARTIAL failed; here's some hex:  " << msg->hex();
         return;
     }
 
+    region_id ri = m_config.get_region_id(vto);
     std::sort(attrs.begin(), attrs.end());
+    bool has_value = false;
     std::vector<e::slice> value;
     uint64_t version;
     datalayer::reference ref;
     network_returncode result;
 
-    switch (m_data.get(m_config.get_region_id(vto), key, &value, &version, &ref))
+    switch (m_data.get(ri, key, &value, &version, &ref))
     {
         case datalayer::SUCCESS:
+            has_value = true;
             result = NET_SUCCESS;
             break;
         case datalayer::NOT_FOUND:
@@ -826,24 +865,38 @@ daemon :: process_req_get_partial(server_id from,
             break;
     }
 
-    size_t sz = HYPERDEX_HEADER_SIZE_VC
-              + sizeof(uint64_t)
-              + sizeof(uint16_t)
-              + pack_size(value)
-              + value.size() * sizeof(uint16_t);
-    msg.reset(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
-    pa = pa << nonce << static_cast<uint16_t>(result);
+    const schema* sc = m_config.get_schema(ri);
 
-    if (result == NET_SUCCESS)
+    if (!auth_verify_read(*sc, has_value, &value, (has_auth ? &aw : NULL)))
     {
-        for (size_t i = 0; i < value.size(); ++i)
-        {
-            uint16_t attr = i + 1;
+        size_t sz = HYPERDEX_HEADER_SIZE_VC
+                  + sizeof(uint64_t)
+                  + sizeof(uint16_t);
+        msg.reset(e::buffer::create(sz));
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << static_cast<uint16_t>(NET_UNAUTHORIZED);
+    }
+    else
+    {
+        sanitize_secrets(*sc, &value);
+        size_t sz = HYPERDEX_HEADER_SIZE_VC
+                  + sizeof(uint64_t)
+                  + sizeof(uint16_t)
+                  + pack_size(value)
+                  + value.size() * sizeof(uint16_t);
+        msg.reset(e::buffer::create(sz));
+        e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
+        pa = pa << nonce << static_cast<uint16_t>(result);
 
-            if (std::binary_search(attrs.begin(), attrs.end(), attr))
+        if (result == NET_SUCCESS)
+        {
+            for (size_t i = 0; i < value.size(); ++i)
             {
-                pa = pa << attr << value[i];
+                uint16_t attr = i + 1;
+
+                if (std::binary_search(attrs.begin(), attrs.end(), attr))
+                {
+                    pa = pa << attr << value[i];
+                }
             }
         }
     }

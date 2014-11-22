@@ -37,6 +37,7 @@
 #include "common/funcall.h"
 #include "common/macros.h"
 #include "common/serialization.h"
+#include "common/auth_wallet.h"
 
 #include <document/document.h>
 using namespace document;
@@ -128,12 +129,26 @@ e::buffer* atomic_request::create_message(const hyperdex_client_keyop_info& opin
               + pack_size(checks)
               + pack_size(funcs);
 
+    auth_wallet aw = req.cl.get_macaroons();
+
+    if (aw.size())
+    {
+        sz += pack_size(aw);
+    }
+
     e::buffer *msg = e::buffer::create(sz);
     uint8_t flags = (opinfo.fail_if_not_found ? 1 : 0)
                   | (opinfo.fail_if_found ? 2 : 0)
-                  | (opinfo.erase ? 0 : 128);
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ)
-        << key << flags << checks << funcs;
+                  | (opinfo.erase ? 0 : 128)
+                  | (!aw.empty() ? 64 : 0);
+
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
+    pa << key << flags << checks << funcs;
+
+    if (!aw.empty())
+    {
+        pa = pa << aw;
+    }
 
     return msg;
 }
@@ -192,9 +207,14 @@ atomic_request :: prepare_funcs(const schema& sc,
 
         if (datatype == CONTAINER_TYPE(datatype) &&
             CONTAINER_TYPE(datatype) == CONTAINER_TYPE(sc.attrs[attrnum].type) &&
-            attrs[i].value_sz == 0)
+            (attrs[i].value_sz == 0 || datatype == HYPERDATATYPE_TIMESTAMP_GENERIC))
         {
             datatype = sc.attrs[attrnum].type;
+        }
+
+        if (sc.attrs[attrnum].type == HYPERDATATYPE_MACAROON_SECRET)
+        {
+            datatype = HYPERDATATYPE_MACAROON_SECRET;
         }
 
         funcall o;

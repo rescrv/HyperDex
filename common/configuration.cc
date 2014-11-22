@@ -969,6 +969,11 @@ configuration :: dump() const
                 << s.sc.attrs[i].type << "\n";
         }
 
+        if (s.sc.authorization)
+        {
+            out << "    with authorization\n";
+        }
+
         for (size_t x = 0; x < s.subspaces.size(); ++x)
         {
             const subspace& ss(s.subspaces[x]);

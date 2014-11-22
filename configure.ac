@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.62])
-AC_INIT([HyperDex], [1.3.dev], [escriva@cs.cornell.edu])
+AC_INIT([HyperDex], [1.5.dev], [robert@hyperdex.org])
 m4_define([serial_tests], [
     m4_esyscmd([case `automake --version | head -n 1` in
                 *1.11*);;
@@ -141,7 +141,7 @@ Please install libbson to continue.
 fi
 
 PKG_CHECK_MODULES([PO6], [libpo6 >= 0.5])
-PKG_CHECK_MODULES([E], [libe >= 0.7])
+PKG_CHECK_MODULES([E], [libe >= 0.8])
 PKG_CHECK_MODULES([BUSYBEE], [busybee >= 0.5])
 
 if test x"${enable_all_components}" = xyes -o \
@@ -149,6 +149,7 @@ if test x"${enable_all_components}" = xyes -o \
     PKG_CHECK_MODULES([HYPERLEVELDB], [libhyperleveldb >= 1.0])
 fi
 PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.6])
+PKG_CHECK_MODULES([MACAROONS], [libmacaroons >= 0.2])
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])
