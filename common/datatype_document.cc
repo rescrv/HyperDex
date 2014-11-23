@@ -36,6 +36,7 @@
 #include "common/datatype_string.h"
 #include "common/datatype_int64.h"
 #include "common/key_change.h"
+#include "common/doc/document.h"
 
 // json-c
 #if HAVE_JSON_H
@@ -55,11 +56,13 @@
 #include <sstream>
 #include <stdexcept>
 
-#include <document/document.h>
-
 using hyperdex::datatype_info;
 using hyperdex::datatype_document;
-using namespace document;
+using hyperdex::doc::create_document;
+using hyperdex::doc::document;
+using hyperdex::doc::path;
+using hyperdex::doc::value;
+using namespace hyperdex::doc;
 
 datatype_document :: datatype_document()
 {
@@ -85,7 +88,7 @@ datatype_document :: validate(const e::slice& value) const
         return true;
     }
 
-    std::auto_ptr<document::document> doc(create_document(document_type_bson, value.data(), value.size()));
+    std::auto_ptr<hyperdex::doc::document> doc(create_document(value.data(), value.size()));
     return doc->is_valid();
 }
 
@@ -98,8 +101,8 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
         return true;
     }
 
-    std::auto_ptr<document::document> doc( create_document(document_type_bson, old_values[0].data(), old_values[0].size()) );
-    document::path p = func.arg2.c_str();
+    std::auto_ptr<hyperdex::doc::document> doc( create_document(old_values[0].data(), old_values[0].size()) );
+    path p = func.arg2.c_str();
 
     if(!doc->is_valid())
     {
@@ -269,26 +272,26 @@ datatype_document :: check_args(const funcall& func) const
     }
 }
 
-document::value*
+value*
 datatype_document :: encode_value(const hyperdatatype type, const e::slice& data) const
 {
     if(type == HYPERDATATYPE_STRING)
     {
-        return document::create_value(data.c_str(), data.size());
+        return create_value(data.c_str(), data.size());
     }
     else if(type == HYPERDATATYPE_FLOAT)
     {
         double arg = reinterpret_cast<const double*>(data.data())[0];
-        return document::create_value(arg);
+        return create_value(arg);
     }
     else if(type == HYPERDATATYPE_INT64)
     {
         int64_t arg = reinterpret_cast<const int64_t*>(data.data())[0];
-        return document::create_value(arg);
+        return create_value(arg);
     }
     else if(type == HYPERDATATYPE_DOCUMENT)
     {
-        return document::create_document_value(document_type_bson, data.data(), data.size());
+        return create_document_value(data.data(), data.size());
     }
     else
     {
@@ -313,7 +316,7 @@ datatype_document :: apply(const e::slice& old_value,
 
     // To support multiple updates on the same document
     // we reuse the same object
-    document::document *doc = NULL;
+    hyperdex::doc::document *doc = NULL;
 
     for (size_t pos = 0; pos < funcs_sz; ++pos)
     {
@@ -330,12 +333,12 @@ datatype_document :: apply(const e::slice& old_value,
         }
         case FUNC_DOC_SET:
         {
-            doc = doc ? doc : create_document(document_type_bson, old_value.data(), old_value.size());
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
 
-            document::path p = func.arg2.c_str();
+            path p = func.arg2.c_str();
 
-            document::value* value = encode_value(func.arg1_datatype, func.arg1);
-            document::document *new_doc = doc->add_or_replace_value(p, *value);
+            value* value = encode_value(func.arg1_datatype, func.arg1);
+            hyperdex::doc::document *new_doc = doc->add_or_replace_value(p, *value);
 
             delete doc;
             doc = new_doc;
@@ -343,9 +346,9 @@ datatype_document :: apply(const e::slice& old_value,
         }
         case FUNC_DOC_UNSET:
         {
-            doc = doc ? doc : create_document(document_type_bson, old_value.data(), old_value.size());
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
             std::string p = func.arg2.c_str();
-            document::document* new_doc = doc->unset_value(p);
+            hyperdex::doc::document* new_doc = doc->unset_value(p);
 
             delete doc;
             doc = new_doc;
@@ -354,10 +357,10 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_DOC_RENAME:
         {
             std::string new_name(func.arg1.cdata(), func.arg1.size());
-            document::path p = func.arg2.c_str();
+            path p = func.arg2.c_str();
 
-            doc = doc ? doc : create_document(document_type_bson, old_value.data(), old_value.size());
-            document::document* new_doc = doc->rename_value(p, new_name);
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+            hyperdex::doc::document* new_doc = doc->rename_value(p, new_name);
 
             delete doc;
             doc = new_doc;
@@ -367,9 +370,9 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_STRING_APPEND:
         {
             std::string arg(func.arg1.cdata(), func.arg1.size());
-            document::path p = func.arg2.c_str();
+            path p = func.arg2.c_str();
 
-            doc = doc ? doc : create_document(document_type_bson, old_value.data(), old_value.size());
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
 
             std::string str = "";
             std::auto_ptr<value> val (doc->extract_value(p));
@@ -389,10 +392,10 @@ datatype_document :: apply(const e::slice& old_value,
                 str = arg + str;
             }
 
-            doc = doc ? doc : create_document(document_type_bson, old_value.data(), old_value.size());
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
 
             std::auto_ptr<value> new_val (create_value(str));
-            document::document* new_doc = doc->add_or_replace_value(p, *new_val);
+            hyperdex::doc::document* new_doc = doc->add_or_replace_value(p, *new_val);
 
             delete doc;
             doc = new_doc;
@@ -424,38 +427,33 @@ datatype_document :: apply(const e::slice& old_value,
                 float_arg = reinterpret_cast<const double*>(func.arg1.data())[0];
             }
 
-            document::path p = func.arg2.c_str();
-            doc = doc ? doc : create_document(document_type_bson, old_value.data(), old_value.size());
+            path p = func.arg2.c_str();
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
 
             int64_t int_field = 0;
             double float_field = 0.0;
 
             bool field_is_int = true;
-            bool field_exists = false; //FIXME
+            bool field_exists = false;
 
-            try {
-                std::auto_ptr<value> val (doc->extract_value(p));
+            std::auto_ptr<value> val (doc->extract_value(p));
 
-                if(val.get() != NULL)
+            if(val.get() != NULL)
+            {
+                field_exists = true;
+
+                if(val->get_type() == element_type_integer)
                 {
-                    field_exists = true;
-
-                    if(val->get_type() == element_type_integer)
-                    {
-                        field_is_int = true;
-                        int_field = val->get_int();
-                    }
-                    else
-                    {
-                        field_is_int = false;
-                        float_field = val->get_float();
-                    }
+                    field_is_int = true;
+                    int_field = val->get_int();
+                }
+                else
+                {
+                    field_is_int = false;
+                    float_field = val->get_float();
                 }
             }
-            catch (std::runtime_error& e)
-            {
-                //not found -> ignore
-            }
+
 
             // if one of the two is a float we have to convert
             // and also can't simply overwrite the value
@@ -565,18 +563,18 @@ datatype_document :: apply(const e::slice& old_value,
 
             if(success)
             {
-              /* TODO  if(field_exists)
+               if(field_exists)
                 {
                     if(float_op)
                     {
-                        bson_iter_overwrite_double(&baz, float_field);
+                        doc->overwrite_float(p, float_field);
                     }
                     else
                     {
-                        bson_iter_overwrite_int64(&baz, int_field);
+                        doc->overwrite_integer(p, int_field);
                     }
                 }
-                else */
+                else
                 {
                     value *val = NULL;
 
@@ -589,7 +587,7 @@ datatype_document :: apply(const e::slice& old_value,
                         val = create_value(int_field);
                     }
 
-                    document::document* new_doc = doc->add_or_replace_value(p, *val);
+                    hyperdex::doc::document* new_doc = doc->add_or_replace_value(p, *val);
 
                     delete doc;
                     delete val;
@@ -606,12 +604,12 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_LIST_LPUSH:
         {
             std::string arg(func.arg1.cdata(), func.arg1.size());
-            document::path p = func.arg2.c_str();
-            doc = doc ? doc : create_document(document_type_bson, old_value.data(), old_value.size());
+            path p = func.arg2.c_str();
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
 
             // Put new value at the front
             value *val = encode_value(func.arg1_datatype, func.arg1);
-            document::document *new_doc = doc->array_prepend(p, *val);
+            hyperdex::doc::document *new_doc = doc->array_prepend(p, *val);
 
             delete val;
             delete doc;
@@ -621,11 +619,11 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_LIST_RPUSH:
         {
             std::string arg(func.arg1.cdata(), func.arg1.size());
-            document::path p = func.arg2.c_str();
-            doc = doc ? doc : create_document(document_type_bson, old_value.data(), old_value.size());
+            path p = func.arg2.c_str();
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
 
             value *val = encode_value(func.arg1_datatype, func.arg1);
-            document::document *new_doc = doc->array_append(p, *val);
+            hyperdex::doc::document *new_doc = doc->array_append(p, *val);
 
             delete val;
             delete doc;
@@ -714,14 +712,14 @@ datatype_document :: document_check(const attribute_check& check,
 }
 
 bool
-datatype_document :: extract_value(const document::path& p,
+datatype_document :: extract_value(const path& p,
                                 const e::slice& data,
                                 hyperdatatype* type,
                                 std::vector<char>* scratch,
                                 e::slice* value)
 {
-    document::document* doc = create_document(document_type_bson, data.data(), data.size());
-    document::value *val = doc->extract_value(p);
+    hyperdex::doc::document* doc = create_document(data.data(), data.size());
+    hyperdex::doc::value *val = doc->extract_value(p);
 
     element_type etype = val->get_type();
 

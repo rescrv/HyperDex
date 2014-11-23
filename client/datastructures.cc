@@ -42,15 +42,15 @@
 // e
 #include <e/endian.h>
 
-#include <document/document.h>
-using namespace document;
-
 // HyperDex
 #include <hyperdex/datastructures.h>
 #include "common/datatype_info.h"
 #include "common/macros.h"
+#include "common/doc/document.h"
 #include "visibility.h"
 
+using hyperdex::doc::document;
+using hyperdex::doc::create_document;
 using hyperdex::datatype_info;
 
 class hyperdex_ds_arena
@@ -346,7 +346,7 @@ hyperdex_ds_unpack_document(const char* value, size_t value_sz, const char** out
         return 0;
     }
 
-    std::auto_ptr<document::document> doc(create_document(document_type_bson, reinterpret_cast<const uint8_t*>(value), value_sz));
+    std::auto_ptr<document> doc(create_document(reinterpret_cast<const uint8_t*>(value), value_sz));
 
     if(!doc->is_valid())
     {

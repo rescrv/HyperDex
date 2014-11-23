@@ -33,8 +33,8 @@
 #include "common/datatype_info.h"
 #include "common/json_path.h"
 
-#include <document/path.h>
-#include <document/value.h>
+#include "common/doc/path.h"
+#include "common/doc/value.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -61,14 +61,14 @@ class datatype_document : public datatype_info
     public:
         // Retrieve value in a json document by traversing it
         // Will allocate a buffer for the data and a slice referencing it
-        bool extract_value(const document::path& p,
+        bool extract_value(const doc::path& p,
                         const e::slice& document, // the whole document
                         hyperdatatype* type, // OUT: the datatype of the result
                         std::vector<char>* scratch, // OUT: the resulting content/value
                         e::slice* value); // OUT: slice to easier access the content of the scratch
 
     private:
-        document::value* encode_value(const hyperdatatype type, const e::slice& data) const;
+        doc::value* encode_value(const hyperdatatype type, const e::slice& data) const;
 };
 
 END_HYPERDEX_NAMESPACE

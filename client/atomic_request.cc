@@ -38,9 +38,9 @@
 #include "common/macros.h"
 #include "common/serialization.h"
 #include "common/auth_wallet.h"
+#include "common/doc/document.h"
 
-#include <document/document.h>
-using namespace document;
+using hyperdex::doc::create_document_from_json;
 
 #define ERROR(CODE) \
     status = HYPERDEX_CLIENT_ ## CODE; \
@@ -223,7 +223,7 @@ atomic_request :: prepare_funcs(const schema& sc,
 
         if (datatype == HYPERDATATYPE_DOCUMENT)
         {
-            std::auto_ptr<document::document> doc( create_document_from_json(document_type_bson, reinterpret_cast<const uint8_t*>(attrs[i].value), attrs[i].value_sz));
+            std::auto_ptr<doc::document> doc( create_document_from_json(reinterpret_cast<const uint8_t*>(attrs[i].value), attrs[i].value_sz));
 
             if(!doc->is_valid())
             {

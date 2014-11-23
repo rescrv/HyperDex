@@ -258,6 +258,10 @@ hyperdex_daemon_SOURCES += common/schema.cc
 hyperdex_daemon_SOURCES += common/serialization.cc
 hyperdex_daemon_SOURCES += common/server.cc
 hyperdex_daemon_SOURCES += common/transfer.cc
+hyperdex_daemon_SOURCES += common/doc/value.cc
+hyperdex_daemon_SOURCES += common/doc/document.cc
+hyperdex_daemon_SOURCES += common/doc/document_impl.cc
+hyperdex_daemon_SOURCES += common/doc/value_impl.cc
 hyperdex_daemon_SOURCES += cityhash/city.cc
 hyperdex_daemon_SOURCES += daemon/auth.cc
 hyperdex_daemon_SOURCES += daemon/background_thread.cc
@@ -302,7 +306,6 @@ hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(E_LIBS)
 hyperdex_daemon_LDADD += $(JSON_LIBS)
 hyperdex_daemon_LDADD += $(BSON_LIBS)
-hyperdex_daemon_LDADD += $(DOCUMENT_LIBS)
 hyperdex_daemon_LDADD += -lpopt -lglog $(LRT_LDFLAGS) -lpthread
 man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc | hyperdex-daemon$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-daemon$(EXEEXT)
@@ -434,6 +437,10 @@ libhyperdex_client_la_SOURCES += common/schema.cc
 libhyperdex_client_la_SOURCES += common/server.cc
 libhyperdex_client_la_SOURCES += common/serialization.cc
 libhyperdex_client_la_SOURCES += common/transfer.cc
+libhyperdex_client_la_SOURCES += common/doc/value.cc
+libhyperdex_client_la_SOURCES += common/doc/document.cc
+libhyperdex_client_la_SOURCES += common/doc/document_impl.cc
+libhyperdex_client_la_SOURCES += common/doc/value_impl.cc
 libhyperdex_client_la_SOURCES += cityhash/city.cc
 libhyperdex_client_la_SOURCES += client/request.cc
 libhyperdex_client_la_SOURCES += client/atomic_request.cc
@@ -467,7 +474,6 @@ libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(E_LIBS)
 libhyperdex_client_la_LIBADD += $(JSON_LIBS)
 libhyperdex_client_la_LIBADD += $(BSON_LIBS)
-libhyperdex_client_la_LIBADD += $(DOCUMENT_LIBS)
 
 client/keyop_info.cc: client/keyop_info.gperf client/keyop_info.h
 	$(gperf_verbose)gperf -m 100 $(abs_top_srcdir)/client/keyop_info.gperf --output-file=$(abs_top_builddir)/client/keyop_info.cc
@@ -539,6 +545,10 @@ libhyperdex_admin_la_SOURCES += common/schema.cc
 libhyperdex_admin_la_SOURCES += common/serialization.cc
 libhyperdex_admin_la_SOURCES += common/server.cc
 libhyperdex_admin_la_SOURCES += common/transfer.cc
+libhyperdex_admin_la_SOURCES += common/doc/value.cc
+libhyperdex_admin_la_SOURCES += common/doc/document.cc
+libhyperdex_admin_la_SOURCES += common/doc/document_impl.cc
+libhyperdex_admin_la_SOURCES += common/doc/value_impl.cc
 libhyperdex_admin_la_SOURCES += cityhash/city.cc
 libhyperdex_admin_la_SOURCES += admin/admin.cc
 libhyperdex_admin_la_SOURCES += admin/backup_state_machine.cc
@@ -564,7 +574,6 @@ libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
 libhyperdex_admin_la_LIBADD += $(JSON_LIBS)
 libhyperdex_admin_la_LIBADD += $(BSON_LIBS)
-libhyperdex_admin_la_LIBADD += $(DOCUMENT_LIBS)
 
 ################################################################################
 ################################### Bindings ###################################
