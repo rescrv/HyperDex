@@ -47,6 +47,9 @@ enum network_msgtype
     REQ_ATOMIC      = 16,
     RESP_ATOMIC     = 17,
 
+    REQ_GROUP_ATOMIC = 86,
+    RESP_GROUP_ATOMIC = 87,
+
     REQ_SEARCH_START    = 32,
     REQ_SEARCH_NEXT     = 33,
     REQ_SEARCH_STOP     = 34,

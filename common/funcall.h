@@ -77,6 +77,7 @@ enum funcall_t
     FUNC_MAP_REMOVE,
 
     FUNC_DOC_RENAME,
+    FUNC_DOC_SET,
     FUNC_DOC_UNSET
 };
 
@@ -112,6 +113,13 @@ apply_funcs(const schema& sc,
 
 bool
 operator < (const funcall& lhs, const funcall& rhs);
+
+inline bool
+is_binary_operation(const funcall_t op)
+{
+    return op == FUNC_NUM_MOD || op == FUNC_NUM_OR || op == FUNC_NUM_XOR
+            || op == FUNC_NUM_AND;
+}
 
 END_HYPERDEX_NAMESPACE
 

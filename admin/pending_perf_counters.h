@@ -40,7 +40,7 @@ class pending_perf_counters : public pending
 {
     public:
         pending_perf_counters(uint64_t admin_visible_id,
-                              hyperdex_admin_returncode* status,
+                              hyperdex_admin_returncode& status,
                               hyperdex_admin_perf_counter* pc);
         virtual ~pending_perf_counters() throw ();
 
@@ -48,13 +48,13 @@ class pending_perf_counters : public pending
     public:
         void send_perf_reqs(admin* adm,
                             const configuration* config,
-                            hyperdex_admin_returncode* status);
+                            hyperdex_admin_returncode& status);
         int millis_to_next_send();
 
     // return to admin
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperdex_admin_returncode* status);
+        virtual bool yield(hyperdex_admin_returncode& status);
 
     // events
     public:
@@ -65,7 +65,7 @@ class pending_perf_counters : public pending
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperdex_admin_returncode* status);
+                                    hyperdex_admin_returncode& status);
 
     protected:
         friend class e::intrusive_ptr<pending_perf_counters>;

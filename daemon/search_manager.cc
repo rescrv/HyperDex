@@ -200,6 +200,13 @@ search_manager :: start(const server_id& from,
                         std::vector<attribute_check>* checks)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+
+    if (sc->authorization)
+    {
+        return;
+    }
+
     id sid(ri, from, search_id);
 
     if (m_searches.contains(sid))
@@ -425,6 +432,13 @@ search_manager :: sorted_search(const server_id& from,
                                 bool maximize)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+
+    if (sc->authorization)
+    {
+        return;
+    }
+
     std::stable_sort(checks->begin(), checks->end());
     datalayer::returncode rc = datalayer::SUCCESS;
     datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
@@ -446,8 +460,6 @@ search_manager :: sorted_search(const server_id& from,
             abort();
     }
 
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    assert(sc);
     _sorted_search_params params(sc, sort_by, maximize);
     std::vector<_sorted_search_item> top_n;
     top_n.reserve(limit);
@@ -498,6 +510,12 @@ search_manager :: group_keyop(const server_id& from,
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
     const schema* sc = m_daemon->m_config.get_schema(ri);
+
+    if (sc->authorization)
+    {
+        return;
+    }
+
     std::stable_sort(checks->begin(), checks->end());
     datalayer::returncode rc = datalayer::SUCCESS;
     datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
@@ -520,7 +538,6 @@ search_manager :: group_keyop(const server_id& from,
         default:
             abort();
     }
-
     while (iter->valid() && result < UINT64_MAX)
     {
         e::slice key;
@@ -528,20 +545,25 @@ search_manager :: group_keyop(const server_id& from,
         uint64_t ver;
         datalayer::reference tmp;
         m_daemon->m_data.get_from_iterator(ri, *sc, iter.get(), &key, &val, &ver, &tmp);
+
         size_t sz = HYPERDEX_HEADER_SIZE_SV // SV because we imitate a client
                   + sizeof(uint64_t)
                   + pack_size(key)
                   + remain.size();
+
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
         e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_SV);
         pa = pa << static_cast<uint64_t>(0) << key;
         pa = pa.copy(remain);
         virtual_server_id vsi = m_daemon->m_config.point_leader(ri, key);
 
+        // Another server is responsible for this object
         if (vsi != virtual_server_id())
         {
             m_daemon->m_comm.send(vsi, mt, msg);
+            result++;
         }
+        // what happens if vsi==virtual_server_id()???
 
         iter->next();
     }
@@ -561,6 +583,13 @@ search_manager :: count(const server_id& from,
                         std::vector<attribute_check>* checks)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+
+    if (sc->authorization)
+    {
+        return;
+    }
+
     std::stable_sort(checks->begin(), checks->end());
     datalayer::returncode rc = datalayer::SUCCESS;
     datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
@@ -605,6 +634,13 @@ search_manager :: search_describe(const server_id& from,
                                   std::vector<attribute_check>* checks)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+
+    if (sc->authorization)
+    {
+        return;
+    }
+
     std::stable_sort(checks->begin(), checks->end());
     datalayer::returncode rc = datalayer::SUCCESS;
     std::ostringstream ostr;

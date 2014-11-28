@@ -121,6 +121,7 @@ datatype_string :: apply(const e::slice& old_value,
             case FUNC_MAP_ADD:
             case FUNC_MAP_REMOVE:
             case FUNC_DOC_RENAME:
+            case FUNC_DOC_SET:
             case FUNC_DOC_UNSET:
             default:
                 abort();
@@ -236,7 +237,7 @@ compare(const e::slice& lhs,
 }
 
 int
-datatype_string :: compare(const e::slice& lhs, const e::slice& rhs)
+datatype_string :: compare(const e::slice& lhs, const e::slice& rhs) const
 {
     return ::compare(lhs, rhs);
 }

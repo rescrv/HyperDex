@@ -46,8 +46,8 @@ class pending_sorted_search : public pending_aggregation
                               bool maximize,
                               uint64_t limit,
                               uint16_t sort_by_idx,
-                              datatype_info* sort_by_di,
-                              hyperdex_client_returncode* status,
+                              const datatype_info& sort_by_di,
+                              hyperdex_client_returncode& status,
                               const hyperdex_client_attribute** attrs,
                               size_t* attrs_sz);
         virtual ~pending_sorted_search() throw ();
@@ -55,7 +55,7 @@ class pending_sorted_search : public pending_aggregation
     // return to client
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
+        virtual bool yield(hyperdex_client_returncode& status, e::error& error);
 
     // events
     public:
@@ -69,8 +69,8 @@ class pending_sorted_search : public pending_aggregation
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperdex_client_returncode* status,
-                                    e::error* error);
+                                    hyperdex_client_returncode& status,
+                                    e::error& error);
 
     public:
         class item;
@@ -87,7 +87,7 @@ class pending_sorted_search : public pending_aggregation
         bool m_maximize;
         const uint64_t m_limit;
         const uint16_t m_sort_by_idx;
-        datatype_info* m_sort_by_di;
+        const datatype_info& m_sort_by_di;
         const hyperdex_client_attribute** m_attrs;
         size_t* m_attrs_sz;
         std::vector<item> m_results;

@@ -38,13 +38,13 @@ class pending_group_del : public pending_aggregation
 {
     public:
         pending_group_del(uint64_t client_visible_id,
-                          hyperdex_client_returncode* status);
+                          hyperdex_client_returncode& status);
         virtual ~pending_group_del() throw ();
 
     // return to client
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
+        virtual bool yield(hyperdex_client_returncode& status, e::error& error);
 
     // events
     public:
@@ -56,8 +56,8 @@ class pending_group_del : public pending_aggregation
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperdex_client_returncode* status,
-                                    e::error* error);
+                                    hyperdex_client_returncode& status,
+                                    e::error& error);
 
     // noncopyable
     private:

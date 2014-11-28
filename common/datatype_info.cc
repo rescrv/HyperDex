@@ -31,9 +31,11 @@
 // HyperDex
 #include "common/datatype_info.h"
 #include "common/datatype_document.h"
+#include "common/datatype_timestamp.h"
 #include "common/datatype_float.h"
 #include "common/datatype_int64.h"
 #include "common/datatype_list.h"
+#include "common/datatype_macaroon_secret.h"
 #include "common/datatype_map.h"
 #include "common/datatype_set.h"
 #include "common/datatype_string.h"
@@ -59,6 +61,13 @@ static hyperdex::datatype_map d_map_int64_float(&d_int64, &d_float);
 static hyperdex::datatype_map d_map_float_string(&d_float, &d_string);
 static hyperdex::datatype_map d_map_float_int64(&d_float, &d_int64);
 static hyperdex::datatype_map d_map_float_float(&d_float, &d_float);
+static hyperdex::datatype_timestamp d_timestamp_second(HYPERDATATYPE_TIMESTAMP_SECOND);
+static hyperdex::datatype_timestamp d_timestamp_minute(HYPERDATATYPE_TIMESTAMP_MINUTE);
+static hyperdex::datatype_timestamp d_timestamp_hour(HYPERDATATYPE_TIMESTAMP_HOUR);
+static hyperdex::datatype_timestamp d_timestamp_day(HYPERDATATYPE_TIMESTAMP_DAY);
+static hyperdex::datatype_timestamp d_timestamp_week(HYPERDATATYPE_TIMESTAMP_WEEK);
+static hyperdex::datatype_timestamp d_timestamp_month(HYPERDATATYPE_TIMESTAMP_MONTH);
+static hyperdex::datatype_macaroon_secret d_macaroon_secret;
 
 datatype_info*
 datatype_info :: lookup(hyperdatatype datatype)
@@ -103,14 +112,29 @@ datatype_info :: lookup(hyperdatatype datatype)
             return &d_map_float_int64;
         case HYPERDATATYPE_MAP_FLOAT_FLOAT:
             return &d_map_float_float;
+        case HYPERDATATYPE_TIMESTAMP_SECOND:
+          return &d_timestamp_second;
+        case HYPERDATATYPE_TIMESTAMP_MINUTE:
+          return &d_timestamp_minute;
+        case HYPERDATATYPE_TIMESTAMP_HOUR:
+          return &d_timestamp_hour;
+        case HYPERDATATYPE_TIMESTAMP_DAY:
+          return &d_timestamp_day;
+        case HYPERDATATYPE_TIMESTAMP_WEEK:
+          return &d_timestamp_week;
+        case HYPERDATATYPE_TIMESTAMP_MONTH:
+          return &d_timestamp_month;
+        case HYPERDATATYPE_MACAROON_SECRET:
+            return &d_macaroon_secret;
         case HYPERDATATYPE_GENERIC:
+        case HYPERDATATYPE_TIMESTAMP_GENERIC:
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
-        case HYPERDATATYPE_GARBAGE:
         case HYPERDATATYPE_MAP_GENERIC:
         case HYPERDATATYPE_MAP_STRING_KEYONLY:
         case HYPERDATATYPE_MAP_INT64_KEYONLY:
         case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+        case HYPERDATATYPE_GARBAGE:
         default:
             return NULL;
     }
@@ -222,7 +246,7 @@ datatype_info :: comparable() const
 }
 
 int
-datatype_info :: compare(const e::slice&, const e::slice&)
+datatype_info :: compare(const e::slice&, const e::slice&) const
 {
     // if you see an abort here, you overrode "comparable", but not this
     // method

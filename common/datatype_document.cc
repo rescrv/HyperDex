@@ -36,6 +36,7 @@
 #include "common/datatype_string.h"
 #include "common/datatype_int64.h"
 #include "common/key_change.h"
+#include "common/doc/document.h"
 
 // json-c
 #if HAVE_JSON_H
@@ -51,8 +52,17 @@
 #include <e/guard.h>
 #include <e/safe_math.h>
 
+#include <ctype.h>
+#include <sstream>
+#include <stdexcept>
+
 using hyperdex::datatype_info;
 using hyperdex::datatype_document;
+using hyperdex::doc::create_document;
+using hyperdex::doc::document;
+using hyperdex::doc::path;
+using hyperdex::doc::value;
+using namespace hyperdex::doc;
 
 datatype_document :: datatype_document()
 {
@@ -71,9 +81,6 @@ datatype_document :: datatype() const
 bool
 datatype_document :: validate(const e::slice& value) const
 {
-    // FIXME!!
-    return true;
-
     if(value.size() == 0)
     {
         // default value is empty
@@ -81,56 +88,58 @@ datatype_document :: validate(const e::slice& value) const
         return true;
     }
 
-    bson_t b;
-    return bson_init_static(&b, reinterpret_cast<const uint8_t*>(value.cdata()), value.size());
+    std::auto_ptr<hyperdex::doc::document> doc(create_document(value.data(), value.size()));
+    return doc->is_valid();
 }
 
 bool
 datatype_document :: validate_old_values(const std::vector<e::slice>& old_values, const funcall& func) const
 {
+    if(func.name == FUNC_SET)
+    {
+        // Doesn matter. Old value will be overwritten anyways.
+        return true;
+    }
+
+    std::auto_ptr<hyperdex::doc::document> doc( create_document(old_values[0].data(), old_values[0].size()) );
+    path p = func.arg2.c_str();
+
+    if(!doc->is_valid())
+    {
+        return false;
+    }
+
     // we only need to check old values for atomic operations
     switch(func.name)
     {
-    case FUNC_DOC_RENAME:
+    case FUNC_DOC_SET:
+    {
+        return !doc->does_entry_exist(p) && doc->can_create_element(p);
+    }
     case FUNC_DOC_UNSET:
     {
-        json_path path = func.arg2.c_str();
+        return doc->does_entry_exist(p);
+    }
+    case FUNC_DOC_RENAME:
+    {
+        std::string new_name(func.arg1.c_str());
 
-        bson_t b;
-        bool inited = bson_init_static(&b, old_values[0].data(), old_values[0].size());
+        path parent_path;
+        std::string obj_name;
+        p.split_reverse(parent_path, obj_name);
+        parent_path.append(new_name);
 
-        if(!inited)
-        {
-            return false;
-        }
-
-        bson_iter_t iter, baz1, baz2;
-        assert(bson_iter_init (&iter, &b));
-
-        bool exists = bson_iter_find_descendant(&iter, path.str().c_str(), &baz1);
-
-        if (func.name == FUNC_DOC_UNSET)
-        {
-            return exists;
-        }
-        else
-        {
-            std::string new_name(func.arg2.c_str());
-
-            json_path parent_path;
-            std::string obj_name;
-            path.split_reverse(parent_path, obj_name);
-
-            parent_path.append(new_name);
-
-            bool other_exists = bson_iter_find_descendant(&iter, path.str().c_str(), &baz2);
-
-            return exists && !other_exists;
-        }
+        return doc->does_entry_exist(p) && !doc->does_entry_exist(parent_path);
+    }
+    case FUNC_LIST_LPUSH:
+    case FUNC_LIST_RPUSH:
+    {
+        return doc->can_create_element(p) || doc->get_element_type(p) == element_type_array;
     }
     case FUNC_NUM_ADD:
     case FUNC_NUM_AND:
     case FUNC_NUM_MAX:
+    case FUNC_NUM_DIV:
     case FUNC_NUM_MIN:
     case FUNC_NUM_MOD:
     case FUNC_NUM_MUL:
@@ -138,74 +147,24 @@ datatype_document :: validate_old_values(const std::vector<e::slice>& old_values
     case FUNC_NUM_XOR:
     case FUNC_NUM_OR:
     {
-        json_path path = func.arg2.c_str();
+        element_type type = doc->get_element_type(p);
 
-        bson_t b;
-        bson_init_static(&b, old_values[0].data(), old_values[0].size());
-
-        bson_iter_t iter, baz;
-        assert(bson_iter_init (&iter, &b));
-
-        if (bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
+        if(type == element_type_integer || type == element_type_float)
         {
-            return (bson_iter_type(&baz) == BSON_TYPE_INT64 || bson_iter_type(&baz) == BSON_TYPE_INT32);
-        }
-        else
-        {
-            while(!path.empty() && path.has_subtree())
-            {
-                std::string child_name;
-                path.split_reverse(path, child_name);
-
-                bson_iter_init (&iter, &b);
-                if(bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
-                {
-                    return BSON_ITER_HOLDS_DOCUMENT(&baz);
-                }
-            }
-
             return true;
         }
+
+        return doc->can_create_element(p);
         break;
     }
     case FUNC_STRING_APPEND:
     case FUNC_STRING_PREPEND:
     {
-        json_path path = func.arg2.c_str();
-
-        bson_t b;
-        bson_init_static(&b, old_values[0].data(), old_values[0].size());
-
-        bson_iter_t iter, baz;
-        assert(bson_iter_init (&iter, &b));
-
-        if (bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
-        {
-            return (bson_iter_type(&baz) == BSON_TYPE_UTF8);
-        }
-        else
-        {
-            while(!path.empty() && path.has_subtree())
-            {
-                std::string child_name;
-                path.split_reverse(path, child_name);
-
-                bson_iter_init (&iter, &b);
-                if(bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
-                {
-                    return BSON_ITER_HOLDS_DOCUMENT(&baz);
-                }
-            }
-
-            return true;
-        }
+        return doc->can_create_element(p) || doc->get_element_type(p) == element_type_string;
         break;
     }
     case FUNC_FAIL:
     case FUNC_SET:
-    case FUNC_NUM_DIV:
-    case FUNC_LIST_LPUSH:
-    case FUNC_LIST_RPUSH:
     case FUNC_SET_ADD:
     case FUNC_SET_REMOVE:
     case FUNC_SET_INTERSECT:
@@ -241,10 +200,15 @@ datatype_document :: check_args(const funcall& func) const
     case FUNC_NUM_MIN:
     case FUNC_NUM_MAX:
     {
+        if(is_binary_operation(func.name) && func.arg1_datatype == HYPERDATATYPE_FLOAT)
+        {
+            // not defined for float
+            return false;
+        }
+
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
-        return (func.arg1_datatype == HYPERDATATYPE_INT64 || func.arg1_datatype == HYPERDATATYPE_FLOAT)
-            && func.arg2_datatype == HYPERDATATYPE_STRING;
+        return is_type_numeric(func.arg1_datatype) && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
     case FUNC_STRING_APPEND:
     case FUNC_STRING_PREPEND:
@@ -252,6 +216,30 @@ datatype_document :: check_args(const funcall& func) const
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
         return func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING;
+    }
+    case FUNC_LIST_LPUSH:
+    case FUNC_LIST_RPUSH:
+    case FUNC_DOC_SET:
+    {
+        if (!func.arg2_datatype == HYPERDATATYPE_STRING)
+        {
+            // not a valid path
+            return false;
+        }
+
+        if(is_type_primitive(func.arg1_datatype))
+        {
+            return true;
+        }
+        else if(func.arg1_datatype == HYPERDATATYPE_DOCUMENT)
+        {
+            return validate(func.arg1);
+        }
+        else
+        {
+            // invalid argument
+            return false;
+        }
     }
     case FUNC_DOC_UNSET:
     {
@@ -270,8 +258,6 @@ datatype_document :: check_args(const funcall& func) const
         return !new_path.empty() && new_path.find('.') == std::string::npos;
     }
     case FUNC_FAIL:
-    case FUNC_LIST_LPUSH:
-    case FUNC_LIST_RPUSH:
     case FUNC_SET_ADD:
     case FUNC_SET_INTERSECT:
     case FUNC_SET_REMOVE:
@@ -286,324 +272,30 @@ datatype_document :: check_args(const funcall& func) const
     }
 }
 
-bson_t*
-datatype_document :: add_or_replace_string(const bson_t* old_document, const json_path& path, const std::string& new_value) const
+value*
+datatype_document :: encode_value(const hyperdatatype type, const e::slice& data) const
 {
-    bson_iter_t iter;
-
-    if(!bson_iter_init (&iter, old_document))
+    if(type == HYPERDATATYPE_STRING)
     {
-        return NULL;
+        return create_value(data.c_str(), data.size());
     }
-
-    bson_t *new_doc = bson_new();
-
-    replace_string_recurse(path, new_value, new_doc, &iter);
-    return new_doc;
-}
-
-bson_t*
-datatype_document :: rename_value(const bson_t* old_document, const json_path& path, const std::string& new_name) const
-{
-    bson_iter_t iter;
-
-    if(!bson_iter_init (&iter, old_document))
+    else if(type == HYPERDATATYPE_FLOAT)
     {
-        return NULL;
+        double arg = reinterpret_cast<const double*>(data.data())[0];
+        return create_value(arg);
     }
-
-    bson_t *new_doc = bson_new();
-
-    rename_value_recurse(path, new_name, new_doc, &iter);
-    return new_doc;
-}
-
-void
-datatype_document :: rename_value_recurse(const json_path& path, const std::string& new_name, bson_t* parent, bson_iter_t* iter) const
-{
-    while (iter && bson_iter_next(iter))
+    else if(type == HYPERDATATYPE_INT64)
     {
-        bson_type_t type = bson_iter_type(iter);
-        std::string key = bson_iter_key(iter);
-
-        if(key == path.str())
-        {
-            // found it!
-            const bson_value_t *value = bson_iter_value(iter);
-            bson_append_value(parent, new_name.c_str(), new_name.size(), value);
-        }
-        else if(type == BSON_TYPE_DOCUMENT)
-        {
-            json_path subpath;
-            std::string root_name;
-
-            bson_iter_t sub_iter;
-            bson_iter_recurse(iter, &sub_iter);
-
-            bson_t *child = bson_new();
-            bson_append_document_begin(parent, key.c_str(), key.size(), child);
-
-            if(path.has_subtree() && path.split(root_name, subpath)
-                && root_name == key)
-            {
-                rename_value_recurse(subpath, new_name, child, &sub_iter);
-            }
-            else
-            {
-                // This is not the path you are looking for...
-                rename_value_recurse("", "", child, &sub_iter);
-            }
-
-            bson_append_document_end(parent, child);
-        }
-        else
-        {
-            const bson_value_t *value = bson_iter_value(iter);
-            bson_append_value(parent, key.c_str(), key.size(), value);
-        }
+        int64_t arg = reinterpret_cast<const int64_t*>(data.data())[0];
+        return create_value(arg);
     }
-}
-
-bson_t*
-datatype_document :: unset_value(const bson_t* old_document, const json_path& path) const
-{
-    bson_iter_t iter;
-
-    if(!bson_iter_init (&iter, old_document))
+    else if(type == HYPERDATATYPE_DOCUMENT)
     {
-        return NULL;
+        return create_document_value(data.data(), data.size());
     }
-
-    bson_t *new_doc = bson_new();
-
-    unset_value_recurse(path, new_doc, &iter);
-    return new_doc;
-}
-
-void
-datatype_document :: unset_value_recurse(const json_path& path, bson_t* parent, bson_iter_t* iter) const
-{
-    while (iter && bson_iter_next(iter))
+    else
     {
-        bson_type_t type = bson_iter_type(iter);
-        std::string key = bson_iter_key(iter);
-
-        if(key == path.str())
-        {
-            // skip
-        }
-        else if(type == BSON_TYPE_DOCUMENT)
-        {
-            json_path subpath;
-            std::string root_name;
-
-            bson_iter_t sub_iter;
-            bson_iter_recurse(iter, &sub_iter);
-
-            bson_t *child = bson_new();
-            bson_append_document_begin(parent, key.c_str(), key.size(), child);
-
-            if(path.has_subtree() && path.split(root_name, subpath)
-                && root_name == key)
-            {
-                unset_value_recurse(subpath, child, &sub_iter);
-            }
-            else
-            {
-                // This is not the path you are looking for...
-                unset_value_recurse("", child, &sub_iter);
-            }
-
-            bson_append_document_end(parent, child);
-        }
-        else
-        {
-            const bson_value_t *value = bson_iter_value(iter);
-            bson_append_value(parent, key.c_str(), key.size(), value);
-        }
-    }
-}
-
-bson_t*
-datatype_document :: add_or_replace_int64(const bson_t* old_document, const json_path& path, const int64_t new_value) const
-{
-    bson_iter_t iter;
-
-    if(!bson_iter_init (&iter, old_document))
-    {
-        return NULL;
-    }
-
-    bson_t *new_doc = bson_new();
-
-    replace_int64_recurse(path, new_value, new_doc, &iter);
-    return new_doc;
-}
-
-void
-datatype_document :: replace_int64_recurse(const json_path& path, const int64_t new_value,
-                                    bson_t* parent, bson_iter_t* iter) const
-{
-    bool found = false;
-
-    // There might be not iterator if we have to create the subtree
-    while (iter && bson_iter_next(iter))
-    {
-        bson_type_t type = bson_iter_type(iter);
-        std::string key = bson_iter_key(iter);
-
-        std::cout<< key << std::endl;
-
-        if(type == BSON_TYPE_INT64)
-        {
-            if(path.str() == key)
-            {
-                // We found it!
-                found = true;
-                bson_append_int64(parent, key.c_str(), key.size(), new_value);
-            }
-            else
-            {
-                bson_append_int64(parent, key.c_str(), key.size(), bson_iter_int64(iter));
-            }
-        }
-        else if(type == BSON_TYPE_DOCUMENT)
-        {
-            json_path subpath;
-            std::string root_name;
-            assert(path.split(root_name, subpath));
-
-            bson_iter_t sub_iter;
-            bson_iter_recurse(iter, &sub_iter);
-
-            bson_t *child = bson_new();
-            bson_append_document_begin(parent, key.c_str(), key.size(), child);
-
-            if(root_name == key)
-            {
-                found = true;
-                replace_int64_recurse(subpath, new_value, child, &sub_iter);
-            }
-            else
-            {
-                replace_int64_recurse("", new_value, child, &sub_iter);
-            }
-
-            bson_append_document_end(parent, child);
-        }
-        else if(type == BSON_TYPE_ARRAY || type == BSON_TYPE_INT32 || type == BSON_TYPE_DOUBLE || type == BSON_TYPE_UTF8)
-        {
-            const bson_value_t *value = bson_iter_value(iter);
-            bson_append_value(parent, key.c_str(), key.size(), value);
-        }
-        else
-        {
-            abort();
-        }
-    }
-
-    if(!found && !path.empty())
-    {
-        if(path.has_subtree())
-        {
-            json_path subpath;
-            std::string root_name;
-            path.split(root_name, subpath);
-
-            bson_t *child = bson_new();
-
-            bson_append_document_begin(parent, root_name.c_str(), root_name.size(), child);
-            replace_int64_recurse(subpath, new_value, child, NULL);
-            bson_append_document_end(parent, child);
-        }
-        else
-        {
-            bson_append_int64(parent, path.str().c_str(), path.str().size(), new_value);
-        }
-    }
-}
-
-void
-datatype_document :: replace_string_recurse(const json_path& path, const std::string& new_value,
-                                    bson_t* parent, bson_iter_t* iter) const
-{
-    bool found = false;
-
-    // There might be not iterator if we have to create the subtree
-    while (iter && bson_iter_next(iter))
-    {
-        bson_type_t type = bson_iter_type(iter);
-        std::string key = bson_iter_key(iter);
-
-        if(type == BSON_TYPE_UTF8)
-        {
-            if(path.str() == key)
-            {
-                // We found it!
-                found = true;
-                bson_append_utf8(parent, key.c_str(), key.size(), new_value.c_str(), new_value.size());
-            }
-            else
-            {
-                uint32_t len = 0;
-                const char* str = bson_iter_utf8(iter, &len);
-                bson_append_utf8(parent, key.c_str(), key.size(), str, len);
-            }
-        }
-        else if(type == BSON_TYPE_DOCUMENT)
-        {
-            json_path subpath;
-            std::string root_name;
-
-            bson_iter_t sub_iter;
-            bson_iter_recurse(iter, &sub_iter);
-
-            bson_t *child = bson_new();
-            bson_append_document_begin(parent, key.c_str(), key.size(), child);
-
-            if(path.has_subtree() && path.split(root_name, subpath)
-                && root_name == key)
-            {
-                found = true;
-                replace_string_recurse(subpath, new_value, child, &sub_iter);
-            }
-            else
-            {
-                // This is not the path you are looking for...
-                replace_string_recurse("", new_value, child, &sub_iter);
-            }
-
-            bson_append_document_end(parent, child);
-        }
-        else if(type == BSON_TYPE_ARRAY || type == BSON_TYPE_INT32 || type == BSON_TYPE_INT64 || type == BSON_TYPE_DOUBLE)
-        {
-            const bson_value_t *value = bson_iter_value(iter);
-            bson_append_value(parent, key.c_str(), key.size(), value);
-        }
-        else
-        {
-            abort();
-        }
-    }
-
-    if(!found && !path.empty())
-    {
-        if(path.has_subtree())
-        {
-            json_path subpath;
-            std::string root_name;
-            path.split(root_name, subpath);
-
-            bson_t *child = bson_new();
-
-            bson_append_document_begin(parent, root_name.c_str(), root_name.size(), child);
-            replace_string_recurse(subpath, new_value, child, NULL);
-            bson_append_document_end(parent, child);
-        }
-        else
-        {
-            bson_append_utf8(parent, path.str().c_str(), path.str().size(), new_value.c_str(), new_value.size());
-        }
+        throw std::runtime_error("Cannot encode value: Unknown datatype");
     }
 }
 
@@ -624,11 +316,11 @@ datatype_document :: apply(const e::slice& old_value,
 
     // To support multiple updates on the same document
     // we reuse the same object
-    bson_t *bson_root = NULL;
+    hyperdex::doc::document *doc = NULL;
 
-    for (size_t i = 0; i < funcs_sz; ++i)
+    for (size_t pos = 0; pos < funcs_sz; ++pos)
     {
-        const funcall& func = *(funcs + i);
+        const funcall& func = *(funcs + pos);
 
         switch(func.name)
         {
@@ -639,55 +331,56 @@ datatype_document :: apply(const e::slice& old_value,
             abort();
             break;
         }
+        case FUNC_DOC_SET:
+        {
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+
+            path p = func.arg2.c_str();
+
+            value* value = encode_value(func.arg1_datatype, func.arg1);
+            hyperdex::doc::document *new_doc = doc->add_or_replace_value(p, *value);
+
+            delete doc;
+            doc = new_doc;
+            break;
+        }
         case FUNC_DOC_UNSET:
         {
-            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
-            std::string path = func.arg2.c_str();
-            bson_t* new_doc = unset_value(bson_root, path);
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+            std::string p = func.arg2.c_str();
+            hyperdex::doc::document* new_doc = doc->unset_value(p);
 
-            if(!new_doc)
-            {
-                abort();
-            }
-
-            bson_destroy(bson_root);
-            bson_root = new_doc;
+            delete doc;
+            doc = new_doc;
             break;
         }
         case FUNC_DOC_RENAME:
         {
             std::string new_name(func.arg1.cdata(), func.arg1.size());
-            std::string path = func.arg2.c_str();
+            path p = func.arg2.c_str();
 
-            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
-            bson_t* new_doc = rename_value(bson_root, path, new_name);
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+            hyperdex::doc::document* new_doc = doc->rename_value(p, new_name);
 
-            if(!new_doc)
-            {
-                abort();
-            }
-
-            bson_destroy(bson_root);
-            bson_root = new_doc;
+            delete doc;
+            doc = new_doc;
             break;
         }
         case FUNC_STRING_PREPEND:
         case FUNC_STRING_APPEND:
         {
             std::string arg(func.arg1.cdata(), func.arg1.size());
-            json_path path = func.arg2.c_str();
+            path p = func.arg2.c_str();
 
-            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
 
-            bson_iter_t iter, baz;
-            assert(bson_iter_init (&iter, bson_root));
-
-            uint32_t size = 0;
             std::string str = "";
+            std::auto_ptr<value> val (doc->extract_value(p));
 
-            if (bson_iter_find_descendant (&iter, path.str().c_str(), &baz))
+            if(val.get() != NULL)
             {
-                str = bson_iter_utf8(&baz, &size);
+                assert(val->get_type() == element_type_string);
+                str = val->get_string();
             }
 
             if(func.name == FUNC_STRING_APPEND)
@@ -699,16 +392,13 @@ datatype_document :: apply(const e::slice& old_value,
                 str = arg + str;
             }
 
-            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
-            bson_t* new_doc = add_or_replace_string(bson_root, path, str);
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
 
-            if(!new_doc)
-            {
-                abort();
-            }
+            std::auto_ptr<value> new_val (create_value(str));
+            hyperdex::doc::document* new_doc = doc->add_or_replace_value(p, *new_val);
 
-            bson_destroy(bson_root);
-            bson_root = new_doc;
+            delete doc;
+            doc = new_doc;
             break;
         }
         case FUNC_NUM_ADD:
@@ -722,121 +412,225 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_NUM_MAX:
         case FUNC_NUM_MIN:
         {
-            int64_t arg = reinterpret_cast<const int64_t*>(func.arg1.data())[0];
-            json_path path = func.arg2.c_str();
+            bool arg_is_int = false;
+            int64_t int_arg = 0;
+            double float_arg = 0.0;
 
-            bson_root = bson_root ? bson_root : bson_new_from_data(old_value.data(), old_value.size());
-
-            bson_iter_t iter, baz;
-            assert(bson_iter_init (&iter, bson_root));
-
-            int64_t number = 0;
-            bool is32bit = false;
-            bool field_exists = bson_iter_find_descendant (&iter, path.str().c_str(), &baz);
-
-            if (field_exists)
+            if(func.arg1_datatype == HYPERDATATYPE_INT64)
             {
-                if(BSON_ITER_HOLDS_INT64(&baz))
+                arg_is_int = true;
+                int_arg = reinterpret_cast<const int64_t*>(func.arg1.data())[0];
+            }
+            else
+            {
+                arg_is_int = false;
+                float_arg = reinterpret_cast<const double*>(func.arg1.data())[0];
+            }
+
+            path p = func.arg2.c_str();
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+
+            int64_t int_field = 0;
+            double float_field = 0.0;
+
+            bool field_is_int = true;
+            bool field_exists = false;
+
+            std::auto_ptr<value> val (doc->extract_value(p));
+
+            if(val.get() != NULL)
+            {
+                field_exists = true;
+
+                if(val->get_type() == element_type_integer)
                 {
-                    number = bson_iter_int64(&baz);
-                }
-                else if(BSON_ITER_HOLDS_INT32(&baz))
-                {
-                    number = bson_iter_int32(&baz);
-                    is32bit = true;
+                    field_is_int = true;
+                    int_field = val->get_int();
                 }
                 else
                 {
-                    abort();
+                    field_is_int = false;
+                    float_field = val->get_float();
                 }
+            }
+
+
+            // if one of the two is a float we have to convert
+            // and also can't simply overwrite the value
+            bool float_op = false;
+            if(arg_is_int && !field_is_int)
+            {
+                float_op = true;
+                field_exists = false;
+                float_arg = int_arg;
+            }
+            else if(!arg_is_int && field_is_int)
+            {
+                float_op = true;
+                field_exists = false;
+                float_field = int_field;
+            }
+            else if(!arg_is_int && !field_is_int)
+            {
+                float_op = true;
             }
 
             bool success = false;
 
-            if(func.name == FUNC_NUM_ADD)
+            if(float_op)
             {
-                success = e::safe_add(number, arg, &number);
-            }
-            else if(func.name == FUNC_NUM_SUB)
-            {
-                success = e::safe_sub(number, arg, &number);
-            }
-            else if(func.name == FUNC_NUM_DIV)
-            {
-                success = e::safe_div(number, arg, &number);
-            }
-            else if(func.name == FUNC_NUM_MUL)
-            {
-                success = e::safe_mul(number, arg, &number);
-            }
-            else if(func.name == FUNC_NUM_MOD)
-            {
-                number = number % arg;
+                // no overflow checks here...
                 success = true;
-            }
-            else if(func.name == FUNC_NUM_XOR)
-            {
-                number = number ^ arg;
-                success = true;
-            }
-            else if(func.name == FUNC_NUM_AND)
-            {
-                number = number & arg;
-                success = true;
-            }
-            else if(func.name == FUNC_NUM_OR)
-            {
-                number = number | arg;
-                success = true;
-            }
-            else if(func.name == FUNC_NUM_MAX)
-            {
-                number = std::max(number, arg);
-                success = true;
-            }
-            else if(func.name == FUNC_NUM_MIN)
-            {
-                number = std::min(number, arg);
-                success = true;
-            }
 
-            if(success)
-            {
-                if(field_exists)
+                if(func.name == FUNC_NUM_ADD)
                 {
-                    if(is32bit)
-                    {
-                        //FIXME check for buffer overflow
-                        bson_iter_overwrite_int32(&baz, (int32_t)number);
-                    }
-                    else
-                    {
-                        bson_iter_overwrite_int64(&baz, number);
-                    }
+                    float_field = float_field + float_arg;
+                }
+                else if(func.name == FUNC_NUM_SUB)
+                {
+                    float_field = float_field - float_arg;
+                }
+                else if(func.name == FUNC_NUM_DIV)
+                {
+                    float_field = float_field / float_arg;
+                }
+                else if(func.name == FUNC_NUM_MUL)
+                {
+                    float_field = float_field * float_arg;
+                }
+                else if(func.name == FUNC_NUM_MAX)
+                {
+                    float_field = std::max(float_field, float_arg);
+                }
+                else if(func.name == FUNC_NUM_MIN)
+                {
+                    float_field = std::min(float_field, float_arg);
                 }
                 else
                 {
-                    bson_t* new_doc = add_or_replace_int64(bson_root, path, number);
-
-                    if(!new_doc)
-                    {
-                        abort();
-                    }
-
-                    bson_destroy(bson_root);
-                    bson_root = new_doc;
+                    success = false;
                 }
             }
             else
             {
-                bson_destroy(bson_root);
+                if(func.name == FUNC_NUM_ADD)
+                {
+                    success = e::safe_add(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_SUB)
+                {
+                    success = e::safe_sub(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_DIV)
+                {
+                    success = e::safe_div(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_MUL)
+                {
+                    success = e::safe_mul(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_MOD)
+                {
+                    int_field = int_field % int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_XOR)
+                {
+                    int_field = int_field ^ int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_AND)
+                {
+                    int_field = int_field & int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_OR)
+                {
+                    int_field = int_field | int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_MAX)
+                {
+                    int_field = std::max(int_field, int_arg);
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_MIN)
+                {
+                    int_field = std::min(int_field, int_arg);
+                    success = true;
+                }
+            }
+
+            if(success)
+            {
+               if(field_exists)
+                {
+                    if(float_op)
+                    {
+                        doc->overwrite_float(p, float_field);
+                    }
+                    else
+                    {
+                        doc->overwrite_integer(p, int_field);
+                    }
+                }
+                else
+                {
+                    value *val = NULL;
+
+                    if(float_op)
+                    {
+                        val = create_value(float_field);
+                    }
+                    else
+                    {
+                        val = create_value(int_field);
+                    }
+
+                    hyperdex::doc::document* new_doc = doc->add_or_replace_value(p, *val);
+
+                    delete doc;
+                    delete val;
+                    doc = new_doc;
+                }
+            }
+            else
+            {
+                delete doc;
                 return NULL;
             }
             break;
         }
-        case FUNC_FAIL:
         case FUNC_LIST_LPUSH:
+        {
+            std::string arg(func.arg1.cdata(), func.arg1.size());
+            path p = func.arg2.c_str();
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+
+            // Put new value at the front
+            value *val = encode_value(func.arg1_datatype, func.arg1);
+            hyperdex::doc::document *new_doc = doc->array_prepend(p, *val);
+
+            delete val;
+            delete doc;
+            doc = new_doc;
+            break;
+        }
         case FUNC_LIST_RPUSH:
+        {
+            std::string arg(func.arg1.cdata(), func.arg1.size());
+            path p = func.arg2.c_str();
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+
+            value *val = encode_value(func.arg1_datatype, func.arg1);
+            hyperdex::doc::document *new_doc = doc->array_append(p, *val);
+
+            delete val;
+            delete doc;
+            doc = new_doc;
+            break;
+        }
+        case FUNC_FAIL:
         case FUNC_SET_ADD:
         case FUNC_SET_INTERSECT:
         case FUNC_SET_REMOVE:
@@ -848,13 +642,13 @@ datatype_document :: apply(const e::slice& old_value,
         }
     }
 
-    if(bson_root)
+    if(doc)
     {
-        size_t len = bson_root->len;
-        const uint8_t* data = bson_get_data(bson_root);
+        size_t len = doc->size();
+        const uint8_t* data = doc->data();
 
         memmove(writeto, data, len);
-        bson_destroy(bson_root);
+        delete doc;
 
         return writeto + len;
     }
@@ -863,41 +657,6 @@ datatype_document :: apply(const e::slice& old_value,
         abort();
         return NULL;
     }
-}
-
-void
-datatype_document :: get_end(const json_object* root, const json_path& path,
-                                json_object*& parent, json_object*& obj, std::string& obj_name) const
-{
-    json_path parent_path;
-
-    if(path.has_subtree())
-    {
-        path.split_reverse(parent_path, obj_name);
-
-        // Apperantly, there is no easier way in json-c to get the parent
-        parent = traverse_path(root, parent_path);
-    }
-    else
-    {
-        parent = const_cast<json_object*>(root);
-        obj_name = path.str();
-    }
-
-    if(!parent)
-    {
-        // Recursively build the path
-        // This might be a little inefficent but should rarely be needed
-        json_object *grandparent = NULL;
-        std::string parent_name_;
-        get_end(root, parent_path, grandparent, parent, parent_name_);
-
-        assert(grandparent != NULL);
-        parent = json_object_new_object();
-        json_object_object_add(grandparent, parent_name_.c_str(), parent);
-    }
-
-    obj = traverse_path(root, path);
 }
 
 bool
@@ -952,138 +711,53 @@ datatype_document :: document_check(const attribute_check& check,
     }
 }
 
-json_object*
-datatype_document :: traverse_path(const json_object* parent, const json_path& path) const
-{
-    assert(parent != NULL);
-
-    std::string childname;
-    json_path subpath;
-
-    if(!path.has_subtree())
-    {
-        // we're at the end of the tree
-        childname = path.str();
-    }
-    else
-    {
-        path.split(childname, subpath);
-    }
-
-    // json_object_object_get_ex also checks if parent is an object
-    // for some reason this function want a non-const pointer
-    // let us hack around it...
-    json_object* child;
-    if (!json_object_object_get_ex(const_cast<json_object*>(parent), childname.c_str(), &child))
-    {
-        return NULL;
-    }
-
-    if(subpath.empty())
-    {
-        return child;
-    }
-    else
-    {
-        return traverse_path(child, subpath);
-    }
-}
-
-json_object*
-datatype_document :: get_last_elem_in_path(const json_object* parent, const json_path& path, json_path& child_path) const
-{
-    assert(parent != NULL);
-
-    std::string childname;
-    json_path subpath;
-
-    if(!path.has_subtree())
-    {
-        // we're at the end of the tree
-        childname = path.str();
-    }
-    else
-    {
-        path.split(childname, subpath);
-    }
-
-    child_path.append(childname);
-
-    // json_object_object_get_ex also checks if parent is an object
-    // for some reason this function want a non-const pointer
-    // let us hack around it...
-    json_object* child;
-    if (!json_object_object_get_ex(const_cast<json_object*>(parent), childname.c_str(), &child))
-    {
-        return const_cast<json_object*>(parent);
-    }
-
-    if(subpath.empty())
-    {
-        return child;
-    }
-    else
-    {
-        return get_last_elem_in_path(child, subpath, child_path);
-    }
-}
-
 bool
-datatype_document :: extract_value(const std::string& path,
-                                const e::slice& doc,
+datatype_document :: extract_value(const path& p,
+                                const e::slice& data,
                                 hyperdatatype* type,
                                 std::vector<char>* scratch,
                                 e::slice* value)
 {
-    bson_t b;
-    bson_iter_t iter, baz;
+    hyperdex::doc::document* doc = create_document(data.data(), data.size());
+    hyperdex::doc::value *val = doc->extract_value(p);
 
-    bson_init_static(&b, doc.data(), doc.size());
+    element_type etype = val->get_type();
 
-    if(!bson_iter_init (&iter, &b))
+    if (etype == element_type_float)
     {
-        return false;
-    }
-
-    if(!bson_iter_find_descendant (&iter, path.c_str(), &baz))
-    {
-        return false;
-    }
-
-    bson_type_t btype = bson_iter_type(&baz);
-
-    if (btype == BSON_TYPE_DOUBLE ||
-        btype == BSON_TYPE_INT64)
-    {
-        const size_t number_sz = sizeof(double) > sizeof(int64_t)
-                               ? sizeof(double) : sizeof(int64_t);
+        const size_t number_sz = sizeof(double);
 
         if (scratch->size() < number_sz)
         {
             scratch->resize(number_sz);
         }
 
-        if (btype == BSON_TYPE_INT64)
-        {
-            int64_t i = bson_iter_int64(&baz);
-            e::pack64le(i, &(*scratch)[0]);
-            *type = HYPERDATATYPE_INT64;
-            *value = e::slice(&(*scratch)[0], sizeof(int64_t));
-            return true;
-        }
-        else
-        {
-            double d = bson_iter_double(&baz);
-            e::packdoublele(d, &(*scratch)[0]);
-            *type = HYPERDATATYPE_FLOAT;
-            *value = e::slice(&(*scratch)[0], sizeof(double));
-            return true;
-        }
+        double d = val->get_float();
+        e::packdoublele(d, &(*scratch)[0]);
+        *type = HYPERDATATYPE_FLOAT;
+        *value = e::slice(&(*scratch)[0], sizeof(double));
+
+        return true;
     }
-    else if (btype == BSON_TYPE_UTF8)
+    else if(etype == element_type_integer)
     {
-        uint32_t str_sz = 0;
-        const char* str = bson_iter_utf8(&baz, &str_sz);
+        const size_t number_sz =  sizeof(int64_t);
+
+        if (scratch->size() < number_sz)
+        {
+            scratch->resize(number_sz);
+        }
+
+        int64_t i = val->get_int();
+        e::pack64le(i, &(*scratch)[0]);
+        *type = HYPERDATATYPE_INT64;
+        *value = e::slice(&(*scratch)[0], sizeof(int64_t));
+        return true;
+    }
+    else if (etype == element_type_string)
+    {
+        const char* str = val->get_string();
+        size_t str_sz = strlen(str);
 
         if (scratch->size() < str_sz)
         {
@@ -1093,6 +767,21 @@ datatype_document :: extract_value(const std::string& path,
         memmove(&scratch->front(), str, str_sz);
         *type = HYPERDATATYPE_STRING;
         *value = e::slice(&(*scratch)[0], str_sz);
+        return true;
+    }
+    else if (etype == element_type_document)
+    {
+        const uint8_t *ddata = val->data();
+        const size_t size = val->size();
+
+        if (scratch->size() < size)
+        {
+            scratch->resize(size);
+        }
+
+        memmove(&scratch->front(), ddata, size);
+        *type = HYPERDATATYPE_DOCUMENT;
+        *value = e::slice(&(*scratch)[0], size);
         return true;
     }
     else

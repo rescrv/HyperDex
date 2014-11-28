@@ -37,17 +37,17 @@ class coord_rpc_backup : public coord_rpc
 {
     public:
         coord_rpc_backup(uint64_t admin_visible_id,
-                         hyperdex_admin_returncode* status,
+                         hyperdex_admin_returncode& status,
                          const char* path);
         virtual ~coord_rpc_backup() throw ();
 
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperdex_admin_returncode* status);
+        virtual bool yield(hyperdex_admin_returncode& status);
 
     public:
         virtual bool handle_response(admin* adm,
-                                     hyperdex_admin_returncode* status);
+                                     hyperdex_admin_returncode& status);
 
     private:
         coord_rpc_backup(const coord_rpc_backup&);

@@ -135,11 +135,21 @@
 		<Unit filename="bindings/ruby/prototypes.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="client/atomic_request.cc" />
+		<Unit filename="client/atomic_request.h" />
 		<Unit filename="client/c.cc" />
 		<Unit filename="client/client.cc" />
 		<Unit filename="client/client.h" />
 		<Unit filename="client/constants.h" />
+		<Unit filename="client/count_request.cc" />
+		<Unit filename="client/count_request.h" />
 		<Unit filename="client/datastructures.cc" />
+		<Unit filename="client/group_atomic_request.cc" />
+		<Unit filename="client/group_atomic_request.h" />
+		<Unit filename="client/group_del_request.cc" />
+		<Unit filename="client/group_del_request.h" />
+		<Unit filename="client/group_request.cc" />
+		<Unit filename="client/group_request.h" />
 		<Unit filename="client/keyop_info.cc" />
 		<Unit filename="client/keyop_info.h" />
 		<Unit filename="client/pending.cc" />
@@ -154,6 +164,8 @@
 		<Unit filename="client/pending_get.h" />
 		<Unit filename="client/pending_get_partial.cc" />
 		<Unit filename="client/pending_get_partial.h" />
+		<Unit filename="client/pending_group_atomic.cc" />
+		<Unit filename="client/pending_group_atomic.h" />
 		<Unit filename="client/pending_group_del.cc" />
 		<Unit filename="client/pending_group_del.h" />
 		<Unit filename="client/pending_search.cc" />
@@ -162,6 +174,14 @@
 		<Unit filename="client/pending_search_describe.h" />
 		<Unit filename="client/pending_sorted_search.cc" />
 		<Unit filename="client/pending_sorted_search.h" />
+		<Unit filename="client/request.cc" />
+		<Unit filename="client/request.h" />
+		<Unit filename="client/search_describe_request.cc" />
+		<Unit filename="client/search_describe_request.h" />
+		<Unit filename="client/search_request.cc" />
+		<Unit filename="client/search_request.h" />
+		<Unit filename="client/sorted_search_request.cc" />
+		<Unit filename="client/sorted_search_request.h" />
 		<Unit filename="client/test/datastructures.cc" />
 		<Unit filename="client/util.cc" />
 		<Unit filename="client/util.h" />

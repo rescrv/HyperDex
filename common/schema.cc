@@ -36,6 +36,7 @@ using hyperdex::schema;
 schema :: schema()
     : attrs_sz(0)
     , attrs(NULL)
+    , authorization(false)
 {
 }
 

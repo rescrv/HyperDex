@@ -52,15 +52,15 @@ class backup_state_machine : public multi_yieldable
     public:
         backup_state_machine(const char* name,
                              uint64_t admin_visible_id,
-                             hyperdex_admin_returncode* status,
+                             hyperdex_admin_returncode& status,
                              const char** backups);
         ~backup_state_machine() throw ();
 
     public:
         bool can_yield();
-        bool yield(hyperdex_admin_returncode* status);
-        bool initialize(admin* adm, hyperdex_admin_returncode* status);
-        bool callback(admin* adm, int64_t id, hyperdex_admin_returncode* status);
+        bool yield(hyperdex_admin_returncode& status);
+        bool initialize(admin* adm, hyperdex_admin_returncode& status);
+        bool callback(admin* adm, int64_t id, hyperdex_admin_returncode& status);
 
     private:
         friend class e::intrusive_ptr<backup_state_machine>;

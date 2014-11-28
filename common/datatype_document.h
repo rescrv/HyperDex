@@ -33,9 +33,8 @@
 #include "common/datatype_info.h"
 #include "common/json_path.h"
 
-class json_object;
-
-#include <bson.h>
+#include "common/doc/path.h"
+#include "common/doc/value.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -62,38 +61,14 @@ class datatype_document : public datatype_info
     public:
         // Retrieve value in a json document by traversing it
         // Will allocate a buffer for the data and a slice referencing it
-        bool extract_value(const std::string& path,
+        bool extract_value(const doc::path& p,
                         const e::slice& document, // the whole document
                         hyperdatatype* type, // OUT: the datatype of the result
                         std::vector<char>* scratch, // OUT: the resulting content/value
                         e::slice* value); // OUT: slice to easier access the content of the scratch
 
     private:
-        // Get the last element of a path (and its name and parent)
-        void get_end(const json_object* root, const json_path& path,
-                                json_object*& parent, json_object*& obj, std::string& obj_name) const;
-
-        // Traverse a path to the last node
-        // Returns NULL if the node doesn't exist
-        json_object* traverse_path(const json_object* root, const json_path& path) const;
-
-        // Go down the path as far as possible
-        json_object* get_last_elem_in_path(const json_object* parent, const json_path& path, json_path& child_path) const;
-
-        // Create a new document where one string entry is replaced by a new value
-        bson_t* add_or_replace_string(const bson_t* old_document, const json_path& path, const std::string& new_val) const;
-        void replace_string_recurse(const json_path& path, const std::string& new_value,
-                                    bson_t* parent, bson_iter_t* iter) const;
-
-        bson_t* add_or_replace_int64(const bson_t* old_document, const json_path& path, int64_t new_val) const;
-        void replace_int64_recurse(const json_path& path, const int64_t new_value,
-                                    bson_t* parent, bson_iter_t* iter) const;
-
-        bson_t* unset_value(const bson_t* old_document, const json_path& path) const;
-        void unset_value_recurse(const json_path& path, bson_t* parent, bson_iter_t* iter) const;
-
-        bson_t* rename_value(const bson_t* old_document, const json_path& path, const std::string& new_name) const;
-        void rename_value_recurse(const json_path& path, const std::string& new_name, bson_t* parent, bson_iter_t* iter) const;
+        doc::value* encode_value(const hyperdatatype type, const e::slice& data) const;
 };
 
 END_HYPERDEX_NAMESPACE

@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2013, Cornell University
+// Copyright (c) 2011-2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 using hyperdex::pending_atomic;
 
 pending_atomic :: pending_atomic(uint64_t id,
-                                 hyperdex_client_returncode* status)
+                                 hyperdex_client_returncode& status)
     : pending(id, status)
     , m_state(INITIALIZED)
 {
@@ -50,10 +50,10 @@ pending_atomic :: can_yield()
 }
 
 bool
-pending_atomic :: yield(hyperdex_client_returncode* status, e::error* err)
+pending_atomic :: yield(hyperdex_client_returncode& status, e::error& err)
 {
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
+    status = HYPERDEX_CLIENT_SUCCESS;
+    err = e::error();
     m_state = YIELDED;
     return true;
 }
@@ -83,12 +83,12 @@ pending_atomic :: handle_message(client*,
                                  network_msgtype mt,
                                  std::auto_ptr<e::buffer> msg,
                                  e::unpacker up,
-                                 hyperdex_client_returncode* status,
-                                 e::error* err)
+                                 hyperdex_client_returncode& status,
+                                 e::error& err)
 {
     m_state = RECV;
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
+    status = HYPERDEX_CLIENT_SUCCESS;
+    err = e::error();
 
     if (mt != RESP_ATOMIC)
     {
@@ -145,9 +145,13 @@ pending_atomic :: handle_message(client*,
                                        << " reports a server error;"
                                        << " check its log for details";
             return true;
+        case NET_UNAUTHORIZED:
+            PENDING_ERROR(UNAUTHORIZED) << "server " << si
+                                        << " denied the request because it is unauthorized";
+            return true;
         default:
             PENDING_ERROR(SERVERERROR) << "server " << si
-                                       << " returned non-sensical returncode"
+                                       << " returned non-sensical returncode "
                                        << response;
             return true;
     }

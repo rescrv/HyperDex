@@ -34,7 +34,7 @@
 using hyperdex::pending_get_partial;
 
 pending_get_partial :: pending_get_partial(uint64_t id,
-                                           hyperdex_client_returncode* status,
+                                           hyperdex_client_returncode& status,
                                            const hyperdex_client_attribute** attrs,
                                            size_t* attrs_sz)
     : pending(id, status)
@@ -56,10 +56,10 @@ pending_get_partial :: can_yield()
 }
 
 bool
-pending_get_partial :: yield(hyperdex_client_returncode* status, e::error* err)
+pending_get_partial :: yield(hyperdex_client_returncode& status, e::error& err)
 {
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
+    status = HYPERDEX_CLIENT_SUCCESS;
+    err = e::error();
     m_state = YIELDED;
     return true;
 }
@@ -89,12 +89,12 @@ pending_get_partial :: handle_message(client* cl,
                                       network_msgtype mt,
                                       std::auto_ptr<e::buffer> msg,
                                       e::unpacker up,
-                                      hyperdex_client_returncode* status,
-                                      e::error* err)
+                                      hyperdex_client_returncode& status,
+                                      e::error& err)
 {
     m_state = RECV;
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
+    status = HYPERDEX_CLIENT_SUCCESS;
+    err = e::error();
 
     if (mt != RESP_GET_PARTIAL)
     {
@@ -150,6 +150,10 @@ pending_get_partial :: handle_message(client* cl,
             PENDING_ERROR(OVERFLOW) << "server " << si
                                     << " reports that the operation would"
                                     << " cause a number overflow";
+            return true;
+        case NET_UNAUTHORIZED:
+            PENDING_ERROR(UNAUTHORIZED) << "server " << si
+                                        << " denied the request because it is unauthorized";
             return true;
         default:
             PENDING_ERROR(SERVERERROR) << "server " << si

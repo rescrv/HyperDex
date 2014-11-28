@@ -139,6 +139,7 @@ datatype_float :: apply(const e::slice& old_value,
             case FUNC_SET_INTERSECT:
             case FUNC_SET_UNION:
             case FUNC_DOC_RENAME:
+            case FUNC_DOC_SET:
             case FUNC_DOC_UNSET:
             case FUNC_MAP_ADD:
             case FUNC_MAP_REMOVE:
@@ -235,7 +236,7 @@ compare(const e::slice& lhs,
 }
 
 int
-datatype_float :: compare(const e::slice& lhs, const e::slice& rhs)
+datatype_float :: compare(const e::slice& lhs, const e::slice& rhs) const
 {
     return ::compare(lhs, rhs);
 }
