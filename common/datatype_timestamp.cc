@@ -27,7 +27,6 @@
 
 // e
 #include <e/endian.h>
-#include <e/safe_math.h>
 
 // HyperDex
 #include "cityhash/city.h"
