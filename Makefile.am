@@ -207,6 +207,7 @@ noinst_HEADERS += daemon/index_map.h
 noinst_HEADERS += daemon/index_primitive.h
 noinst_HEADERS += daemon/index_set.h
 noinst_HEADERS += daemon/index_string.h
+noinst_HEADERS += daemon/index_timestamp.h
 noinst_HEADERS += daemon/key_operation.h
 noinst_HEADERS += daemon/key_region.h
 noinst_HEADERS += daemon/key_state.h
