@@ -12,6 +12,8 @@ from hyperdex.mongo import HyperDatabase, HyperSpace
 ### CONFIG ###
 # Modify this to change the behaviour of the benchmark
 
+# How big are the documents (in elements?
+documentSize = 1000
 # How many atomic add calls?
 numCalls = 1000
 # How many documents in the space ? 
@@ -44,10 +46,10 @@ def create_doc(num_elems, prefix, pos):
         return doc
 
 # Run
-for n in range(1000, 10100, 1000):
+for n in range(0, 10, 1):
         space = db.bench
     
-        generator = partial(create_doc, n, 'myval')
+        generator = partial(create_doc, documentSize, 'myval')
         bulk_inserter = BulkInserter(numDocs, space, generator)
         bulk_inserter.run()
 
@@ -67,7 +69,7 @@ for n in range(1000, 10100, 1000):
         elapsed = bench.stop()
 
         # Print simple CSV
-        print str(n) + ',' + str(elapsed)
+        print str(elapsed)
 
         space.clear()
         time.sleep(5)
