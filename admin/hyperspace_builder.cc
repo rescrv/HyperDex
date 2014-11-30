@@ -59,8 +59,6 @@ extern "C"
 using hyperdex::attribute;
 using hyperdex::datatype_info;
 
-int yyparse (struct hyperspace* space, void* scanner);
-
 namespace
 {
 
@@ -217,6 +215,9 @@ yy_switch_to_buffer(yy_buffer_state* new_buffer, void* scanner);
 
 extern void
 yyset_lineno(int line_number, void* scanner);
+
+extern int
+yyparse(hyperspace* space, void* scanner);
 
 HYPERDEX_API hyperspace*
 hyperspace_create()

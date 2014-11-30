@@ -289,7 +289,7 @@ document_impl :: array_prepend(const path& p, const value& new_value) const
 
     if(!bson_iter_find_descendant (&iter, p.c_str(), &baz1))
     {
-        return false;
+        return NULL;
     }
 
     bson_iter_recurse(&baz1, &baz2);
