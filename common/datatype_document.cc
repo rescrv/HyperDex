@@ -36,6 +36,7 @@
 #include "common/datatype_string.h"
 #include "common/datatype_int64.h"
 #include "common/key_change.h"
+#include "common/doc/document.h"
 
 // json-c
 #if HAVE_JSON_H
@@ -51,8 +52,17 @@
 #include <e/guard.h>
 #include <e/safe_math.h>
 
+#include <ctype.h>
+#include <sstream>
+#include <stdexcept>
+
 using hyperdex::datatype_info;
 using hyperdex::datatype_document;
+using hyperdex::doc::create_document;
+using hyperdex::doc::document;
+using hyperdex::doc::path;
+using hyperdex::doc::value;
+using namespace hyperdex::doc;
 
 datatype_document :: datatype_document()
 {
@@ -71,115 +81,90 @@ datatype_document :: datatype() const
 bool
 datatype_document :: validate(const e::slice& value) const
 {
-    json_tokener* tok = json_tokener_new();
-
-    if (!tok)
+    if(value.size() == 0)
     {
-        throw std::bad_alloc();
+        // default value is empty
+        // not part of the BSON standard but this is how HyperDex behaves
+        return true;
     }
 
-    const char* data = reinterpret_cast<const char*>(value.data());
-    json_object* obj = json_tokener_parse_ex(tok, data, value.size());
-    bool retval = obj && json_tokener_get_error(tok) == json_tokener_success
-                      && tok->char_offset == (ssize_t)value.size();
-
-    if (obj)
-    {
-        json_object_put(obj);
-    }
-
-    if (tok)
-    {
-        json_tokener_free(tok);
-    }
-
-    return retval;
+    std::auto_ptr<hyperdex::doc::document> doc(create_document(value.data(), value.size()));
+    return doc->is_valid();
 }
 
 bool
 datatype_document :: validate_old_values(const std::vector<e::slice>& old_values, const funcall& func) const
 {
+    if(func.name == FUNC_SET)
+    {
+        // Doesn matter. Old value will be overwritten anyways.
+        return true;
+    }
+
+    std::auto_ptr<hyperdex::doc::document> doc( create_document(old_values[0].data(), old_values[0].size()) );
+    path p = func.arg2.c_str();
+
+    if(!doc->is_valid())
+    {
+        return false;
+    }
+
     // we only need to check old values for atomic operations
     switch(func.name)
     {
+    case FUNC_DOC_SET:
+    {
+        return !doc->does_entry_exist(p) && doc->can_create_element(p);
+    }
+    case FUNC_DOC_UNSET:
+    {
+        return doc->does_entry_exist(p);
+    }
+    case FUNC_DOC_RENAME:
+    {
+        std::string new_name(func.arg1.c_str());
+
+        path parent_path;
+        std::string obj_name;
+        p.split_reverse(parent_path, obj_name);
+        parent_path.append(new_name);
+
+        return doc->does_entry_exist(p) && !doc->does_entry_exist(parent_path);
+    }
+    case FUNC_LIST_LPUSH:
+    case FUNC_LIST_RPUSH:
+    {
+        return doc->can_create_element(p) || doc->get_element_type(p) == element_type_array;
+    }
     case FUNC_NUM_ADD:
     case FUNC_NUM_AND:
+    case FUNC_NUM_MAX:
+    case FUNC_NUM_DIV:
+    case FUNC_NUM_MIN:
     case FUNC_NUM_MOD:
     case FUNC_NUM_MUL:
     case FUNC_NUM_SUB:
     case FUNC_NUM_XOR:
     case FUNC_NUM_OR:
     {
-        json_object* root = to_json(old_values[0]);
+        element_type type = doc->get_element_type(p);
 
-        if(!root)
+        if(type == element_type_integer || type == element_type_float)
         {
-            return false;
+            return true;
         }
 
-        e::guard gobj = e::makeguard(json_object_put, root);
-        gobj.use_variable();
-
-        // Arugment 2 must be the path
-        // otherwise, check_args should have caught this
-        assert(func.arg2_datatype == HYPERDATATYPE_STRING);
-
-        json_path path(func.arg2.c_str());
-        path.make_relative();
-        json_object* obj = traverse_path(root, path);
-
-        if(!obj)
-        {
-            // check if a new child can be created
-            json_path child_path;
-            return (json_object_get_type(get_last_elem_in_path(root, path, child_path)) == json_type_object);
-        }
-        else if(json_object_get_type(obj) != json_type_int
-            && json_object_get_type(obj) != json_type_double)
-        {
-            // we can only add integers
-            return false;
-        }
+        return doc->can_create_element(p);
         break;
     }
     case FUNC_STRING_APPEND:
     case FUNC_STRING_PREPEND:
     {
-        json_object* root = to_json(old_values[0]);
-
-        if(!root)
-        {
-            return false;
-        }
-
-        e::guard gobj = e::makeguard(json_object_put, root);
-        gobj.use_variable();
-
-        // Arugment 2 must be the path
-        // otherwise, check_args should have caught this
-        assert(func.arg2_datatype == HYPERDATATYPE_STRING);
-
-        json_path path(func.arg2.c_str());
-        path.make_relative();
-        json_object* obj = traverse_path(root, path);
-
-        if(!obj)
-        {
-            // new child will be created...
-            return true;
-        }
-        else if(json_object_get_type(obj) != json_type_string)
-        {
-            // we can only add integers
-            return false;
-        }
+        return doc->can_create_element(p) || doc->get_element_type(p) == element_type_string;
         break;
     }
     case FUNC_FAIL:
     case FUNC_SET:
-    case FUNC_NUM_DIV:
-    case FUNC_LIST_LPUSH:
-    case FUNC_LIST_RPUSH:
     case FUNC_SET_ADD:
     case FUNC_SET_REMOVE:
     case FUNC_SET_INTERSECT:
@@ -212,11 +197,18 @@ datatype_document :: check_args(const funcall& func) const
     case FUNC_NUM_AND:
     case FUNC_NUM_OR:
     case FUNC_NUM_MOD:
+    case FUNC_NUM_MIN:
+    case FUNC_NUM_MAX:
     {
+        if(is_binary_operation(func.name) && func.arg1_datatype == HYPERDATATYPE_FLOAT)
+        {
+            // not defined for float
+            return false;
+        }
+
         // they second argument is a path to the field we want to manipulate
         // (the path is represented as a string)
-        return (func.arg1_datatype == HYPERDATATYPE_INT64 || func.arg1_datatype == HYPERDATATYPE_FLOAT)
-            && func.arg2_datatype == HYPERDATATYPE_STRING;
+        return is_type_numeric(func.arg1_datatype) && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
     case FUNC_STRING_APPEND:
     case FUNC_STRING_PREPEND:
@@ -225,9 +217,47 @@ datatype_document :: check_args(const funcall& func) const
         // (the path is represented as a string)
         return func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING;
     }
-    case FUNC_FAIL:
     case FUNC_LIST_LPUSH:
     case FUNC_LIST_RPUSH:
+    case FUNC_DOC_SET:
+    {
+        if (!func.arg2_datatype == HYPERDATATYPE_STRING)
+        {
+            // not a valid path
+            return false;
+        }
+
+        if(is_type_primitive(func.arg1_datatype))
+        {
+            return true;
+        }
+        else if(func.arg1_datatype == HYPERDATATYPE_DOCUMENT)
+        {
+            return validate(func.arg1);
+        }
+        else
+        {
+            // invalid argument
+            return false;
+        }
+    }
+    case FUNC_DOC_UNSET:
+    {
+        // Key should be a path and the value will not be evaluated (for now)
+        return func.arg1_datatype == HYPERDATATYPE_INT64 && func.arg2_datatype == HYPERDATATYPE_STRING;
+    }
+    case FUNC_DOC_RENAME:
+    {
+        if(!func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING)
+        {
+            return false;
+        }
+
+        // New name must not be empty or contain a '.'
+        std::string new_path = func.arg1.c_str();
+        return !new_path.empty() && new_path.find('.') == std::string::npos;
+    }
+    case FUNC_FAIL:
     case FUNC_SET_ADD:
     case FUNC_SET_INTERSECT:
     case FUNC_SET_REMOVE:
@@ -242,49 +272,118 @@ datatype_document :: check_args(const funcall& func) const
     }
 }
 
+value*
+datatype_document :: encode_value(const hyperdatatype type, const e::slice& data) const
+{
+    if(type == HYPERDATATYPE_STRING)
+    {
+        return create_value(data.c_str(), data.size());
+    }
+    else if(type == HYPERDATATYPE_FLOAT)
+    {
+        double arg = reinterpret_cast<const double*>(data.data())[0];
+        return create_value(arg);
+    }
+    else if(type == HYPERDATATYPE_INT64)
+    {
+        int64_t arg = reinterpret_cast<const int64_t*>(data.data())[0];
+        return create_value(arg);
+    }
+    else if(type == HYPERDATATYPE_DOCUMENT)
+    {
+        return create_document_value(data.data(), data.size());
+    }
+    else
+    {
+        throw std::runtime_error("Cannot encode value: Unknown datatype");
+    }
+}
+
 uint8_t*
 datatype_document :: apply(const e::slice& old_value,
                            const funcall* funcs, size_t funcs_sz,
                            uint8_t* writeto)
 {
+    // Prevent copying on SET
+    if(funcs_sz == 1 && funcs[0].name == FUNC_SET)
+    {
+        size_t len = funcs[0].arg1.size();
+        memmove(writeto, funcs[0].arg1.data(), len);
+        return writeto + len;
+    }
+
     e::slice new_value = old_value;
 
     // To support multiple updates on the same document
-    // we reuse the json object
-    // This should also save some parsing time
-    json_object* root = NULL;
+    // we reuse the same object
+    hyperdex::doc::document *doc = NULL;
 
-    for (size_t i = 0; i < funcs_sz; ++i)
+    for (size_t pos = 0; pos < funcs_sz; ++pos)
     {
-        const funcall* func = funcs + i;
+        const funcall& func = *(funcs + pos);
 
-        switch(func->name)
+        switch(func.name)
         {
         case FUNC_SET:
         {
-            new_value = func->arg1;
+            // this is not supported
+            // there should be only a single func call when set happens
+            abort();
+            break;
+        }
+        case FUNC_DOC_SET:
+        {
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+
+            path p = func.arg2.c_str();
+
+            value* value = encode_value(func.arg1_datatype, func.arg1);
+            hyperdex::doc::document *new_doc = doc->add_or_replace_value(p, *value);
+
+            delete doc;
+            doc = new_doc;
+            break;
+        }
+        case FUNC_DOC_UNSET:
+        {
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+            std::string p = func.arg2.c_str();
+            hyperdex::doc::document* new_doc = doc->unset_value(p);
+
+            delete doc;
+            doc = new_doc;
+            break;
+        }
+        case FUNC_DOC_RENAME:
+        {
+            std::string new_name(func.arg1.cdata(), func.arg1.size());
+            path p = func.arg2.c_str();
+
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+            hyperdex::doc::document* new_doc = doc->rename_value(p, new_name);
+
+            delete doc;
+            doc = new_doc;
             break;
         }
         case FUNC_STRING_PREPEND:
         case FUNC_STRING_APPEND:
         {
-            const e::slice& key = funcs[i].arg2;
-            const e::slice& val = funcs[i].arg1;
+            std::string arg(func.arg1.cdata(), func.arg1.size());
+            path p = func.arg2.c_str();
 
-            json_path path(key.c_str());
-            path.make_relative();
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
 
-            const std::string arg(val.c_str());
-            root = root ? root : to_json(old_value);
+            std::string str = "";
+            std::auto_ptr<value> val (doc->extract_value(p));
 
-            json_object *parent, *obj;
-            std::string obj_name;
+            if(val.get() != NULL)
+            {
+                assert(val->get_type() == element_type_string);
+                str = val->get_string();
+            }
 
-            get_end(root, path, parent, obj, obj_name);
-
-            std::string str = obj ? json_object_get_string(obj) : "";
-
-            if(func->name == FUNC_STRING_APPEND)
+            if(func.name == FUNC_STRING_APPEND)
             {
                 str = str + arg;
             }
@@ -293,8 +392,13 @@ datatype_document :: apply(const e::slice& old_value,
                 str = arg + str;
             }
 
-            json_object* new_elem = json_object_new_string(str.c_str());
-            json_object_object_add(parent, obj_name.c_str(), new_elem);
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+
+            std::auto_ptr<value> new_val (create_value(str));
+            hyperdex::doc::document* new_doc = doc->add_or_replace_value(p, *new_val);
+
+            delete doc;
+            doc = new_doc;
             break;
         }
         case FUNC_NUM_ADD:
@@ -305,74 +409,228 @@ datatype_document :: apply(const e::slice& old_value,
         case FUNC_NUM_OR:
         case FUNC_NUM_AND:
         case FUNC_NUM_MOD:
+        case FUNC_NUM_MAX:
+        case FUNC_NUM_MIN:
         {
-            json_path path(funcs[i].arg2.c_str());
-            path.make_relative();
+            bool arg_is_int = false;
+            int64_t int_arg = 0;
+            double float_arg = 0.0;
 
-            const int64_t arg = *reinterpret_cast<const int64_t*>(funcs[i].arg1.data());
+            if(func.arg1_datatype == HYPERDATATYPE_INT64)
+            {
+                arg_is_int = true;
+                int_arg = reinterpret_cast<const int64_t*>(func.arg1.data())[0];
+            }
+            else
+            {
+                arg_is_int = false;
+                float_arg = reinterpret_cast<const double*>(func.arg1.data())[0];
+            }
 
-            root = root ? root : to_json(old_value);
+            path p = func.arg2.c_str();
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
 
-            json_object *parent, *obj;
-            std::string obj_name;
+            int64_t int_field = 0;
+            double float_field = 0.0;
 
-            get_end(root, path, parent, obj, obj_name);
+            bool field_is_int = true;
+            bool field_exists = false;
 
-            int64_t number = obj ? json_object_get_int64(obj) : 0;
+            std::auto_ptr<value> val (doc->extract_value(p));
+
+            if(val.get() != NULL)
+            {
+                field_exists = true;
+
+                if(val->get_type() == element_type_integer)
+                {
+                    field_is_int = true;
+                    int_field = val->get_int();
+                }
+                else
+                {
+                    field_is_int = false;
+                    float_field = val->get_float();
+                }
+            }
+
+
+            // if one of the two is a float we have to convert
+            // and also can't simply overwrite the value
+            bool float_op = false;
+            if(arg_is_int && !field_is_int)
+            {
+                float_op = true;
+                field_exists = false;
+                float_arg = int_arg;
+            }
+            else if(!arg_is_int && field_is_int)
+            {
+                float_op = true;
+                field_exists = false;
+                float_field = int_field;
+            }
+            else if(!arg_is_int && !field_is_int)
+            {
+                float_op = true;
+            }
+
             bool success = false;
 
-            if(func->name == FUNC_NUM_ADD)
+            if(float_op)
             {
-                success = e::safe_add(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_SUB)
-            {
-                success = e::safe_sub(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_DIV)
-            {
-                success = e::safe_div(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_MUL)
-            {
-                success = e::safe_mul(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_MOD)
-            {
-                number = number % arg;
+                // no overflow checks here...
                 success = true;
+
+                if(func.name == FUNC_NUM_ADD)
+                {
+                    float_field = float_field + float_arg;
+                }
+                else if(func.name == FUNC_NUM_SUB)
+                {
+                    float_field = float_field - float_arg;
+                }
+                else if(func.name == FUNC_NUM_DIV)
+                {
+                    float_field = float_field / float_arg;
+                }
+                else if(func.name == FUNC_NUM_MUL)
+                {
+                    float_field = float_field * float_arg;
+                }
+                else if(func.name == FUNC_NUM_MAX)
+                {
+                    float_field = std::max(float_field, float_arg);
+                }
+                else if(func.name == FUNC_NUM_MIN)
+                {
+                    float_field = std::min(float_field, float_arg);
+                }
+                else
+                {
+                    success = false;
+                }
             }
-            else if(func->name == FUNC_NUM_XOR)
+            else
             {
-                number = number ^ arg;
-                success = true;
-            }
-            else if(func->name == FUNC_NUM_AND)
-            {
-                number = number & arg;
-                success = true;
-            }
-            else if(func->name == FUNC_NUM_OR)
-            {
-                number = number | arg;
-                success = true;
+                if(func.name == FUNC_NUM_ADD)
+                {
+                    success = e::safe_add(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_SUB)
+                {
+                    success = e::safe_sub(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_DIV)
+                {
+                    success = e::safe_div(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_MUL)
+                {
+                    success = e::safe_mul(int_field, int_arg, &int_field);
+                }
+                else if(func.name == FUNC_NUM_MOD)
+                {
+                    int_field = int_field % int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_XOR)
+                {
+                    int_field = int_field ^ int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_AND)
+                {
+                    int_field = int_field & int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_OR)
+                {
+                    int_field = int_field | int_arg;
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_MAX)
+                {
+                    int_field = std::max(int_field, int_arg);
+                    success = true;
+                }
+                else if(func.name == FUNC_NUM_MIN)
+                {
+                    int_field = std::min(int_field, int_arg);
+                    success = true;
+                }
             }
 
             if(success)
             {
-                json_object* new_elem = json_object_new_int64(number);
-                json_object_object_add(parent, obj_name.c_str(), new_elem);
+               if(field_exists)
+                {
+                    if(float_op)
+                    {
+                        doc->overwrite_float(p, float_field);
+                    }
+                    else
+                    {
+                        doc->overwrite_integer(p, int_field);
+                    }
+                }
+                else
+                {
+                    value *val = NULL;
+
+                    if(float_op)
+                    {
+                        val = create_value(float_field);
+                    }
+                    else
+                    {
+                        val = create_value(int_field);
+                    }
+
+                    hyperdex::doc::document* new_doc = doc->add_or_replace_value(p, *val);
+
+                    delete doc;
+                    delete val;
+                    doc = new_doc;
+                }
             }
             else
             {
-                json_object_put(root);
+                delete doc;
                 return NULL;
             }
             break;
         }
-        case FUNC_FAIL:
         case FUNC_LIST_LPUSH:
+        {
+            std::string arg(func.arg1.cdata(), func.arg1.size());
+            path p = func.arg2.c_str();
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+
+            // Put new value at the front
+            value *val = encode_value(func.arg1_datatype, func.arg1);
+            hyperdex::doc::document *new_doc = doc->array_prepend(p, *val);
+
+            delete val;
+            delete doc;
+            doc = new_doc;
+            break;
+        }
         case FUNC_LIST_RPUSH:
+        {
+            std::string arg(func.arg1.cdata(), func.arg1.size());
+            path p = func.arg2.c_str();
+            doc = doc ? doc : create_document(old_value.data(), old_value.size());
+
+            value *val = encode_value(func.arg1_datatype, func.arg1);
+            hyperdex::doc::document *new_doc = doc->array_append(p, *val);
+
+            delete val;
+            delete doc;
+            doc = new_doc;
+            break;
+        }
+        case FUNC_FAIL:
         case FUNC_SET_ADD:
         case FUNC_SET_INTERSECT:
         case FUNC_SET_REMOVE:
@@ -384,49 +642,21 @@ datatype_document :: apply(const e::slice& old_value,
         }
     }
 
-    if(root)
+    if(doc)
     {
-        new_value = json_object_to_json_string(root);
-        //json_object_put(root);
-    }
+        size_t len = doc->size();
+        const uint8_t* data = doc->data();
 
-    memmove(writeto, new_value.data(), new_value.size());
-    return writeto + new_value.size();
-}
+        memmove(writeto, data, len);
+        delete doc;
 
-void
-datatype_document :: get_end(const json_object* root, const json_path& path,
-                                json_object*& parent, json_object*& obj, std::string& obj_name) const
-{
-    json_path parent_path;
-
-    if(path.has_subtree())
-    {
-        path.split_reverse(parent_path, obj_name);
-
-        // Apperantly, there is no easier way in json-c to get the parent
-        parent = traverse_path(root, parent_path);
+        return writeto + len;
     }
     else
     {
-        parent = const_cast<json_object*>(root);
-        obj_name = path.str();
+        abort();
+        return NULL;
     }
-
-    if(!parent)
-    {
-        // Recursively build the path
-        // This might be a little inefficent but should rarely be needed
-        json_object *grandparent = NULL;
-        std::string parent_name_;
-        get_end(root, parent_path, grandparent, parent, parent_name_);
-
-        assert(grandparent != NULL);
-        parent = json_object_new_object();
-        json_object_object_add(grandparent, parent_name_.c_str(), parent);
-    }
-
-    obj = traverse_path(root, path);
 }
 
 bool
@@ -460,14 +690,13 @@ datatype_document :: document_check(const attribute_check& check,
             return false;
         }
 
-        json_path path(std::string(cstr, path_sz));
+        std::string path(std::string(cstr, path_sz));
 
-        hyperdatatype hint = CONTAINER_ELEM(check.datatype);
         hyperdatatype type;
         std::vector<char> scratch;
         e::slice value;
 
-        if (!extract_value(path, doc, hint, &type, &scratch, &value))
+        if (!extract_value(path, doc, &type, &scratch, &value))
         {
             return false;
         }
@@ -482,167 +711,53 @@ datatype_document :: document_check(const attribute_check& check,
     }
 }
 
-json_object* datatype_document :: to_json(const e::slice& doc) const
-{
-    json_tokener* tok = json_tokener_new();
-
-    if (!tok)
-    {
-        throw std::bad_alloc();
-    }
-
-    e::guard gtok = e::makeguard(json_tokener_free, tok);
-    gtok.use_variable();
-    const char* data = reinterpret_cast<const char*>(doc.data());
-    json_object* obj = json_tokener_parse_ex(tok, data, doc.size());
-
-    if (!obj)
-    {
-        return NULL;
-    }
-
-    if (json_tokener_get_error(tok) != json_tokener_success ||
-        tok->char_offset != static_cast<ssize_t>(doc.size()))
-    {
-        return NULL;
-    }
-
-    return obj;
-}
-
-json_object*
-datatype_document :: traverse_path(const json_object* parent, const json_path& path) const
-{
-    assert(parent != NULL);
-
-    std::string childname;
-    json_path subpath;
-
-    if(!path.has_subtree())
-    {
-        // we're at the end of the tree
-        childname = path.str();
-    }
-    else
-    {
-        path.split(childname, subpath);
-    }
-
-    // json_object_object_get_ex also checks if parent is an object
-    // for some reason this function want a non-const pointer
-    // let us hack around it...
-    json_object* child;
-    if (!json_object_object_get_ex(const_cast<json_object*>(parent), childname.c_str(), &child))
-    {
-        return NULL;
-    }
-
-    if(subpath.empty())
-    {
-        return child;
-    }
-    else
-    {
-        return traverse_path(child, subpath);
-    }
-}
-
-json_object*
-datatype_document :: get_last_elem_in_path(const json_object* parent, const json_path& path, json_path& child_path) const
-{
-    assert(parent != NULL);
-
-    std::string childname;
-    json_path subpath;
-
-    if(!path.has_subtree())
-    {
-        // we're at the end of the tree
-        childname = path.str();
-    }
-    else
-    {
-        path.split(childname, subpath);
-    }
-
-    child_path.append(childname);
-
-    // json_object_object_get_ex also checks if parent is an object
-    // for some reason this function want a non-const pointer
-    // let us hack around it...
-    json_object* child;
-    if (!json_object_object_get_ex(const_cast<json_object*>(parent), childname.c_str(), &child))
-    {
-        return const_cast<json_object*>(parent);
-    }
-
-    if(subpath.empty())
-    {
-        return child;
-    }
-    else
-    {
-        return get_last_elem_in_path(child, subpath, child_path);
-    }
-}
-
 bool
-datatype_document :: extract_value(const json_path& path,
-                                const e::slice& doc,
-                                hyperdatatype hint,
+datatype_document :: extract_value(const path& p,
+                                const e::slice& data,
                                 hyperdatatype* type,
                                 std::vector<char>* scratch,
                                 e::slice* value)
 {
-    json_object* obj = to_json(doc);
+    hyperdex::doc::document* doc = create_document(data.data(), data.size());
+    hyperdex::doc::value *val = doc->extract_value(p);
 
-    if(!obj)
+    element_type etype = val->get_type();
+
+    if (etype == element_type_float)
     {
-        return false;
-    }
-
-    e::guard gobj = e::makeguard(json_object_put, obj);
-    gobj.use_variable();
-
-    json_object* parent = traverse_path(obj, path);
-
-    if(!parent)
-    {
-        return false;
-    }
-
-    if (json_object_is_type(parent, json_type_double) ||
-        json_object_is_type(parent, json_type_int))
-    {
-        const size_t number_sz = sizeof(double) > sizeof(int64_t)
-                               ? sizeof(double) : sizeof(int64_t);
+        const size_t number_sz = sizeof(double);
 
         if (scratch->size() < number_sz)
         {
             scratch->resize(number_sz);
         }
 
-        if (hint == HYPERDATATYPE_INT64)
-        {
-            int64_t i = json_object_get_int64(parent);
-            e::pack64le(i, &(*scratch)[0]);
-            *type = HYPERDATATYPE_INT64;
-            *value = e::slice(&(*scratch)[0], sizeof(int64_t));
-            return true;
-        }
-        else
-        {
-            double d = json_object_get_double(parent);
-            e::packdoublele(d, &(*scratch)[0]);
-            *type = HYPERDATATYPE_FLOAT;
-            *value = e::slice(&(*scratch)[0], sizeof(double));
-            return true;
-        }
+        double d = val->get_float();
+        e::packdoublele(d, &(*scratch)[0]);
+        *type = HYPERDATATYPE_FLOAT;
+        *value = e::slice(&(*scratch)[0], sizeof(double));
+
+        return true;
     }
-    else if (json_object_is_type(parent, json_type_string))
+    else if(etype == element_type_integer)
     {
-        size_t str_sz = json_object_get_string_len(parent);
-        const char* str = json_object_get_string(parent);
+        const size_t number_sz =  sizeof(int64_t);
+
+        if (scratch->size() < number_sz)
+        {
+            scratch->resize(number_sz);
+        }
+
+        int64_t i = val->get_int();
+        e::pack64le(i, &(*scratch)[0]);
+        *type = HYPERDATATYPE_INT64;
+        *value = e::slice(&(*scratch)[0], sizeof(int64_t));
+        return true;
+    }
+    else if (etype == element_type_string)
+    {
+        const char* str = val->get_string();
+        size_t str_sz = strlen(str);
 
         if (scratch->size() < str_sz)
         {
@@ -654,6 +769,24 @@ datatype_document :: extract_value(const json_path& path,
         *value = e::slice(&(*scratch)[0], str_sz);
         return true;
     }
+    else if (etype == element_type_document)
+    {
+        const uint8_t *ddata = val->data();
+        const size_t size = val->size();
 
-    return false;
+        if (scratch->size() < size)
+        {
+            scratch->resize(size);
+        }
+
+        memmove(&scratch->front(), ddata, size);
+        *type = HYPERDATATYPE_DOCUMENT;
+        *value = e::slice(&(*scratch)[0], size);
+        return true;
+    }
+    else
+    {
+        // Unsupported BSON type
+        return false;
+    }
 }

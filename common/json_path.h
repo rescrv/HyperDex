@@ -31,8 +31,6 @@
 #include "namespace.h"
 #include <string>
 
-#define ABSOLUTE "$."
-
 BEGIN_HYPERDEX_NAMESPACE
 
 // This class represents a flat json path
@@ -48,10 +46,9 @@ public:
         : path(path_)
     {}
 
-    bool is_relative() const
-    {
-        return (path.substr(0,2) == ABSOLUTE);
-    }
+    json_path(const e::slice& slice)
+        : path(slice.cdata(), slice.size())
+    {}
 
     bool empty() const
     {
@@ -67,20 +64,12 @@ public:
     {
         if(empty())
         {
-            path += "$";
+            path = elem;
         }
-
-        path += "." + elem;
-    }
-
-    void make_relative()
-    {
-        if(!is_relative())
+        else
         {
-            return;
+            path += "." + elem;
         }
-
-        path =  path.substr(strlen(ABSOLUTE));
     }
 
     // Does this path have a subtree?
@@ -117,9 +106,8 @@ public:
             return false;
         }
 
-        parent_path.path = path.substr(0, pos);
         child_name = path.substr(pos+1);
-
+        parent_path.path = path.substr(0, pos);
         return true;
     }
 

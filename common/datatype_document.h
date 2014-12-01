@@ -33,7 +33,8 @@
 #include "common/datatype_info.h"
 #include "common/json_path.h"
 
-class json_object;
+#include "common/doc/path.h"
+#include "common/doc/value.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -60,27 +61,14 @@ class datatype_document : public datatype_info
     public:
         // Retrieve value in a json document by traversing it
         // Will allocate a buffer for the data and a slice referencing it
-        bool extract_value(const json_path& path,
+        bool extract_value(const doc::path& p,
                         const e::slice& document, // the whole document
-                        hyperdatatype hint, // possible datatpe of the result
                         hyperdatatype* type, // OUT: the datatype of the result
                         std::vector<char>* scratch, // OUT: the resulting content/value
                         e::slice* value); // OUT: slice to easier access the content of the scratch
 
     private:
-        // Convert raw data into a json object
-        json_object* to_json(const e::slice& slice) const;
-
-        // Get the last element of a path (and its name and parent)
-        void get_end(const json_object* root, const json_path& path,
-                                json_object*& parent, json_object*& obj, std::string& obj_name) const;
-
-        // Traverse a path to the last node
-        // Returns NULL if the node doesn't exist
-        json_object* traverse_path(const json_object* root, const json_path& path) const;
-
-        // Go down the path as far as possible
-        json_object* get_last_elem_in_path(const json_object* parent, const json_path& path, json_path& child_path) const;
+        doc::value* encode_value(const hyperdatatype type, const e::slice& data) const;
 };
 
 END_HYPERDEX_NAMESPACE

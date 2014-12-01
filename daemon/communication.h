@@ -86,6 +86,7 @@ class communication
                          const server_id& us);
 
     public:
+        // Send data to another server (pretending to be a client)
         bool send_client(const virtual_server_id& from,
                          const server_id& to,
                          network_msgtype msg_type,

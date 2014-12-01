@@ -48,6 +48,16 @@ class auth_wallet
         auth_wallet(const char** macaroons, size_t macaroons_sz);
         auth_wallet(const auth_wallet&);
 
+        size_t size() const
+        {
+            return m_macaroons.size();
+        }
+
+        bool empty() const
+        {
+            return size() == 0;
+        }
+
     public:
         bool get_macaroons(std::vector<macaroon*>* macaroons);
 

@@ -62,6 +62,8 @@ enum funcall_t
     FUNC_NUM_AND,
     FUNC_NUM_OR,
     FUNC_NUM_XOR,
+    FUNC_NUM_MAX,
+    FUNC_NUM_MIN,
 
     FUNC_LIST_LPUSH,
     FUNC_LIST_RPUSH,
@@ -72,7 +74,11 @@ enum funcall_t
     FUNC_SET_UNION,
 
     FUNC_MAP_ADD,
-    FUNC_MAP_REMOVE
+    FUNC_MAP_REMOVE,
+
+    FUNC_DOC_RENAME,
+    FUNC_DOC_SET,
+    FUNC_DOC_UNSET
 };
 
 class funcall
@@ -107,6 +113,13 @@ apply_funcs(const schema& sc,
 
 bool
 operator < (const funcall& lhs, const funcall& rhs);
+
+inline bool
+is_binary_operation(const funcall_t op)
+{
+    return op == FUNC_NUM_MOD || op == FUNC_NUM_OR || op == FUNC_NUM_XOR
+            || op == FUNC_NUM_AND;
+}
 
 END_HYPERDEX_NAMESPACE
 

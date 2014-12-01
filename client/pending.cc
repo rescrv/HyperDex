@@ -30,7 +30,7 @@
 
 using hyperdex::pending;
 
-pending :: pending(uint64_t id, hyperdex_client_returncode* status)
+pending :: pending(uint64_t id, hyperdex_client_returncode& status)
     : m_ref(0)
     , m_client_visible_id(id)
     , m_status(status)

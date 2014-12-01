@@ -63,13 +63,26 @@ datatype_float :: validate(const e::slice& value) const
 bool
 datatype_float :: check_args(const funcall& func) const
 {
-    return func.arg1_datatype == HYPERDATATYPE_FLOAT &&
-           validate(func.arg1) &&
-           (func.name == FUNC_SET ||
-            func.name == FUNC_NUM_ADD ||
-            func.name == FUNC_NUM_SUB ||
-            func.name == FUNC_NUM_MUL ||
-            func.name == FUNC_NUM_DIV);
+    if (func.name == FUNC_SET ||
+        func.name == FUNC_NUM_ADD ||
+        func.name == FUNC_NUM_SUB ||
+        func.name == FUNC_NUM_MUL ||
+        func.name == FUNC_NUM_DIV ||
+        func.name == FUNC_NUM_MOD ||
+        func.name == FUNC_NUM_AND ||
+        func.name == FUNC_NUM_OR ||
+        func.name == FUNC_NUM_XOR ||
+        func.name == FUNC_NUM_MAX ||
+        func.name == FUNC_NUM_MIN)
+    {
+        return func.arg1_datatype == HYPERDATATYPE_FLOAT &&
+                    validate(func.arg1);
+    }
+    else
+    {
+        // unsupported operation
+        return false;
+    }
 }
 
 uint8_t*
@@ -107,6 +120,12 @@ datatype_float :: apply(const e::slice& old_value,
             case FUNC_NUM_DIV:
                 number /= arg;
                 break;
+            case FUNC_NUM_MAX:
+                number = std::max(number, arg);
+                break;
+            case FUNC_NUM_MIN:
+                number = std::min(number, arg);
+                break;
             case FUNC_NUM_MOD:
             case FUNC_NUM_AND:
             case FUNC_NUM_OR:
@@ -119,6 +138,9 @@ datatype_float :: apply(const e::slice& old_value,
             case FUNC_SET_REMOVE:
             case FUNC_SET_INTERSECT:
             case FUNC_SET_UNION:
+            case FUNC_DOC_RENAME:
+            case FUNC_DOC_SET:
+            case FUNC_DOC_UNSET:
             case FUNC_MAP_ADD:
             case FUNC_MAP_REMOVE:
             case FUNC_FAIL:
@@ -214,7 +236,7 @@ compare(const e::slice& lhs,
 }
 
 int
-datatype_float :: compare(const e::slice& lhs, const e::slice& rhs)
+datatype_float :: compare(const e::slice& lhs, const e::slice& rhs) const
 {
     return ::compare(lhs, rhs);
 }

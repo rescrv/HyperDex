@@ -38,7 +38,7 @@
 using hyperdex::coord_rpc_generic;
 
 coord_rpc_generic :: coord_rpc_generic(uint64_t id,
-                                       hyperdex_admin_returncode* s,
+                                       hyperdex_admin_returncode& s,
                                        const char* opname)
     : coord_rpc(id, s)
     , m_opname(opname)
@@ -57,22 +57,22 @@ coord_rpc_generic :: can_yield()
 }
 
 bool
-coord_rpc_generic :: yield(hyperdex_admin_returncode* status)
+coord_rpc_generic :: yield(hyperdex_admin_returncode& status)
 {
     assert(this->can_yield());
     m_done = true;
-    *status = HYPERDEX_ADMIN_SUCCESS;
+    status = HYPERDEX_ADMIN_SUCCESS;
     return true;
 }
 
 bool
 coord_rpc_generic :: handle_response(admin* adm,
-                                     hyperdex_admin_returncode* status)
+                                     hyperdex_admin_returncode& status)
 {
-    *status = HYPERDEX_ADMIN_SUCCESS;
+    status = HYPERDEX_ADMIN_SUCCESS;
     hyperdex_admin_returncode resp_status;
     e::error err;
-    adm->interpret_rpc_response_failure(repl_status, &resp_status, &err);
+    adm->interpret_rpc_response_failure(repl_status, resp_status, err);
     set_status(resp_status);
     set_error(err);
 

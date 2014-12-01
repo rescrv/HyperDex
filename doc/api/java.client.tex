@@ -417,6 +417,63 @@ public Deferred async_cond_del(
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_del}.
 
+%%%%%%%%%%%%%%%%%%%% group_atomic_add %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_add}}
+\label{api:java:group_atomic_add}
+\index{group\_atomic\_add!Java API}
+\input{\topdir/api/desc/group_atomic_add}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_atomic_add(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_atomic\_add}}
+\label{api:java:async_group_atomic_add}
+\index{async\_group\_atomic\_add!Java API}
+\input{\topdir/api/desc/group_atomic_add}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_atomic_add(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_add}.
+
 %%%%%%%%%%%%%%%%%%%% atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{atomic\_add}}
@@ -536,6 +593,63 @@ public Deferred async_cond_atomic_add(
 \input{\topdir/api/fragments/java/client/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_add}.
+
+%%%%%%%%%%%%%%%%%%%% group_atomic_sub %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_sub}}
+\label{api:java:group_atomic_sub}
+\index{group\_atomic\_sub!Java API}
+\input{\topdir/api/desc/group_atomic_sub}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_atomic_sub(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_atomic\_sub}}
+\label{api:java:async_group_atomic_sub}
+\index{async\_group\_atomic\_sub!Java API}
+\input{\topdir/api/desc/group_atomic_sub}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_atomic_sub(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_sub}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_sub %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -657,6 +771,63 @@ public Deferred async_cond_atomic_sub(
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_sub}.
 
+%%%%%%%%%%%%%%%%%%%% group_atomic_mul %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_mul}}
+\label{api:java:group_atomic_mul}
+\index{group\_atomic\_mul!Java API}
+\input{\topdir/api/desc/group_atomic_mul}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_atomic_mul(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_atomic\_mul}}
+\label{api:java:async_group_atomic_mul}
+\index{async\_group\_atomic\_mul!Java API}
+\input{\topdir/api/desc/group_atomic_mul}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_atomic_mul(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_mul}.
+
 %%%%%%%%%%%%%%%%%%%% atomic_mul %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{atomic\_mul}}
@@ -776,6 +947,63 @@ public Deferred async_cond_atomic_mul(
 \input{\topdir/api/fragments/java/client/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_mul}.
+
+%%%%%%%%%%%%%%%%%%%% group_atomic_div %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_div}}
+\label{api:java:group_atomic_div}
+\index{group\_atomic\_div!Java API}
+\input{\topdir/api/desc/group_atomic_div}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_atomic_div(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_atomic\_div}}
+\label{api:java:async_group_atomic_div}
+\index{async\_group\_atomic\_div!Java API}
+\input{\topdir/api/desc/group_atomic_div}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_atomic_div(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_div}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_div %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -897,6 +1125,63 @@ public Deferred async_cond_atomic_div(
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_div}.
 
+%%%%%%%%%%%%%%%%%%%% group_atomic_mod %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_mod}}
+\label{api:java:group_atomic_mod}
+\index{group\_atomic\_mod!Java API}
+\input{\topdir/api/desc/group_atomic_mod}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_atomic_mod(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_atomic\_mod}}
+\label{api:java:async_group_atomic_mod}
+\index{async\_group\_atomic\_mod!Java API}
+\input{\topdir/api/desc/group_atomic_mod}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_atomic_mod(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_mod}.
+
 %%%%%%%%%%%%%%%%%%%% atomic_mod %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{atomic\_mod}}
@@ -1016,6 +1301,63 @@ public Deferred async_cond_atomic_mod(
 \input{\topdir/api/fragments/java/client/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_mod}.
+
+%%%%%%%%%%%%%%%%%%%% group_atomic_and %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_and}}
+\label{api:java:group_atomic_and}
+\index{group\_atomic\_and!Java API}
+\input{\topdir/api/desc/group_atomic_and}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_atomic_and(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_atomic\_and}}
+\label{api:java:async_group_atomic_and}
+\index{async\_group\_atomic\_and!Java API}
+\input{\topdir/api/desc/group_atomic_and}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_atomic_and(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_and}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_and %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1137,6 +1479,63 @@ public Deferred async_cond_atomic_and(
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_and}.
 
+%%%%%%%%%%%%%%%%%%%% group_atomic_or %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_or}}
+\label{api:java:group_atomic_or}
+\index{group\_atomic\_or!Java API}
+\input{\topdir/api/desc/group_atomic_or}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_atomic_or(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_atomic\_or}}
+\label{api:java:async_group_atomic_or}
+\index{async\_group\_atomic\_or!Java API}
+\input{\topdir/api/desc/group_atomic_or}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_atomic_or(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_or}.
+
 %%%%%%%%%%%%%%%%%%%% atomic_or %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{atomic\_or}}
@@ -1256,6 +1655,63 @@ public Deferred async_cond_atomic_or(
 \input{\topdir/api/fragments/java/client/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_or}.
+
+%%%%%%%%%%%%%%%%%%%% group_atomic_xor %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_xor}}
+\label{api:java:group_atomic_xor}
+\index{group\_atomic\_xor!Java API}
+\input{\topdir/api/desc/group_atomic_xor}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_atomic_xor(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_atomic\_xor}}
+\label{api:java:async_group_atomic_xor}
+\index{async\_group\_atomic\_xor!Java API}
+\input{\topdir/api/desc/group_atomic_xor}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_atomic_xor(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_xor}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_xor %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1377,6 +1833,417 @@ public Deferred async_cond_atomic_xor(
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_xor}.
 
+%%%%%%%%%%%%%%%%%%%% group_atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_min}}
+\label{api:java:group_atomic_min}
+\index{group\_atomic\_min!Java API}
+\input{\topdir/api/desc/group_atomic_min}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_atomic_min(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_atomic\_min}}
+\label{api:java:async_group_atomic_min}
+\index{async\_group\_atomic\_min!Java API}
+\input{\topdir/api/desc/group_atomic_min}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_atomic_min(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_min}.
+
+%%%%%%%%%%%%%%%%%%%% atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{atomic\_min}}
+\label{api:java:atomic_min}
+\index{atomic\_min!Java API}
+\input{\topdir/api/desc/atomic_min}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean atomic_min(
+        String spacename,
+        Object key,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status}
+
+\pagebreak
+\subsubsection{\code{async\_atomic\_min}}
+\label{api:java:async_atomic_min}
+\index{async\_atomic\_min!Java API}
+\input{\topdir/api/desc/atomic_min}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_atomic_min(
+        String spacename,
+        Object key,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
+
+\paragraph{See also:}  This is the asynchronous form of \code{atomic\_min}.
+
+%%%%%%%%%%%%%%%%%%%% cond_atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_atomic\_min}}
+\label{api:java:cond_atomic_min}
+\index{cond\_atomic\_min!Java API}
+\input{\topdir/api/desc/cond_atomic_min}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean cond_atomic_min(
+        String spacename,
+        Object key,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status}
+
+\pagebreak
+\subsubsection{\code{async\_cond\_atomic\_min}}
+\label{api:java:async_cond_atomic_min}
+\index{async\_cond\_atomic\_min!Java API}
+\input{\topdir/api/desc/cond_atomic_min}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_cond_atomic_min(
+        String spacename,
+        Object key,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
+
+\paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_min}.
+
+%%%%%%%%%%%%%%%%%%%% group_atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_max}}
+\label{api:java:group_atomic_max}
+\index{group\_atomic\_max!Java API}
+\input{\topdir/api/desc/group_atomic_max}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_atomic_max(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_atomic\_max}}
+\label{api:java:async_group_atomic_max}
+\index{async\_group\_atomic\_max!Java API}
+\input{\topdir/api/desc/group_atomic_max}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_atomic_max(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_max}.
+
+%%%%%%%%%%%%%%%%%%%% atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{atomic\_max}}
+\label{api:java:atomic_max}
+\index{atomic\_max!Java API}
+\input{\topdir/api/desc/atomic_max}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean atomic_max(
+        String spacename,
+        Object key,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status}
+
+\pagebreak
+\subsubsection{\code{async\_atomic\_max}}
+\label{api:java:async_atomic_max}
+\index{async\_atomic\_max!Java API}
+\input{\topdir/api/desc/atomic_max}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_atomic_max(
+        String spacename,
+        Object key,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
+
+\paragraph{See also:}  This is the asynchronous form of \code{atomic\_max}.
+
+%%%%%%%%%%%%%%%%%%%% cond_atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_atomic\_max}}
+\label{api:java:cond_atomic_max}
+\index{cond\_atomic\_max!Java API}
+\input{\topdir/api/desc/cond_atomic_max}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean cond_atomic_max(
+        String spacename,
+        Object key,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status}
+
+\pagebreak
+\subsubsection{\code{async\_cond\_atomic\_max}}
+\label{api:java:async_cond_atomic_max}
+\index{async\_cond\_atomic\_max!Java API}
+\input{\topdir/api/desc/cond_atomic_max}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_cond_atomic_max(
+        String spacename,
+        Object key,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
+
+\paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_max}.
+
+%%%%%%%%%%%%%%%%%%%% group_string_prepend %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_string\_prepend}}
+\label{api:java:group_string_prepend}
+\index{group\_string\_prepend!Java API}
+\input{\topdir/api/desc/group_string_prepend}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_string_prepend(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_string\_prepend}}
+\label{api:java:async_group_string_prepend}
+\index{async\_group\_string\_prepend!Java API}
+\input{\topdir/api/desc/group_string_prepend}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_string_prepend(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_string\_prepend}.
+
 %%%%%%%%%%%%%%%%%%%% string_prepend %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{string\_prepend}}
@@ -1496,6 +2363,63 @@ public Deferred async_cond_string_prepend(
 \input{\topdir/api/fragments/java/client/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_string\_prepend}.
+
+%%%%%%%%%%%%%%%%%%%% group_string_append %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_string\_append}}
+\label{api:java:group_string_append}
+\index{group\_string\_append!Java API}
+\input{\topdir/api/desc/group_string_append}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_string_append(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_string\_append}}
+\label{api:java:async_group_string_append}
+\index{async\_group\_string\_append!Java API}
+\input{\topdir/api/desc/group_string_append}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_string_append(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_string\_append}.
 
 %%%%%%%%%%%%%%%%%%%% string_append %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1617,6 +2541,63 @@ public Deferred async_cond_string_append(
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_string\_append}.
 
+%%%%%%%%%%%%%%%%%%%% group_list_lpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_lpush}}
+\label{api:java:group_list_lpush}
+\index{group\_list\_lpush!Java API}
+\input{\topdir/api/desc/group_list_lpush}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_list_lpush(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_list\_lpush}}
+\label{api:java:async_group_list_lpush}
+\index{async\_group\_list\_lpush!Java API}
+\input{\topdir/api/desc/group_list_lpush}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_list_lpush(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_list\_lpush}.
+
 %%%%%%%%%%%%%%%%%%%% list_lpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{list\_lpush}}
@@ -1736,6 +2717,63 @@ public Deferred async_cond_list_lpush(
 \input{\topdir/api/fragments/java/client/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_list\_lpush}.
+
+%%%%%%%%%%%%%%%%%%%% group_list_rpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_rpush}}
+\label{api:java:group_list_rpush}
+\index{group\_list\_rpush!Java API}
+\input{\topdir/api/desc/group_list_rpush}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Long group_list_rpush(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_list\_rpush}}
+\label{api:java:async_group_list_rpush}
+\index{async\_group\_list\_rpush!Java API}
+\input{\topdir/api/desc/group_list_rpush}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_list_rpush(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_list\_rpush}.
 
 %%%%%%%%%%%%%%%%%%%% list_rpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -2577,19 +3615,76 @@ public Deferred async_cond_map_remove(
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_map\_remove}.
 
-%%%%%%%%%%%%%%%%%%%% document_atomic_add %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_document_rename %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{document\_atomic\_add}}
-\label{api:java:document_atomic_add}
-\index{document\_atomic\_add!Java API}
-\input{\topdir/api/desc/document_atomic_add}
+\subsubsection{\code{group\_document\_rename}}
+\label{api:java:group_document_rename}
+\index{group\_document\_rename!Java API}
+\input{\topdir/api/desc/group_document_rename}
 
 \paragraph{Definition:}
 \begin{javacode}
-public Boolean document_atomic_add(
+public Long group_document_rename(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_document\_rename}}
+\label{api:java:async_group_document_rename}
+\index{async\_group\_document\_rename!Java API}
+\input{\topdir/api/desc/group_document_rename}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_document_rename(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_document\_rename}.
+
+%%%%%%%%%%%%%%%%%%%% document_rename %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{document\_rename}}
+\label{api:java:document_rename}
+\index{document\_rename!Java API}
+\input{\topdir/api/desc/document_rename}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean document_rename(
         String spacename,
         Object key,
-        Object docattributes) throws HyperDexClientException
+        Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -2598,25 +3693,25 @@ public Boolean document_atomic_add(
 \input{\topdir/api/fragments/java/client/in_asynccall_spacename}
 \item \code{Object key}\\
 \input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/java/client/return_asynccall__status}
 
 \pagebreak
-\subsubsection{\code{async\_document\_atomic\_add}}
-\label{api:java:async_document_atomic_add}
-\index{async\_document\_atomic\_add!Java API}
-\input{\topdir/api/desc/document_atomic_add}
+\subsubsection{\code{async\_document\_rename}}
+\label{api:java:async_document_rename}
+\index{async\_document\_rename!Java API}
+\input{\topdir/api/desc/document_rename}
 
 \paragraph{Definition:}
 \begin{javacode}
-public Deferred async_document_atomic_add(
+public Deferred async_document_rename(
         String spacename,
         Object key,
-        Object docattributes) throws HyperDexClientException
+        Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -2625,28 +3720,85 @@ public Deferred async_document_atomic_add(
 \input{\topdir/api/fragments/java/client/in_asynccall_spacename}
 \item \code{Object key}\\
 \input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/java/client/return_async_asynccall__status}
 
-\paragraph{See also:}  This is the asynchronous form of \code{document\_atomic\_add}.
+\paragraph{See also:}  This is the asynchronous form of \code{document\_rename}.
 
-%%%%%%%%%%%%%%%%%%%% document_atomic_sub %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_document_unset %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{document\_atomic\_sub}}
-\label{api:java:document_atomic_sub}
-\index{document\_atomic\_sub!Java API}
-\input{\topdir/api/desc/document_atomic_sub}
+\subsubsection{\code{group\_document\_unset}}
+\label{api:java:group_document_unset}
+\index{group\_document\_unset!Java API}
+\input{\topdir/api/desc/group_document_unset}
 
 \paragraph{Definition:}
 \begin{javacode}
-public Boolean document_atomic_sub(
+public Long group_document_unset(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_document\_unset}}
+\label{api:java:async_group_document_unset}
+\index{async\_group\_document\_unset!Java API}
+\input{\topdir/api/desc/group_document_unset}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_document_unset(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_document\_unset}.
+
+%%%%%%%%%%%%%%%%%%%% document_unset %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{document\_unset}}
+\label{api:java:document_unset}
+\index{document\_unset!Java API}
+\input{\topdir/api/desc/document_unset}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean document_unset(
         String spacename,
         Object key,
-        Object docattributes) throws HyperDexClientException
+        Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -2655,25 +3807,25 @@ public Boolean document_atomic_sub(
 \input{\topdir/api/fragments/java/client/in_asynccall_spacename}
 \item \code{Object key}\\
 \input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/java/client/return_asynccall__status}
 
 \pagebreak
-\subsubsection{\code{async\_document\_atomic\_sub}}
-\label{api:java:async_document_atomic_sub}
-\index{async\_document\_atomic\_sub!Java API}
-\input{\topdir/api/desc/document_atomic_sub}
+\subsubsection{\code{async\_document\_unset}}
+\label{api:java:async_document_unset}
+\index{async\_document\_unset!Java API}
+\input{\topdir/api/desc/document_unset}
 
 \paragraph{Definition:}
 \begin{javacode}
-public Deferred async_document_atomic_sub(
+public Deferred async_document_unset(
         String spacename,
         Object key,
-        Object docattributes) throws HyperDexClientException
+        Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -2682,28 +3834,85 @@ public Deferred async_document_atomic_sub(
 \input{\topdir/api/fragments/java/client/in_asynccall_spacename}
 \item \code{Object key}\\
 \input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/java/client/return_async_asynccall__status}
 
-\paragraph{See also:}  This is the asynchronous form of \code{document\_atomic\_sub}.
+\paragraph{See also:}  This is the asynchronous form of \code{document\_unset}.
 
-%%%%%%%%%%%%%%%%%%%% document_atomic_mul %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_document_set %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{document\_atomic\_mul}}
-\label{api:java:document_atomic_mul}
-\index{document\_atomic\_mul!Java API}
-\input{\topdir/api/desc/document_atomic_mul}
+\subsubsection{\code{group\_document\_set}}
+\label{api:java:group_document_set}
+\index{group\_document\_set!Java API}
+\input{\topdir/api/desc/group_document_set}
 
 \paragraph{Definition:}
 \begin{javacode}
-public Boolean document_atomic_mul(
+public Long group_document_set(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_document\_set}}
+\label{api:java:async_group_document_set}
+\index{async\_group\_document\_set!Java API}
+\input{\topdir/api/desc/group_document_set}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_group_document_set(
+        String spacename,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_document\_set}.
+
+%%%%%%%%%%%%%%%%%%%% document_set %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{document\_set}}
+\label{api:java:document_set}
+\index{document\_set!Java API}
+\input{\topdir/api/desc/document_set}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean document_set(
         String spacename,
         Object key,
-        Object docattributes) throws HyperDexClientException
+        Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -2712,25 +3921,25 @@ public Boolean document_atomic_mul(
 \input{\topdir/api/fragments/java/client/in_asynccall_spacename}
 \item \code{Object key}\\
 \input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/java/client/return_asynccall__status}
 
 \pagebreak
-\subsubsection{\code{async\_document\_atomic\_mul}}
-\label{api:java:async_document_atomic_mul}
-\index{async\_document\_atomic\_mul!Java API}
-\input{\topdir/api/desc/document_atomic_mul}
+\subsubsection{\code{async\_document\_set}}
+\label{api:java:async_document_set}
+\index{async\_document\_set!Java API}
+\input{\topdir/api/desc/document_set}
 
 \paragraph{Definition:}
 \begin{javacode}
-public Deferred async_document_atomic_mul(
+public Deferred async_document_set(
         String spacename,
         Object key,
-        Object docattributes) throws HyperDexClientException
+        Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -2739,356 +3948,14 @@ public Deferred async_document_atomic_mul(
 \input{\topdir/api/fragments/java/client/in_asynccall_spacename}
 \item \code{Object key}\\
 \input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/java/client/return_async_asynccall__status}
 
-\paragraph{See also:}  This is the asynchronous form of \code{document\_atomic\_mul}.
-
-%%%%%%%%%%%%%%%%%%%% document_atomic_div %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_atomic\_div}}
-\label{api:java:document_atomic_div}
-\index{document\_atomic\_div!Java API}
-\input{\topdir/api/desc/document_atomic_div}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Boolean document_atomic_div(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_asynccall__status}
-
-\pagebreak
-\subsubsection{\code{async\_document\_atomic\_div}}
-\label{api:java:async_document_atomic_div}
-\index{async\_document\_atomic\_div!Java API}
-\input{\topdir/api/desc/document_atomic_div}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Deferred async_document_atomic_div(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
-
-\paragraph{See also:}  This is the asynchronous form of \code{document\_atomic\_div}.
-
-%%%%%%%%%%%%%%%%%%%% document_atomic_mod %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_atomic\_mod}}
-\label{api:java:document_atomic_mod}
-\index{document\_atomic\_mod!Java API}
-\input{\topdir/api/desc/document_atomic_mod}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Boolean document_atomic_mod(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_asynccall__status}
-
-\pagebreak
-\subsubsection{\code{async\_document\_atomic\_mod}}
-\label{api:java:async_document_atomic_mod}
-\index{async\_document\_atomic\_mod!Java API}
-\input{\topdir/api/desc/document_atomic_mod}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Deferred async_document_atomic_mod(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
-
-\paragraph{See also:}  This is the asynchronous form of \code{document\_atomic\_mod}.
-
-%%%%%%%%%%%%%%%%%%%% document_atomic_xor %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_atomic\_xor}}
-\label{api:java:document_atomic_xor}
-\index{document\_atomic\_xor!Java API}
-\input{\topdir/api/desc/document_atomic_xor}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Boolean document_atomic_xor(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_asynccall__status}
-
-\pagebreak
-\subsubsection{\code{async\_document\_atomic\_xor}}
-\label{api:java:async_document_atomic_xor}
-\index{async\_document\_atomic\_xor!Java API}
-\input{\topdir/api/desc/document_atomic_xor}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Deferred async_document_atomic_xor(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
-
-\paragraph{See also:}  This is the asynchronous form of \code{document\_atomic\_xor}.
-
-%%%%%%%%%%%%%%%%%%%% document_atomic_or %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_atomic\_or}}
-\label{api:java:document_atomic_or}
-\index{document\_atomic\_or!Java API}
-\input{\topdir/api/desc/document_atomic_or}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Boolean document_atomic_or(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_asynccall__status}
-
-\pagebreak
-\subsubsection{\code{async\_document\_atomic\_or}}
-\label{api:java:async_document_atomic_or}
-\index{async\_document\_atomic\_or!Java API}
-\input{\topdir/api/desc/document_atomic_or}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Deferred async_document_atomic_or(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
-
-\paragraph{See also:}  This is the asynchronous form of \code{document\_atomic\_or}.
-
-%%%%%%%%%%%%%%%%%%%% document_string_prepend %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_string\_prepend}}
-\label{api:java:document_string_prepend}
-\index{document\_string\_prepend!Java API}
-\input{\topdir/api/desc/document_string_prepend}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Boolean document_string_prepend(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_asynccall__status}
-
-\pagebreak
-\subsubsection{\code{async\_document\_string\_prepend}}
-\label{api:java:async_document_string_prepend}
-\index{async\_document\_string\_prepend!Java API}
-\input{\topdir/api/desc/document_string_prepend}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Deferred async_document_string_prepend(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
-
-\paragraph{See also:}  This is the asynchronous form of \code{document\_string\_prepend}.
-
-%%%%%%%%%%%%%%%%%%%% document_string_append %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_string\_append}}
-\label{api:java:document_string_append}
-\index{document\_string\_append!Java API}
-\input{\topdir/api/desc/document_string_append}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Boolean document_string_append(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_asynccall__status}
-
-\pagebreak
-\subsubsection{\code{async\_document\_string\_append}}
-\label{api:java:async_document_string_append}
-\index{async\_document\_string\_append!Java API}
-\input{\topdir/api/desc/document_string_append}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Deferred async_document_string_append(
-        String spacename,
-        Object key,
-        Object docattributes) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
-\item \code{Object key}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_key}
-\item \code{Object docattributes}\\
-\input{\topdir/api/fragments/java/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
-
-\paragraph{See also:}  This is the asynchronous form of \code{document\_string\_append}.
+\paragraph{See also:}  This is the asynchronous form of \code{document\_set}.
 
 %%%%%%%%%%%%%%%%%%%% map_atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -4289,6 +5156,246 @@ public Deferred async_cond_map_string_append(
 \input{\topdir/api/fragments/java/client/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_map\_string\_append}.
+
+%%%%%%%%%%%%%%%%%%%% map_atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{map\_atomic\_min}}
+\label{api:java:map_atomic_min}
+\index{map\_atomic\_min!Java API}
+\input{\topdir/api/desc/map_atomic_min}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean map_atomic_min(
+        String spacename,
+        Object key,
+        Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Map<Object, Object>> mapattributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status}
+
+\pagebreak
+\subsubsection{\code{async\_map\_atomic\_min}}
+\label{api:java:async_map_atomic_min}
+\index{async\_map\_atomic\_min!Java API}
+\input{\topdir/api/desc/map_atomic_min}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_map_atomic_min(
+        String spacename,
+        Object key,
+        Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Map<Object, Object>> mapattributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
+
+\paragraph{See also:}  This is the asynchronous form of \code{map\_atomic\_min}.
+
+%%%%%%%%%%%%%%%%%%%% cond_map_atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_map\_atomic\_min}}
+\label{api:java:cond_map_atomic_min}
+\index{cond\_map\_atomic\_min!Java API}
+\input{\topdir/api/desc/cond_map_atomic_min}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean cond_map_atomic_min(
+        String spacename,
+        Object key,
+        Map<String, Object> predicates,
+        Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Map<Object, Object>> mapattributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status}
+
+\pagebreak
+\subsubsection{\code{async\_cond\_map\_atomic\_min}}
+\label{api:java:async_cond_map_atomic_min}
+\index{async\_cond\_map\_atomic\_min!Java API}
+\input{\topdir/api/desc/cond_map_atomic_min}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_cond_map_atomic_min(
+        String spacename,
+        Object key,
+        Map<String, Object> predicates,
+        Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Map<Object, Object>> mapattributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
+
+\paragraph{See also:}  This is the asynchronous form of \code{cond\_map\_atomic\_min}.
+
+%%%%%%%%%%%%%%%%%%%% map_atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{map\_atomic\_max}}
+\label{api:java:map_atomic_max}
+\index{map\_atomic\_max!Java API}
+\input{\topdir/api/desc/map_atomic_max}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean map_atomic_max(
+        String spacename,
+        Object key,
+        Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Map<Object, Object>> mapattributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status}
+
+\pagebreak
+\subsubsection{\code{async\_map\_atomic\_max}}
+\label{api:java:async_map_atomic_max}
+\index{async\_map\_atomic\_max!Java API}
+\input{\topdir/api/desc/map_atomic_max}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_map_atomic_max(
+        String spacename,
+        Object key,
+        Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Map<Object, Object>> mapattributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
+
+\paragraph{See also:}  This is the asynchronous form of \code{map\_atomic\_max}.
+
+%%%%%%%%%%%%%%%%%%%% cond_map_atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_map\_atomic\_max}}
+\label{api:java:cond_map_atomic_max}
+\index{cond\_map\_atomic\_max!Java API}
+\input{\topdir/api/desc/cond_map_atomic_max}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean cond_map_atomic_max(
+        String spacename,
+        Object key,
+        Map<String, Object> predicates,
+        Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Map<Object, Object>> mapattributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_asynccall__status}
+
+\pagebreak
+\subsubsection{\code{async\_cond\_map\_atomic\_max}}
+\label{api:java:async_cond_map_atomic_max}
+\index{async\_cond\_map\_atomic\_max!Java API}
+\input{\topdir/api/desc/cond_map_atomic_max}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_cond_map_atomic_max(
+        String spacename,
+        Object key,
+        Map<String, Object> predicates,
+        Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_key}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_predicates}
+\item \code{Map<String, Map<Object, Object>> mapattributes}\\
+\input{\topdir/api/fragments/java/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/java/client/return_async_asynccall__status}
+
+\paragraph{See also:}  This is the asynchronous form of \code{cond\_map\_atomic\_max}.
 
 %%%%%%%%%%%%%%%%%%%% search %%%%%%%%%%%%%%%%%%%%
 \pagebreak

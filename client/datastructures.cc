@@ -46,8 +46,11 @@
 #include <hyperdex/datastructures.h>
 #include "common/datatype_info.h"
 #include "common/macros.h"
+#include "common/doc/document.h"
 #include "visibility.h"
 
+using hyperdex::doc::document;
+using hyperdex::doc::create_document;
 using hyperdex::datatype_info;
 
 class hyperdex_ds_arena
@@ -327,6 +330,32 @@ HYPERDEX_API void
 hyperdex_ds_pack_int(int64_t num, char* buf)
 {
     e::pack64le(num, buf);
+}
+
+HYPERDEX_API int
+hyperdex_ds_unpack_document(const char* value, size_t value_sz, const char** outstr, size_t* outsize)
+{
+    // Either init an empty JSON document
+    // or convert from binary to JSON
+    if (value_sz == 0 || strcmp(value, "") == 0)
+    {
+        const std::string empty_doc = "{}";
+
+        *outstr = empty_doc.c_str();
+        *outsize = empty_doc.size();
+        return 0;
+    }
+
+    std::auto_ptr<document> doc(create_document(reinterpret_cast<const uint8_t*>(value), value_sz));
+
+    if(!doc->is_valid())
+    {
+        return -1;
+    }
+
+    *outstr = doc->c_str();
+    *outsize = strlen(*outstr);
+    return 0;
 }
 
 HYPERDEX_API int

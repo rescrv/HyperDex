@@ -49,8 +49,6 @@ def PYTYPEOF(x):
         return 'dict'
     elif x == bindings.MapAttributes:
         return 'dict'
-    elif x == bindings.DocAttributes:
-        return 'dict'
     elif x == bindings.AttributeNames:
         return ''
     elif x == bindings.Predicates:

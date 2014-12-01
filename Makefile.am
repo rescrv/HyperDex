@@ -27,7 +27,7 @@
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-AM_CPPFLAGS  = -I${abs_top_srcdir}/include $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(MACAROONS_CFLAGS)
+AM_CPPFLAGS  = -I${abs_top_srcdir}/include $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(SPARSEHASH_CFLAGS) $(CPP_INCDIRS)
 AM_CFLAGS    = -fvisibility=hidden $(WANAL_CFLAGS)
 AM_CXXFLAGS  = -fvisibility=hidden -fvisibility-inlines-hidden $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(MACAROONS_CFLAGS) $(WANAL_CXXFLAGS)
 AM_MAKEFLAGS = --no-print-directory
@@ -259,6 +259,10 @@ hyperdex_daemon_SOURCES += common/schema.cc
 hyperdex_daemon_SOURCES += common/serialization.cc
 hyperdex_daemon_SOURCES += common/server.cc
 hyperdex_daemon_SOURCES += common/transfer.cc
+hyperdex_daemon_SOURCES += common/doc/value.cc
+hyperdex_daemon_SOURCES += common/doc/document.cc
+hyperdex_daemon_SOURCES += common/doc/document_impl.cc
+hyperdex_daemon_SOURCES += common/doc/value_impl.cc
 hyperdex_daemon_SOURCES += cityhash/city.cc
 hyperdex_daemon_SOURCES += daemon/auth.cc
 hyperdex_daemon_SOURCES += daemon/background_thread.cc
@@ -302,6 +306,7 @@ hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(E_LIBS)
 hyperdex_daemon_LDADD += $(JSON_LIBS)
+hyperdex_daemon_LDADD += $(BSON_LIBS)
 hyperdex_daemon_LDADD += -lpopt -lglog $(LRT_LDFLAGS) -lpthread
 man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc | hyperdex-daemon$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-daemon$(EXEEXT)
@@ -433,13 +438,27 @@ libhyperdex_client_la_SOURCES += common/schema.cc
 libhyperdex_client_la_SOURCES += common/server.cc
 libhyperdex_client_la_SOURCES += common/serialization.cc
 libhyperdex_client_la_SOURCES += common/transfer.cc
+libhyperdex_client_la_SOURCES += common/doc/value.cc
+libhyperdex_client_la_SOURCES += common/doc/document.cc
+libhyperdex_client_la_SOURCES += common/doc/document_impl.cc
+libhyperdex_client_la_SOURCES += common/doc/value_impl.cc
 libhyperdex_client_la_SOURCES += cityhash/city.cc
+libhyperdex_client_la_SOURCES += client/request.cc
+libhyperdex_client_la_SOURCES += client/atomic_request.cc
+libhyperdex_client_la_SOURCES += client/group_atomic_request.cc
+libhyperdex_client_la_SOURCES += client/count_request.cc
+libhyperdex_client_la_SOURCES += client/sorted_search_request.cc
+libhyperdex_client_la_SOURCES += client/search_request.cc
+libhyperdex_client_la_SOURCES += client/search_describe_request.cc
+libhyperdex_client_la_SOURCES += client/group_request.cc
+libhyperdex_client_la_SOURCES += client/group_del_request.cc
 libhyperdex_client_la_SOURCES += client/c.cc
 libhyperdex_client_la_SOURCES += client/client.cc
 libhyperdex_client_la_SOURCES += client/datastructures.cc
 libhyperdex_client_la_SOURCES += client/keyop_info.cc
 libhyperdex_client_la_SOURCES += client/pending_aggregation.cc
 libhyperdex_client_la_SOURCES += client/pending_atomic.cc
+libhyperdex_client_la_SOURCES += client/pending_group_atomic.cc
 libhyperdex_client_la_SOURCES += client/pending.cc
 libhyperdex_client_la_SOURCES += client/pending_count.cc
 libhyperdex_client_la_SOURCES += client/pending_get.cc
@@ -455,6 +474,7 @@ libhyperdex_client_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(E_LIBS)
 libhyperdex_client_la_LIBADD += $(JSON_LIBS)
+libhyperdex_client_la_LIBADD += $(BSON_LIBS)
 
 client/keyop_info.cc: client/keyop_info.gperf client/keyop_info.h
 	$(gperf_verbose)gperf -m 100 $(abs_top_srcdir)/client/keyop_info.gperf --output-file=$(abs_top_builddir)/client/keyop_info.cc
@@ -526,6 +546,10 @@ libhyperdex_admin_la_SOURCES += common/schema.cc
 libhyperdex_admin_la_SOURCES += common/serialization.cc
 libhyperdex_admin_la_SOURCES += common/server.cc
 libhyperdex_admin_la_SOURCES += common/transfer.cc
+libhyperdex_admin_la_SOURCES += common/doc/value.cc
+libhyperdex_admin_la_SOURCES += common/doc/document.cc
+libhyperdex_admin_la_SOURCES += common/doc/document_impl.cc
+libhyperdex_admin_la_SOURCES += common/doc/value_impl.cc
 libhyperdex_admin_la_SOURCES += cityhash/city.cc
 libhyperdex_admin_la_SOURCES += admin/admin.cc
 libhyperdex_admin_la_SOURCES += admin/backup_state_machine.cc
@@ -550,6 +574,7 @@ libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
 libhyperdex_admin_la_LIBADD += $(JSON_LIBS)
+libhyperdex_admin_la_LIBADD += $(BSON_LIBS)
 
 ################################################################################
 ################################### Bindings ###################################
@@ -685,6 +710,7 @@ EXTRA_DIST += bindings/node.js/client.prototypes.cc
 
 if ENABLE_PYTHON_BINDINGS
 pkgpyexec_DATA += bindings/python/hyperdex/__init__.py
+pkgpyexec_DATA += bindings/python/hyperdex/mongo.py
 if ENABLE_CLIENT
 pkgpyexec_LTLIBRARIES += bindings/python/hyperdex/client.la
 endif
@@ -859,6 +885,8 @@ python_wrappers += test/sh/bindings.python.DataTypeSetFloat.sh
 python_wrappers += test/sh/bindings.python.DataTypeSetInt.sh
 python_wrappers += test/sh/bindings.python.DataTypeSetString.sh
 python_wrappers += test/sh/bindings.python.DataTypeString.sh
+python_wrappers += test/sh/bindings.python.GroupAtomic.sh
+python_wrappers += test/sh/bindings.python.HyperMongo.sh
 python_wrappers += test/sh/bindings.python.LengthString.sh
 python_wrappers += test/sh/bindings.python.MultiAttribute.sh
 python_wrappers += test/sh/bindings.python.RangeSearchInt.sh

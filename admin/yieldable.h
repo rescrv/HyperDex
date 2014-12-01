@@ -49,18 +49,18 @@ class yieldable
 {
     public:
         yieldable(uint64_t admin_visible_id,
-                  hyperdex_admin_returncode* status);
+                  hyperdex_admin_returncode& status);
         virtual ~yieldable() throw ();
 
     public:
         int64_t admin_visible_id() const { return m_admin_visible_id; }
-        void set_status(hyperdex_admin_returncode status) { *m_status = status; }
+        void set_status(hyperdex_admin_returncode status) { m_status = status; }
         e::error error() const { return m_error; }
 
     // return to admin
     public:
         virtual bool can_yield() = 0;
-        virtual bool yield(hyperdex_admin_returncode* status) = 0;
+        virtual bool yield(hyperdex_admin_returncode& status) = 0;
 
     // refcount
     protected:
@@ -81,7 +81,7 @@ class yieldable
     // operation state
     private:
         int64_t m_admin_visible_id;
-        hyperdex_admin_returncode* m_status;
+        hyperdex_admin_returncode& m_status;
         e::error m_error;
 };
 

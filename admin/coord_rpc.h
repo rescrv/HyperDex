@@ -54,12 +54,12 @@ class coord_rpc : public yieldable
 {
     public:
         coord_rpc(uint64_t admin_visible_id,
-                  hyperdex_admin_returncode* status);
+                  hyperdex_admin_returncode& status);
         virtual ~coord_rpc() throw ();
 
     public:
         virtual bool handle_response(admin* adm,
-                                     hyperdex_admin_returncode* status) = 0;
+                                     hyperdex_admin_returncode& status) = 0;
 
     public:
         replicant_returncode repl_status;

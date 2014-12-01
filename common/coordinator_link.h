@@ -63,7 +63,7 @@ class coordinator_link
         ~coordinator_link() throw ();
 
     public:
-        const configuration* config() { return &m_config; }
+        const configuration* config() const { return &m_config; }
         poll_fd_t poll_fd() { return m_repl.poll_fd(); }
         bool force_configuration_fetch(replicant_returncode* status);
         // true if there's a configuration to use

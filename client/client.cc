@@ -43,15 +43,22 @@
 // HyperDex
 #include "visibility.h"
 #include "common/attribute_check.h"
-#include "common/auth_wallet.h"
 #include "common/datatype_info.h"
 #include "common/funcall.h"
 #include "common/macros.h"
 #include "common/network_msgtype.h"
 #include "common/serialization.h"
+#include "client/atomic_request.h"
+#include "client/group_atomic_request.h"
+#include "client/group_del_request.h"
+#include "client/sorted_search_request.h"
+#include "client/search_describe_request.h"
+#include "client/search_request.h"
+#include "client/count_request.h"
 #include "client/client.h"
 #include "client/constants.h"
 #include "client/pending_atomic.h"
+#include "client/pending_group_atomic.h"
 #include "client/pending_count.h"
 #include "client/pending_get.h"
 #include "client/pending_get_partial.h"
@@ -61,7 +68,7 @@
 #include "client/pending_sorted_search.h"
 
 #define ERROR(CODE) \
-    *status = HYPERDEX_CLIENT_ ## CODE; \
+    status = HYPERDEX_CLIENT_ ## CODE; \
     m_last_error.set_loc(__FILE__, __LINE__); \
     m_last_error.set_msg()
 
@@ -126,7 +133,7 @@ client :: ~client() throw ()
 
 int64_t
 client :: get(const char* space, const char* _key, size_t _key_sz,
-              hyperdex_client_returncode* status,
+              hyperdex_client_returncode& status,
               const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 {
     if (!maintain_coord_connection(status))
@@ -155,9 +162,9 @@ client :: get(const char* space, const char* _key, size_t _key_sz,
     e::intrusive_ptr<pending> op;
     op = new pending_get(m_next_client_id++, status, attrs, attrs_sz);
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ + sizeof(uint32_t) + key.size();
-    auth_wallet aw(m_macaroons, m_macaroons_sz);
+    auth_wallet aw = get_macaroons();
 
-    if (m_macaroons_sz)
+    if (!aw.empty())
     {
         sz += pack_size(aw);
     }
@@ -165,7 +172,7 @@ client :: get(const char* space, const char* _key, size_t _key_sz,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << key;
 
-    if (m_macaroons_sz)
+    if (!aw.empty())
     {
         pa = pa << aw;
     }
@@ -176,7 +183,7 @@ client :: get(const char* space, const char* _key, size_t _key_sz,
 int64_t
 client :: get_partial(const char* space, const char* _key, size_t _key_sz,
                       const char** attrnames, size_t attrnames_sz,
-                      hyperdex_client_returncode* status,
+                      hyperdex_client_returncode& status,
                       const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 {
     if (!maintain_coord_connection(status))
@@ -232,9 +239,9 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
               + sizeof(uint32_t) + key.size()
               + sizeof(uint32_t) + attrnums.size() * sizeof(uint16_t);
-    auth_wallet aw(m_macaroons, m_macaroons_sz);
+    auth_wallet aw = get_macaroons();
 
-    if (m_macaroons_sz)
+    if (!aw.empty())
     {
         sz += pack_size(aw);
     }
@@ -248,7 +255,7 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
         pa = pa << attrnums[i];
     }
 
-    if (m_macaroons_sz)
+    if (!aw.empty())
     {
         pa = pa << aw;
     }
@@ -256,135 +263,167 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
     return send_keyop(space, key, REQ_GET_PARTIAL, msg, op, status);
 }
 
-#define SEARCH_BOILERPLATE \
-    if (!maintain_coord_connection(status)) \
-    { \
-        return -1; \
-    } \
-    const schema* sc = m_coord.config()->get_schema(space); \
-    if (!sc) \
-    { \
-        ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist"; \
-        return -1; \
-    } \
-    std::vector<attribute_check> checks; \
-    std::vector<virtual_server_id> servers; \
-    arena_t allocate; \
-    int64_t ret = prepare_searchop(*sc, space, chks, chks_sz, &allocate, status, &checks, &servers); \
-    if (ret < 0) \
-    { \
-        return ret; \
-    }
-
 int64_t
 client :: search(const char* space,
-                 const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                 hyperdex_client_returncode* status,
+                 const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                 hyperdex_client_returncode& status,
                  const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 {
-    SEARCH_BOILERPLATE
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    search_request request(*this, m_coord, space);
+    int res = request.prepare(selection, selection_sz, status);
+
+    if(res < 0)
+    {
+        return res;
+    }
+
     int64_t client_id = m_next_client_id++;
+    std::auto_ptr<e::buffer> msg(request.create_message(client_id));
+
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_search(client_id, status, attrs, attrs_sz);
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + sizeof(uint64_t)
-              + pack_size(checks);
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << client_id << checks;
-    return perform_aggregation(servers, op, REQ_SEARCH_START, msg, status);
+
+    return perform_aggregation(request.group().get_servers(), op, REQ_SEARCH_START, msg, status);
 }
 
 int64_t
 client :: search_describe(const char* space,
-                          const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                          hyperdex_client_returncode* status, const char** description)
+                          const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                          hyperdex_client_returncode& status, const char** description)
 {
-    SEARCH_BOILERPLATE
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    search_describe_request request(*this, m_coord, space);
+    int res = request.prepare(selection, selection_sz, status);
+
+    if(res < 0)
+    {
+        return res;
+    }
+
     int64_t client_id = m_next_client_id++;
+    std::auto_ptr<e::buffer> msg(request.create_message());
+
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_search_describe(client_id, status, description);
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + pack_size(checks);
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << checks;
-    return perform_aggregation(servers, op, REQ_SEARCH_DESCRIBE, msg, status);
+
+    return perform_aggregation(request.group().get_servers(), op, REQ_SEARCH_DESCRIBE, msg, status);
 }
 
 int64_t
 client :: sorted_search(const char* space,
-                        const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                        const hyperdex_client_attribute_check* selection, size_t selection_sz,
                         const char* sort_by,
                         uint64_t limit,
                         bool maximize,
-                        hyperdex_client_returncode* status,
+                        hyperdex_client_returncode& status,
                         const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 {
-    SEARCH_BOILERPLATE
-    uint16_t sort_by_num = sc->lookup_attr(sort_by);
+    sorted_search_request request(*this, m_coord, space);
 
-    if (sort_by_num == sc->attrs_sz)
+    int res = request.prepare(selection, selection_sz, status, sort_by);
+
+    if(res < 0)
     {
-        ERROR(UNKNOWNATTR) << "\"" << e::strescape(sort_by)
-                           << "\" is not an attribute of space \""
-                           << e::strescape(space) << "\"";
-        return -1 - chks_sz;
-    }
-
-    datatype_info* di = datatype_info::lookup(sc->attrs[sort_by_num].type);
-
-    if (!di->comparable())
-    {
-        ERROR(WRONGTYPE) << "cannot sort by attribute \""
-                         << e::strescape(sort_by)
-                         << "\": it is not comparable";
-        return -1 - chks_sz;
+        return res;
     }
 
     int64_t client_id = m_next_client_id++;
+    std::auto_ptr<e::buffer> msg(request.create_message(limit, maximize));
+
     e::intrusive_ptr<pending_aggregation> op;
-    op = new pending_sorted_search(this, client_id, maximize, limit, sort_by_num, di, status, attrs, attrs_sz);
-    int8_t max = maximize ? 1 : 0;
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + pack_size(checks)
-              + sizeof(limit)
-              + sizeof(sort_by_num)
-              + sizeof(max);
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << checks << limit << sort_by_num << max;
-    return perform_aggregation(servers, op, REQ_SORTED_SEARCH, msg, status);
+    op = new pending_sorted_search(this, client_id, maximize, limit,
+                request.get_sort_by_index(), request.get_sort_di(), status, attrs, attrs_sz);
+    return perform_aggregation(request.group().get_servers(), op, REQ_SORTED_SEARCH, msg, status);
 }
 
 int64_t
 client :: group_del(const char* space,
-                    const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                    hyperdex_client_returncode* status)
+                    const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                    hyperdex_client_returncode& status)
 {
-    SEARCH_BOILERPLATE
-    int64_t client_id = m_next_client_id++;
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    group_del_request request(*this, m_coord, space);
+    int res = request.prepare(selection, selection_sz, status);
+
+    if(res < 0)
+    {
+        return res;
+    }
+
+    std::auto_ptr<e::buffer> msg(request.create_message());
+
     e::intrusive_ptr<pending_aggregation> op;
-    op = new pending_group_del(client_id, status);
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + pack_size(checks);
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << checks;
-    return perform_aggregation(servers, op, REQ_GROUP_DEL, msg, status);
+    op = new pending_group_del(m_next_client_id++, status);
+
+    return perform_aggregation(request.group().get_servers(), op, REQ_GROUP_DEL, msg, status);
 }
 
 int64_t
 client :: count(const char* space,
-                const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                hyperdex_client_returncode* status,
-                uint64_t* result)
+                const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                hyperdex_client_returncode& status,
+                uint64_t& result)
 {
-    SEARCH_BOILERPLATE
-    int64_t client_id = m_next_client_id++;
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    count_request request(*this, m_coord, space);
+    int res = request.prepare(selection, selection_sz, status);
+
+    if(res < 0)
+    {
+        return res;
+    }
+
+    std::auto_ptr<e::buffer> msg(request.create_message());
     e::intrusive_ptr<pending_aggregation> op;
-    op = new pending_count(client_id, status, result);
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + pack_size(checks);
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << checks;
-    return perform_aggregation(servers, op, REQ_COUNT, msg, status);
+    op = new pending_count(m_next_client_id++, status, result);
+
+    return perform_aggregation(request.group().get_servers(), op, REQ_COUNT, msg, status);
+}
+
+int64_t
+client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
+                          const char* space, const hyperdex_client_attribute_check* selection, size_t selection_sz,
+                          const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                          const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                          hyperdex_client_returncode& status,
+                          uint64_t &update_count)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    group_atomic_request request(*this, m_coord, space);
+    int res = request.prepare(*opinfo, selection, selection_sz, attrs, attrs_sz, mapattrs, mapattrs_sz, status);
+
+    if(res < 0)
+    {
+        return res;
+    }
+
+    std::auto_ptr<e::buffer> msg(request.create_message(*opinfo));
+
+    e::intrusive_ptr<pending_aggregation> op;
+    op = new pending_group_atomic(m_next_client_id++, status, update_count);
+
+    return perform_aggregation(request.group().get_servers(), op, REQ_GROUP_ATOMIC, msg, status);
 }
 
 int64_t
@@ -393,97 +432,43 @@ client :: perform_funcall(const hyperdex_client_keyop_info* opinfo,
                           const hyperdex_client_attribute_check* chks, size_t chks_sz,
                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                           const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                          hyperdex_client_returncode* status)
+                          hyperdex_client_returncode& status)
 {
     if (!maintain_coord_connection(status))
     {
         return -1;
     }
 
-    const schema* sc = m_coord.config()->get_schema(space);
+    request req(*this, m_coord, space);
+    atomic_request atomic_req(req);
 
-    if (!sc)
-    {
-        ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist";
-        return -1;
-    }
-
-    datatype_info* di = datatype_info::lookup(sc->attrs[0].type);
-    assert(di);
     e::slice key(_key, _key_sz);
 
-    if (!di->validate(key))
+    status = atomic_req.validate_key(key);
+    if(status != HYPERDEX_CLIENT_SUCCESS)
     {
-        ERROR(WRONGTYPE) << "key must be type " << sc->attrs[0].type;
         return -1;
     }
+
+    int res = atomic_req.prepare(*opinfo, chks, chks_sz, attrs, attrs_sz, mapattrs, mapattrs_sz, status);
+
+    if(res < 0)
+    {
+        return res;
+    }
+
+    std::auto_ptr<e::buffer> msg(atomic_req.create_message(*opinfo, key));
 
     e::intrusive_ptr<pending> op;
     op = new pending_atomic(m_next_client_id++, status);
-    std::vector<attribute_check> checks;
-    std::vector<funcall> funcs;
-    size_t idx = 0;
-    arena_t allocate;
-
-    // Prepare the checks
-    idx = prepare_checks(space, *sc, chks, chks_sz, &allocate, status, &checks);
-
-    if (idx < chks_sz)
-    {
-        return -2 - idx;
-    }
-
-    // Prepare the attrs
-    idx = prepare_funcs(space, *sc, opinfo, attrs, attrs_sz, &allocate, status, &funcs);
-
-    if (idx < attrs_sz)
-    {
-        return -2 - chks_sz - idx;
-    }
-
-    // Prepare the mapattrs
-    idx = prepare_funcs(space, *sc, opinfo, mapattrs, mapattrs_sz, &allocate, status, &funcs);
-
-    if (idx < mapattrs_sz)
-    {
-        return -2 - chks_sz - attrs_sz - idx;
-    }
-
-    std::stable_sort(checks.begin(), checks.end());
-    std::stable_sort(funcs.begin(), funcs.end());
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + sizeof(uint8_t)
-              + pack_size(key)
-              + pack_size(checks)
-              + pack_size(funcs);
-    auth_wallet aw(m_macaroons, m_macaroons_sz);
-
-    if (m_macaroons_sz)
-    {
-        sz += pack_size(aw);
-    }
-
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    uint8_t flags = (opinfo->fail_if_not_found ? 1 : 0)
-                  | (opinfo->fail_if_found ? 2 : 0)
-                  | (opinfo->erase ? 0 : 128)
-                  | (m_macaroons_sz ? 64 : 0);
-    e::buffer::packer pa =
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ)
-        << key << flags << checks << funcs;
-
-    if (m_macaroons_sz)
-    {
-        pa = pa << aw;
-    }
 
     return send_keyop(space, key, REQ_ATOMIC, msg, op, status);
 }
 
 int64_t
-client :: loop(int timeout, hyperdex_client_returncode* status)
+client :: loop(int timeout, hyperdex_client_returncode& status)
 {
-    *status = HYPERDEX_CLIENT_SUCCESS;
+    status = HYPERDEX_CLIENT_SUCCESS;
     m_last_error = e::error();
 
     while (m_yielding ||
@@ -501,7 +486,7 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
                 continue;
             }
 
-            if (!m_yielding->yield(status, &m_last_error))
+            if (!m_yielding->yield(status, m_last_error))
             {
                 return -1;
             }
@@ -607,7 +592,7 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
             id == psp.si &&
             m_coord.config()->get_server_id(vfrom) == id)
         {
-            if (!op->handle_message(this, id, vfrom, msg_type, msg, up, status, &m_last_error))
+            if (!op->handle_message(this, id, vfrom, msg_type, msg, up, status, m_last_error))
             {
                 return -1;
             }
@@ -700,7 +685,7 @@ client :: set_error_message(const char* msg)
 
 hyperdatatype
 client :: attribute_type(const char* space, const char* name,
-                         hyperdex_client_returncode* status)
+                         hyperdex_client_returncode& status)
 {
     if (maintain_coord_connection(status) < 0)
     {
@@ -728,253 +713,12 @@ client :: attribute_type(const char* space, const char* name,
     return sc->attrs[attrnum].type;
 }
 
-size_t
-client :: prepare_checks(const char* space, const schema& sc,
-                         const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                         arena_t* allocate,
-                         hyperdex_client_returncode* status,
-                         std::vector<attribute_check>* checks)
-{
-    checks->reserve(checks->size() + chks_sz);
-
-    for (size_t i = 0; i < chks_sz; ++i)
-    {
-        std::string _attr;
-        const char* attr;
-        const char* dot;
-
-        if ((dot = strchr(chks[i].attr, '.')))
-        {
-            _attr.assign(chks[i].attr, dot);
-            ++dot;
-        }
-        else
-        {
-            _attr.assign(chks[i].attr, strlen(chks[i].attr));
-            dot = NULL;
-        }
-
-        attr = _attr.c_str();
-        uint16_t attrnum = sc.lookup_attr(attr);
-
-        if (attrnum >= sc.attrs_sz)
-        {
-            ERROR(UNKNOWNATTR) << "\"" << e::strescape(attr)
-                               << "\" is not an attribute of space \""
-                               << e::strescape(space) << "\"";
-            return i;
-        }
-
-        hyperdatatype datatype = chks[i].datatype;
-
-        if (datatype == CONTAINER_TYPE(datatype) &&
-            CONTAINER_TYPE(datatype) == CONTAINER_TYPE(sc.attrs[attrnum].type) &&
-            (chks[i].value_sz == 0 || datatype == HYPERDATATYPE_TIMESTAMP_GENERIC))
-        {
-            datatype = sc.attrs[attrnum].type;
-        }
-
-        attribute_check c;
-        c.attr = attrnum;
-        c.value = e::slice(chks[i].value, chks[i].value_sz);
-        c.datatype = datatype;
-        c.predicate = chks[i].predicate;
-
-        if (dot)
-        {
-            size_t dot_sz = strlen(dot) + 1;
-            allocate->push_back(std::string());
-            std::string& s(allocate->back());
-            s.append(dot, dot_sz);
-            s.append(chks[i].value, chks[i].value_sz);
-            c.value = e::slice(s);
-        }
-
-        if (!validate_attribute_check(sc.attrs[attrnum].type, c))
-        {
-            ERROR(WRONGTYPE) << "invalid predicate on \""
-                             << e::strescape(attr) << "\"";
-            return i;
-        }
-
-        checks->push_back(c);
-    }
-
-    return chks_sz;
-}
-
-size_t
-client :: prepare_funcs(const char* space, const schema& sc,
-                        const hyperdex_client_keyop_info* opinfo,
-                        const hyperdex_client_attribute* attrs, size_t attrs_sz,
-                        arena_t*,
-                        hyperdex_client_returncode* status,
-                        std::vector<funcall>* funcs)
-{
-    funcs->reserve(funcs->size() + attrs_sz);
-
-    for (size_t i = 0; i < attrs_sz; ++i)
-    {
-        uint16_t attrnum = sc.lookup_attr(attrs[i].attr);
-
-        if (attrnum == sc.attrs_sz)
-        {
-            ERROR(UNKNOWNATTR) << "\"" << e::strescape(attrs[i].attr)
-                               << "\" is not an attribute of space \""
-                               << e::strescape(space) << "\"";
-            return i;
-        }
-
-        if (attrnum == 0)
-        {
-            ERROR(DONTUSEKEY) << "attribute \""
-                              << e::strescape(attrs[i].attr)
-                              << "\" is the key and cannot be changed";
-            return i;
-        }
-
-        hyperdatatype datatype = attrs[i].datatype;
-
-        if (datatype == CONTAINER_TYPE(datatype) &&
-            CONTAINER_TYPE(datatype) == CONTAINER_TYPE(sc.attrs[attrnum].type) &&
-            (attrs[i].value_sz == 0 || datatype == HYPERDATATYPE_TIMESTAMP_GENERIC))
-        {
-            datatype = sc.attrs[attrnum].type;
-        }
-
-        if (sc.attrs[attrnum].type == HYPERDATATYPE_MACAROON_SECRET)
-        {
-            datatype = HYPERDATATYPE_MACAROON_SECRET;
-        }
-
-        funcall o;
-        o.attr = attrnum;
-        o.name = opinfo->fname;
-        o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
-        o.arg1_datatype = datatype;
-        datatype_info* type = datatype_info::lookup(sc.attrs[attrnum].type);
-
-        if (!type->check_args(o))
-        {
-            ERROR(WRONGTYPE) << "invalid attribute \""
-                             << e::strescape(attrs[i].attr)
-                             << "\": attribute has the wrong type";
-            return i;
-        }
-
-        funcs->push_back(o);
-    }
-
-    return attrs_sz;
-}
-
-size_t
-client :: prepare_funcs(const char* space, const schema& sc,
-                        const hyperdex_client_keyop_info* opinfo,
-                        const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                        arena_t*,
-                        hyperdex_client_returncode* status,
-                        std::vector<funcall>* funcs)
-{
-    funcs->reserve(funcs->size() + mapattrs_sz);
-
-    for (size_t i = 0; i < mapattrs_sz; ++i)
-    {
-        uint16_t attrnum = sc.lookup_attr(mapattrs[i].attr);
-
-        if (attrnum == sc.attrs_sz)
-        {
-            ERROR(UNKNOWNATTR) << "\"" << e::strescape(mapattrs[i].attr)
-                               << "\" is not an attribute of space \""
-                               << e::strescape(space) << "\"";
-            return i;
-        }
-
-        if (attrnum == 0)
-        {
-            ERROR(DONTUSEKEY) << "attribute \""
-                              << e::strescape(mapattrs[i].attr)
-                              << "\" is the key and cannot be changed";
-            return i;
-        }
-
-        hyperdatatype k_datatype = mapattrs[i].map_key_datatype;
-
-        if (k_datatype == CONTAINER_TYPE(k_datatype) &&
-            CONTAINER_TYPE(k_datatype) == CONTAINER_TYPE(sc.attrs[attrnum].type) &&
-            mapattrs[i].value_sz == 0)
-        {
-            k_datatype = sc.attrs[attrnum].type;
-        }
-
-        hyperdatatype v_datatype = mapattrs[i].value_datatype;
-
-        if (v_datatype == CONTAINER_TYPE(v_datatype) &&
-            CONTAINER_TYPE(v_datatype) == CONTAINER_TYPE(sc.attrs[attrnum].type) &&
-            mapattrs[i].value_sz == 0)
-        {
-            v_datatype = sc.attrs[attrnum].type;
-        }
-
-        funcall o;
-        o.attr = attrnum;
-        o.name = opinfo->fname;
-        o.arg2 = e::slice(mapattrs[i].map_key, mapattrs[i].map_key_sz);
-        o.arg2_datatype = k_datatype;
-        o.arg1 = e::slice(mapattrs[i].value, mapattrs[i].value_sz);
-        o.arg1_datatype = v_datatype;
-        datatype_info* type = datatype_info::lookup(sc.attrs[attrnum].type);
-
-        if (!type->check_args(o))
-        {
-            ERROR(WRONGTYPE) << "invalid attribute \""
-                             << e::strescape(mapattrs[i].attr)
-                             << "\": attribute has the wrong type";
-            return i;
-        }
-
-        funcs->push_back(o);
-    }
-
-    return mapattrs_sz;
-}
-
-size_t
-client :: prepare_searchop(const schema& sc,
-                           const char* space,
-                           const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                           arena_t* allocate,
-                           hyperdex_client_returncode* status,
-                           std::vector<attribute_check>* checks,
-                           std::vector<virtual_server_id>* servers)
-{
-    size_t num_checks = prepare_checks(space, sc, chks, chks_sz, allocate, status, checks);
-
-    if (num_checks != chks_sz)
-    {
-        return -1 - num_checks;
-    }
-
-    std::stable_sort(checks->begin(), checks->end());
-    m_coord.config()->lookup_search(space, *checks, servers); // XXX search guaranteed empty vs. search encounters offline server
-
-    if (servers->empty())
-    {
-        // XXX NOCOMMIT
-        ERROR(INTERNAL) << "there are no servers for the search";
-        *status = HYPERDEX_CLIENT_INTERNAL;
-        return -1;
-    }
-
-    return 0;
-}
-
 int64_t
 client :: perform_aggregation(const std::vector<virtual_server_id>& servers,
                               e::intrusive_ptr<pending_aggregation> _op,
                               network_msgtype mt,
                               std::auto_ptr<e::buffer> msg,
-                              hyperdex_client_returncode* status)
+                              hyperdex_client_returncode& status)
 {
     e::intrusive_ptr<pending> op(_op.get());
 
@@ -994,7 +738,7 @@ client :: perform_aggregation(const std::vector<virtual_server_id>& servers,
 }
 
 bool
-client :: maintain_coord_connection(hyperdex_client_returncode* status)
+client :: maintain_coord_connection(hyperdex_client_returncode& status)
 {
     replicant_returncode rc;
     uint64_t old_version = m_coord.config()->version();
@@ -1019,7 +763,7 @@ client :: maintain_coord_connection(hyperdex_client_returncode* status)
 
     if (m_busybee.set_external_fd(m_coord.poll_fd()) != BUSYBEE_SUCCESS)
     {
-        *status = HYPERDEX_CLIENT_POLLFAILED;
+        status = HYPERDEX_CLIENT_POLLFAILED;
         return false;
     }
 
@@ -1056,7 +800,7 @@ client :: send(network_msgtype mt,
                uint64_t nonce,
                std::auto_ptr<e::buffer> msg,
                e::intrusive_ptr<pending> op,
-               hyperdex_client_returncode* status)
+               hyperdex_client_returncode& status)
 {
     const uint8_t type = static_cast<uint8_t>(mt);
     const uint8_t flags = 0;
@@ -1096,7 +840,7 @@ client :: send_keyop(const char* space,
                      network_msgtype mt,
                      std::auto_ptr<e::buffer> msg,
                      e::intrusive_ptr<pending> op,
-                     hyperdex_client_returncode* status)
+                     hyperdex_client_returncode& status)
 {
     virtual_server_id vsi = m_coord.config()->point_leader(space, key);
 
@@ -1143,6 +887,19 @@ client :: handle_disruption(const server_id& si)
     }
 
     m_busybee.drop(si.get());
+}
+
+hyperdex::auth_wallet
+client :: get_macaroons() const
+{
+    return auth_wallet(m_macaroons, m_macaroons_sz);
+}
+
+std::ostream&
+client :: set_last_error(const char* file, size_t line)
+{
+    m_last_error.set_loc(file, line);
+    return m_last_error.set_msg();
 }
 
 HYPERDEX_API std::ostream&

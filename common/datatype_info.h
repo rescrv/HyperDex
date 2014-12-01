@@ -45,6 +45,8 @@ class key_change;
 class datatype_info
 {
     public:
+        // Return a pointer to the datatype_info representing the specific datatyp
+        // Must not be deleted
         static datatype_info* lookup(hyperdatatype datatype);
 
     public:
@@ -103,7 +105,7 @@ class datatype_info
     // override these if the type can be compared
     public:
         virtual bool comparable() const;
-        virtual int compare(const e::slice& lhs, const e::slice& rhs);
+        virtual int compare(const e::slice& lhs, const e::slice& rhs) const;
         typedef bool (*compares_less)(const e::slice& lhs, const e::slice& rhs);
         virtual compares_less compare_less();
 
@@ -120,6 +122,18 @@ class datatype_info
         virtual bool document_check(const attribute_check& check,
                                     const e::slice& value);
 };
+
+// Is it a float or integer?
+inline bool is_type_numeric(const hyperdatatype type)
+{
+    return type == HYPERDATATYPE_FLOAT || type == HYPERDATATYPE_INT64;
+}
+
+// Is it a numeric or string type?
+inline bool is_type_primitive(const hyperdatatype type)
+{
+    return is_type_numeric(type) || type == HYPERDATATYPE_STRING;
+}
 
 END_HYPERDEX_NAMESPACE
 
