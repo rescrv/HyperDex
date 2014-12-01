@@ -168,6 +168,43 @@ int64_t hyperdex_client_cond_put(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%% group_put %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_put}}
+\label{api:c:group_put}
+\index{group\_put!C API}
+\input{\topdir/api/desc/group_put}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_client_group_put(struct hyperdex_client* client,
+        const char* space,
+        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+        const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+        enum hyperdex_client_returncode* status,
+        uint64_t* count);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
+\item \code{uint64\_t* count}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_count}
+\end{itemize}
+
 %%%%%%%%%%%%%%%%%%%% put_if_not_exist %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{put\_if\_not\_exist}}
@@ -267,19 +304,18 @@ int64_t hyperdex_client_cond_del(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_add %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_del %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_add}}
-\label{api:c:group_atomic_add}
-\index{group\_atomic\_add!C API}
-\input{\topdir/api/desc/group_atomic_add}
+\subsubsection{\code{group\_del}}
+\label{api:c:group_del}
+\index{group\_del!C API}
+\input{\topdir/api/desc/group_del}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_atomic_add(struct hyperdex_client* client,
+int64_t hyperdex_client_group_del(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-        const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
         enum hyperdex_client_returncode* status,
         uint64_t* count);
 \end{ccode}
@@ -292,8 +328,6 @@ int64_t hyperdex_client_group_atomic_add(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/in_asynccall_spacename}
 \item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
 \input{\topdir/api/fragments/c/client/in_asynccall_predicates}
-\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
@@ -375,16 +409,16 @@ int64_t hyperdex_client_cond_atomic_add(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_sub %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_sub}}
-\label{api:c:group_atomic_sub}
-\index{group\_atomic\_sub!C API}
-\input{\topdir/api/desc/group_atomic_sub}
+\subsubsection{\code{group\_atomic\_add}}
+\label{api:c:group_atomic_add}
+\index{group\_atomic\_add!C API}
+\input{\topdir/api/desc/group_atomic_add}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_atomic_sub(struct hyperdex_client* client,
+int64_t hyperdex_client_group_atomic_add(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -483,16 +517,16 @@ int64_t hyperdex_client_cond_atomic_sub(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_mul %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_sub %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_mul}}
-\label{api:c:group_atomic_mul}
-\index{group\_atomic\_mul!C API}
-\input{\topdir/api/desc/group_atomic_mul}
+\subsubsection{\code{group\_atomic\_sub}}
+\label{api:c:group_atomic_sub}
+\index{group\_atomic\_sub!C API}
+\input{\topdir/api/desc/group_atomic_sub}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_atomic_mul(struct hyperdex_client* client,
+int64_t hyperdex_client_group_atomic_sub(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -591,16 +625,16 @@ int64_t hyperdex_client_cond_atomic_mul(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_div %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_mul %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_div}}
-\label{api:c:group_atomic_div}
-\index{group\_atomic\_div!C API}
-\input{\topdir/api/desc/group_atomic_div}
+\subsubsection{\code{group\_atomic\_mul}}
+\label{api:c:group_atomic_mul}
+\index{group\_atomic\_mul!C API}
+\input{\topdir/api/desc/group_atomic_mul}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_atomic_div(struct hyperdex_client* client,
+int64_t hyperdex_client_group_atomic_mul(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -699,16 +733,16 @@ int64_t hyperdex_client_cond_atomic_div(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_mod %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_div %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_mod}}
-\label{api:c:group_atomic_mod}
-\index{group\_atomic\_mod!C API}
-\input{\topdir/api/desc/group_atomic_mod}
+\subsubsection{\code{group\_atomic\_div}}
+\label{api:c:group_atomic_div}
+\index{group\_atomic\_div!C API}
+\input{\topdir/api/desc/group_atomic_div}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_atomic_mod(struct hyperdex_client* client,
+int64_t hyperdex_client_group_atomic_div(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -807,16 +841,16 @@ int64_t hyperdex_client_cond_atomic_mod(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_and %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_mod %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_and}}
-\label{api:c:group_atomic_and}
-\index{group\_atomic\_and!C API}
-\input{\topdir/api/desc/group_atomic_and}
+\subsubsection{\code{group\_atomic\_mod}}
+\label{api:c:group_atomic_mod}
+\index{group\_atomic\_mod!C API}
+\input{\topdir/api/desc/group_atomic_mod}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_atomic_and(struct hyperdex_client* client,
+int64_t hyperdex_client_group_atomic_mod(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -915,16 +949,16 @@ int64_t hyperdex_client_cond_atomic_and(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_or %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_and %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_or}}
-\label{api:c:group_atomic_or}
-\index{group\_atomic\_or!C API}
-\input{\topdir/api/desc/group_atomic_or}
+\subsubsection{\code{group\_atomic\_and}}
+\label{api:c:group_atomic_and}
+\index{group\_atomic\_and!C API}
+\input{\topdir/api/desc/group_atomic_and}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_atomic_or(struct hyperdex_client* client,
+int64_t hyperdex_client_group_atomic_and(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -1023,16 +1057,16 @@ int64_t hyperdex_client_cond_atomic_or(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_xor %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_or %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_xor}}
-\label{api:c:group_atomic_xor}
-\index{group\_atomic\_xor!C API}
-\input{\topdir/api/desc/group_atomic_xor}
+\subsubsection{\code{group\_atomic\_or}}
+\label{api:c:group_atomic_or}
+\index{group\_atomic\_or!C API}
+\input{\topdir/api/desc/group_atomic_or}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_atomic_xor(struct hyperdex_client* client,
+int64_t hyperdex_client_group_atomic_or(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -1131,16 +1165,16 @@ int64_t hyperdex_client_cond_atomic_xor(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_min %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_xor %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_min}}
-\label{api:c:group_atomic_min}
-\index{group\_atomic\_min!C API}
-\input{\topdir/api/desc/group_atomic_min}
+\subsubsection{\code{group\_atomic\_xor}}
+\label{api:c:group_atomic_xor}
+\index{group\_atomic\_xor!C API}
+\input{\topdir/api/desc/group_atomic_xor}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_atomic_min(struct hyperdex_client* client,
+int64_t hyperdex_client_group_atomic_xor(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -1239,16 +1273,16 @@ int64_t hyperdex_client_cond_atomic_min(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_max %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_min %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_max}}
-\label{api:c:group_atomic_max}
-\index{group\_atomic\_max!C API}
-\input{\topdir/api/desc/group_atomic_max}
+\subsubsection{\code{group\_atomic\_min}}
+\label{api:c:group_atomic_min}
+\index{group\_atomic\_min!C API}
+\input{\topdir/api/desc/group_atomic_min}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_atomic_max(struct hyperdex_client* client,
+int64_t hyperdex_client_group_atomic_min(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -1347,16 +1381,16 @@ int64_t hyperdex_client_cond_atomic_max(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_string_prepend %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_max %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_string\_prepend}}
-\label{api:c:group_string_prepend}
-\index{group\_string\_prepend!C API}
-\input{\topdir/api/desc/group_string_prepend}
+\subsubsection{\code{group\_atomic\_max}}
+\label{api:c:group_atomic_max}
+\index{group\_atomic\_max!C API}
+\input{\topdir/api/desc/group_atomic_max}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_string_prepend(struct hyperdex_client* client,
+int64_t hyperdex_client_group_atomic_max(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -1455,16 +1489,16 @@ int64_t hyperdex_client_cond_string_prepend(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_string_append %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_string_prepend %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_string\_append}}
-\label{api:c:group_string_append}
-\index{group\_string\_append!C API}
-\input{\topdir/api/desc/group_string_append}
+\subsubsection{\code{group\_string\_prepend}}
+\label{api:c:group_string_prepend}
+\index{group\_string\_prepend!C API}
+\input{\topdir/api/desc/group_string_prepend}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_string_append(struct hyperdex_client* client,
+int64_t hyperdex_client_group_string_prepend(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -1563,16 +1597,16 @@ int64_t hyperdex_client_cond_string_append(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_list_lpush %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_string_append %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_list\_lpush}}
-\label{api:c:group_list_lpush}
-\index{group\_list\_lpush!C API}
-\input{\topdir/api/desc/group_list_lpush}
+\subsubsection{\code{group\_string\_append}}
+\label{api:c:group_string_append}
+\index{group\_string\_append!C API}
+\input{\topdir/api/desc/group_string_append}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_list_lpush(struct hyperdex_client* client,
+int64_t hyperdex_client_group_string_append(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -1671,16 +1705,16 @@ int64_t hyperdex_client_cond_list_lpush(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% group_list_rpush %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_list_lpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_list\_rpush}}
-\label{api:c:group_list_rpush}
-\index{group\_list\_rpush!C API}
-\input{\topdir/api/desc/group_list_rpush}
+\subsubsection{\code{group\_list\_lpush}}
+\label{api:c:group_list_lpush}
+\index{group\_list\_lpush!C API}
+\input{\topdir/api/desc/group_list_lpush}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_group_list_rpush(struct hyperdex_client* client,
+int64_t hyperdex_client_group_list_lpush(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -1777,6 +1811,43 @@ int64_t hyperdex_client_cond_list_rpush(struct hyperdex_client* client,
 \begin{itemize}[noitemsep]
 \item \code{enum hyperdex\_client\_returncode* status}\\
 \input{\topdir/api/fragments/c/client/out_asynccall_status}
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%% group_list_rpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_rpush}}
+\label{api:c:group_list_rpush}
+\index{group\_list\_rpush!C API}
+\input{\topdir/api/desc/group_list_rpush}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_client_group_list_rpush(struct hyperdex_client* client,
+        const char* space,
+        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+        const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+        enum hyperdex_client_returncode* status,
+        uint64_t* count);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_status}
+\item \code{uint64\_t* count}\\
+\input{\topdir/api/fragments/c/client/out_asynccall_count}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% set_add %%%%%%%%%%%%%%%%%%%%
@@ -2252,43 +2323,6 @@ int64_t hyperdex_client_group_document_rename(struct hyperdex_client* client,
 \paragraph{Definition:}
 \begin{ccode}
 int64_t hyperdex_client_group_document_unset(struct hyperdex_client* client,
-        const char* space,
-        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-        const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-        enum hyperdex_client_returncode* status,
-        uint64_t* count);
-\end{ccode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{struct hyperdex\_client* client}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
-\item \code{const char* space}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
-\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
-\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_attributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\begin{itemize}[noitemsep]
-\item \code{enum hyperdex\_client\_returncode* status}\\
-\input{\topdir/api/fragments/c/client/out_asynccall_status}
-\item \code{uint64\_t* count}\\
-\input{\topdir/api/fragments/c/client/out_asynccall_count}
-\end{itemize}
-
-%%%%%%%%%%%%%%%%%%%% group_document_set %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{group\_document\_set}}
-\label{api:c:group_document_set}
-\index{group\_document\_set!C API}
-\input{\topdir/api/desc/group_document_set}
-
-\paragraph{Definition:}
-\begin{ccode}
-int64_t hyperdex_client_group_document_set(struct hyperdex_client* client,
         const char* space,
         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
@@ -3277,37 +3311,6 @@ int64_t hyperdex_client_sorted_search(struct hyperdex_client* client,
 \input{\topdir/api/fragments/c/client/out_iterator_status}
 \item \code{const struct hyperdex\_client\_attribute** attrs, size\_t* attrs\_sz}\\
 \input{\topdir/api/fragments/c/client/out_iterator_attributes}
-\end{itemize}
-
-%%%%%%%%%%%%%%%%%%%% group_del %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{group\_del}}
-\label{api:c:group_del}
-\index{group\_del!C API}
-\input{\topdir/api/desc/group_del}
-
-\paragraph{Definition:}
-\begin{ccode}
-int64_t hyperdex_client_group_del(struct hyperdex_client* client,
-        const char* space,
-        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-        enum hyperdex_client_returncode* status);
-\end{ccode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{struct hyperdex\_client* client}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_structclient}
-\item \code{const char* space}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_spacename}
-\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
-\input{\topdir/api/fragments/c/client/in_asynccall_predicates}
-\end{itemize}
-
-\paragraph{Returns:}
-\begin{itemize}[noitemsep]
-\item \code{enum hyperdex\_client\_returncode* status}\\
-\input{\topdir/api/fragments/c/client/out_asynccall_status}
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%% count %%%%%%%%%%%%%%%%%%%%

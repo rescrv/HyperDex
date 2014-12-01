@@ -1,4 +1,4 @@
-// Copyright (c) 2013-14, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@
 #include "admin/yieldable.h"
 
 #define ERROR(CODE) \
-    status = HYPERDEX_ADMIN_ ## CODE; \
+    *status = HYPERDEX_ADMIN_ ## CODE; \
     m_last_error.set_loc(__FILE__, __LINE__); \
     m_last_error.set_msg()
 
@@ -87,7 +87,7 @@ admin :: ~admin() throw ()
 }
 
 int64_t
-admin :: dump_config(hyperdex_admin_returncode& status,
+admin :: dump_config(hyperdex_admin_returncode* status,
                      const char** config)
 {
     if (!maintain_coord_connection(status))
@@ -104,7 +104,7 @@ admin :: dump_config(hyperdex_admin_returncode& status,
 }
 
 int64_t
-admin :: list_subspaces(const char* space, hyperdex_admin_returncode& status, const char** subspaces)
+admin :: list_subspaces(const char* space, hyperdex_admin_returncode* status, const char** subspaces)
 {
     if (!maintain_coord_connection(status))
     {
@@ -120,7 +120,7 @@ admin :: list_subspaces(const char* space, hyperdex_admin_returncode& status, co
 }
 
 int64_t
-admin :: read_only(int ro, hyperdex_admin_returncode& status)
+admin :: read_only(int ro, hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -149,7 +149,7 @@ admin :: read_only(int ro, hyperdex_admin_returncode& status)
 }
 
 int64_t
-admin :: wait_until_stable(hyperdex_admin_returncode& status)
+admin :: wait_until_stable(enum hyperdex_admin_returncode* status)
 {
     replicant_returncode rc;
 
@@ -183,7 +183,7 @@ admin :: wait_until_stable(hyperdex_admin_returncode& status)
 
 int64_t
 admin :: fault_tolerance(const char* space, uint64_t ft,
-                         hyperdex_admin_returncode& status)
+                         hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -215,7 +215,7 @@ admin :: fault_tolerance(const char* space, uint64_t ft,
 
 int
 admin :: validate_space(const char* description,
-                        hyperdex_admin_returncode& status)
+                        hyperdex_admin_returncode* status)
 {
     struct hyperspace* space_builder = hyperspace_parse(description);
 
@@ -236,7 +236,7 @@ admin :: validate_space(const char* description,
 
 int64_t
 admin :: add_space(const char* description,
-                   hyperdex_admin_returncode& status)
+                   hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -288,7 +288,7 @@ admin :: add_space(const char* description,
 
 int64_t
 admin :: rm_space(const char* name,
-                  hyperdex_admin_returncode& status)
+                  hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -315,7 +315,7 @@ admin :: rm_space(const char* name,
 
 int64_t
 admin :: mv_space(const char* source, const char* target,
-                  hyperdex_admin_returncode& status)
+                  hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -349,7 +349,7 @@ admin :: mv_space(const char* source, const char* target,
 
 int64_t
 admin :: add_index(const char* space, const char* attr,
-                   hyperdex_admin_returncode& status)
+                   hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -383,7 +383,7 @@ admin :: add_index(const char* space, const char* attr,
 
 int64_t
 admin :: rm_index(uint64_t idxid,
-                  hyperdex_admin_returncode& status)
+                  enum hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -411,7 +411,7 @@ admin :: rm_index(uint64_t idxid,
 }
 
 int64_t
-admin :: list_indices(const char* space, hyperdex_admin_returncode& status,
+admin :: list_indices(const char* space, enum hyperdex_admin_returncode* status,
                             const char** indexes)
 {
     if (!maintain_coord_connection(status))
@@ -428,7 +428,7 @@ admin :: list_indices(const char* space, hyperdex_admin_returncode& status,
 }
 
 int64_t
-admin :: list_spaces(hyperdex_admin_returncode& status,
+admin :: list_spaces(hyperdex_admin_returncode* status,
                      const char** spaces)
 {
     if (!maintain_coord_connection(status))
@@ -446,7 +446,7 @@ admin :: list_spaces(hyperdex_admin_returncode& status,
 
 int64_t
 admin :: server_register(uint64_t token, const char* address,
-                         hyperdex_admin_returncode& status)
+                         enum hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -487,7 +487,7 @@ admin :: server_register(uint64_t token, const char* address,
 }
 
 int64_t
-admin :: server_online(uint64_t token, hyperdex_admin_returncode& status)
+admin :: server_online(uint64_t token, enum hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -515,7 +515,7 @@ admin :: server_online(uint64_t token, hyperdex_admin_returncode& status)
 }
 
 int64_t
-admin :: server_offline(uint64_t token, hyperdex_admin_returncode& status)
+admin :: server_offline(uint64_t token, enum hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -543,7 +543,7 @@ admin :: server_offline(uint64_t token, hyperdex_admin_returncode& status)
 }
 
 int64_t
-admin :: server_forget(uint64_t token,hyperdex_admin_returncode& status)
+admin :: server_forget(uint64_t token, enum hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -571,7 +571,7 @@ admin :: server_forget(uint64_t token,hyperdex_admin_returncode& status)
 }
 
 int64_t
-admin :: server_kill(uint64_t token,hyperdex_admin_returncode& status)
+admin :: server_kill(uint64_t token, enum hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -599,7 +599,7 @@ admin :: server_kill(uint64_t token,hyperdex_admin_returncode& status)
 }
 
 int64_t
-admin :: backup(const char* name,hyperdex_admin_returncode& status, const char** backups)
+admin :: backup(const char* name, enum hyperdex_admin_returncode* status, const char** backups)
 {
     if (!maintain_coord_connection(status))
     {
@@ -621,7 +621,7 @@ admin :: backup(const char* name,hyperdex_admin_returncode& status, const char**
 
 int64_t
 admin :: coord_backup(const char* path,
-                     hyperdex_admin_returncode& status)
+                      enum hyperdex_admin_returncode* status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -647,7 +647,7 @@ admin :: coord_backup(const char* path,
 
 int64_t
 admin :: raw_backup(const server_id& sid, const char* name,
-                    hyperdex_admin_returncode& status,
+                    enum hyperdex_admin_returncode* status,
                     const char** path)
 {
     if (!maintain_coord_connection(status))
@@ -675,7 +675,7 @@ admin :: raw_backup(const server_id& sid, const char* name,
 }
 
 int64_t
-admin :: enable_perf_counters(hyperdex_admin_returncode& status,
+admin :: enable_perf_counters(hyperdex_admin_returncode* status,
                               hyperdex_admin_perf_counter* pc)
 {
     if (!maintain_coord_connection(status))
@@ -704,9 +704,9 @@ admin :: disable_perf_counters()
 }
 
 int64_t
-admin :: loop(int timeout, hyperdex_admin_returncode& status)
+admin :: loop(int timeout, hyperdex_admin_returncode* status)
 {
-    status = HYPERDEX_ADMIN_SUCCESS;
+    *status = HYPERDEX_ADMIN_SUCCESS;
 
     while (m_pcs ||
            m_yielding ||
@@ -955,7 +955,7 @@ admin :: set_error_message(const char* msg)
 
 void
 admin :: interpret_rpc_request_failure(replicant_returncode rstatus,
-                                       hyperdex_admin_returncode& status)
+                                       hyperdex_admin_returncode* status)
 {
     e::error err;
 
@@ -999,7 +999,7 @@ admin :: interpret_rpc_request_failure(replicant_returncode rstatus,
 
 void
 admin :: interpret_rpc_loop_failure(replicant_returncode rstatus,
-                                    hyperdex_admin_returncode& status)
+                                    hyperdex_admin_returncode* status)
 {
     e::error err;
 
@@ -1045,8 +1045,8 @@ admin :: interpret_rpc_loop_failure(replicant_returncode rstatus,
 
 void
 admin :: interpret_rpc_response_failure(replicant_returncode rstatus,
-                                        hyperdex_admin_returncode& status,
-                                        e::error& ret_err)
+                                        hyperdex_admin_returncode* status,
+                                        e::error* ret_err)
 {
     e::error err;
     e::error tmp = m_last_error;
@@ -1055,7 +1055,7 @@ admin :: interpret_rpc_response_failure(replicant_returncode rstatus,
     switch (rstatus)
     {
         case REPLICANT_SUCCESS:
-            status = HYPERDEX_ADMIN_SUCCESS;
+            *status = HYPERDEX_ADMIN_SUCCESS;
             break;
         case REPLICANT_TIMEOUT:
             ERROR(TIMEOUT) << "operation timed out";
@@ -1093,12 +1093,12 @@ admin :: interpret_rpc_response_failure(replicant_returncode rstatus,
             break;
     }
 
-    ret_err = m_last_error;
+    *ret_err = m_last_error;
     m_last_error = tmp;
 }
 
 bool
-admin :: maintain_coord_connection(hyperdex_admin_returncode& status)
+admin :: maintain_coord_connection(hyperdex_admin_returncode* status)
 {
     replicant_returncode rc;
     e::error err;
@@ -1137,7 +1137,7 @@ admin :: maintain_coord_connection(hyperdex_admin_returncode& status)
             case REPLICANT_CTOR_FAILED:
             case REPLICANT_GARBAGE:
             default:
-                status = HYPERDEX_ADMIN_INTERNAL;
+                *status = HYPERDEX_ADMIN_INTERNAL;
                 return false;
         }
     }
@@ -1162,7 +1162,7 @@ admin :: send(network_msgtype mt,
               uint64_t nonce,
               std::auto_ptr<e::buffer> msg,
               e::intrusive_ptr<pending> op,
-              hyperdex_admin_returncode& status)
+              hyperdex_admin_returncode* status)
 {
     const uint8_t type = static_cast<uint8_t>(mt);
     const uint8_t flags = 0;

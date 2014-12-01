@@ -149,13 +149,31 @@ datatype_info :: ~datatype_info() throw ()
 }
 
 bool
+datatype_info :: client_to_server(const e::slice& client,
+                                  e::arena*,
+                                  e::slice* server) const
+{
+    *server = client;
+    return true;
+}
+
+bool
+datatype_info :: server_to_client(const e::slice& server,
+                                  e::arena*,
+                                  e::slice* client) const
+{
+    *client = server;
+    return true;
+}
+
+bool
 datatype_info :: hashable() const
 {
     return false;
 }
 
 uint64_t
-datatype_info :: hash(const e::slice&)
+datatype_info :: hash(const e::slice&) const
 {
     // if you see an abort here, you overrode "hashable", but not this method
     abort();
@@ -174,7 +192,7 @@ datatype_info :: has_length() const
 }
 
 uint64_t
-datatype_info :: length(const e::slice&)
+datatype_info :: length(const e::slice&) const
 {
     // if you see an abort here, you overrode "has_length", but not this method
     abort();
@@ -188,7 +206,7 @@ datatype_info :: has_regex() const
 
 bool
 datatype_info :: regex(const e::slice&,
-                       const e::slice&)
+                       const e::slice&) const
 {
     // if you see an abort here, you overrode "has_regex", but not this method
     abort();
@@ -208,7 +226,7 @@ datatype_info :: contains_datatype() const
 }
 
 bool
-datatype_info :: contains(const e::slice&, const e::slice&)
+datatype_info :: contains(const e::slice&, const e::slice&) const
 {
     // if you see an abort here, you overrode "has_contains", but not this method
     abort();
@@ -223,7 +241,15 @@ datatype_info :: containable() const
 bool
 datatype_info :: step(const uint8_t**,
                       const uint8_t*,
-                      e::slice*)
+                      e::slice*) const
+{
+    // if you see an abort here, you overrode "containable", but not this
+    // method
+    abort();
+}
+
+uint64_t
+datatype_info :: write_sz(const e::slice&) const
 {
     // if you see an abort here, you overrode "containable", but not this
     // method
@@ -231,8 +257,7 @@ datatype_info :: step(const uint8_t**,
 }
 
 uint8_t*
-datatype_info :: write(uint8_t*,
-                       const e::slice&)
+datatype_info :: write(const e::slice&, uint8_t*) const
 {
     // if you see an abort here, you overrode "containable", but not this
     // method
@@ -254,7 +279,7 @@ datatype_info :: compare(const e::slice&, const e::slice&) const
 }
 
 datatype_info::compares_less
-datatype_info :: compare_less()
+datatype_info :: compare_less() const
 {
     // if you see an abort here, you overrode "comparable", but not this
     // method
@@ -268,14 +293,8 @@ datatype_info :: document() const
 }
 
 bool
-datatype_info :: validate_old_values(const std::vector<e::slice>&, const funcall&) const
-{
-    return true;
-}
-
-bool
 datatype_info :: document_check(const attribute_check&,
-                                const e::slice&)
+                                const e::slice&) const
 {
     // if you see an abort here, you overrode "document", but not this
     // method

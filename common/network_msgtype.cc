@@ -40,8 +40,6 @@ hyperdex :: operator << (std::ostream& lhs, const network_msgtype& rhs)
         STRINGIFY(RESP_GET_PARTIAL);
         STRINGIFY(REQ_ATOMIC);
         STRINGIFY(RESP_ATOMIC);
-        STRINGIFY(REQ_GROUP_ATOMIC);
-        STRINGIFY(RESP_GROUP_ATOMIC);
         STRINGIFY(REQ_SEARCH_START);
         STRINGIFY(REQ_SEARCH_NEXT);
         STRINGIFY(REQ_SEARCH_STOP);
@@ -49,12 +47,12 @@ hyperdex :: operator << (std::ostream& lhs, const network_msgtype& rhs)
         STRINGIFY(RESP_SEARCH_DONE);
         STRINGIFY(REQ_SORTED_SEARCH);
         STRINGIFY(RESP_SORTED_SEARCH);
-        STRINGIFY(REQ_GROUP_DEL);
-        STRINGIFY(RESP_GROUP_DEL);
         STRINGIFY(REQ_COUNT);
         STRINGIFY(RESP_COUNT);
         STRINGIFY(REQ_SEARCH_DESCRIBE);
         STRINGIFY(RESP_SEARCH_DESCRIBE);
+        STRINGIFY(REQ_GROUP_ATOMIC);
+        STRINGIFY(RESP_GROUP_ATOMIC);
         STRINGIFY(CHAIN_OP);
         STRINGIFY(CHAIN_SUBSPACE);
         STRINGIFY(CHAIN_ACK);

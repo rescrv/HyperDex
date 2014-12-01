@@ -57,66 +57,66 @@ class admin
 
     public:
         // introspect the config
-        int64_t dump_config(hyperdex_admin_returncode& status,
+        int64_t dump_config(enum hyperdex_admin_returncode* status,
                             const char** config);
         // cluster
         int64_t read_only(int ro,
-                          hyperdex_admin_returncode& status);
-        int64_t wait_until_stable(hyperdex_admin_returncode& status);
+                          enum hyperdex_admin_returncode* status);
+        int64_t wait_until_stable(enum hyperdex_admin_returncode* status);
         int64_t fault_tolerance(const char* space, uint64_t ft,
-                                hyperdex_admin_returncode& status);
+                                enum hyperdex_admin_returncode* status);
         // manage spaces
         int validate_space(const char* description,
-                           hyperdex_admin_returncode& status);
+                           enum hyperdex_admin_returncode* status);
         int64_t add_space(const char* description,
-                          hyperdex_admin_returncode& status);
+                          enum hyperdex_admin_returncode* status);
         int64_t rm_space(const char* name,
-                         hyperdex_admin_returncode& status);
+                         enum hyperdex_admin_returncode* status);
         int64_t mv_space(const char* source, const char* target,
-                         hyperdex_admin_returncode& status);
+                         enum hyperdex_admin_returncode* status);
         int64_t add_index(const char* space, const char* attr,
-                          hyperdex_admin_returncode& status);
-        int64_t list_indices(const char* space,  hyperdex_admin_returncode& status,
+                          enum hyperdex_admin_returncode* status);
+        int64_t list_indices(const char* space, enum hyperdex_admin_returncode* status,
                             const char** spaces);
         int64_t rm_index(uint64_t idxid,
-                         hyperdex_admin_returncode& status);
-        int64_t list_spaces(hyperdex_admin_returncode& status,
+                         enum hyperdex_admin_returncode* status);
+        int64_t list_spaces(enum hyperdex_admin_returncode* status,
                             const char** spaces);
         int64_t list_subspaces(const char* space,
-                            hyperdex_admin_returncode& status,
+                            enum hyperdex_admin_returncode* status,
                             const char** subspaces);
         // manage servers
         int64_t server_register(uint64_t token, const char* address,
-                                enum hyperdex_admin_returncode& status);
-        int64_t server_online(uint64_t token, hyperdex_admin_returncode& status);
-        int64_t server_offline(uint64_t token, hyperdex_admin_returncode& status);
-        int64_t server_forget(uint64_t token, hyperdex_admin_returncode& status);
-        int64_t server_kill(uint64_t token, hyperdex_admin_returncode& status);
+                                enum hyperdex_admin_returncode* status);
+        int64_t server_online(uint64_t token, enum hyperdex_admin_returncode* status);
+        int64_t server_offline(uint64_t token, enum hyperdex_admin_returncode* status);
+        int64_t server_forget(uint64_t token, enum hyperdex_admin_returncode* status);
+        int64_t server_kill(uint64_t token, enum hyperdex_admin_returncode* status);
         // backups
-        int64_t backup(const char* name, hyperdex_admin_returncode& status, const char** backups);
+        int64_t backup(const char* name, enum hyperdex_admin_returncode* status, const char** backups);
         int64_t coord_backup(const char* path,
-                            hyperdex_admin_returncode& status);
+                             enum hyperdex_admin_returncode* status);
         int64_t raw_backup(const server_id& sid, const char* name,
-                           hyperdex_admin_returncode& status,
+                           enum hyperdex_admin_returncode* status,
                            const char** path);
         // read performance counters
-        int64_t enable_perf_counters(hyperdex_admin_returncode& status,
+        int64_t enable_perf_counters(hyperdex_admin_returncode* status,
                                      hyperdex_admin_perf_counter* pc);
         void disable_perf_counters();
         // looping/polling
-        int64_t loop(int timeout, hyperdex_admin_returncode& status);
+        int64_t loop(int timeout, hyperdex_admin_returncode* status);
         // error handling
         const char* error_message();
         const char* error_location();
         void set_error_message(const char* msg);
         // translate returncodes
         void interpret_rpc_request_failure(replicant_returncode rstatus,
-                                           hyperdex_admin_returncode& status);
+                                           hyperdex_admin_returncode* status);
         void interpret_rpc_loop_failure(replicant_returncode rstatus,
-                                        hyperdex_admin_returncode& status);
+                                        hyperdex_admin_returncode* status);
         void interpret_rpc_response_failure(replicant_returncode rstatus,
-                                            hyperdex_admin_returncode& status,
-                                            e::error& err);
+                                            hyperdex_admin_returncode* status,
+                                            e::error* err);
 
     private:
         struct pending_server_pair
@@ -138,13 +138,13 @@ class admin
         friend class pending_perf_counters;
 
     private:
-        bool maintain_coord_connection(hyperdex_admin_returncode& status);
+        bool maintain_coord_connection(hyperdex_admin_returncode* status);
         bool send(network_msgtype mt,
                   server_id id,
                   uint64_t nonce,
                   std::auto_ptr<e::buffer> msg,
                   e::intrusive_ptr<pending> op,
-                  hyperdex_admin_returncode& status);
+                  hyperdex_admin_returncode* status);
         void handle_disruption(const server_id& si);
 
     private:

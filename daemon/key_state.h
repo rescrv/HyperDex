@@ -67,12 +67,12 @@ class key_state
                                       bool fresh,
                                       bool has_value,
                                       const std::vector<e::slice>& value,
-                                      std::auto_ptr<e::buffer> backing);
+                                      std::auto_ptr<e::arena> memory);
         e::intrusive_ptr<key_operation>
             enqueue_discontinuous_key_op(uint64_t old_version,
                                          uint64_t new_version,
                                          const std::vector<e::slice>& value,
-                                         std::auto_ptr<e::buffer> backing,
+                                         std::auto_ptr<e::arena> memory,
                                          const region_id& prev_region,
                                          const region_id& this_old_region,
                                          const region_id& this_new_region,

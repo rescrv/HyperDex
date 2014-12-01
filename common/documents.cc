@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2014, Cornell University
+// Copyright (c) 2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,39 +25,37 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_request_h_
-#define hyperdex_client_request_h_
+// Treadstone
+#include <treadstone.h>
 
-#include "hyperdex/client.h"
-#include "client/client.h"
+// HyperDex
+#include "common/documents.h"
 
-BEGIN_HYPERDEX_NAMESPACE
-
-// Use this prepare an atomic request
-// Can only be used once, i.e. create one for each funcall
-class request
+bool
+hyperdex :: is_document_path(const e::slice& p)
 {
-public:
-    request(client& cl_, const coordinator_link& coord_, const std::string& space_);
-    virtual ~request() {};
+    std::string path(p.cdata(), p.size());
+    return treadstone_validate_path(path.c_str()) == 0;
+}
 
-    // Get a reference to the schema of the space we are using
-    // Throws an exception if non existant (i.e. no such space)
-    const schema& get_schema() const throw(std::runtime_error);
+void
+hyperdex :: parse_document_path(const char* attr_path,
+                                const char** attr,
+                                const char** path,
+                                std::string* scratch)
+{
+    *attr = attr_path;
+    *path = NULL;
 
-    size_t prepare_checks(const schema& sc,
-                              const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                              hyperdex_client_returncode& status,
-                              std::vector<attribute_check>* checks);
-
-    client& cl;
-    const coordinator_link& coord;
-    const std::string space;
-
-    client::arena_t allocate;
-};
-
-END_HYPERDEX_NAMESPACE
-
-#endif // header guard
-
+    for (size_t i = 0; attr_path[i] != '\0'; ++i)
+    {
+        if (attr_path[i] == '[' ||
+            attr_path[i] == '.')
+        {
+            scratch->assign(attr_path, attr_path + i);
+            *attr = scratch->c_str();
+            *path = attr_path + i + 1;
+            break;
+        }
+    }
+}

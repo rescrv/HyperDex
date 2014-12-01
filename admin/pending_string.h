@@ -38,7 +38,7 @@ class pending_string : public pending
 {
     public:
         pending_string(uint64_t admin_visible_id,
-                       hyperdex_admin_returncode& status,
+                       hyperdex_admin_returncode* status,
                        hyperdex_admin_returncode set_status,
                        const std::string& string,
                        const char** store);
@@ -47,7 +47,7 @@ class pending_string : public pending
     // return to admin
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperdex_admin_returncode& status);
+        virtual bool yield(hyperdex_admin_returncode* status);
 
     // events
     public:
@@ -58,7 +58,7 @@ class pending_string : public pending
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperdex_admin_returncode& status);
+                                    hyperdex_admin_returncode* status);
 
     private:
         pending_string(const pending_string&);

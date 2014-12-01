@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2014, Cornell University
+// Copyright (c) 2011-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@
 using hyperdex::pending_search;
 
 pending_search :: pending_search(uint64_t id,
-                                 hyperdex_client_returncode& status,
+                                 hyperdex_client_returncode* status,
                                  const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     : pending_aggregation(id, status)
     , m_attrs(attrs)
@@ -57,10 +57,10 @@ pending_search :: can_yield()
 }
 
 bool
-pending_search :: yield(hyperdex_client_returncode& status, e::error& err)
+pending_search :: yield(hyperdex_client_returncode* status, e::error* err)
 {
-    status = HYPERDEX_CLIENT_SUCCESS;
-    err = e::error();
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
     m_yield = false;
 
     if (this->aggregation_done() && !m_done)
@@ -93,14 +93,14 @@ pending_search :: handle_message(client* cl,
                                  network_msgtype mt,
                                  std::auto_ptr<e::buffer> msg,
                                  e::unpacker up,
-                                 hyperdex_client_returncode& status,
-                                 e::error& err)
+                                 hyperdex_client_returncode* status,
+                                 e::error* err)
 {
     bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
     assert(handled);
 
-    status = HYPERDEX_CLIENT_SUCCESS;
-    err = e::error();
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
 
     if (mt == RESP_SEARCH_DONE)
     {

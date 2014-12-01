@@ -25,39 +25,26 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_group_del_request_h_
-#define hyperdex_client_group_del_request_h_
+#ifndef hyperdex_common_documents_h_
+#define hyperdex_common_documents_h_
 
-#include "hyperdex/client.h"
-#include "client/client.h"
-#include "client/group_request.h"
+// e
+#include <e/slice.h>
+
+// HyperDex
+#include "namespace.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-// Use this prepare an group deletion request
-// Can only be used once, i.e. create one for each funcall
-class group_del_request
-{
-public:
-    group_del_request(client& cl_, const coordinator_link& coord_, const char* space_);
+bool
+is_document_path(const e::slice& p);
 
-    e::buffer* create_message();
-
-
-    const group_request group() const
-    {
-        return group_req;
-    }
-
-    int prepare(const hyperdex_client_attribute_check* selection, size_t selection_sz,
-                    hyperdex_client_returncode& status);
-
-private:
-    request req;
-    group_request group_req;
-};
+void
+parse_document_path(const char* attr_path,
+                    const char** attr,
+                    const char** path,
+                    std::string* scratch);
 
 END_HYPERDEX_NAMESPACE
 
-#endif // header guard
-
+#endif // hyperdex_common_documents_h_

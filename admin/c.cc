@@ -123,7 +123,7 @@ hyperdex_admin_dump_config(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->dump_config(*status, config);
+    return adm->dump_config(status, config);
     );
 }
 HYPERDEX_API int64_t
@@ -133,7 +133,7 @@ hyperdex_admin_read_only(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->read_only(ro, *status);
+    return adm->read_only(ro, status);
     );
 }
 
@@ -143,7 +143,7 @@ hyperdex_admin_wait_until_stable(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->wait_until_stable(*status);
+    return adm->wait_until_stable(status);
     );
 }
 
@@ -155,7 +155,7 @@ hyperdex_admin_fault_tolerance(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->fault_tolerance(space, ft, *status);
+    return adm->fault_tolerance(space, ft, status);
     );
 }
 
@@ -166,7 +166,7 @@ hyperdex_admin_validate_space(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->validate_space(description, *status);
+    return adm->validate_space(description, status);
     );
 }
 
@@ -177,7 +177,7 @@ hyperdex_admin_add_space(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->add_space(description, *status);
+    return adm->add_space(description, status);
     );
 }
 
@@ -188,7 +188,7 @@ hyperdex_admin_rm_space(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->rm_space(space, *status);
+    return adm->rm_space(space, status);
     );
 }
 
@@ -200,7 +200,7 @@ hyperdex_admin_mv_space(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->mv_space(source, target, *status);
+    return adm->mv_space(source, target, status);
     );
 }
 
@@ -211,7 +211,7 @@ hyperdex_admin_list_spaces(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->list_spaces(*status, spaces);
+    return adm->list_spaces(status, spaces);
     );
 }
 
@@ -223,7 +223,7 @@ hyperdex_admin_list_indices(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->list_indices(space, *status, indexes);
+    return adm->list_indices(space, status, indexes);
     );
 }
 
@@ -235,7 +235,7 @@ hyperdex_admin_list_subspaces(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->list_subspaces(space, *status, subspaces);
+    return adm->list_subspaces(space, status, subspaces);
     );
 }
 
@@ -247,7 +247,7 @@ hyperdex_admin_add_index(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->add_index(space, attribute, *status);
+    return adm->add_index(space, attribute, status);
     );
 }
 
@@ -258,7 +258,7 @@ hyperdex_admin_rm_index(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->rm_index(idxid, *status);
+    return adm->rm_index(idxid, status);
     );
 }
 
@@ -270,7 +270,7 @@ hyperdex_admin_server_register(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->server_register(token, address, *status);
+    return adm->server_register(token, address, status);
     );
 }
 
@@ -281,7 +281,7 @@ hyperdex_admin_server_online(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->server_online(token, *status);
+    return adm->server_online(token, status);
     );
 }
 
@@ -292,7 +292,7 @@ hyperdex_admin_server_offline(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->server_offline(token, *status);
+    return adm->server_offline(token, status);
     );
 }
 
@@ -303,7 +303,7 @@ hyperdex_admin_server_forget(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->server_forget(token, *status);
+    return adm->server_forget(token, status);
     );
 }
 
@@ -314,7 +314,7 @@ hyperdex_admin_server_kill(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->server_kill(token, *status);
+    return adm->server_kill(token, status);
     );
 }
 
@@ -326,7 +326,7 @@ hyperdex_admin_backup(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->backup(backup, *status, backups);
+    return adm->backup(backup, status, backups);
     );
 }
 
@@ -337,7 +337,7 @@ hyperdex_admin_enable_perf_counters(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->enable_perf_counters(*status, pc);
+    return adm->enable_perf_counters(status, pc);
     );
 }
 
@@ -354,7 +354,7 @@ hyperdex_admin_loop(struct hyperdex_admin* _adm, int timeout,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->loop(timeout, *status);
+    return adm->loop(timeout, status);
     );
 }
 

@@ -37,17 +37,17 @@ class coord_rpc_generic : public coord_rpc
 {
     public:
         coord_rpc_generic(uint64_t admin_visible_id,
-                          hyperdex_admin_returncode& status,
+                          hyperdex_admin_returncode* status,
                           const char* opname);
         virtual ~coord_rpc_generic() throw ();
 
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperdex_admin_returncode& status);
+        virtual bool yield(hyperdex_admin_returncode* status);
 
     public:
         virtual bool handle_response(admin* adm,
-                                     hyperdex_admin_returncode& status);
+                                     hyperdex_admin_returncode* status);
 
     protected:
         friend class e::intrusive_ptr<coord_rpc>;

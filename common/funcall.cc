@@ -86,7 +86,7 @@ hyperdex :: apply_funcs(const schema& sc,
                         const std::vector<funcall>& funcs,
                         const e::slice& key,
                         const std::vector<e::slice>& old_value,
-                        std::auto_ptr<e::buffer>* backing,
+                        e::arena* new_memory,
                         std::vector<e::slice>* new_value)
 {
     // Figure out the size of the new buffer
@@ -106,13 +106,7 @@ hyperdex :: apply_funcs(const schema& sc,
             + funcs[i].arg2.size() + sizeof(uint64_t);
     }
 
-    // Allocate the new buffer
-    backing->reset(e::buffer::create(sz));
-    (*backing)->resize(sz);
-    new_value->resize(old_value.size());
-
-    // Write out the object into new_backing
-    uint8_t* write_to = (*backing)->data();
+    new_memory->reserve(sz);
 
     // Apply the funcalls to each value
     const funcall* op = funcs.empty() ? NULL : &funcs.front();
@@ -145,9 +139,10 @@ hyperdex :: apply_funcs(const schema& sc,
         {
             assert(next_to_copy > 0);
             size_t idx = next_to_copy - 1;
-            memmove(write_to, old_value[idx].data(), old_value[idx].size());
-            (*new_value)[idx] = e::slice(write_to, old_value[idx].size());
-            write_to += old_value[idx].size();
+            unsigned char* tmp = NULL;
+            new_memory->allocate(old_value[idx].size(), &tmp);
+            memmove(tmp, old_value[idx].data(), old_value[idx].size());
+            (*new_value)[idx] = e::slice(tmp, old_value[idx].size());
             ++next_to_copy;
         }
 
@@ -158,16 +153,11 @@ hyperdex :: apply_funcs(const schema& sc,
 
         // This call may modify [op, end) funcs.
         datatype_info* di = datatype_info::lookup(sc.attrs[op->attr].type);
-        uint8_t* new_write_to = di->apply(old_value[op->attr - 1],
-                                          op, end - op, write_to);
 
-        if (!new_write_to)
+        if (!di->apply(old_value[op->attr - 1], op, end - op, new_memory, &(*new_value)[next_to_copy - 1]))
         {
             return (op - &funcs.front());
         }
-
-        (*new_value)[next_to_copy - 1] = e::slice(write_to, new_write_to - write_to);
-        write_to = new_write_to;
 
         // Why ++ and assert rather than straight assign?  This will help us to
         // catch any problems in the interaction between funcs and
@@ -183,9 +173,10 @@ hyperdex :: apply_funcs(const schema& sc,
     {
         assert(next_to_copy > 0);
         size_t idx = next_to_copy - 1;
-        memmove(write_to, old_value[idx].data(), old_value[idx].size());
-        (*new_value)[idx] = e::slice(write_to, old_value[idx].size());
-        write_to += old_value[idx].size();
+        unsigned char* tmp = NULL;
+        new_memory->allocate(old_value[idx].size(), &tmp);
+        memmove(tmp, old_value[idx].data(), old_value[idx].size());
+        (*new_value)[idx] = e::slice(tmp, old_value[idx].size());
         ++next_to_copy;
     }
 

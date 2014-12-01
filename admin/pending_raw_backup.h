@@ -40,14 +40,14 @@ class pending_raw_backup : public pending
 {
     public:
         pending_raw_backup(uint64_t admin_visible_id,
-                           hyperdex_admin_returncode& status,
+                           hyperdex_admin_returncode* status,
                            const char** path);
         virtual ~pending_raw_backup() throw ();
 
     // return to admin
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperdex_admin_returncode& status);
+        virtual bool yield(hyperdex_admin_returncode* status);
 
     // events
     public:
@@ -58,7 +58,7 @@ class pending_raw_backup : public pending
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperdex_admin_returncode& status);
+                                    hyperdex_admin_returncode* status);
 
     private:
         pending_raw_backup(const pending_raw_backup& other);

@@ -144,10 +144,11 @@ datatype_map :: check_args(const funcall& func) const
     }
 }
 
-uint8_t*
+bool
 datatype_map :: apply(const e::slice& old_value,
                       const funcall* funcs, size_t funcs_sz,
-                      uint8_t* writeto)
+                      e::arena* new_memory,
+                      e::slice* new_value) const
 {
     // Initialize map with the compare operator of the key's datatype
     map_t map(m_k->compare_less());
@@ -167,9 +168,6 @@ datatype_map :: apply(const e::slice& old_value,
         assert(stepped);
         map.insert(std::make_pair(key, val));
     }
-
-    e::array_ptr<e::array_ptr<uint8_t> > scratch;
-    scratch = new e::array_ptr<uint8_t>[funcs_sz];
 
     for (size_t i = 0; i < funcs_sz; ++i)
     {
@@ -211,9 +209,9 @@ datatype_map :: apply(const e::slice& old_value,
             case FUNC_NUM_OR:
             case FUNC_NUM_XOR:
                 // This function is a composite of several subfunctions
-                if (!apply_inner(&map, &scratch[i], funcs + i))
+                if (!apply_inner(&map, funcs + i, new_memory))
                 {
-                    return NULL;
+                    return false;
                 }
 
                 break;
@@ -221,7 +219,6 @@ datatype_map :: apply(const e::slice& old_value,
             case FUNC_LIST_LPUSH:
             case FUNC_LIST_RPUSH:
             case FUNC_DOC_RENAME:
-            case FUNC_DOC_SET:
             case FUNC_DOC_UNSET:
             case FUNC_SET_ADD:
             case FUNC_SET_REMOVE:
@@ -232,19 +229,31 @@ datatype_map :: apply(const e::slice& old_value,
         }
     }
 
+    size_t sz = 0;
+
     for (map_t::iterator i = map.begin(); i != map.end(); ++i)
     {
-        writeto = m_k->write(writeto, i->first);
-        writeto = m_v->write(writeto, i->second);
+        sz += m_k->write_sz(i->first);
+        sz += m_v->write_sz(i->second);
     }
 
-    return writeto;
+    uint8_t* write_to = NULL;
+    new_memory->allocate(sz, &write_to);
+    *new_value = e::slice(write_to, sz);
+
+    for (map_t::iterator i = map.begin(); i != map.end(); ++i)
+    {
+        write_to = m_k->write(i->first, write_to);
+        write_to = m_v->write(i->second, write_to);
+    }
+
+    return true;
 }
 
 bool
 datatype_map :: apply_inner(map_t* m,
-                            e::array_ptr<uint8_t>* scratch,
-                            const funcall* func)
+                            const funcall* func,
+                            e::arena* new_memory) const
 {
     map_t::iterator it = m->find(func->arg2);
     e::slice old_value("", 0);
@@ -254,18 +263,14 @@ datatype_map :: apply_inner(map_t* m,
         old_value = it->second;
     }
 
-    // Create new writebuffer (old content + new key + new value)
-    *scratch = new uint8_t[old_value.size() + sizeof(uint32_t) + func->arg1.size()];
-    uint8_t* writeto = m_v->apply(old_value, func, 1, scratch->get());
+    e::slice new_value;
 
-    if (!writeto)
+    if (!m_v->apply(old_value, func, 1, new_memory, &new_value))
     {
         return false;
     }
 
-    // we're done with that subfunction
-    // extract only the part that was written to as value
-    (*m)[func->arg2] = e::slice(scratch->get(), writeto - scratch->get());
+    (*m)[func->arg2] = new_value;
     return true;
 }
 
@@ -282,7 +287,7 @@ datatype_map :: has_length() const
 }
 
 uint64_t
-datatype_map :: length(const e::slice& map)
+datatype_map :: length(const e::slice& map) const
 {
     const uint8_t* ptr = map.data();
     const uint8_t* end = map.data() + map.size();
@@ -317,7 +322,7 @@ datatype_map :: contains_datatype() const
 }
 
 bool
-datatype_map :: contains(const e::slice& map, const e::slice& needle)
+datatype_map :: contains(const e::slice& map, const e::slice& needle) const
 {
     const uint8_t* ptr = map.data();
     const uint8_t* end = map.data() + map.size();

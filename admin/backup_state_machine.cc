@@ -36,7 +36,7 @@ using hyperdex::backup_state_machine;
 
 backup_state_machine :: backup_state_machine(const char* name,
                                              uint64_t id,
-                                             hyperdex_admin_returncode& status,
+                                             hyperdex_admin_returncode* status,
                                              const char** backups)
     : multi_yieldable(id, status)
     , m_name(name)
@@ -63,10 +63,10 @@ backup_state_machine :: can_yield()
 }
 
 bool
-backup_state_machine :: yield(hyperdex_admin_returncode& status)
+backup_state_machine :: yield(hyperdex_admin_returncode* status)
 {
     assert(this->can_yield());
-    status = HYPERDEX_ADMIN_SUCCESS;
+    *status = HYPERDEX_ADMIN_SUCCESS;
     m_state = YIELDED;
     m_backups_str = m_backups.str();
     *m_backups_c_str = m_backups_str.c_str();
@@ -74,14 +74,14 @@ backup_state_machine :: yield(hyperdex_admin_returncode& status)
 }
 
 bool
-backup_state_machine :: initialize(admin* adm, hyperdex_admin_returncode& status)
+backup_state_machine :: initialize(admin* adm, hyperdex_admin_returncode* status)
 {
-    status = HYPERDEX_ADMIN_SUCCESS;
-    m_nested_id = adm->read_only(1, m_nested_rc);
+    *status = HYPERDEX_ADMIN_SUCCESS;
+    m_nested_id = adm->read_only(1, &m_nested_rc);
 
     if (!check_nested(adm))
     {
-        status = m_nested_rc;
+        *status = m_nested_rc;
         return false;
     }
 
@@ -91,9 +91,9 @@ backup_state_machine :: initialize(admin* adm, hyperdex_admin_returncode& status
 }
 
 bool
-backup_state_machine :: callback(admin* adm, int64_t id, hyperdex_admin_returncode& status)
+backup_state_machine :: callback(admin* adm, int64_t id, hyperdex_admin_returncode* status)
 {
-    status = HYPERDEX_ADMIN_SUCCESS;
+    *status = HYPERDEX_ADMIN_SUCCESS;
 
     switch (m_state)
     {
@@ -139,7 +139,7 @@ backup_state_machine :: callback(admin* adm, int64_t id, hyperdex_admin_returnco
 void
 backup_state_machine :: backout(admin* adm)
 {
-    m_nested_id = adm->read_only(0, m_nested_rc);
+    m_nested_id = adm->read_only(0, &m_nested_rc);
 
     if (m_nested_id < 0)
     {
@@ -218,7 +218,7 @@ backup_state_machine :: callback_set_read_only(admin* adm, int64_t id)
         return;
     }
 
-    m_nested_id = adm->wait_until_stable(m_nested_rc);
+    m_nested_id = adm->wait_until_stable(&m_nested_rc);
 
     if (!check_nested(adm))
     {
@@ -265,7 +265,7 @@ backup_state_machine :: callback_daemon_backup(admin* adm, int64_t id)
     if (m_servers.empty())
     {
         std::string path = m_name + ".coordinator.bin";
-        m_nested_id = adm->coord_backup(path.c_str(), m_nested_rc);
+        m_nested_id = adm->coord_backup(path.c_str(), &m_nested_rc);
 
         if (!check_nested(adm))
         {
@@ -280,7 +280,7 @@ backup_state_machine :: callback_daemon_backup(admin* adm, int64_t id)
     server_id sid = m_servers.back().first;
     po6::net::location loc = m_servers.back().second;
     m_servers.pop_back();
-    m_nested_id = adm->raw_backup(sid, m_name.c_str(), m_nested_rc, &m_backup);
+    m_nested_id = adm->raw_backup(sid, m_name.c_str(), &m_nested_rc, &m_backup);
     m_backups << sid.get() << " " << loc.address << " ";
 
     if (!check_nested(adm))
@@ -300,7 +300,7 @@ backup_state_machine :: callback_coord_backup(admin* adm, int64_t id)
         return;
     }
 
-    m_nested_id = adm->wait_until_stable(m_nested_rc);
+    m_nested_id = adm->wait_until_stable(&m_nested_rc);
 
     if (!check_nested(adm))
     {
@@ -325,7 +325,7 @@ backup_state_machine :: callback_wait_to_quiesce_again(admin* adm, int64_t id)
         backout(adm);
     }
 
-    m_nested_id = adm->read_only(0, m_nested_rc);
+    m_nested_id = adm->read_only(0, &m_nested_rc);
 
     if (!check_nested(adm))
     {

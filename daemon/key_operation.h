@@ -32,7 +32,7 @@
 #include <memory>
 
 // e
-#include <e/buffer.h>
+#include <e/arena.h>
 #include <e/intrusive_ptr.h>
 
 // HyperDex
@@ -49,7 +49,7 @@ class key_operation
                       bool fresh,
                       bool has_value,
                       const std::vector<e::slice>& value,
-                      std::auto_ptr<e::buffer> backing);
+                      std::auto_ptr<e::arena> memory);
         ~key_operation() throw ();
 
     public:
@@ -126,7 +126,7 @@ class key_operation
         uint64_t m_nonce;
 
         const std::vector<e::slice> m_value;
-        const std::auto_ptr<e::buffer> m_backing;
+        const std::auto_ptr<e::arena> m_memory;
 
         enum { UNKNOWN, CONTINUOUS, DISCONTINUOUS } m_type;
         region_id m_this_old_region;

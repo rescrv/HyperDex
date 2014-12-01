@@ -13,7 +13,7 @@ assertEquals(c.get('kv', 'k1')['v'], Document({'a': 'b', 'c': {'d' : 1, 'e': 'f'
 assertTrue(c.put('kv', 'k2',  {'v': Document({'a': 'b', 'c': {'d' : 1, 'e': 'f', 'g': -2 }})}))
 assertEquals(c.get('kv', 'k2')['v'], Document({'a': 'b', 'c': {'d' : 1, 'e': 'f', 'g': -2 }}))
 assertEquals(c.count('kv', {}), 2)
-assertTrue(c.group_del('kv', {'v.a' : 'b'}))
+assertEquals(c.group_del('kv', {'v.a' : 'b'}), 2)
 assertEquals(c.count('kv', {}), 0)
 
 assertTrue(c.put('kv', 'k',  {'v': Document({'a': 'b', 'c': {'d' : 1, 'e': 'f', 'g': -2 }})}))
@@ -29,7 +29,7 @@ assertEquals(c.group_atomic_add('kv', {'k':'k'},  {'v.e': 1}), 1)
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 2, 'e': 'f', 'g': -2 }, 'e' : 1}))
 assertEquals(c.group_atomic_add('kv', {'v.c.d': 2},  {'v.c.g': 5}), 1)
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 2, 'e': 'f', 'g': 3 }, 'e' : 1}))
-assertEquals(c.group_document_set('kv', {'v.a' : 'b'}, {'v.f': 42}), 1)
+assertEquals(c.group_put('kv', {'v.a' : 'b'}, {'v.f': 42}), 1)
 assertEquals(c.get('kv', 'k')['v'], Document({'a': 'b', 'c': {'d' : 2, 'e': 'f', 'g': 3 }, 'e' : 1, 'f' : 42}))
 assertTrue(c.delete('kv',  'k'))
 

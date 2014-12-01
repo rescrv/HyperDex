@@ -230,6 +230,57 @@ def async_cond_put(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_put}.
 
+%%%%%%%%%%%%%%%%%%%% group_put %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_put}}
+\label{api:python:group_put}
+\index{group\_put!Python API}
+\input{\topdir/api/desc/group_put}
+
+\paragraph{Definition:}
+\begin{pythoncode}
+def group_put(self, spacename, predicates, attributes)
+\end{pythoncode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/python/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_put}}
+\label{api:python:async_group_put}
+\index{async\_group\_put!Python API}
+\input{\topdir/api/desc/group_put}
+
+\paragraph{Definition:}
+\begin{pythoncode}
+def async_group_put(self, spacename, predicates, attributes)
+\end{pythoncode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_put}.
+
 %%%%%%%%%%%%%%%%%%%% put_if_not_exist %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{put\_if\_not\_exist}}
@@ -379,16 +430,16 @@ def async_cond_del(self, spacename, key, predicates)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_del}.
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_add %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_del %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_add}}
-\label{api:python:group_atomic_add}
-\index{group\_atomic\_add!Python API}
-\input{\topdir/api/desc/group_atomic_add}
+\subsubsection{\code{group\_del}}
+\label{api:python:group_del}
+\index{group\_del!Python API}
+\input{\topdir/api/desc/group_del}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_atomic_add(self, spacename, predicates, attributes)
+def group_del(self, spacename, predicates)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -397,22 +448,20 @@ def group_atomic_add(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/in_asynccall_spacename}
 \item \code{predicates}\\
 \input{\topdir/api/fragments/python/client/in_asynccall_predicates}
-\item \code{attributes}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_atomic\_add}}
-\label{api:python:async_group_atomic_add}
-\index{async\_group\_atomic\_add!Python API}
-\input{\topdir/api/desc/group_atomic_add}
+\subsubsection{\code{async\_group\_del}}
+\label{api:python:async_group_del}
+\index{async\_group\_del!Python API}
+\input{\topdir/api/desc/group_del}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_atomic_add(self, spacename, predicates, attributes)
+def async_group_del(self, spacename, predicates)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -421,14 +470,12 @@ def async_group_atomic_add(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/in_asynccall_spacename}
 \item \code{predicates}\\
 \input{\topdir/api/fragments/python/client/in_asynccall_predicates}
-\item \code{attributes}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_add}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_del}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -536,16 +583,16 @@ def async_cond_atomic_add(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_add}.
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_sub %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_sub}}
-\label{api:python:group_atomic_sub}
-\index{group\_atomic\_sub!Python API}
-\input{\topdir/api/desc/group_atomic_sub}
+\subsubsection{\code{group\_atomic\_add}}
+\label{api:python:group_atomic_add}
+\index{group\_atomic\_add!Python API}
+\input{\topdir/api/desc/group_atomic_add}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_atomic_sub(self, spacename, predicates, attributes)
+def group_atomic_add(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -562,14 +609,14 @@ def group_atomic_sub(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_atomic\_sub}}
-\label{api:python:async_group_atomic_sub}
-\index{async\_group\_atomic\_sub!Python API}
-\input{\topdir/api/desc/group_atomic_sub}
+\subsubsection{\code{async\_group\_atomic\_add}}
+\label{api:python:async_group_atomic_add}
+\index{async\_group\_atomic\_add!Python API}
+\input{\topdir/api/desc/group_atomic_add}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_atomic_sub(self, spacename, predicates, attributes)
+def async_group_atomic_add(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -585,7 +632,7 @@ def async_group_atomic_sub(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_sub}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_add}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_sub %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -693,16 +740,16 @@ def async_cond_atomic_sub(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_sub}.
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_mul %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_sub %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_mul}}
-\label{api:python:group_atomic_mul}
-\index{group\_atomic\_mul!Python API}
-\input{\topdir/api/desc/group_atomic_mul}
+\subsubsection{\code{group\_atomic\_sub}}
+\label{api:python:group_atomic_sub}
+\index{group\_atomic\_sub!Python API}
+\input{\topdir/api/desc/group_atomic_sub}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_atomic_mul(self, spacename, predicates, attributes)
+def group_atomic_sub(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -719,14 +766,14 @@ def group_atomic_mul(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_atomic\_mul}}
-\label{api:python:async_group_atomic_mul}
-\index{async\_group\_atomic\_mul!Python API}
-\input{\topdir/api/desc/group_atomic_mul}
+\subsubsection{\code{async\_group\_atomic\_sub}}
+\label{api:python:async_group_atomic_sub}
+\index{async\_group\_atomic\_sub!Python API}
+\input{\topdir/api/desc/group_atomic_sub}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_atomic_mul(self, spacename, predicates, attributes)
+def async_group_atomic_sub(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -742,7 +789,7 @@ def async_group_atomic_mul(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_mul}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_sub}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_mul %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -850,16 +897,16 @@ def async_cond_atomic_mul(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_mul}.
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_div %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_mul %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_div}}
-\label{api:python:group_atomic_div}
-\index{group\_atomic\_div!Python API}
-\input{\topdir/api/desc/group_atomic_div}
+\subsubsection{\code{group\_atomic\_mul}}
+\label{api:python:group_atomic_mul}
+\index{group\_atomic\_mul!Python API}
+\input{\topdir/api/desc/group_atomic_mul}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_atomic_div(self, spacename, predicates, attributes)
+def group_atomic_mul(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -876,14 +923,14 @@ def group_atomic_div(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_atomic\_div}}
-\label{api:python:async_group_atomic_div}
-\index{async\_group\_atomic\_div!Python API}
-\input{\topdir/api/desc/group_atomic_div}
+\subsubsection{\code{async\_group\_atomic\_mul}}
+\label{api:python:async_group_atomic_mul}
+\index{async\_group\_atomic\_mul!Python API}
+\input{\topdir/api/desc/group_atomic_mul}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_atomic_div(self, spacename, predicates, attributes)
+def async_group_atomic_mul(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -899,7 +946,7 @@ def async_group_atomic_div(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_div}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_mul}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_div %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1007,16 +1054,16 @@ def async_cond_atomic_div(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_div}.
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_mod %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_div %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_mod}}
-\label{api:python:group_atomic_mod}
-\index{group\_atomic\_mod!Python API}
-\input{\topdir/api/desc/group_atomic_mod}
+\subsubsection{\code{group\_atomic\_div}}
+\label{api:python:group_atomic_div}
+\index{group\_atomic\_div!Python API}
+\input{\topdir/api/desc/group_atomic_div}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_atomic_mod(self, spacename, predicates, attributes)
+def group_atomic_div(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1033,14 +1080,14 @@ def group_atomic_mod(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_atomic\_mod}}
-\label{api:python:async_group_atomic_mod}
-\index{async\_group\_atomic\_mod!Python API}
-\input{\topdir/api/desc/group_atomic_mod}
+\subsubsection{\code{async\_group\_atomic\_div}}
+\label{api:python:async_group_atomic_div}
+\index{async\_group\_atomic\_div!Python API}
+\input{\topdir/api/desc/group_atomic_div}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_atomic_mod(self, spacename, predicates, attributes)
+def async_group_atomic_div(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1056,7 +1103,7 @@ def async_group_atomic_mod(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_mod}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_div}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_mod %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1164,16 +1211,16 @@ def async_cond_atomic_mod(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_mod}.
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_and %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_mod %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_and}}
-\label{api:python:group_atomic_and}
-\index{group\_atomic\_and!Python API}
-\input{\topdir/api/desc/group_atomic_and}
+\subsubsection{\code{group\_atomic\_mod}}
+\label{api:python:group_atomic_mod}
+\index{group\_atomic\_mod!Python API}
+\input{\topdir/api/desc/group_atomic_mod}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_atomic_and(self, spacename, predicates, attributes)
+def group_atomic_mod(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1190,14 +1237,14 @@ def group_atomic_and(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_atomic\_and}}
-\label{api:python:async_group_atomic_and}
-\index{async\_group\_atomic\_and!Python API}
-\input{\topdir/api/desc/group_atomic_and}
+\subsubsection{\code{async\_group\_atomic\_mod}}
+\label{api:python:async_group_atomic_mod}
+\index{async\_group\_atomic\_mod!Python API}
+\input{\topdir/api/desc/group_atomic_mod}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_atomic_and(self, spacename, predicates, attributes)
+def async_group_atomic_mod(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1213,7 +1260,7 @@ def async_group_atomic_and(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_and}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_mod}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_and %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1321,16 +1368,16 @@ def async_cond_atomic_and(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_and}.
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_or %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_and %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_or}}
-\label{api:python:group_atomic_or}
-\index{group\_atomic\_or!Python API}
-\input{\topdir/api/desc/group_atomic_or}
+\subsubsection{\code{group\_atomic\_and}}
+\label{api:python:group_atomic_and}
+\index{group\_atomic\_and!Python API}
+\input{\topdir/api/desc/group_atomic_and}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_atomic_or(self, spacename, predicates, attributes)
+def group_atomic_and(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1347,14 +1394,14 @@ def group_atomic_or(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_atomic\_or}}
-\label{api:python:async_group_atomic_or}
-\index{async\_group\_atomic\_or!Python API}
-\input{\topdir/api/desc/group_atomic_or}
+\subsubsection{\code{async\_group\_atomic\_and}}
+\label{api:python:async_group_atomic_and}
+\index{async\_group\_atomic\_and!Python API}
+\input{\topdir/api/desc/group_atomic_and}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_atomic_or(self, spacename, predicates, attributes)
+def async_group_atomic_and(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1370,7 +1417,7 @@ def async_group_atomic_or(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_or}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_and}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_or %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1478,16 +1525,16 @@ def async_cond_atomic_or(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_or}.
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_xor %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_or %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_xor}}
-\label{api:python:group_atomic_xor}
-\index{group\_atomic\_xor!Python API}
-\input{\topdir/api/desc/group_atomic_xor}
+\subsubsection{\code{group\_atomic\_or}}
+\label{api:python:group_atomic_or}
+\index{group\_atomic\_or!Python API}
+\input{\topdir/api/desc/group_atomic_or}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_atomic_xor(self, spacename, predicates, attributes)
+def group_atomic_or(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1504,14 +1551,14 @@ def group_atomic_xor(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_atomic\_xor}}
-\label{api:python:async_group_atomic_xor}
-\index{async\_group\_atomic\_xor!Python API}
-\input{\topdir/api/desc/group_atomic_xor}
+\subsubsection{\code{async\_group\_atomic\_or}}
+\label{api:python:async_group_atomic_or}
+\index{async\_group\_atomic\_or!Python API}
+\input{\topdir/api/desc/group_atomic_or}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_atomic_xor(self, spacename, predicates, attributes)
+def async_group_atomic_or(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1527,7 +1574,7 @@ def async_group_atomic_xor(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_xor}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_or}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_xor %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1635,16 +1682,16 @@ def async_cond_atomic_xor(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_xor}.
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_min %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_xor %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_min}}
-\label{api:python:group_atomic_min}
-\index{group\_atomic\_min!Python API}
-\input{\topdir/api/desc/group_atomic_min}
+\subsubsection{\code{group\_atomic\_xor}}
+\label{api:python:group_atomic_xor}
+\index{group\_atomic\_xor!Python API}
+\input{\topdir/api/desc/group_atomic_xor}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_atomic_min(self, spacename, predicates, attributes)
+def group_atomic_xor(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1661,14 +1708,14 @@ def group_atomic_min(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_atomic\_min}}
-\label{api:python:async_group_atomic_min}
-\index{async\_group\_atomic\_min!Python API}
-\input{\topdir/api/desc/group_atomic_min}
+\subsubsection{\code{async\_group\_atomic\_xor}}
+\label{api:python:async_group_atomic_xor}
+\index{async\_group\_atomic\_xor!Python API}
+\input{\topdir/api/desc/group_atomic_xor}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_atomic_min(self, spacename, predicates, attributes)
+def async_group_atomic_xor(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1684,7 +1731,7 @@ def async_group_atomic_min(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_min}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_xor}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_min %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1792,16 +1839,16 @@ def async_cond_atomic_min(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_min}.
 
-%%%%%%%%%%%%%%%%%%%% group_atomic_max %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_min %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_atomic\_max}}
-\label{api:python:group_atomic_max}
-\index{group\_atomic\_max!Python API}
-\input{\topdir/api/desc/group_atomic_max}
+\subsubsection{\code{group\_atomic\_min}}
+\label{api:python:group_atomic_min}
+\index{group\_atomic\_min!Python API}
+\input{\topdir/api/desc/group_atomic_min}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_atomic_max(self, spacename, predicates, attributes)
+def group_atomic_min(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1818,14 +1865,14 @@ def group_atomic_max(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_atomic\_max}}
-\label{api:python:async_group_atomic_max}
-\index{async\_group\_atomic\_max!Python API}
-\input{\topdir/api/desc/group_atomic_max}
+\subsubsection{\code{async\_group\_atomic\_min}}
+\label{api:python:async_group_atomic_min}
+\index{async\_group\_atomic\_min!Python API}
+\input{\topdir/api/desc/group_atomic_min}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_atomic_max(self, spacename, predicates, attributes)
+def async_group_atomic_min(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1841,7 +1888,7 @@ def async_group_atomic_max(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_max}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_min}.
 
 %%%%%%%%%%%%%%%%%%%% atomic_max %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1949,16 +1996,16 @@ def async_cond_atomic_max(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_atomic\_max}.
 
-%%%%%%%%%%%%%%%%%%%% group_string_prepend %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_atomic_max %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_string\_prepend}}
-\label{api:python:group_string_prepend}
-\index{group\_string\_prepend!Python API}
-\input{\topdir/api/desc/group_string_prepend}
+\subsubsection{\code{group\_atomic\_max}}
+\label{api:python:group_atomic_max}
+\index{group\_atomic\_max!Python API}
+\input{\topdir/api/desc/group_atomic_max}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_string_prepend(self, spacename, predicates, attributes)
+def group_atomic_max(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1975,14 +2022,14 @@ def group_string_prepend(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_string\_prepend}}
-\label{api:python:async_group_string_prepend}
-\index{async\_group\_string\_prepend!Python API}
-\input{\topdir/api/desc/group_string_prepend}
+\subsubsection{\code{async\_group\_atomic\_max}}
+\label{api:python:async_group_atomic_max}
+\index{async\_group\_atomic\_max!Python API}
+\input{\topdir/api/desc/group_atomic_max}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_string_prepend(self, spacename, predicates, attributes)
+def async_group_atomic_max(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -1998,7 +2045,7 @@ def async_group_string_prepend(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_string\_prepend}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_atomic\_max}.
 
 %%%%%%%%%%%%%%%%%%%% string_prepend %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -2106,16 +2153,16 @@ def async_cond_string_prepend(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_string\_prepend}.
 
-%%%%%%%%%%%%%%%%%%%% group_string_append %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_string_prepend %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_string\_append}}
-\label{api:python:group_string_append}
-\index{group\_string\_append!Python API}
-\input{\topdir/api/desc/group_string_append}
+\subsubsection{\code{group\_string\_prepend}}
+\label{api:python:group_string_prepend}
+\index{group\_string\_prepend!Python API}
+\input{\topdir/api/desc/group_string_prepend}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_string_append(self, spacename, predicates, attributes)
+def group_string_prepend(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -2132,14 +2179,14 @@ def group_string_append(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_string\_append}}
-\label{api:python:async_group_string_append}
-\index{async\_group\_string\_append!Python API}
-\input{\topdir/api/desc/group_string_append}
+\subsubsection{\code{async\_group\_string\_prepend}}
+\label{api:python:async_group_string_prepend}
+\index{async\_group\_string\_prepend!Python API}
+\input{\topdir/api/desc/group_string_prepend}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_string_append(self, spacename, predicates, attributes)
+def async_group_string_prepend(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -2155,7 +2202,7 @@ def async_group_string_append(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_string\_append}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_string\_prepend}.
 
 %%%%%%%%%%%%%%%%%%%% string_append %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -2263,16 +2310,16 @@ def async_cond_string_append(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_string\_append}.
 
-%%%%%%%%%%%%%%%%%%%% group_list_lpush %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_string_append %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_list\_lpush}}
-\label{api:python:group_list_lpush}
-\index{group\_list\_lpush!Python API}
-\input{\topdir/api/desc/group_list_lpush}
+\subsubsection{\code{group\_string\_append}}
+\label{api:python:group_string_append}
+\index{group\_string\_append!Python API}
+\input{\topdir/api/desc/group_string_append}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_list_lpush(self, spacename, predicates, attributes)
+def group_string_append(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -2289,14 +2336,14 @@ def group_list_lpush(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_list\_lpush}}
-\label{api:python:async_group_list_lpush}
-\index{async\_group\_list\_lpush!Python API}
-\input{\topdir/api/desc/group_list_lpush}
+\subsubsection{\code{async\_group\_string\_append}}
+\label{api:python:async_group_string_append}
+\index{async\_group\_string\_append!Python API}
+\input{\topdir/api/desc/group_string_append}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_list_lpush(self, spacename, predicates, attributes)
+def async_group_string_append(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -2312,7 +2359,7 @@ def async_group_list_lpush(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_list\_lpush}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_string\_append}.
 
 %%%%%%%%%%%%%%%%%%%% list_lpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -2420,16 +2467,16 @@ def async_cond_list_lpush(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_list\_lpush}.
 
-%%%%%%%%%%%%%%%%%%%% group_list_rpush %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_list_lpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_list\_rpush}}
-\label{api:python:group_list_rpush}
-\index{group\_list\_rpush!Python API}
-\input{\topdir/api/desc/group_list_rpush}
+\subsubsection{\code{group\_list\_lpush}}
+\label{api:python:group_list_lpush}
+\index{group\_list\_lpush!Python API}
+\input{\topdir/api/desc/group_list_lpush}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_list_rpush(self, spacename, predicates, attributes)
+def group_list_lpush(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -2446,14 +2493,14 @@ def group_list_rpush(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_list\_rpush}}
-\label{api:python:async_group_list_rpush}
-\index{async\_group\_list\_rpush!Python API}
-\input{\topdir/api/desc/group_list_rpush}
+\subsubsection{\code{async\_group\_list\_lpush}}
+\label{api:python:async_group_list_lpush}
+\index{async\_group\_list\_lpush!Python API}
+\input{\topdir/api/desc/group_list_lpush}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_list_rpush(self, spacename, predicates, attributes)
+def async_group_list_lpush(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -2469,7 +2516,7 @@ def async_group_list_rpush(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_list\_rpush}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_list\_lpush}.
 
 %%%%%%%%%%%%%%%%%%%% list_rpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -2576,6 +2623,57 @@ def async_cond_list_rpush(self, spacename, key, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_list\_rpush}.
+
+%%%%%%%%%%%%%%%%%%%% group_list_rpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_rpush}}
+\label{api:python:group_list_rpush}
+\index{group\_list\_rpush!Python API}
+\input{\topdir/api/desc/group_list_rpush}
+
+\paragraph{Definition:}
+\begin{pythoncode}
+def group_list_rpush(self, spacename, predicates, attributes)
+\end{pythoncode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/python/client/return_asynccall__status_count}
+
+\pagebreak
+\subsubsection{\code{async\_group\_list\_rpush}}
+\label{api:python:async_group_list_rpush}
+\index{async\_group\_list\_rpush!Python API}
+\input{\topdir/api/desc/group_list_rpush}
+
+\paragraph{Definition:}
+\begin{pythoncode}
+def async_group_list_rpush(self, spacename, predicates, attributes)
+\end{pythoncode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/python/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
+
+\paragraph{See also:}  This is the asynchronous form of \code{group\_list\_rpush}.
 
 %%%%%%%%%%%%%%%%%%%% set_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -3213,57 +3311,6 @@ def async_cond_map_remove(self, spacename, key, predicates, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_map\_remove}.
 
-%%%%%%%%%%%%%%%%%%%% group_document_rename %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{group\_document\_rename}}
-\label{api:python:group_document_rename}
-\index{group\_document\_rename!Python API}
-\input{\topdir/api/desc/group_document_rename}
-
-\paragraph{Definition:}
-\begin{pythoncode}
-def group_document_rename(self, spacename, predicates, attributes)
-\end{pythoncode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
-\item \code{predicates}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_predicates}
-\item \code{attributes}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_attributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/python/client/return_asynccall__status_count}
-
-\pagebreak
-\subsubsection{\code{async\_group\_document\_rename}}
-\label{api:python:async_group_document_rename}
-\index{async\_group\_document\_rename!Python API}
-\input{\topdir/api/desc/group_document_rename}
-
-\paragraph{Definition:}
-\begin{pythoncode}
-def async_group_document_rename(self, spacename, predicates, attributes)
-\end{pythoncode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
-\item \code{predicates}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_predicates}
-\item \code{attributes}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_attributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
-
-\paragraph{See also:}  This is the asynchronous form of \code{group\_document\_rename}.
-
 %%%%%%%%%%%%%%%%%%%% document_rename %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{document\_rename}}
@@ -3315,16 +3362,16 @@ def async_document_rename(self, spacename, key, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{document\_rename}.
 
-%%%%%%%%%%%%%%%%%%%% group_document_unset %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_document_rename %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_document\_unset}}
-\label{api:python:group_document_unset}
-\index{group\_document\_unset!Python API}
-\input{\topdir/api/desc/group_document_unset}
+\subsubsection{\code{group\_document\_rename}}
+\label{api:python:group_document_rename}
+\index{group\_document\_rename!Python API}
+\input{\topdir/api/desc/group_document_rename}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_document_unset(self, spacename, predicates, attributes)
+def group_document_rename(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -3341,14 +3388,14 @@ def group_document_unset(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_document\_unset}}
-\label{api:python:async_group_document_unset}
-\index{async\_group\_document\_unset!Python API}
-\input{\topdir/api/desc/group_document_unset}
+\subsubsection{\code{async\_group\_document\_rename}}
+\label{api:python:async_group_document_rename}
+\index{async\_group\_document\_rename!Python API}
+\input{\topdir/api/desc/group_document_rename}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_document_unset(self, spacename, predicates, attributes)
+def async_group_document_rename(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -3364,7 +3411,7 @@ def async_group_document_unset(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_document\_unset}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_document\_rename}.
 
 %%%%%%%%%%%%%%%%%%%% document_unset %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -3417,16 +3464,16 @@ def async_document_unset(self, spacename, key, attributes)
 
 \paragraph{See also:}  This is the asynchronous form of \code{document\_unset}.
 
-%%%%%%%%%%%%%%%%%%%% group_document_set %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_document_unset %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{group\_document\_set}}
-\label{api:python:group_document_set}
-\index{group\_document\_set!Python API}
-\input{\topdir/api/desc/group_document_set}
+\subsubsection{\code{group\_document\_unset}}
+\label{api:python:group_document_unset}
+\index{group\_document\_unset!Python API}
+\input{\topdir/api/desc/group_document_unset}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def group_document_set(self, spacename, predicates, attributes)
+def group_document_unset(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -3443,14 +3490,14 @@ def group_document_set(self, spacename, predicates, attributes)
 \input{\topdir/api/fragments/python/client/return_asynccall__status_count}
 
 \pagebreak
-\subsubsection{\code{async\_group\_document\_set}}
-\label{api:python:async_group_document_set}
-\index{async\_group\_document\_set!Python API}
-\input{\topdir/api/desc/group_document_set}
+\subsubsection{\code{async\_group\_document\_unset}}
+\label{api:python:async_group_document_unset}
+\index{async\_group\_document\_unset!Python API}
+\input{\topdir/api/desc/group_document_unset}
 
 \paragraph{Definition:}
 \begin{pythoncode}
-def async_group_document_set(self, spacename, predicates, attributes)
+def async_group_document_unset(self, spacename, predicates, attributes)
 \end{pythoncode}
 
 \paragraph{Parameters:}
@@ -3466,58 +3513,7 @@ def async_group_document_set(self, spacename, predicates, attributes)
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_async_asynccall__status_count}
 
-\paragraph{See also:}  This is the asynchronous form of \code{group\_document\_set}.
-
-%%%%%%%%%%%%%%%%%%%% document_set %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_set}}
-\label{api:python:document_set}
-\index{document\_set!Python API}
-\input{\topdir/api/desc/document_set}
-
-\paragraph{Definition:}
-\begin{pythoncode}
-def document_set(self, spacename, key, attributes)
-\end{pythoncode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
-\item \code{key}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_key}
-\item \code{attributes}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_attributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/python/client/return_asynccall__status}
-
-\pagebreak
-\subsubsection{\code{async\_document\_set}}
-\label{api:python:async_document_set}
-\index{async\_document\_set!Python API}
-\input{\topdir/api/desc/document_set}
-
-\paragraph{Definition:}
-\begin{pythoncode}
-def async_document_set(self, spacename, key, attributes)
-\end{pythoncode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
-\item \code{key}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_key}
-\item \code{attributes}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_attributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/python/client/return_async_asynccall__status}
-
-\paragraph{See also:}  This is the asynchronous form of \code{document\_set}.
+\paragraph{See also:}  This is the asynchronous form of \code{group\_document\_unset}.
 
 %%%%%%%%%%%%%%%%%%%% map_atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -4889,53 +4885,6 @@ def sorted_search(self, spacename, predicates, sortby, limit, maxmin)
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/python/client/return_iterator__status_attributes}
-
-%%%%%%%%%%%%%%%%%%%% group_del %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{group\_del}}
-\label{api:python:group_del}
-\index{group\_del!Python API}
-\input{\topdir/api/desc/group_del}
-
-\paragraph{Definition:}
-\begin{pythoncode}
-def group_del(self, spacename, predicates)
-\end{pythoncode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
-\item \code{predicates}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_predicates}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/python/client/return_asynccall__status}
-
-\pagebreak
-\subsubsection{\code{async\_group\_del}}
-\label{api:python:async_group_del}
-\index{async\_group\_del!Python API}
-\input{\topdir/api/desc/group_del}
-
-\paragraph{Definition:}
-\begin{pythoncode}
-def async_group_del(self, spacename, predicates)
-\end{pythoncode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_spacename}
-\item \code{predicates}\\
-\input{\topdir/api/fragments/python/client/in_asynccall_predicates}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/python/client/return_async_asynccall__status}
-
-\paragraph{See also:}  This is the asynchronous form of \code{group\_del}.
 
 %%%%%%%%%%%%%%%%%%%% count %%%%%%%%%%%%%%%%%%%%
 \pagebreak

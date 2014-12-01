@@ -31,7 +31,7 @@
 using hyperdex::coord_rpc;
 
 coord_rpc :: coord_rpc(uint64_t id,
-                       hyperdex_admin_returncode& s)
+                       hyperdex_admin_returncode* s)
     : yieldable(id, s)
     , repl_status(REPLICANT_GARBAGE)
     , repl_output(NULL)

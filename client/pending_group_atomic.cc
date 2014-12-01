@@ -32,11 +32,13 @@
 using hyperdex::pending_group_atomic;
 
 pending_group_atomic :: pending_group_atomic(uint64_t id,
-                                 hyperdex_client_returncode& status, uint64_t& update_count)
+                                             hyperdex_client_returncode* status,
+                                             uint64_t* update_count)
     : pending_aggregation(id, status)
-    , m_state(INITIALIZED), m_update_count(update_count)
+    , m_state(INITIALIZED)
+    , m_update_count(update_count)
 {
-    m_update_count = 0;
+    *m_update_count = 0;
 }
 
 pending_group_atomic :: ~pending_group_atomic() throw ()
@@ -50,10 +52,10 @@ pending_group_atomic :: can_yield()
 }
 
 bool
-pending_group_atomic :: yield(hyperdex_client_returncode& status, e::error& err)
+pending_group_atomic :: yield(hyperdex_client_returncode* status, e::error* err)
 {
-    status = HYPERDEX_CLIENT_SUCCESS;
-    err = e::error();
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
     assert(this->can_yield());
     m_state = YIELDED;
     return true;
@@ -74,7 +76,7 @@ pending_group_atomic :: handle_sent_to(const server_id& sid,
 
 void
 pending_group_atomic :: handle_failure(const server_id& si,
-                                 const virtual_server_id& vsi)
+                                       const virtual_server_id& vsi)
 {
     pending_aggregation::handle_failure(si, vsi);
 
@@ -86,13 +88,13 @@ pending_group_atomic :: handle_failure(const server_id& si,
 
 bool
 pending_group_atomic :: handle_message(client* cl,
-                                 const server_id& si,
-                                 const virtual_server_id& vsi,
-                                 network_msgtype mt,
-                                 std::auto_ptr<e::buffer> msg,
-                                 e::unpacker up,
-                                 hyperdex_client_returncode& status,
-                                 e::error& err)
+                                       const server_id& si,
+                                       const virtual_server_id& vsi,
+                                       network_msgtype mt,
+                                       std::auto_ptr<e::buffer> msg,
+                                       e::unpacker up,
+                                       hyperdex_client_returncode* status,
+                                       e::error* err)
 {
     bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
     assert(handled);
@@ -107,7 +109,7 @@ pending_group_atomic :: handle_message(client* cl,
     up = up >> response;
 
     // Remember how many fields we updated
-    m_update_count += response;
+    *m_update_count += response;
 
     if (up.error())
     {

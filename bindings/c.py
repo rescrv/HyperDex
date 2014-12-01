@@ -145,20 +145,18 @@ def generate_client_c_wrapper(x):
     func += ')\n{\n'
     func += '    C_WRAP_EXCEPT(\n'
     if x.name == 'get':
-        func += '    return cl->get(space, key, key_sz, *status, attrs, attrs_sz);\n'
+        func += '    return cl->get(space, key, key_sz, status, attrs, attrs_sz);\n'
     elif x.name == 'get_partial':
-        func += '    return cl->get_partial(space, key, key_sz, attrnames, attrnames_sz, *status, attrs, attrs_sz);\n'
+        func += '    return cl->get_partial(space, key, key_sz, attrnames, attrnames_sz, status, attrs, attrs_sz);\n'
     elif x.name == 'search':
-        func += '    return cl->search(space, checks, checks_sz, *status, attrs, attrs_sz);\n'
+        func += '    return cl->search(space, checks, checks_sz, status, attrs, attrs_sz);\n'
     elif x.name == 'search_describe':
-        func += '    return cl->search_describe(space, checks, checks_sz, *status, description);\n'
+        func += '    return cl->search_describe(space, checks, checks_sz, status, description);\n'
     elif x.name == 'sorted_search':
-        func += '    return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maxmin, *status, attrs, attrs_sz);\n'
-    elif x.name == 'group_del':
-        func += '    return cl->group_del(space, checks, checks_sz, *status);\n'
+        func += '    return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maxmin, status, attrs, attrs_sz);\n'
     elif x.name == 'count':
-        func += '    return cl->count(space, checks, checks_sz, *status, *count);\n'
-    elif 'group_' in x.name:
+        func += '    return cl->count(space, checks, checks_sz, status, count);\n'
+    elif x.name.startswith('group_'):
         args = ('opinfo', 'space', )
         if bindings.Predicates in x.args_in:
             args += ('checks', 'checks_sz')
@@ -172,7 +170,7 @@ def generate_client_c_wrapper(x):
             args += ('mapattrs', 'mapattrs_sz')
         else:
             args += ('NULL', '0')
-        args += ('*status', '*count')
+        args += ('status', 'count')
         func += '    const hyperdex_client_keyop_info* opinfo;\n'
         func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
         func += '    return cl->perform_group_funcall('
@@ -192,7 +190,7 @@ def generate_client_c_wrapper(x):
             args += ('mapattrs', 'mapattrs_sz')
         else:
             args += ('NULL', '0')
-        args += ('*status',)
+        args += ('status',)
         func += '    const hyperdex_client_keyop_info* opinfo;\n'
         func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
         func += '    return cl->perform_funcall('
@@ -224,13 +222,7 @@ def generate_admin_c_wrapper(x):
     func += '    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);\n'
     func += '    return adm->%s(' % x.name
     args = itertools.chain(*[list(a.args) for a in x.args_in + x.args_out])
-    cargs = []
-    for a in args:
-        if a[1] == "status":
-            cargs.append("*status")
-        else:
-            cargs.append(a[1])
-    func += ', '.join([a for a in cargs])
+    func += ', '.join([a[1] for a in args])
     func += ');\n'
     if x.form != bindings.NoFailCall:
         func += '    );\n'
@@ -624,7 +616,7 @@ hyperdex_client_attribute_type(hyperdex_client* _cl,
 
     try
     {
-        return cl->attribute_type(space, name, *status);
+        return cl->attribute_type(space, name, status);
     }
     catch (po6::error& e)
     {
@@ -683,7 +675,7 @@ hyperdex_client_loop(hyperdex_client* _cl, int timeout,
                      hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
-    return cl->loop(timeout, *status);
+    return cl->loop(timeout, status);
     );
 }
 
@@ -879,7 +871,7 @@ hyperdex_admin_dump_config(struct hyperdex_admin* _adm,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->dump_config(*status, config);
+    return adm->dump_config(status, config);
     );
 }
 '''
@@ -891,7 +883,7 @@ hyperdex_admin_loop(struct hyperdex_admin* _adm, int timeout,
 {
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->loop(timeout, *status);
+    return adm->loop(timeout, status);
     );
 }
 

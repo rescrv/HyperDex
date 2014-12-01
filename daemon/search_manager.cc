@@ -538,6 +538,7 @@ search_manager :: group_keyop(const server_id& from,
         default:
             abort();
     }
+
     while (iter->valid() && result < UINT64_MAX)
     {
         e::slice key;
@@ -545,25 +546,21 @@ search_manager :: group_keyop(const server_id& from,
         uint64_t ver;
         datalayer::reference tmp;
         m_daemon->m_data.get_from_iterator(ri, *sc, iter.get(), &key, &val, &ver, &tmp);
-
         size_t sz = HYPERDEX_HEADER_SIZE_SV // SV because we imitate a client
                   + sizeof(uint64_t)
                   + pack_size(key)
                   + remain.size();
-
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
         e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_SV);
         pa = pa << static_cast<uint64_t>(0) << key;
         pa = pa.copy(remain);
         virtual_server_id vsi = m_daemon->m_config.point_leader(ri, key);
 
-        // Another server is responsible for this object
         if (vsi != virtual_server_id())
         {
             m_daemon->m_comm.send(vsi, mt, msg);
             result++;
         }
-        // what happens if vsi==virtual_server_id()???
 
         iter->next();
     }

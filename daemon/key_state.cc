@@ -239,11 +239,11 @@ key_state :: enqueue_continuous_key_op(uint64_t old_version,
                                        bool fresh,
                                        bool has_value,
                                        const std::vector<e::slice>& value,
-                                       std::auto_ptr<e::buffer> backing)
+                                       std::auto_ptr<e::arena> memory)
 {
     e::intrusive_ptr<key_operation> op;
     op = new key_operation(old_version, new_version, fresh,
-                           has_value, value, backing);
+                           has_value, value, memory);
     op->set_continuous();
 
     if ((!has_value && finished() && !m_has_old_value) ||
@@ -261,7 +261,7 @@ e::intrusive_ptr<key_operation>
 key_state :: enqueue_discontinuous_key_op(uint64_t old_version,
                                           uint64_t new_version,
                                           const std::vector<e::slice>& value,
-                                          std::auto_ptr<e::buffer> backing,
+                                          std::auto_ptr<e::arena> memory,
                                           const region_id& prev_region,
                                           const region_id& this_old_region,
                                           const region_id& this_new_region,
@@ -269,7 +269,7 @@ key_state :: enqueue_discontinuous_key_op(uint64_t old_version,
 {
     e::intrusive_ptr<key_operation> op;
     op = new key_operation(old_version, new_version, false,
-                           true, value, backing);
+                           true, value, memory);
     op->set_discontinuous(prev_region, this_old_region, this_new_region, next_region);
     m_deferred.push_back(op);
     return op;
@@ -456,14 +456,14 @@ key_state :: step_state_machine_changes(replication_manager* rm,
         e::intrusive_ptr<key_operation> op;
         op = new key_operation(old_version, dkc->version, false,
                                false, std::vector<e::slice>(sc.attrs_sz - 1),
-                               std::auto_ptr<e::buffer>());
+                               std::auto_ptr<e::arena>());
         op->set_continuous();
         op->set_client(dkc->from, dkc->nonce);
         m_deferred.push_back(op);
         return true;
     }
 
-    std::auto_ptr<e::buffer> backing;
+    std::auto_ptr<e::arena> memory(new e::arena());
     std::vector<e::slice> new_value(sc.attrs_sz - 1);
 
     // if there is no old value, pretend it is "new_value" which is
@@ -473,21 +473,20 @@ key_state :: step_state_machine_changes(replication_manager* rm,
         old_value = &new_value;
     }
 
-    size_t funcs_passed = apply_funcs(sc, kc->funcs, m_key, *old_value, &backing, &new_value);
+    size_t funcs_passed = apply_funcs(sc, kc->funcs, m_key, *old_value, memory.get(), &new_value);
 
     if (funcs_passed < kc->funcs.size())
     {
-        rm->respond_to_client(us, dkc->from, dkc->nonce, NET_OVERFLOW);
+        rm->respond_to_client(us, dkc->from, dkc->nonce, NET_CMPFAIL);
         return true;
     }
 
     e::intrusive_ptr<key_operation> op;
     op = new key_operation(old_version, dkc->version, !has_old_value,
-                           true, new_value, backing);
+                           true, new_value, memory);
     op->set_continuous();
     op->set_client(dkc->from, dkc->nonce);
     m_deferred.push_back(op);
-
     return true;
 }
 

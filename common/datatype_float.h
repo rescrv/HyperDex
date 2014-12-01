@@ -37,6 +37,11 @@ BEGIN_HYPERDEX_NAMESPACE
 class datatype_float : public datatype_info
 {
     public:
+        static double unpack(const e::slice& value);
+        static double unpack(const funcall& value);
+        static void pack(double num, std::vector<char>* scratch, e::slice* value);
+
+    public:
         datatype_float();
         virtual ~datatype_float() throw ();
 
@@ -44,25 +49,29 @@ class datatype_float : public datatype_info
         virtual hyperdatatype datatype() const;
         virtual bool validate(const e::slice& value) const;
         virtual bool check_args(const funcall& func) const;
-        virtual uint8_t* apply(const e::slice& old_value,
-                               const funcall* funcs, size_t funcs_sz,
-                               uint8_t* writeto);
+        virtual bool apply(const e::slice& old_value,
+                           const funcall* funcs, size_t funcs_sz,
+                           e::arena* new_memory,
+                           e::slice* new_value) const;
 
     public:
         virtual bool hashable() const;
-        virtual uint64_t hash(const e::slice& value);
+        virtual uint64_t hash(const e::slice& value) const;
         virtual bool indexable() const;
 
     public:
         virtual bool containable() const;
         virtual bool step(const uint8_t** ptr,
                           const uint8_t* end,
-                          e::slice* elem);
-        virtual uint8_t* write(uint8_t* writeto,
-                               const e::slice& elem);
+                          e::slice* elem) const;
+        virtual uint64_t write_sz(const e::slice& elem) const;
+        virtual uint8_t* write(const e::slice& elem,
+                               uint8_t* write_to) const;
+
+    public:
         virtual bool comparable() const;
         virtual int compare(const e::slice& lhs, const e::slice& rhs) const;
-        virtual compares_less compare_less();
+        virtual compares_less compare_less() const;
 };
 
 END_HYPERDEX_NAMESPACE

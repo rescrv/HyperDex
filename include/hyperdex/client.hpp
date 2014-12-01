@@ -347,8 +347,9 @@ class Client
             { return hyperdex_client_sorted_search(m_cl, space, checks, checks_sz, sort_by, limit, maximize, status, attrs, attrs_sz); }
         int64_t group_del(const char* space,
                           const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                          enum hyperdex_client_returncode* status)
-            { return hyperdex_client_group_del(m_cl, space, checks, checks_sz, status); }
+                          enum hyperdex_client_returncode* status,
+                          uint64_t* c)
+            { return hyperdex_client_group_del(m_cl, space, checks, checks_sz, status, c); }
         int64_t count(const char* space,
                       const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
                       enum hyperdex_client_returncode* status, uint64_t* result)

@@ -49,18 +49,18 @@ class pending
 {
     public:
         pending(uint64_t client_visible_id,
-                hyperdex_client_returncode& status);
+                hyperdex_client_returncode* status);
         virtual ~pending() throw ();
 
     public:
         int64_t client_visible_id() const { return m_client_visible_id; }
-        void set_status(hyperdex_client_returncode status) { m_status = status; }
+        void set_status(hyperdex_client_returncode status) { *m_status = status; }
         e::error error() const { return m_error; }
 
     // return to client
     public:
         virtual bool can_yield() = 0;
-        virtual bool yield(hyperdex_client_returncode& status, e::error& error) = 0;
+        virtual bool yield(hyperdex_client_returncode* status, e::error* error) = 0;
 
     // events
     public:
@@ -74,8 +74,8 @@ class pending
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperdex_client_returncode& status,
-                                    e::error& error) = 0;
+                                    hyperdex_client_returncode* status,
+                                    e::error* error) = 0;
 
     // refcount
     protected:
@@ -96,7 +96,7 @@ class pending
     // operation state
     private:
         int64_t m_client_visible_id;
-        hyperdex_client_returncode& m_status;
+        hyperdex_client_returncode* m_status;
         e::error m_error;
 };
 

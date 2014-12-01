@@ -18,8 +18,6 @@ AC_CONFIG_SRCDIR([include/hyperdex.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_DEFINE([CPP_INCDIRS], [""], ["Include directories for dependencies"])
-
 # Components that influence other checks
 AC_ARG_ENABLE([all-components], [AS_HELP_STRING([--enable-all-components],
               [enable building all components @<:@default: yes@:>@])],
@@ -113,31 +111,7 @@ if test x"${enable_all_components}" = xyes -o \
         x"${enable_client}" = xyes -o \
         x"${enable_daemon}" = xyes; then
     AC_CHECK_LIB([json], [json_object_get_double], [needs_json=yes], [needs_json=no])
-    AC_CHECK_LIB([bson-1.0], [bson_init], [needs_bson=yes], [needs_bson=no])
     AC_CHECK_LIB([json-c], [json_object_get_double], [needs_json_c=yes], [needs_json_c=no])
-fi
-
-if test x"${needs_json}" = xyes; then
-    AC_SUBST([JSON_LIBS], ["-ljson"])
-elif test  x"${needs_json_c}" = xyes; then
-    AC_SUBST([JSON_LIBS], ["-ljson-c"])
-else
-    AC_MSG_ERROR([
--------------------------------------------------
-HyperDex relies upon the libjson library.
-Please install libjson to continue.
--------------------------------------------------])
-fi
-
-if test x"${needs_bson}" = xyes; then
-    AC_SUBST([BSON_LIBS], ["-lbson-1.0"])
-    AC_SUBST([CPP_INCDIRS], ["-I"$(includedir)"/home/kai/include/libbson-1.0"])
-else
-    AC_MSG_ERROR([
--------------------------------------------------
-HyperDex relies upon the libbson library.
-Please install libbson to continue.
--------------------------------------------------])
 fi
 
 PKG_CHECK_MODULES([PO6], [libpo6 >= 0.5])
@@ -148,8 +122,10 @@ if test x"${enable_all_components}" = xyes -o \
         x"${enable_daemon}" = xyes; then
     PKG_CHECK_MODULES([HYPERLEVELDB], [libhyperleveldb >= 1.0])
 fi
+
 PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.6])
 PKG_CHECK_MODULES([MACAROONS], [libmacaroons >= 0.2])
+PKG_CHECK_MODULES([TREADSTONE], [libtreadstone >= 0.0])
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])
@@ -171,26 +147,6 @@ if test x"${enable_all_components}" = xyes -o \
 HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
-fi
-
-if test x"${enable_all_components}" = xyes -o \
-        x"${enable_client}" = xyes -o \
-        x"${enable_daemon}" = xyes; then
-    AC_CHECK_HEADER([json/json.h], [needs_json_h=yes], [needs_json_h=no])
-    AC_CHECK_HEADER([json-c/json.h], [needs_json_c_h=yes], [needs_json_c_h=no])
-fi
-if test x"${needs_json_h}" = xyes; then
-    AC_DEFINE([HAVE_JSON_H], [1], [Define to 1 if json/json.h exists.])
-    AC_DEFINE([HAVE_JSON_C_H], [0], [Define to 1 if json-c/json.h exists.])
-elif test x"${needs_json_c_h}" = xyes; then
-    AC_DEFINE([HAVE_JSON_H], [0], [Define to 1 if json/json.h exists.])
-    AC_DEFINE([HAVE_JSON_C_H], [1], [Define to 1 if json-c/json.h exists.])
-else
-    AC_MSG_ERROR([
---------------------------------------------------
-HyperDex relies upon the libjson library.
-Please install libjson to continue.
---------------------------------------------------])
 fi
 
 # Checks for typedefs, structures, and compiler characteristics.

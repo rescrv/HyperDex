@@ -42,7 +42,7 @@ class pending_aggregation : public pending
 {
     public:
         pending_aggregation(uint64_t client_visible_id,
-                            hyperdex_client_returncode& status);
+                            hyperdex_client_returncode* status);
         virtual ~pending_aggregation() throw ();
 
     // handle aggregation across servers; must call handle_* messages from
@@ -63,8 +63,8 @@ class pending_aggregation : public pending
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperdex_client_returncode& status,
-                                    e::error& error);
+                                    hyperdex_client_returncode* status,
+                                    e::error* error);
 
     // refcount
     protected:

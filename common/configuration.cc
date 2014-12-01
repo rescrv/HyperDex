@@ -872,7 +872,7 @@ std::string
 configuration :: list_indices(const char* space_name) const
 {
     std::ostringstream out;
-    int32_t pos = -1;
+    ssize_t pos = -1;
 
     for (size_t w = 0; w < m_spaces.size() && pos == -1; ++w)
     {
@@ -903,7 +903,7 @@ std::string
 configuration :: list_subspaces(const char* space_name) const
 {
     std::ostringstream out;
-    int32_t pos = -1;
+    ssize_t pos = -1;
 
     for (size_t w = 0; w < m_spaces.size() && pos == -1; ++w)
     {

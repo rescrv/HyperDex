@@ -29,6 +29,7 @@
 #define hyperdex_common_datatypes_h_
 
 // e
+#include <e/arena.h>
 #include <e/slice.h>
 
 // HyperDex
@@ -39,8 +40,6 @@
 #include "common/ids.h"
 
 BEGIN_HYPERDEX_NAMESPACE
-
-class key_change;
 
 class datatype_info
 {
@@ -58,14 +57,25 @@ class datatype_info
         virtual hyperdatatype datatype() const = 0;
         virtual bool validate(const e::slice& value) const = 0;
         virtual bool check_args(const funcall& func) const = 0;
-        virtual uint8_t* apply(const e::slice& old_value,
-                               const funcall* funcs, size_t funcs_sz,
-                               uint8_t* writeto) = 0;
+        virtual bool apply(const e::slice& old_value,
+                           const funcall* funcs, size_t funcs_sz,
+                           e::arena* new_memory,
+                           e::slice* new_value) const = 0;
+
+    // override these if the type's client-facing representation is not used as
+    // the server-side representation
+    public:
+        virtual bool client_to_server(const e::slice& client,
+                                      e::arena* new_memory,
+                                      e::slice* server) const;
+        virtual bool server_to_client(const e::slice& server,
+                                      e::arena* new_memory,
+                                      e::slice* client) const;
 
     // override these if the type is hashable
     public:
         virtual bool hashable() const;
-        virtual uint64_t hash(const e::slice& value);
+        virtual uint64_t hash(const e::slice& value) const;
 
     // override these if the type is indexable
     public:
@@ -74,40 +84,38 @@ class datatype_info
     // override these if the type has a "length"
     public:
         virtual bool has_length() const;
-        virtual uint64_t length(const e::slice& value);
+        virtual uint64_t length(const e::slice& value) const;
 
     // override these if the type can be matched with regexes
     public:
         virtual bool has_regex() const;
         virtual bool regex(const e::slice& regex,
-                           const e::slice& value);
+                           const e::slice& value) const;
 
     // override these if the type can be matched with "contains"
     public:
         virtual bool has_contains() const;
         virtual hyperdatatype contains_datatype() const;
-        virtual bool contains(const e::slice& value, const e::slice& needle);
+        virtual bool contains(const e::slice& value, const e::slice& needle) const;
 
     // override these if the type will be used within containers
     public:
         virtual bool containable() const;
         virtual bool step(const uint8_t** ptr,
                           const uint8_t* end,
-                          e::slice* elem);
+                          e::slice* elem) const;
+        virtual uint64_t write_sz(const e::slice& elem) const;
         // must handle the case where elem/writeto overlap
-        virtual uint8_t* write(uint8_t* writeto,
-                               const e::slice& elem);
-
-    // override these if the type has requirements on the old value for certain operations
-    public:
-        virtual bool validate_old_values(const std::vector<e::slice>& old_values, const funcall& func) const;
+        // may only touch [write_to,write_to+write_sz(elem))
+        virtual uint8_t* write(const e::slice& elem,
+                               uint8_t* write_to) const;
 
     // override these if the type can be compared
     public:
         virtual bool comparable() const;
         virtual int compare(const e::slice& lhs, const e::slice& rhs) const;
         typedef bool (*compares_less)(const e::slice& lhs, const e::slice& rhs);
-        virtual compares_less compare_less();
+        virtual compares_less compare_less() const;
 
     // override these if the type can be variable/document-like
     //
@@ -120,20 +128,8 @@ class datatype_info
     public:
         virtual bool document() const;
         virtual bool document_check(const attribute_check& check,
-                                    const e::slice& value);
+                                    const e::slice& value) const;
 };
-
-// Is it a float or integer?
-inline bool is_type_numeric(const hyperdatatype type)
-{
-    return type == HYPERDATATYPE_FLOAT || type == HYPERDATATYPE_INT64;
-}
-
-// Is it a numeric or string type?
-inline bool is_type_primitive(const hyperdatatype type)
-{
-    return is_type_numeric(type) || type == HYPERDATATYPE_STRING;
-}
 
 END_HYPERDEX_NAMESPACE
 

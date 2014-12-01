@@ -41,8 +41,8 @@ pending_sorted_search :: pending_sorted_search(client* cl,
                                                bool maximize,
                                                uint64_t limit,
                                                uint16_t sort_by_idx,
-                                               const datatype_info& sort_by_di,
-                                               hyperdex_client_returncode& status,
+                                               datatype_info* sort_by_di,
+                                               hyperdex_client_returncode* status,
                                                const hyperdex_client_attribute** attrs,
                                                size_t* attrs_sz)
     : pending_aggregation(id, status)
@@ -71,10 +71,10 @@ pending_sorted_search :: can_yield()
 }
 
 bool
-pending_sorted_search :: yield(hyperdex_client_returncode& status, e::error& err)
+pending_sorted_search :: yield(hyperdex_client_returncode* status, e::error* err)
 {
-    status = HYPERDEX_CLIENT_SUCCESS;
-    err = e::error();
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
     m_yield = false;
 
     if (this->aggregation_done() && m_results_idx >= m_results.size())
@@ -135,7 +135,7 @@ class sorted_search_comparator
     public:
         sorted_search_comparator(bool maximize,
                                  uint16_t sort_by_idx,
-                                 const datatype_info& sort_by_di);
+                                 datatype_info* sort_by_di);
 
     public:
         bool operator () (const pending_sorted_search::item& lhs,
@@ -144,14 +144,14 @@ class sorted_search_comparator
     private:
         bool m_maximize;
         uint16_t m_sort_by_idx;
-        const datatype_info& m_sort_by_di;
+        datatype_info* m_sort_by_di;
 };
 
 } // namespace
 
 sorted_search_comparator :: sorted_search_comparator(bool maximize,
                                                      uint16_t sort_by_idx,
-                                                     const datatype_info& sort_by_di)
+                                                     datatype_info* sort_by_di)
     : m_maximize(maximize)
     , m_sort_by_idx(sort_by_idx)
     , m_sort_by_di(sort_by_di)
@@ -183,7 +183,7 @@ sorted_search_comparator :: operator () (const pending_sorted_search::item& lhs,
         rhs_attr = rhs.value[m_sort_by_idx - 1];
     }
 
-    int cmp = m_sort_by_di.compare(lhs_attr, rhs_attr);
+    int cmp = m_sort_by_di->compare(lhs_attr, rhs_attr);
     return m_maximize ? (cmp > 0) : (cmp < 0);
 }
 
@@ -194,14 +194,14 @@ pending_sorted_search :: handle_message(client* cl,
                                         network_msgtype mt,
                                         std::auto_ptr<e::buffer> msg,
                                         e::unpacker up,
-                                        hyperdex_client_returncode& status,
-                                        e::error& err)
+                                        hyperdex_client_returncode* status,
+                                        e::error* err)
 {
     bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
     assert(handled);
 
-    status = HYPERDEX_CLIENT_SUCCESS;
-    err = e::error();
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
 
     if (mt != RESP_SORTED_SEARCH)
     {

@@ -47,9 +47,6 @@ enum network_msgtype
     REQ_ATOMIC      = 16,
     RESP_ATOMIC     = 17,
 
-    REQ_GROUP_ATOMIC = 86,
-    RESP_GROUP_ATOMIC = 87,
-
     REQ_SEARCH_START    = 32,
     REQ_SEARCH_NEXT     = 33,
     REQ_SEARCH_STOP     = 34,
@@ -59,14 +56,16 @@ enum network_msgtype
     REQ_SORTED_SEARCH   = 40,
     RESP_SORTED_SEARCH  = 41,
 
-    REQ_GROUP_DEL   = 48,
-    RESP_GROUP_DEL  = 49,
+    /* 48, 49 retired */
 
     REQ_COUNT       = 50,
     RESP_COUNT      = 51,
 
     REQ_SEARCH_DESCRIBE  = 52,
     RESP_SEARCH_DESCRIBE = 53,
+
+    REQ_GROUP_ATOMIC = 54,
+    RESP_GROUP_ATOMIC = 55,
 
     CHAIN_OP        = 64,
     CHAIN_SUBSPACE  = 65,

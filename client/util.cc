@@ -26,10 +26,12 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // e
+#include <e/arena.h>
 #include <e/endian.h>
 #include <e/guard.h>
 
 // HyperDex
+#include "common/datatype_info.h"
 #include "common/schema.h"
 #include "client/util.h"
 
@@ -43,13 +45,15 @@ hyperdex :: value_to_attributes(const configuration& config,
                                 const region_id& rid,
                                 const uint8_t* key,
                                 size_t key_sz,
-                                const std::vector<e::slice>& value,
+                                const std::vector<e::slice>& _value,
                                 hyperdex_client_returncode* op_status,
                                 e::error* op_error,
                                 const hyperdex_client_attribute** attrs,
                                 size_t* attrs_sz)
 {
+    std::vector<e::slice> value(_value);
     const schema* sc = config.get_schema(rid);
+    e::arena memory;
 
     if (value.size() + 1 != sc->attrs_sz)
     {
@@ -57,6 +61,17 @@ hyperdex :: value_to_attributes(const configuration& config,
                                 << " attributes instead of "
                                 << sc->attrs_sz - 1 << " attributes";
         return false;
+    }
+
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        datatype_info* di = datatype_info::lookup(sc->attrs[i + 1].type);
+
+        if (!di->server_to_client(value[i], &memory, &value[i]))
+        {
+            UTIL_ERROR(SERVERERROR) << "cannot convert from server-side form";
+            return false;
+        }
     }
 
     size_t sz = sizeof(hyperdex_client_attribute) * sc->attrs_sz + key_sz
@@ -126,13 +141,15 @@ hyperdex :: value_to_attributes(const configuration& config,
 bool
 hyperdex :: value_to_attributes(const configuration& config,
                                 const region_id& rid,
-                                const std::vector<std::pair<uint16_t, e::slice> >& value,
+                                const std::vector<std::pair<uint16_t, e::slice> >& _value,
                                 hyperdex_client_returncode* op_status,
                                 e::error* op_error,
                                 const hyperdex_client_attribute** attrs,
                                 size_t* attrs_sz)
 {
+    std::vector<std::pair<uint16_t, e::slice> > value(_value);
     const schema* sc = config.get_schema(rid);
+    e::arena memory;
     size_t sz = sizeof(hyperdex_client_attribute) * value.size()
               + strlen(sc->attrs[0].name) + 1;
 
@@ -149,6 +166,13 @@ hyperdex :: value_to_attributes(const configuration& config,
         }
 
         sz += strlen(sc->attrs[attr].name) + 1 + value[i].second.size();
+        datatype_info* di = datatype_info::lookup(sc->attrs[attr].type);
+
+        if (!di->server_to_client(value[i].second, &memory, &value[i].second))
+        {
+            UTIL_ERROR(SERVERERROR) << "cannot convert from server-side form";
+            return false;
+        }
     }
 
     std::vector<hyperdex_client_attribute> ha;

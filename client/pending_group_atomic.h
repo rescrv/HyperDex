@@ -38,13 +38,14 @@ class pending_group_atomic : public pending_aggregation
 {
     public:
         pending_group_atomic(uint64_t client_visible_id,
-                       hyperdex_client_returncode& status, uint64_t& update_count);
+                             hyperdex_client_returncode* status,
+                             uint64_t* update_count);
         virtual ~pending_group_atomic() throw ();
 
     // return to client
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode& status, e::error& error);
+        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
 
     // events
     public:
@@ -58,13 +59,16 @@ class pending_group_atomic : public pending_aggregation
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperdex_client_returncode& status,
-                                    e::error& error);
+                                    hyperdex_client_returncode* status,
+                                    e::error* error);
 
     private:
         enum { INITIALIZED, SENT, RECV, DONE, FAILURE, YIELDED } m_state;
+        uint64_t* m_update_count;
 
-        uint64_t& m_update_count;
+    private:
+        pending_group_atomic(const pending_group_atomic&);
+        pending_group_atomic& operator = (const pending_group_atomic&);
 };
 
 END_HYPERDEX_NAMESPACE

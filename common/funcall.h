@@ -35,7 +35,7 @@
 #include <memory>
 
 // e
-#include <e/buffer.h>
+#include <e/arena.h>
 #include <e/slice.h>
 
 // HyperDex
@@ -77,7 +77,6 @@ enum funcall_t
     FUNC_MAP_REMOVE,
 
     FUNC_DOC_RENAME,
-    FUNC_DOC_SET,
     FUNC_DOC_UNSET
 };
 
@@ -108,18 +107,11 @@ apply_funcs(const schema& sc,
             const std::vector<funcall>& funcs,
             const e::slice& key,
             const std::vector<e::slice>& old_value,
-            std::auto_ptr<e::buffer>* backing,
+            e::arena* new_memory,
             std::vector<e::slice>* new_value);
 
 bool
 operator < (const funcall& lhs, const funcall& rhs);
-
-inline bool
-is_binary_operation(const funcall_t op)
-{
-    return op == FUNC_NUM_MOD || op == FUNC_NUM_OR || op == FUNC_NUM_XOR
-            || op == FUNC_NUM_AND;
-}
 
 END_HYPERDEX_NAMESPACE
 

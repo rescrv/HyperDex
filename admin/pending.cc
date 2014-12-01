@@ -31,7 +31,7 @@
 using hyperdex::pending;
 
 pending :: pending(uint64_t id,
-                   hyperdex_admin_returncode& s)
+                   hyperdex_admin_returncode* s)
     : yieldable(id, s)
 {
 }
