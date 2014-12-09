@@ -39,7 +39,8 @@ class pending_volume_search : public pending_aggregation
     public:
         pending_volume_search(uint64_t client_visible_id,
                        hyperdex_client_returncode* status,
-                       const hyperdex_client_attribute** attrs, size_t* attrs_sz);
+                       const hyperdex_client_attribute** attrs, size_t* attrs_sz,
+                      std::vector<hypercube> cubes);
         virtual ~pending_volume_search() throw ();
 
     // return to client
@@ -70,6 +71,7 @@ class pending_volume_search : public pending_aggregation
         size_t* m_attrs_sz;
         bool m_yield;
         bool m_done;
+        std::vector<hypercube> cubes;
 };
 
 END_HYPERDEX_NAMESPACE

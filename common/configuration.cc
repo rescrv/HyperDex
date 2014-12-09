@@ -737,6 +737,7 @@ configuration :: lookup_region(const subspace_id& ssid,
 void
 configuration :: lookup_search(const char* space_name,
                                const std::vector<attribute_check>& chks,
+                               const std::vector<hypercube>& cubes,
                                std::vector<virtual_server_id>* servers) const
 {
     const space* s = NULL;
@@ -784,10 +785,56 @@ configuration :: lookup_search(const char* space_name,
                 continue;
             }
 
+
             bool exclude = false;
+            bool included_in_cube= false;
+
+            for (size_t k = 0; !included_in_cube && k < cubes.size(); ++k)
+            {
+              assert(cubes[k].attr.size() == cubes[k].lower_coord.size() &&
+              cubes[k].lower_coord.size()== cubes[k].upper_coord.size());
+              bool cube_matches = true;
+
+              for (size_t l = 0; cube_matches && l < cubes[k].attr.size(); ++l)
+              {
+                uint16_t attr = cubes[k].attr[l];
+                uint16_t dim = UINT16_MAX;
+
+                for (size_t m = 0; m < s->subspaces[i].attrs.size(); ++m)
+                {
+                    if (s->subspaces[i].attrs[m] == attr)
+                    {
+                        dim = l;
+                        break;
+                    }
+                }
+
+                if (dim == UINT16_MAX)  {continue;}
+
+                uint64_t cl = cubes[k].lower_coord[l];
+                uint64_t cu = cubes[k].upper_coord[l];
+                uint64_t rl = reg.lower_coord[dim];
+                uint64_t ru = reg.upper_coord[dim];
+                if (!(rl <= cl && cl <= ru) && !(rl <= cu && cu  <= ru) && !(cl <= rl && ru <= cu))
+                {
+                  cube_matches = false;
+                }
+              }
+
+              if (cube_matches)
+              {
+                // there is at least one cube in this region
+                included_in_cube = true;
+              }
+            }
+
+            if (!included_in_cube && cubes.size() > 0) {
+              exclude = true;
+            }
 
             for (size_t k = 0; !exclude && k < ranges.size(); ++k)
             {
+
                 assert(reg.lower_coord.size() == reg.upper_coord.size());
                 uint16_t attr = UINT16_MAX;
 

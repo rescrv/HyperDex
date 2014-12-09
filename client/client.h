@@ -77,7 +77,8 @@ class client
         int64_t volume_search(const char* space,
                        const hyperdex_client_attribute_check* checks, size_t checks_sz,
                        hyperdex_client_returncode* status,
-                       const hyperdex_client_attribute** attrs, size_t* attrs_sz);
+                       const hyperdex_client_attribute** attrs, size_t* attrs_sz,
+                       const hyperdex_client_hypercube * cbs, size_t cbs_sz);
         int64_t search_describe(const char* space,
                                 const hyperdex_client_attribute_check* checks, size_t checks_sz,
                                 hyperdex_client_returncode* status, const char** description);
@@ -137,6 +138,11 @@ class client
         friend class pending_sorted_search;
 
     private:
+        size_t prepare_cubes(const char* space, const schema& sc,
+                              const hyperdex_client_hypercube* cbs, size_t cbs_sz,
+                              arena_t* allocate,
+                              hyperdex_client_returncode* status,
+                              std::vector<hypercube>* cubes);
         size_t prepare_checks(const char* space, const schema& sc,
                               const hyperdex_client_attribute_check* chks, size_t chks_sz,
                               arena_t* allocate,
@@ -157,9 +163,11 @@ class client
         size_t prepare_searchop(const schema& sc,
                                 const char* space,
                                 const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                                const hyperdex_client_hypercube* cbs, size_t cbs_sz,
                                 arena_t* allocate,
                                 hyperdex_client_returncode* status,
                                 std::vector<attribute_check>* checks,
+                                std::vector<hypercube>* cubes,
                                 std::vector<virtual_server_id>* servers);
         int64_t perform_aggregation(const std::vector<virtual_server_id>& servers,
                                     e::intrusive_ptr<pending_aggregation> op,

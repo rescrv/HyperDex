@@ -30,12 +30,13 @@
 #include "client/constants.h"
 #include "client/pending_volume_search.h"
 #include "client/util.h"
+#include "common/hash.h"
 
 using hyperdex::pending_volume_search;
 
 pending_volume_search :: pending_volume_search(uint64_t id,
                                  hyperdex_client_returncode* status,
-                                 const hyperdex_client_attribute** attrs, size_t* attrs_sz)
+                                 const hyperdex_client_attribute** attrs, size_t* attrs_sz, std::vector<hypercube> cubes)
     : pending_aggregation(id, status)
     , m_attrs(attrs)
     , m_attrs_sz(attrs_sz)
@@ -44,6 +45,7 @@ pending_volume_search :: pending_volume_search(uint64_t id,
 {
     *m_attrs = NULL;
     *m_attrs_sz = 0;
+    this->cubes= cubes;
 }
 
 pending_volume_search :: ~pending_volume_search() throw ()
@@ -100,7 +102,6 @@ pending_volume_search :: handle_message(client* cl,
     assert(handled);
 
 
-    std::cout << "volume serach is handling message\n";
     *status = HYPERDEX_CLIENT_SUCCESS;
     *err = e::error();
 
@@ -138,17 +139,43 @@ pending_volume_search :: handle_message(client* cl,
     hyperdex_client_returncode op_status;
     e::error op_error;
 
-    if (!value_to_attributes(*cl->m_coord.config(),
-                             cl->m_coord.config()->get_region_id(vsi),
-                             key.data(), key.size(), value,
-                             &op_status, &op_error, m_attrs, m_attrs_sz))
-    {
-        set_status(op_status);
-        set_error(op_error);
-        m_yield = true;
-        return true;
-    }
+    const schema* sc =cl->m_coord.config()->get_schema(cl->m_coord.config()->get_region_id(vsi));
 
+    assert((value.size() + 1) == sc->attrs_sz);
+
+    bool found_matching_cube = false;
+    for (size_t i = 0; !found_matching_cube && i < cubes.size(); ++i) {
+        bool matches = true;
+        for (size_t j = 0; matches&& j < cubes[i].attr.size(); ++j) {
+            uint16_t attrnum = cubes[i].attr[j] -1;
+            uint64_t h = hash(sc->attrs[attrnum+1].type, value[attrnum]);
+            if (cubes[i].lower_coord[j] <= h && h <= cubes[i].upper_coord[j]) {
+              matches = matches && true;
+            } else {
+              matches = false;
+            }
+        }
+        if (matches) {
+            found_matching_cube = true;
+        }
+    }
+    bool no_yield = false;
+    if (!found_matching_cube && cubes.size() > 0) {
+      m_yield = false;
+      no_yield = true;
+    } else {
+
+      if (!value_to_attributes(*cl->m_coord.config(),
+                               cl->m_coord.config()->get_region_id(vsi),
+                               key.data(), key.size(), value,
+                               &op_status, &op_error, m_attrs, m_attrs_sz))
+      {
+          set_status(op_status);
+          set_error(op_error);
+          m_yield = true;
+          return true;
+      }
+    }
     std::auto_ptr<e::buffer> smsg(e::buffer::create(HYPERDEX_CLIENT_HEADER_SIZE_REQ + sizeof(uint64_t)));
     smsg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << static_cast<uint64_t>(client_visible_id());
 
@@ -161,6 +188,8 @@ pending_volume_search :: handle_message(client* cl,
 
     set_status(HYPERDEX_CLIENT_SUCCESS);
     set_error(e::error());
-    m_yield = true;
+    if (!no_yield) {
+      m_yield = true;
+    }
     return true;
 }

@@ -43,6 +43,7 @@
 #include "common/attribute.h"
 #include "common/attribute_check.h"
 #include "common/hyperspace.h"
+#include "common/hypercube.h"
 #include "common/ids.h"
 #include "common/schema.h"
 #include "common/server.h"
@@ -118,6 +119,7 @@ class configuration
                            region_id* region) const;
         void lookup_search(const char* space,
                            const std::vector<attribute_check>& chks,
+                           const std::vector<hypercube>& cubes,
                            std::vector<virtual_server_id>* servers) const;
 
     public:
