@@ -51,7 +51,7 @@ background_thread :: background_thread(daemon* d)
     , m_wakeup_thread(&m_protect)
     , m_wakeup_pauser(&m_protect)
     , m_shutdown(true)
-    , m_need_pause(false)
+    , m_pause_count(0)
     , m_paused(false)
     , m_offline(false)
 {
@@ -77,15 +77,14 @@ void
 background_thread :: initiate_pause()
 {
     po6::threads::mutex::hold hold(&m_protect);
-    assert(!m_need_pause);
-    m_need_pause = true;
+    ++m_pause_count;
 }
 
 void
 background_thread :: wait_until_paused()
 {
     po6::threads::mutex::hold hold(&m_protect);
-    assert(m_need_pause);
+    assert(m_pause_count > 0);
 
     while (!m_paused && !m_offline)
     {
@@ -97,9 +96,9 @@ void
 background_thread :: unpause()
 {
     po6::threads::mutex::hold hold(&m_protect);
-    assert(m_need_pause);
+    assert(m_pause_count > 0);
+    --m_pause_count;
     m_wakeup_thread.broadcast();
-    m_need_pause = false;
 }
 
 void
@@ -127,7 +126,7 @@ background_thread :: offline()
     assert(!m_offline);
     m_offline = true;
 
-    if (m_need_pause)
+    if (m_pause_count > 0)
     {
         m_wakeup_pauser.broadcast();
     }
@@ -140,7 +139,7 @@ background_thread :: online()
     assert(m_offline);
     m_offline = false;
 
-    while (m_need_pause && !m_shutdown)
+    while (m_pause_count > 0 && !m_shutdown)
     {
         m_paused = true;
         m_wakeup_thread.wait();
@@ -160,11 +159,11 @@ background_thread :: run()
             m_gc->quiescent_state(&m_gc_ts);
             po6::threads::mutex::hold hold(&m_protect);
 
-            while ((!this->have_work() && !m_shutdown) || m_need_pause)
+            while ((!this->have_work() && !m_shutdown) || m_pause_count > 0)
             {
                 m_paused = true;
 
-                if (m_need_pause)
+                if (m_pause_count > 0)
                 {
                     m_wakeup_pauser.signal();
                 }

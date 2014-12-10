@@ -712,7 +712,6 @@ datalayer :: make_search_iterator(snapshot snap,
     index_encoding* key_ie = index_encoding::lookup(sc.attrs[0].type);
     index_info* key_ii = index_info::lookup(sc.attrs[0].type);
 
-    bool use_full = false;
     // for each range query, construct an iterator
     for (size_t i = 0; i < ranges.size(); ++i)
     {
@@ -732,17 +731,6 @@ datalayer :: make_search_iterator(snapshot snap,
             assert(indices[j]->attr == ranges[i].attr);
             const index* idx = indices[j];
             index_info* ii = index_info::lookup(ranges[i].type);
-
-
-            if (ranges[i].type == HYPERDATATYPE_TIMESTAMP_SECOND
-             || ranges[i].type == HYPERDATATYPE_TIMESTAMP_MINUTE
-             || ranges[i].type == HYPERDATATYPE_TIMESTAMP_HOUR
-             || ranges[i].type == HYPERDATATYPE_TIMESTAMP_DAY
-             || ranges[i].type == HYPERDATATYPE_TIMESTAMP_WEEK
-             || ranges[i].type == HYPERDATATYPE_TIMESTAMP_MONTH) {
-
-              use_full = true;
-            }
 
             if (!ii)
             {
@@ -835,7 +823,7 @@ datalayer :: make_search_iterator(snapshot snap,
     assert(best);
     uint64_t cost = best->cost(m_db.get());
 
-    if (cost > 0 && cost * 4 > full_scan->cost(m_db.get()) || use_full)
+    if (cost > 0 && cost * 4 > full_scan->cost(m_db.get()))
     {
         best = full_scan;
     }

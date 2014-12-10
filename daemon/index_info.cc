@@ -44,23 +44,12 @@ using hyperdex::index_info;
 static hyperdex::index_encoding_string e_string;
 static hyperdex::index_encoding_int64 e_int64;
 static hyperdex::index_encoding_float e_float;
-static hyperdex::index_encoding_timestamp e_timestamp_second(SECOND);
-static hyperdex::index_encoding_timestamp e_timestamp_minute(MINUTE);
-static hyperdex::index_encoding_timestamp e_timestamp_hour(HOUR);
-static hyperdex::index_encoding_timestamp e_timestamp_day(DAY);
-static hyperdex::index_encoding_timestamp e_timestamp_week(WEEK);
-static hyperdex::index_encoding_timestamp e_timestamp_month(MONTH);
+static hyperdex::index_encoding_timestamp e_timestamp;
 
 static hyperdex::index_string i_string;
 static hyperdex::index_int64 i_int64;
 static hyperdex::index_float i_float;
 static hyperdex::index_document i_document;
-static hyperdex::index_timestamp i_timestamp_second(SECOND);
-static hyperdex::index_timestamp i_timestamp_minute(MINUTE);
-static hyperdex::index_timestamp i_timestamp_hour(HOUR);
-static hyperdex::index_timestamp i_timestamp_day(DAY);
-static hyperdex::index_timestamp i_timestamp_week(WEEK);
-static hyperdex::index_timestamp i_timestamp_month(MONTH);
 static hyperdex::index_list i_list_string(HYPERDATATYPE_STRING);
 static hyperdex::index_list i_list_int64(HYPERDATATYPE_INT64);
 static hyperdex::index_list i_list_float(HYPERDATATYPE_FLOAT);
@@ -76,6 +65,12 @@ static hyperdex::index_map i_map_int64_float(HYPERDATATYPE_INT64, HYPERDATATYPE_
 static hyperdex::index_map i_map_float_string(HYPERDATATYPE_FLOAT, HYPERDATATYPE_STRING);
 static hyperdex::index_map i_map_float_int64(HYPERDATATYPE_FLOAT, HYPERDATATYPE_INT64);
 static hyperdex::index_map i_map_float_float(HYPERDATATYPE_FLOAT, HYPERDATATYPE_FLOAT);
+static hyperdex::index_timestamp i_timestamp_second(HYPERDATATYPE_TIMESTAMP_SECOND);
+static hyperdex::index_timestamp i_timestamp_minute(HYPERDATATYPE_TIMESTAMP_MINUTE);
+static hyperdex::index_timestamp i_timestamp_hour(HYPERDATATYPE_TIMESTAMP_HOUR);
+static hyperdex::index_timestamp i_timestamp_day(HYPERDATATYPE_TIMESTAMP_DAY);
+static hyperdex::index_timestamp i_timestamp_week(HYPERDATATYPE_TIMESTAMP_WEEK);
+static hyperdex::index_timestamp i_timestamp_month(HYPERDATATYPE_TIMESTAMP_MONTH);
 
 index_encoding*
 index_encoding :: lookup(hyperdatatype datatype)
@@ -89,17 +84,12 @@ index_encoding :: lookup(hyperdatatype datatype)
         case HYPERDATATYPE_FLOAT:
             return &e_float;
         case HYPERDATATYPE_TIMESTAMP_SECOND:
-            return &e_timestamp_second;
         case HYPERDATATYPE_TIMESTAMP_MINUTE:
-            return &e_timestamp_minute;
         case HYPERDATATYPE_TIMESTAMP_HOUR:
-            return &e_timestamp_hour;
         case HYPERDATATYPE_TIMESTAMP_DAY:
-            return &e_timestamp_day;
         case HYPERDATATYPE_TIMESTAMP_WEEK:
-            return &e_timestamp_week;
         case HYPERDATATYPE_TIMESTAMP_MONTH:
-            return &e_timestamp_month;
+            return &e_timestamp;
         case HYPERDATATYPE_GENERIC:
         case HYPERDATATYPE_DOCUMENT:
         case HYPERDATATYPE_LIST_GENERIC:
@@ -201,6 +191,7 @@ index_info :: lookup(hyperdatatype datatype)
         case HYPERDATATYPE_MAP_STRING_KEYONLY:
         case HYPERDATATYPE_MAP_INT64_KEYONLY:
         case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+        case HYPERDATATYPE_TIMESTAMP_GENERIC:
         case HYPERDATATYPE_MACAROON_SECRET:
         case HYPERDATATYPE_GARBAGE:
         default:

@@ -78,13 +78,13 @@ cdef extern from "hyperdex.h":
         HYPERDATATYPE_MAP_FLOAT_STRING   = 9433
         HYPERDATATYPE_MAP_FLOAT_INT64    = 9434
         HYPERDATATYPE_MAP_FLOAT_FLOAT    = 9435
-        HYPERDATATYPE_TIMESTAMP_SECOND = 9508
-        HYPERDATATYPE_TIMESTAMP_MINUTE = 9509
-        HYPERDATATYPE_TIMESTAMP_HOUR = 9510
-        HYPERDATATYPE_TIMESTAMP_DAY = 9511
-        HYPERDATATYPE_TIMESTAMP_WEEK = 9512
-        HYPERDATATYPE_TIMESTAMP_MONTH = 9513
-        HYPERDATATYPE_TIMESTAMP_GENERIC = 9514
+        HYPERDATATYPE_TIMESTAMP_GENERIC  = 9472
+        HYPERDATATYPE_TIMESTAMP_SECOND   = 9473
+        HYPERDATATYPE_TIMESTAMP_MINUTE   = 9474
+        HYPERDATATYPE_TIMESTAMP_HOUR     = 9475
+        HYPERDATATYPE_TIMESTAMP_DAY      = 9476
+        HYPERDATATYPE_TIMESTAMP_WEEK     = 9477
+        HYPERDATATYPE_TIMESTAMP_MONTH    = 9478
         HYPERDATATYPE_MACAROON_SECRET    = 9664
         HYPERDATATYPE_GARBAGE            = 9727
 
@@ -1575,9 +1575,11 @@ cdef class Client:
     def get_partial(self, bytes spacename, key, attributenames, auth=None):
         return self.async_get_partial(spacename, key, attributenames, auth).wait()
 
-    def async_put(self, bytes spacename, key, dict attributes, auth=None):
+    def async_put(self, bytes spacename, key, dict attributes, auth=None, secret=None):
+        if secret is not None: attributes['__secret'] = secret
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_put, spacename, key, attributes, auth)
-    def put(self, bytes spacename, key, dict attributes, auth=None):
+    def put(self, bytes spacename, key, dict attributes, auth=None, secret=None):
+        if secret is not None: attributes['__secret'] = secret
         return self.async_put(spacename, key, attributes, auth).wait()
 
     def async_cond_put(self, bytes spacename, key, dict predicates, dict attributes, auth=None):

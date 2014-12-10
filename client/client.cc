@@ -841,7 +841,7 @@ client :: prepare_checks(const char* space, const schema& sc,
 
         if (datatype == CONTAINER_TYPE(datatype) &&
             CONTAINER_TYPE(datatype) == CONTAINER_TYPE(sc.attrs[attrnum].type) &&
-            chks[i].value_sz == 0 || datatype == HYPERDATATYPE_TIMESTAMP_GENERIC)
+            (chks[i].value_sz == 0 || datatype == HYPERDATATYPE_TIMESTAMP_GENERIC))
         {
             datatype = sc.attrs[attrnum].type;
         }
@@ -909,7 +909,7 @@ client :: prepare_funcs(const char* space, const schema& sc,
 
         if (datatype == CONTAINER_TYPE(datatype) &&
             CONTAINER_TYPE(datatype) == CONTAINER_TYPE(sc.attrs[attrnum].type) &&
-            attrs[i].value_sz == 0 || datatype == HYPERDATATYPE_TIMESTAMP_GENERIC)
+            (attrs[i].value_sz == 0 || datatype == HYPERDATATYPE_TIMESTAMP_GENERIC))
         {
             datatype = sc.attrs[attrnum].type;
         }

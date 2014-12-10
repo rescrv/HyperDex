@@ -113,6 +113,7 @@ noinst_HEADERS += namespace.h
 noinst_HEADERS += visibility.h
 noinst_HEADERS += common/attribute_check.h
 noinst_HEADERS += common/attribute.h
+noinst_HEADERS += common/auth_wallet.h
 noinst_HEADERS += common/configuration.h
 noinst_HEADERS += common/hypercube.h
 noinst_HEADERS += common/configuration_flags.h
@@ -124,6 +125,7 @@ noinst_HEADERS += common/datatype_info.h
 noinst_HEADERS += common/datatype_int64.h
 noinst_HEADERS += common/datatype_timestamp.h
 noinst_HEADERS += common/datatype_list.h
+noinst_HEADERS += common/datatype_macaroon_secret.h
 noinst_HEADERS += common/datatype_map.h
 noinst_HEADERS += common/datatype_set.h
 noinst_HEADERS += common/datatype_string.h
@@ -181,6 +183,7 @@ endif
 EXTRA_DIST += initscripts/sysv/default/hyperdex-daemon
 EXTRA_DIST += initscripts/sysv/init.d/hyperdex-daemon
 
+noinst_HEADERS += daemon/auth.h
 noinst_HEADERS += daemon/background_thread.h
 noinst_HEADERS += daemon/communication.h
 noinst_HEADERS += daemon/coordinator_link_wrapper.h
@@ -838,11 +841,11 @@ stress_wrappers += test/sh/search.combination.keytype=string,daemons=4.fault-tol
 shell_wrappers += $(stress_wrappers)
 
 python_wrappers =
-python_wrappers += test/sh/bindings.python.Admin.sh
+#python_wrappers += test/sh/bindings.python.Admin.sh
 python_wrappers += test/sh/bindings.python.BasicSearch.sh
 python_wrappers += test/sh/bindings.python.Basic.sh
 python_wrappers += test/sh/bindings.python.CondPut.sh
-python_wrappers += test/sh/bindings.python.DataTypeDocument.sh
+#python_wrappers += test/sh/bindings.python.DataTypeDocument.sh
 python_wrappers += test/sh/bindings.python.DataTypeFloat.sh
 python_wrappers += test/sh/bindings.python.DataTypeInt.sh
 python_wrappers += test/sh/bindings.python.DataTypeListFloat.sh
@@ -956,6 +959,7 @@ EXTRA_DIST += test/doc.async-ops.py
 EXTRA_DIST += test/doc.atomic-ops.py
 EXTRA_DIST += test/doc.data-types.py
 EXTRA_DIST += test/doc.documents.py
+EXTRA_DIST += test/doc.authorization.py
 EXTRA_DIST += test/doc-extract.py
 EXTRA_DIST += test/doc.quick-start.py
 EXTRA_DIST += test/doctest-runner.py
@@ -1362,7 +1366,7 @@ maintainer-generate:
 	python2 bindings/java.py
 	python2 bindings/nodejs.py
 	python2 bindings/python.py
-	bindings python2/ruby.py
+	python2 bindings/ruby.py
 	python2 maint/generate-replication-shell-stubs.py
 	python2 maint/generate-search-shell-stubs.py
 	python2 maint/generate-doc-shell-stubs.py
