@@ -59,6 +59,7 @@
 #include "client/pending_search.h"
 #include "client/pending_search_describe.h"
 #include "client/pending_sorted_search.h"
+#include "client/pending_volume_search.h"
 
 #define ERROR(CODE) \
     *status = HYPERDEX_CLIENT_ ## CODE; \
@@ -78,6 +79,7 @@
     return false;
 
 using hyperdex::client;
+using hyperdex::hypercube;
 
 client :: client(const char* coordinator, uint16_t port)
     : m_coord(coordinator, port)
@@ -268,9 +270,10 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
         return -1; \
     } \
     std::vector<attribute_check> checks; \
+    std::vector<hypercube> cubes; \
     std::vector<virtual_server_id> servers; \
     arena_t allocate; \
-    int64_t ret = prepare_searchop(*sc, space, chks, chks_sz, &allocate, status, &checks, &servers); \
+    int64_t ret = prepare_searchop(*sc, space, chks, chks_sz, NULL, 0, &allocate, status, &checks, &cubes, &servers); \
     if (ret < 0) \
     { \
         return ret; \
@@ -286,6 +289,43 @@ client :: search(const char* space,
     int64_t client_id = m_next_client_id++;
     e::intrusive_ptr<pending_aggregation> op;
     op = new pending_search(client_id, status, attrs, attrs_sz);
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+              + sizeof(uint64_t)
+              + pack_size(checks);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << client_id << checks;
+    return perform_aggregation(servers, op, REQ_SEARCH_START, msg, status);
+}
+
+int64_t
+client :: volume_search(const char* space,
+                 const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                 hyperdex_client_returncode* status,
+                 const hyperdex_client_attribute** attrs, size_t* attrs_sz,
+                 const hyperdex_client_hypercube * cbs, size_t cbs_sz)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1; \
+    }
+    const schema* sc = m_coord.config()->get_schema(space);
+    if (!sc)
+    {
+        ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist";
+        return -1;
+    }
+    std::vector<attribute_check> checks;
+    std::vector<hypercube> cubes;
+    std::vector<virtual_server_id> servers;
+    arena_t allocate;
+    int64_t ret = prepare_searchop(*sc, space, chks, chks_sz, cbs, cbs_sz, &allocate, status, &checks, &cubes, &servers);
+    if (ret < 0)
+    {
+        return ret;
+    }
+    int64_t client_id = m_next_client_id++;
+    e::intrusive_ptr<pending_aggregation> op;
+    op = new pending_volume_search(client_id, status, attrs, attrs_sz,cubes);
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
               + sizeof(uint64_t)
               + pack_size(checks);
@@ -729,6 +769,38 @@ client :: attribute_type(const char* space, const char* name,
 }
 
 size_t
+client :: prepare_cubes(const char* space, const schema& sc,
+                         const hyperdex_client_hypercube* cbs, size_t cbs_sz,
+                         arena_t* allocate,
+                         hyperdex_client_returncode* status,
+                         std::vector<hypercube>* cubes)
+{
+    cubes->reserve(cubes->size() + cbs_sz);
+
+    for (size_t i = 0; i < cbs_sz; ++i)
+    {
+        uint16_t attrnum[cbs[i].dims];
+        for (size_t j = 0; j < cbs[i].dims; ++j)
+        {
+            attrnum[j] = sc.lookup_attr(cbs[i].attrs[j]);
+            if (attrnum[j] >= sc.attrs_sz)
+            {
+                ERROR(UNKNOWNATTR) << "\"" << e::strescape(cbs[i].attrs[j])
+                                   << "\" is not an attribute of space \""
+                                   << e::strescape(space) << "\"";
+                return i;
+            }
+        }
+
+
+        hypercube cube(attrnum, cbs[i].dims, cbs[i].lower_coord, cbs[i].upper_coord);
+
+        cubes->push_back(cube);
+    }
+
+    return cbs_sz;
+}
+size_t
 client :: prepare_checks(const char* space, const schema& sc,
                          const hyperdex_client_attribute_check* chks, size_t chks_sz,
                          arena_t* allocate,
@@ -939,13 +1011,16 @@ client :: prepare_funcs(const char* space, const schema& sc,
     return mapattrs_sz;
 }
 
+
 size_t
 client :: prepare_searchop(const schema& sc,
                            const char* space,
                            const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                           const hyperdex_client_hypercube* cbs, size_t cbs_sz,
                            arena_t* allocate,
                            hyperdex_client_returncode* status,
                            std::vector<attribute_check>* checks,
+                           std::vector<hypercube>* cubes,
                            std::vector<virtual_server_id>* servers)
 {
     size_t num_checks = prepare_checks(space, sc, chks, chks_sz, allocate, status, checks);
@@ -954,9 +1029,15 @@ client :: prepare_searchop(const schema& sc,
     {
         return -1 - num_checks;
     }
+    size_t num_cubes= prepare_cubes(space, sc, cbs, cbs_sz, allocate, status, cubes);
+
+    if (num_cubes != cbs_sz)
+    {
+        return -1 - num_cubes;
+    }
 
     std::stable_sort(checks->begin(), checks->end());
-    m_coord.config()->lookup_search(space, *checks, servers); // XXX search guaranteed empty vs. search encounters offline server
+    m_coord.config()->lookup_search(space, *checks, *cubes, servers); // XXX search guaranteed empty vs. search encounters offline server
 
     if (servers->empty())
     {

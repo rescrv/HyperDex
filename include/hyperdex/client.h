@@ -70,6 +70,13 @@ struct hyperdex_client_attribute_check
     enum hyperpredicate predicate;
 };
 
+struct hyperdex_client_hypercube /*temporary struct for temporary c bindings */
+{
+  size_t dims;
+  const char** attrs; /* NULL-terminated */
+  uint64_t * lower_coord;
+  uint64_t * upper_coord;
+};
 /* hyperdex_client_returncode occupies [8448, 8576) */
 enum hyperdex_client_returncode
 {
@@ -660,6 +667,13 @@ hyperdex_client_search(struct hyperdex_client* client,
                        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
                        enum hyperdex_client_returncode* status,
                        const struct hyperdex_client_attribute** attrs, size_t* attrs_sz);
+int64_t
+hyperdex_client_volume_search(struct hyperdex_client* client,
+                       const char* space,
+                       const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                       enum hyperdex_client_returncode* status,
+                       const struct hyperdex_client_attribute** attrs, size_t* attrs_sz, 
+                       const struct hyperdex_client_hypercube * cbs, size_t cbs_sz);
 
 int64_t
 hyperdex_client_search_describe(struct hyperdex_client* client,
