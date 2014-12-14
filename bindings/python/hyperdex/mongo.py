@@ -96,11 +96,15 @@ class HyperSpace:
         else:
             return result['v'].doc()
 
-    def remove(self, key):
+
+    def async_remove(self, key):
         if not self.exists:
             raise RuntimeError("Can't remove. Space doesn't exist yet")
 
-        return self.client.delete(self.name, key)
+        return self.client.async_delete(self.name, key)
+
+    def remove(self, key):
+	return self.async_remove(key).wait()
 
     def async_insert(self, value):
         if value is None or value['_id'] is None:
