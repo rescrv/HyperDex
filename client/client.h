@@ -97,6 +97,14 @@ class client
                                 const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                 hyperdex_client_returncode* status);
+        // general grouped keyop call
+        int64_t perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
+                                      const char* space,
+                                      const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                      const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                      const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                      hyperdex_client_returncode* status,
+                                      uint64_t* update_count);
         // looping/polling
         int64_t loop(int timeout, hyperdex_client_returncode* status);
         int poll();
@@ -125,7 +133,6 @@ class client
         };
         typedef std::map<uint64_t, pending_server_pair> pending_map_t;
         typedef std::list<pending_server_pair> pending_queue_t;
-        typedef std::list<std::string> arena_t;
         friend class pending_get;
         friend class pending_get_partial;
         friend class pending_search;
@@ -134,28 +141,37 @@ class client
     private:
         size_t prepare_checks(const char* space, const schema& sc,
                               const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                              arena_t* allocate,
+                              e::arena* memory,
                               hyperdex_client_returncode* status,
                               std::vector<attribute_check>* checks);
         size_t prepare_funcs(const char* space, const schema& sc,
                              const hyperdex_client_keyop_info* opinfo,
                              const hyperdex_client_attribute* attrs, size_t attrs_sz,
-                             arena_t* allocate,
+                             e::arena* memory,
                              hyperdex_client_returncode* status,
                              std::vector<funcall>* funcs);
         size_t prepare_funcs(const char* space, const schema& sc,
                              const hyperdex_client_keyop_info* opinfo,
                              const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                             arena_t* allocate,
+                             e::arena* memory,
                              hyperdex_client_returncode* status,
                              std::vector<funcall>* funcs);
         size_t prepare_searchop(const schema& sc,
                                 const char* space,
                                 const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                                arena_t* allocate,
+                                e::arena* memory,
                                 hyperdex_client_returncode* status,
                                 std::vector<attribute_check>* checks,
                                 std::vector<virtual_server_id>* servers);
+        int64_t perform_funcall(const char* space, const schema* sc,
+                                const hyperdex_client_keyop_info* opinfo,
+                                const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                size_t header_sz,
+                                size_t footer_sz,
+                                hyperdex_client_returncode* status,
+                                std::auto_ptr<e::buffer>* msg);
         int64_t perform_aggregation(const std::vector<virtual_server_id>& servers,
                                     e::intrusive_ptr<pending_aggregation> op,
                                     network_msgtype mt,

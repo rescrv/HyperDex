@@ -25,33 +25,24 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#define __STDC_LIMIT_MACROS
+// e
+#include <e/guard.h>
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+// Treadstone
+#include <treadstone.h>
 
 // HyperDex
+#include "common/documents.h"
 #include "common/datatype_document.h"
-#include "common/datatype_string.h"
 #include "common/datatype_int64.h"
-#include "common/key_change.h"
+#include "common/datatype_float.h"
 
-// json-c
-#if HAVE_JSON_H
-#include <json/json.h>
-#elif HAVE_JSON_C_H
-#include <json-c/json.h>
-#else
-#error no suitable json.h found
-#endif
+#define IS_DOCUMENT_PRIMITIVE(X) \
+    ((X) == HYPERDATATYPE_STRING || \
+     (X) == HYPERDATATYPE_INT64 || \
+     (X) == HYPERDATATYPE_FLOAT || \
+     (X) == HYPERDATATYPE_DOCUMENT)
 
-// e
-#include <e/endian.h>
-#include <e/guard.h>
-#include <e/safe_math.h>
-
-using hyperdex::datatype_info;
 using hyperdex::datatype_document;
 
 datatype_document :: datatype_document()
@@ -71,362 +62,271 @@ datatype_document :: datatype() const
 bool
 datatype_document :: validate(const e::slice& value) const
 {
-    json_tokener* tok = json_tokener_new();
-
-    if (!tok)
+    if (value.size() == 0)
     {
-        throw std::bad_alloc();
+        // empty == "object"
+        return true;
     }
 
-    const char* data = reinterpret_cast<const char*>(value.data());
-    json_object* obj = json_tokener_parse_ex(tok, data, value.size());
-    bool retval = obj && json_tokener_get_error(tok) == json_tokener_success
-                      && tok->char_offset == (ssize_t)value.size();
-
-    if (obj)
-    {
-        json_object_put(obj);
-    }
-
-    if (tok)
-    {
-        json_tokener_free(tok);
-    }
-
-    return retval;
-}
-
-bool
-datatype_document :: validate_old_values(const std::vector<e::slice>& old_values, const funcall& func) const
-{
-    // we only need to check old values for atomic operations
-    switch(func.name)
-    {
-    case FUNC_NUM_ADD:
-    case FUNC_NUM_AND:
-    case FUNC_NUM_MOD:
-    case FUNC_NUM_MUL:
-    case FUNC_NUM_SUB:
-    case FUNC_NUM_XOR:
-    case FUNC_NUM_OR:
-    {
-        json_object* root = to_json(old_values[0]);
-
-        if(!root)
-        {
-            return false;
-        }
-
-        e::guard gobj = e::makeguard(json_object_put, root);
-        gobj.use_variable();
-
-        // Arugment 2 must be the path
-        // otherwise, check_args should have caught this
-        assert(func.arg2_datatype == HYPERDATATYPE_STRING);
-
-        json_path path(func.arg2.c_str());
-        path.make_relative();
-        json_object* obj = traverse_path(root, path);
-
-        if(!obj)
-        {
-            // check if a new child can be created
-            json_path child_path;
-            return (json_object_get_type(get_last_elem_in_path(root, path, child_path)) == json_type_object);
-        }
-        else if(json_object_get_type(obj) != json_type_int
-            && json_object_get_type(obj) != json_type_double)
-        {
-            // we can only add integers
-            return false;
-        }
-        break;
-    }
-    case FUNC_STRING_APPEND:
-    case FUNC_STRING_PREPEND:
-    {
-        json_object* root = to_json(old_values[0]);
-
-        if(!root)
-        {
-            return false;
-        }
-
-        e::guard gobj = e::makeguard(json_object_put, root);
-        gobj.use_variable();
-
-        // Arugment 2 must be the path
-        // otherwise, check_args should have caught this
-        assert(func.arg2_datatype == HYPERDATATYPE_STRING);
-
-        json_path path(func.arg2.c_str());
-        path.make_relative();
-        json_object* obj = traverse_path(root, path);
-
-        if(!obj)
-        {
-            // new child will be created...
-            return true;
-        }
-        else if(json_object_get_type(obj) != json_type_string)
-        {
-            // we can only add integers
-            return false;
-        }
-        break;
-    }
-    case FUNC_FAIL:
-    case FUNC_SET:
-    case FUNC_NUM_DIV:
-    case FUNC_LIST_LPUSH:
-    case FUNC_LIST_RPUSH:
-    case FUNC_SET_ADD:
-    case FUNC_SET_REMOVE:
-    case FUNC_SET_INTERSECT:
-    case FUNC_SET_UNION:
-    case FUNC_MAP_ADD:
-    case FUNC_MAP_REMOVE:
-    default:
-        break;
-    }
-
-    // No check failed
-    return true;
+    return treadstone_binary_validate(value.data(), value.size()) == 0;
 }
 
 bool
 datatype_document :: check_args(const funcall& func) const
 {
-    switch(func.name)
+    // A transformation that either sets (all/part of) the document, or
+    // pushes/pops an array (that is/within) the document.
+    if (IS_DOCUMENT_PRIMITIVE(func.arg1_datatype) &&
+        (func.name == FUNC_SET ||
+         func.name == FUNC_LIST_LPUSH ||
+         func.name == FUNC_LIST_RPUSH))
     {
-    case FUNC_SET:
-    {
-        // set (or replace with) a new document
-        return func.arg1_datatype == HYPERDATATYPE_DOCUMENT && validate(func.arg1);
+        datatype_info* di = datatype_info::lookup(func.arg1_datatype);
+        return (func.arg2.empty() ||
+                (func.arg2_datatype == HYPERDATATYPE_STRING &&
+                 is_document_path(func.arg2))) &&
+               di && di->validate(func.arg1);
     }
-    case FUNC_NUM_ADD:
-    case FUNC_NUM_SUB:
-    case FUNC_NUM_MUL:
-    case FUNC_NUM_DIV:
-    case FUNC_NUM_XOR:
-    case FUNC_NUM_AND:
-    case FUNC_NUM_OR:
-    case FUNC_NUM_MOD:
+    // Remove a particular path (arg2)
+    else if (func.arg2_datatype == HYPERDATATYPE_STRING &&
+             func.name == FUNC_DOC_UNSET)
     {
-        // they second argument is a path to the field we want to manipulate
-        // (the path is represented as a string)
-        return (func.arg1_datatype == HYPERDATATYPE_INT64 || func.arg1_datatype == HYPERDATATYPE_FLOAT)
-            && func.arg2_datatype == HYPERDATATYPE_STRING;
+        return is_document_path(func.arg2);
     }
-    case FUNC_STRING_APPEND:
-    case FUNC_STRING_PREPEND:
+    // Rename a particular path (arg1)->(arg2)
+    else if (func.arg1_datatype == HYPERDATATYPE_STRING &&
+             func.arg2_datatype == HYPERDATATYPE_STRING &&
+             func.name == FUNC_DOC_RENAME)
     {
-        // they second argument is a path to the field we want to manipulate
-        // (the path is represented as a string)
-        return func.arg1_datatype == HYPERDATATYPE_STRING && func.arg2_datatype == HYPERDATATYPE_STRING;
+        return is_document_path(func.arg1) &&
+               is_document_path(func.arg2);
     }
-    case FUNC_FAIL:
-    case FUNC_LIST_LPUSH:
-    case FUNC_LIST_RPUSH:
-    case FUNC_SET_ADD:
-    case FUNC_SET_INTERSECT:
-    case FUNC_SET_REMOVE:
-    case FUNC_SET_UNION:
-    case FUNC_MAP_ADD:
-    case FUNC_MAP_REMOVE:
-    default:
+    // Perform a nested operation on primitives
+    else if (func.arg2_datatype == HYPERDATATYPE_STRING &&
+             IS_DOCUMENT_PRIMITIVE(func.arg1_datatype) &&
+             func.arg1_datatype != HYPERDATATYPE_DOCUMENT)
     {
-        // Unsupported operation
+        datatype_info* di = datatype_info::lookup(func.arg1_datatype);
+        return is_document_path(func.arg2) && di->check_args(func);
+    }
+    // No other cases
+    else
+    {
         return false;
-    }
     }
 }
 
-uint8_t*
+void
+free_if_allocated(unsigned char** x)
+{
+    if (*x)
+    {
+        free(*x);
+    }
+}
+
+bool
 datatype_document :: apply(const e::slice& old_value,
                            const funcall* funcs, size_t funcs_sz,
-                           uint8_t* writeto)
+                           e::arena* new_memory,
+                           e::slice* new_value) const
 {
-    e::slice new_value = old_value;
+    struct treadstone_transformer* trans = NULL;
 
-    // To support multiple updates on the same document
-    // we reuse the json object
-    // This should also save some parsing time
-    json_object* root = NULL;
-
-    for (size_t i = 0; i < funcs_sz; ++i)
+    if (old_value.empty())
     {
-        const funcall* func = funcs + i;
+        trans = treadstone_transformer_create(reinterpret_cast<const unsigned char*>("\x40\x00"), 2);
+    }
+    else
+    {
+        trans = treadstone_transformer_create(old_value.data(), old_value.size());
+    }
 
-        switch(func->name)
+    if (!trans)
+    {
+        return false;
+    }
+
+    e::guard transg = e::makeguard(treadstone_transformer_destroy, trans);
+
+    for (size_t idx = 0; idx < funcs_sz; ++idx)
+    {
+        const funcall& func = funcs[idx];
+
+        if (IS_DOCUMENT_PRIMITIVE(func.arg1_datatype) &&
+            (func.name == FUNC_SET ||
+             func.name == FUNC_LIST_LPUSH ||
+             func.name == FUNC_LIST_RPUSH))
         {
-        case FUNC_SET:
-        {
-            new_value = func->arg1;
-            break;
-        }
-        case FUNC_STRING_PREPEND:
-        case FUNC_STRING_APPEND:
-        {
-            const e::slice& key = funcs[i].arg2;
-            const e::slice& val = funcs[i].arg1;
+            std::vector<char> scratch;
+            e::slice v;
+            coerce_primitive_to_binary(func.arg1_datatype, func.arg1, &scratch, &v);
+            std::string path(func.arg2.cdata(), func.arg2.size());
 
-            json_path path(key.c_str());
-            path.make_relative();
-
-            const std::string arg(val.c_str());
-            root = root ? root : to_json(old_value);
-
-            json_object *parent, *obj;
-            std::string obj_name;
-
-            get_end(root, path, parent, obj, obj_name);
-
-            std::string str = obj ? json_object_get_string(obj) : "";
-
-            if(func->name == FUNC_STRING_APPEND)
+            if (func.name == FUNC_SET)
             {
-                str = str + arg;
+                if (treadstone_transformer_set_value(trans, path.c_str(), v.data(), v.size()) < 0)
+                {
+                    return false;
+                }
+            }
+            else if (func.name == FUNC_LIST_LPUSH)
+            {
+                if (treadstone_transformer_array_prepend_value(trans, path.c_str(), v.data(), v.size()) < 0)
+                {
+                    return false;
+                }
+            }
+            else if (func.name == FUNC_LIST_RPUSH)
+            {
+                if (treadstone_transformer_array_append_value(trans, path.c_str(), v.data(), v.size()) < 0)
+                {
+                    return false;
+                }
             }
             else
             {
-                str = arg + str;
+                return false;
             }
-
-            json_object* new_elem = json_object_new_string(str.c_str());
-            json_object_object_add(parent, obj_name.c_str(), new_elem);
-            break;
         }
-        case FUNC_NUM_ADD:
-        case FUNC_NUM_SUB:
-        case FUNC_NUM_DIV:
-        case FUNC_NUM_MUL:
-        case FUNC_NUM_XOR:
-        case FUNC_NUM_OR:
-        case FUNC_NUM_AND:
-        case FUNC_NUM_MOD:
+        else if (func.arg2_datatype == HYPERDATATYPE_STRING &&
+                 func.name == FUNC_DOC_UNSET)
         {
-            json_path path(funcs[i].arg2.c_str());
-            path.make_relative();
+            std::string path(func.arg2.cdata(), func.arg2.size());
 
-            const int64_t arg = *reinterpret_cast<const int64_t*>(funcs[i].arg1.data());
+            if (treadstone_transformer_unset_value(trans, path.c_str()) < 0)
+            {
+                return false;
+            }
+        }
+        else if (func.arg1_datatype == HYPERDATATYPE_STRING &&
+                 func.arg2_datatype == HYPERDATATYPE_STRING &&
+                 func.name == FUNC_DOC_RENAME)
+        {
+            std::string src(func.arg2.cdata(), func.arg2.size());
+            std::string dst(func.arg1.cdata(), func.arg1.size());
 
-            root = root ? root : to_json(old_value);
+            unsigned char* value = NULL;
+            size_t value_sz = 0;
+            e::guard g = e::makeguard(free_if_allocated, &value);
 
-            json_object *parent, *obj;
-            std::string obj_name;
-
-            get_end(root, path, parent, obj, obj_name);
-
-            int64_t number = obj ? json_object_get_int64(obj) : 0;
-            bool success = false;
-
-            if(func->name == FUNC_NUM_ADD)
+            if (treadstone_transformer_extract_value(trans, src.c_str(), &value, &value_sz) < 0)
             {
-                success = e::safe_add(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_SUB)
-            {
-                success = e::safe_sub(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_DIV)
-            {
-                success = e::safe_div(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_MUL)
-            {
-                success = e::safe_mul(number, arg, &number);
-            }
-            else if(func->name == FUNC_NUM_MOD)
-            {
-                number = number % arg;
-                success = true;
-            }
-            else if(func->name == FUNC_NUM_XOR)
-            {
-                number = number ^ arg;
-                success = true;
-            }
-            else if(func->name == FUNC_NUM_AND)
-            {
-                number = number & arg;
-                success = true;
-            }
-            else if(func->name == FUNC_NUM_OR)
-            {
-                number = number | arg;
-                success = true;
+                return false;
             }
 
-            if(success)
+            if (treadstone_transformer_unset_value(trans, src.c_str()) < 0)
             {
-                json_object* new_elem = json_object_new_int64(number);
-                json_object_object_add(parent, obj_name.c_str(), new_elem);
+                return false;
+            }
+
+            if (treadstone_transformer_set_value(trans, dst.c_str(), value, value_sz) < 0)
+            {
+                return false;
+            }
+        }
+        else if (func.arg2_datatype == HYPERDATATYPE_STRING &&
+                 IS_DOCUMENT_PRIMITIVE(func.arg1_datatype) &&
+                 func.arg1_datatype != HYPERDATATYPE_DOCUMENT)
+        {
+            unsigned char* value = NULL;
+            size_t value_sz = 0;
+            e::guard g = e::makeguard(free_if_allocated, &value);
+            std::string path(func.arg2.cdata(), func.arg2.size());
+            hyperdatatype type;
+            std::vector<char> scratch;
+            e::slice v;
+
+            if (treadstone_transformer_extract_value(trans, path.c_str(), &value, &value_sz) < 0)
+            {
+                type = func.arg1_datatype;
+                v = e::slice();
             }
             else
             {
-                json_object_put(root);
-                return NULL;
+                if (!coerce_binary_to_primitive(e::slice(value, value_sz), &type, &scratch, &v))
+                {
+                    return false;
+                }
             }
-            break;
+
+            datatype_info* di = datatype_info::lookup(type);
+            e::slice tmp_value;
+
+            if (!di->check_args(func))
+            {
+                return false;
+            }
+
+            if (!di->apply(v, &func, 1, new_memory, &tmp_value))
+            {
+                return false;
+            }
+
+            std::vector<char> scratch_binary;
+            e::slice binary;
+            coerce_primitive_to_binary(type, tmp_value, &scratch_binary, &binary);
+
+            if (treadstone_transformer_set_value(trans, path.c_str(), binary.data(), binary.size()) < 0)
+            {
+                return false;
+            }
         }
-        case FUNC_FAIL:
-        case FUNC_LIST_LPUSH:
-        case FUNC_LIST_RPUSH:
-        case FUNC_SET_ADD:
-        case FUNC_SET_INTERSECT:
-        case FUNC_SET_REMOVE:
-        case FUNC_SET_UNION:
-        case FUNC_MAP_ADD:
-        case FUNC_MAP_REMOVE:
-        default:
+        else
+        {
             abort();
         }
     }
 
-    if(root)
+    unsigned char* final_doc = NULL;
+    size_t final_doc_sz = 0;
+    e::guard g = e::makeguard(free_if_allocated, &final_doc);
+
+    if (treadstone_transformer_output(trans, &final_doc, &final_doc_sz) < 0)
     {
-        new_value = json_object_to_json_string(root);
-        //json_object_put(root);
+        return false;
     }
 
-    memmove(writeto, new_value.data(), new_value.size());
-    return writeto + new_value.size();
+    new_memory->takeover(final_doc);
+    g.dismiss();
+    *new_value = e::slice(final_doc, final_doc_sz);
+    return true;
 }
 
-void
-datatype_document :: get_end(const json_object* root, const json_path& path,
-                                json_object*& parent, json_object*& obj, std::string& obj_name) const
+bool
+datatype_document :: client_to_server(const e::slice& client,
+                                      e::arena* new_memory,
+                                      e::slice* server) const
 {
-    json_path parent_path;
+    unsigned char* binary;
+    size_t binary_sz;
+    std::string tmp(client.cdata(), client.size());
 
-    if(path.has_subtree())
+    if (treadstone_json_to_binary(tmp.c_str(), &binary, &binary_sz) < 0)
     {
-        path.split_reverse(parent_path, obj_name);
-
-        // Apperantly, there is no easier way in json-c to get the parent
-        parent = traverse_path(root, parent_path);
-    }
-    else
-    {
-        parent = const_cast<json_object*>(root);
-        obj_name = path.str();
+        return false;
     }
 
-    if(!parent)
-    {
-        // Recursively build the path
-        // This might be a little inefficent but should rarely be needed
-        json_object *grandparent = NULL;
-        std::string parent_name_;
-        get_end(root, parent_path, grandparent, parent, parent_name_);
+    new_memory->takeover(binary);
+    *server = e::slice(binary, binary_sz);
+    return true;
+}
 
-        assert(grandparent != NULL);
-        parent = json_object_new_object();
-        json_object_object_add(grandparent, parent_name_.c_str(), parent);
+bool
+datatype_document :: server_to_client(const e::slice& server,
+                                      e::arena* new_memory,
+                                      e::slice* client) const
+{
+    char* json;
+
+    if (treadstone_binary_to_json(server.data(), server.size(), &json) < 0)
+    {
+        return false;
     }
 
-    obj = traverse_path(root, path);
+    new_memory->takeover(json);
+    *client = e::slice(json, strlen(json) + 1);
+    return true;
 }
 
 bool
@@ -437,223 +337,145 @@ datatype_document :: document() const
 
 bool
 datatype_document :: document_check(const attribute_check& check,
-                                    const e::slice& doc)
+                                    const e::slice& doc) const
 {
-    // a check that compares the whole document with another document
     if (check.datatype == HYPERDATATYPE_DOCUMENT)
     {
         return check.predicate == HYPERPREDICATE_EQUALS &&
                check.value == doc;
     }
-    // we compare/evaluate one value of the document
-    else
+
+    const char* path = reinterpret_cast<const char*>(check.value.data());
+    size_t path_sz = strnlen(path, check.value.size());
+
+    if (path_sz >= check.value.size())
     {
-        // Search for a \0-character and cut the string of after that point
-        const char* cstr = reinterpret_cast<const char*>(check.value.data());
-        size_t path_sz = strnlen(cstr, check.value.size());
-
-        // If we don't find a null character we terminate
-        // because there is no value following the path information
-        // so check.value should be in the following form: <path>\0<value>
-        if(path_sz >= check.value.size())
-        {
-            return false;
-        }
-
-        json_path path(std::string(cstr, path_sz));
-
-        hyperdatatype hint = CONTAINER_ELEM(check.datatype);
-        hyperdatatype type;
-        std::vector<char> scratch;
-        e::slice value;
-
-        if (!extract_value(path, doc, hint, &type, &scratch, &value))
-        {
-            return false;
-        }
-
-        attribute_check new_check;
-        new_check.attr      = check.attr;
-        new_check.value     = check.value;
-        new_check.datatype  = check.datatype;
-        new_check.predicate = check.predicate;
-        new_check.value.advance(path.size() + 1);
-        return passes_attribute_check(type, new_check, value);
-    }
-}
-
-json_object* datatype_document :: to_json(const e::slice& doc) const
-{
-    json_tokener* tok = json_tokener_new();
-
-    if (!tok)
-    {
-        throw std::bad_alloc();
+        return false;
     }
 
-    e::guard gtok = e::makeguard(json_tokener_free, tok);
-    gtok.use_variable();
-    const char* data = reinterpret_cast<const char*>(doc.data());
-    json_object* obj = json_tokener_parse_ex(tok, data, doc.size());
+    hyperdatatype type;
+    std::vector<char> scratch;
+    e::slice value;
 
-    if (!obj)
+    if (!extract_value(path, doc, &type, &scratch, &value))
     {
-        return NULL;
+        return false;
     }
 
-    if (json_tokener_get_error(tok) != json_tokener_success ||
-        tok->char_offset != static_cast<ssize_t>(doc.size()))
-    {
-        return NULL;
-    }
-
-    return obj;
-}
-
-json_object*
-datatype_document :: traverse_path(const json_object* parent, const json_path& path) const
-{
-    assert(parent != NULL);
-
-    std::string childname;
-    json_path subpath;
-
-    if(!path.has_subtree())
-    {
-        // we're at the end of the tree
-        childname = path.str();
-    }
-    else
-    {
-        path.split(childname, subpath);
-    }
-
-    // json_object_object_get_ex also checks if parent is an object
-    // for some reason this function want a non-const pointer
-    // let us hack around it...
-    json_object* child;
-    if (!json_object_object_get_ex(const_cast<json_object*>(parent), childname.c_str(), &child))
-    {
-        return NULL;
-    }
-
-    if(subpath.empty())
-    {
-        return child;
-    }
-    else
-    {
-        return traverse_path(child, subpath);
-    }
-}
-
-json_object*
-datatype_document :: get_last_elem_in_path(const json_object* parent, const json_path& path, json_path& child_path) const
-{
-    assert(parent != NULL);
-
-    std::string childname;
-    json_path subpath;
-
-    if(!path.has_subtree())
-    {
-        // we're at the end of the tree
-        childname = path.str();
-    }
-    else
-    {
-        path.split(childname, subpath);
-    }
-
-    child_path.append(childname);
-
-    // json_object_object_get_ex also checks if parent is an object
-    // for some reason this function want a non-const pointer
-    // let us hack around it...
-    json_object* child;
-    if (!json_object_object_get_ex(const_cast<json_object*>(parent), childname.c_str(), &child))
-    {
-        return const_cast<json_object*>(parent);
-    }
-
-    if(subpath.empty())
-    {
-        return child;
-    }
-    else
-    {
-        return get_last_elem_in_path(child, subpath, child_path);
-    }
+    attribute_check new_check;
+    new_check.attr      = check.attr;
+    new_check.value     = check.value;
+    new_check.datatype  = check.datatype;
+    new_check.predicate = check.predicate;
+    new_check.value.advance(path_sz + 1);
+    return passes_attribute_check(type, new_check, value);
 }
 
 bool
-datatype_document :: extract_value(const json_path& path,
-                                const e::slice& doc,
-                                hyperdatatype hint,
-                                hyperdatatype* type,
-                                std::vector<char>* scratch,
-                                e::slice* value)
+datatype_document :: extract_value(const char* path,
+                                   const e::slice& data,
+                                   hyperdatatype* type,
+                                   std::vector<char>* scratch,
+                                   e::slice* value) const
 {
-    json_object* obj = to_json(doc);
+    struct treadstone_transformer* trans = NULL;
+    trans = treadstone_transformer_create(data.data(), data.size());
 
-    if(!obj)
+    if (!trans)
     {
         return false;
     }
 
-    e::guard gobj = e::makeguard(json_object_put, obj);
-    gobj.use_variable();
+    e::guard transg = e::makeguard(treadstone_transformer_destroy, trans);
+    unsigned char* v = NULL;
+    size_t v_sz = 0;
+    e::guard g = e::makeguard(free_if_allocated, &v);
 
-    json_object* parent = traverse_path(obj, path);
-
-    if(!parent)
+    if (treadstone_transformer_extract_value(trans, path, &v, &v_sz) < 0)
     {
         return false;
     }
 
-    if (json_object_is_type(parent, json_type_double) ||
-        json_object_is_type(parent, json_type_int))
+    return coerce_binary_to_primitive(e::slice(v, v_sz), type, scratch, value);
+}
+
+void
+datatype_document :: coerce_primitive_to_binary(hyperdatatype type,
+                                                const e::slice& in,
+                                                std::vector<char>* scratch,
+                                                e::slice* value) const
+{
+    assert(IS_DOCUMENT_PRIMITIVE(type));
+    unsigned char* v = NULL;
+    size_t v_sz = 0;
+    e::guard g = e::makeguard(free_if_allocated, &v);
+
+    if (type == HYPERDATATYPE_STRING)
     {
-        const size_t number_sz = sizeof(double) > sizeof(int64_t)
-                               ? sizeof(double) : sizeof(int64_t);
-
-        if (scratch->size() < number_sz)
-        {
-            scratch->resize(number_sz);
-        }
-
-        if (hint == HYPERDATATYPE_INT64)
-        {
-            int64_t i = json_object_get_int64(parent);
-            e::pack64le(i, &(*scratch)[0]);
-            *type = HYPERDATATYPE_INT64;
-            *value = e::slice(&(*scratch)[0], sizeof(int64_t));
-            return true;
-        }
-        else
-        {
-            double d = json_object_get_double(parent);
-            e::packdoublele(d, &(*scratch)[0]);
-            *type = HYPERDATATYPE_FLOAT;
-            *value = e::slice(&(*scratch)[0], sizeof(double));
-            return true;
-        }
+        int rc = treadstone_string_to_binary(in.cdata(), in.size(), &v, &v_sz);
+        assert(rc == 0);
     }
-    else if (json_object_is_type(parent, json_type_string))
+    else if (type == HYPERDATATYPE_INT64)
     {
-        size_t str_sz = json_object_get_string_len(parent);
-        const char* str = json_object_get_string(parent);
+        int rc = treadstone_integer_to_binary(datatype_int64::unpack(in), &v, &v_sz);
+        assert(rc == 0);
+    }
+    else if (type == HYPERDATATYPE_FLOAT)
+    {
+        int rc = treadstone_double_to_binary(datatype_float::unpack(in), &v, &v_sz);
+        assert(rc == 0);
+    }
+    else if (type == HYPERDATATYPE_DOCUMENT)
+    {
+        *value = in;
+        return;
+    }
+    else
+    {
+        abort();
+    }
 
-        if (scratch->size() < str_sz)
-        {
-            scratch->resize(str_sz);
-        }
+    scratch->resize(v_sz);
+    memmove(&(*scratch)[0], v, v_sz);
+    *value = e::slice(&(*scratch)[0], v_sz);
+}
 
-        memmove(&scratch->front(), str, str_sz);
+bool
+datatype_document :: coerce_binary_to_primitive(const e::slice& in,
+                                                hyperdatatype* type,
+                                                std::vector<char>* scratch,
+                                                e::slice* value) const
+{
+    if (treadstone_binary_validate(in.data(), in.size()) < 0)
+    {
+        return false;
+    }
+
+    if (treadstone_binary_is_string(in.data(), in.size()) == 0)
+    {
         *type = HYPERDATATYPE_STRING;
-        *value = e::slice(&(*scratch)[0], str_sz);
-        return true;
+        size_t sz = treadstone_binary_string_bytes(in.data(), in.size());
+        scratch->resize(sz);
+        treadstone_binary_to_string(in.data(), in.size(), &(*scratch)[0]);
+        *value = e::slice(&(*scratch)[0], sz);
+    }
+    else if (treadstone_binary_is_integer(in.data(), in.size()) == 0)
+    {
+        *type = HYPERDATATYPE_INT64;
+        int64_t num = treadstone_binary_to_integer(in.data(), in.size());
+        datatype_int64::pack(num, scratch, value);
+    }
+    else if (treadstone_binary_is_double(in.data(), in.size()) == 0)
+    {
+        *type = HYPERDATATYPE_FLOAT;
+        double num = treadstone_binary_to_double(in.data(), in.size());
+        datatype_float::pack(num, scratch, value);
+    }
+    else
+    {
+        *type = HYPERDATATYPE_DOCUMENT;
+        *value = in;
     }
 
-    return false;
+    return true;
 }

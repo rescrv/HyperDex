@@ -29,15 +29,6 @@
 #include "config.h"
 #endif
 
-// json-c
-#if HAVE_JSON_H
-#include <json/json.h>
-#elif HAVE_JSON_C_H
-#include <json-c/json.h>
-#else
-#error no suitable json.h found
-#endif
-
 // e
 #include <e/endian.h>
 #include <e/guard.h>
@@ -203,10 +194,9 @@ index_document :: parse_path(const index* idx,
                              std::vector<char>* scratch,
                              e::slice* value)
 {
-    json_path path(idx->extra.c_str());
     hyperdatatype type;
 
-    if (m_di.extract_value(path, document, HYPERDATATYPE_GENERIC, &type, scratch, value))
+    if (m_di.extract_value(idx->extra.c_str(), document, &type, scratch, value))
     {
         if (type == HYPERDATATYPE_STRING)
         {

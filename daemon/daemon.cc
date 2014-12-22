@@ -118,9 +118,9 @@ daemon :: daemon()
     , m_perf_req_search_next()
     , m_perf_req_search_stop()
     , m_perf_req_sorted_search()
-    , m_perf_req_group_del()
     , m_perf_req_count()
     , m_perf_req_search_describe()
+    , m_perf_req_group_atomic()
     , m_perf_chain_op()
     , m_perf_chain_subspace()
     , m_perf_chain_ack()
@@ -648,10 +648,6 @@ daemon :: loop(size_t thread)
                 process_req_sorted_search(from, vfrom, vto, msg, up);
                 m_perf_req_sorted_search.tap();
                 break;
-            case REQ_GROUP_DEL:
-                process_req_group_del(from, vfrom, vto, msg, up);
-                m_perf_req_group_del.tap();
-                break;
             case REQ_COUNT:
                 process_req_count(from, vfrom, vto, msg, up);
                 m_perf_req_count.tap();
@@ -659,6 +655,10 @@ daemon :: loop(size_t thread)
             case REQ_SEARCH_DESCRIBE:
                 process_req_search_describe(from, vfrom, vto, msg, up);
                 m_perf_req_search_describe.tap();
+                break;
+            case REQ_GROUP_ATOMIC:
+                process_req_group_atomic(from, vfrom, vto, msg, up);
+                m_perf_req_group_atomic.tap();
                 break;
             case CHAIN_OP:
                 process_chain_op(from, vfrom, vto, msg, up);
@@ -706,10 +706,10 @@ daemon :: loop(size_t thread)
             case RESP_GET:
             case RESP_GET_PARTIAL:
             case RESP_ATOMIC:
+            case RESP_GROUP_ATOMIC:
             case RESP_SEARCH_ITEM:
             case RESP_SEARCH_DONE:
             case RESP_SORTED_SEARCH:
-            case RESP_GROUP_DEL:
             case RESP_COUNT:
             case RESP_SEARCH_DESCRIBE:
             case CONFIGMISMATCH:
@@ -1002,26 +1002,6 @@ daemon :: process_req_sorted_search(server_id from,
 }
 
 void
-daemon :: process_req_group_del(server_id from,
-                                virtual_server_id,
-                                virtual_server_id vto,
-                                std::auto_ptr<e::buffer> msg,
-                                e::unpacker up)
-{
-    uint64_t nonce;
-    std::vector<attribute_check> checks;
-
-    if ((up >> nonce >> checks).error())
-    {
-        LOG(WARNING) << "unpack of REQ_GROUP_DEL failed; here's some hex:  " << msg->hex();
-        return;
-    }
-
-    e::slice sl("\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9);
-    m_sm.group_keyop(from, vto, nonce, &checks, REQ_ATOMIC, sl, RESP_GROUP_DEL);
-}
-
-void
 daemon :: process_req_count(server_id from,
                             virtual_server_id,
                             virtual_server_id vto,
@@ -1057,6 +1037,28 @@ daemon :: process_req_search_describe(server_id from,
     }
 
     m_sm.search_describe(from, vto, nonce, &checks);
+}
+
+void
+daemon :: process_req_group_atomic(server_id from,
+                                   virtual_server_id,
+                                   virtual_server_id vto,
+                                   std::auto_ptr<e::buffer> msg,
+                                   e::unpacker up)
+{
+    uint64_t nonce;
+    std::vector<attribute_check> checks;
+    up = up >> nonce >> checks;
+
+    if (up.error())
+    {
+        LOG(WARNING) << "unpack of REQ_GROUP_ATOMIC failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    // Only forward the actual atomic operation
+    e::slice sl = up.as_slice();
+    m_sm.group_keyop(from, vto, nonce, &checks, REQ_ATOMIC, sl, RESP_GROUP_ATOMIC);
 }
 
 void
@@ -1408,9 +1410,9 @@ daemon :: collect_stats_msgs(std::ostringstream* ret)
     *ret << " msgs.req_search_next=" << m_perf_req_search_next.read();
     *ret << " msgs.req_search_stop=" << m_perf_req_search_stop.read();
     *ret << " msgs.req_sorted_search=" << m_perf_req_sorted_search.read();
-    *ret << " msgs.req_group_del=" << m_perf_req_group_del.read();
     *ret << " msgs.req_count=" << m_perf_req_count.read();
     *ret << " msgs.req_search_describe=" << m_perf_req_search_describe.read();
+    *ret << " msgs.req_group_atomic=" << m_perf_req_group_atomic.read();
     *ret << " msgs.chain_op=" << m_perf_chain_op.read();
     *ret << " msgs.chain_subspace=" << m_perf_chain_subspace.read();
     *ret << " msgs.chain_ack=" << m_perf_chain_ack.read();

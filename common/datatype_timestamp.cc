@@ -84,10 +84,11 @@ datatype_timestamp :: check_args(const funcall& func) const
     return func.name == FUNC_SET && func.arg1_datatype == this->datatype() && validate(func.arg1);
 }
 
-uint8_t*
-datatype_timestamp  ::  apply(const e::slice& old_value,
-                              const funcall* funcs, size_t funcs_sz,
-                              uint8_t* writeto)
+bool
+datatype_timestamp :: apply(const e::slice& old_value,
+                            const funcall* funcs, size_t funcs_sz,
+                            e::arena* new_memory,
+                            e::slice* new_value) const
 {
     int64_t timestamp = unpack(old_value);
 
@@ -98,7 +99,11 @@ datatype_timestamp  ::  apply(const e::slice& old_value,
         timestamp = unpack(func->arg1);
     }
 
-    return e::pack64le(timestamp, writeto);
+    uint8_t* ptr = NULL;
+    new_memory->allocate(sizeof(int64_t), &ptr);
+    e::pack64le(timestamp, ptr);
+    *new_value = e::slice(ptr, sizeof(int64_t));
+    return true;
 }
 
 bool
@@ -110,7 +115,7 @@ datatype_timestamp::hashable() const
 int64_t  lookup_interesting[] = { 1, 60, 3600, 24*60*60, 7*24*60*60, 30 *7 * 24*60*60};
 
 uint64_t
-datatype_timestamp :: hash(const e::slice& value)
+datatype_timestamp :: hash(const e::slice& value) const
 {
     int64_t interesting_bits;
     int64_t extra;
@@ -136,7 +141,7 @@ datatype_timestamp :: containable() const
 bool
 datatype_timestamp :: step(const uint8_t** ptr,
                            const uint8_t* end,
-                           e::slice* elem)
+                           e::slice* elem) const
 {
     if (static_cast<size_t>(end - *ptr) < sizeof(int64_t))
     {
@@ -148,12 +153,18 @@ datatype_timestamp :: step(const uint8_t** ptr,
     return true;
 }
 
-uint8_t*
-datatype_timestamp :: write(uint8_t* writeto,
-                            const e::slice& elem)
+uint64_t
+datatype_timestamp :: write_sz(const e::slice& elem) const
 {
-    memmove(writeto, elem.data(), elem.size());
-    return writeto + elem.size();
+    return elem.size();
+}
+
+uint8_t*
+datatype_timestamp :: write(const e::slice& elem,
+                            uint8_t* write_to) const
+{
+    memmove(write_to, elem.data(), elem.size());
+    return write_to + elem.size();
 }
 
 bool
@@ -182,7 +193,7 @@ compare(const e::slice& lhs,
 }
 
 int
-datatype_timestamp :: compare(const e::slice& lhs, const e::slice& rhs)
+datatype_timestamp :: compare(const e::slice& lhs, const e::slice& rhs) const
 {
     return ::compare(lhs, rhs);
 }
@@ -195,7 +206,7 @@ compare_less(const e::slice& lhs,
 }
 
 datatype_info::compares_less
-datatype_timestamp :: compare_less()
+datatype_timestamp :: compare_less() const
 {
     return &::compare_less;
 }

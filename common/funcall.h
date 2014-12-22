@@ -35,7 +35,7 @@
 #include <memory>
 
 // e
-#include <e/buffer.h>
+#include <e/arena.h>
 #include <e/slice.h>
 
 // HyperDex
@@ -62,6 +62,8 @@ enum funcall_t
     FUNC_NUM_AND,
     FUNC_NUM_OR,
     FUNC_NUM_XOR,
+    FUNC_NUM_MAX,
+    FUNC_NUM_MIN,
 
     FUNC_LIST_LPUSH,
     FUNC_LIST_RPUSH,
@@ -72,7 +74,10 @@ enum funcall_t
     FUNC_SET_UNION,
 
     FUNC_MAP_ADD,
-    FUNC_MAP_REMOVE
+    FUNC_MAP_REMOVE,
+
+    FUNC_DOC_RENAME,
+    FUNC_DOC_UNSET
 };
 
 class funcall
@@ -102,7 +107,7 @@ apply_funcs(const schema& sc,
             const std::vector<funcall>& funcs,
             const e::slice& key,
             const std::vector<e::slice>& old_value,
-            std::auto_ptr<e::buffer>* backing,
+            e::arena* new_memory,
             std::vector<e::slice>* new_value);
 
 bool

@@ -45,6 +45,7 @@
 #include "common/attribute_check.h"
 #include "common/auth_wallet.h"
 #include "common/datatype_info.h"
+#include "common/documents.h"
 #include "common/funcall.h"
 #include "common/macros.h"
 #include "common/network_msgtype.h"
@@ -52,10 +53,10 @@
 #include "client/client.h"
 #include "client/constants.h"
 #include "client/pending_atomic.h"
+#include "client/pending_group_atomic.h"
 #include "client/pending_count.h"
 #include "client/pending_get.h"
 #include "client/pending_get_partial.h"
-#include "client/pending_group_del.h"
 #include "client/pending_search.h"
 #include "client/pending_search_describe.h"
 #include "client/pending_sorted_search.h"
@@ -269,8 +270,8 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
     } \
     std::vector<attribute_check> checks; \
     std::vector<virtual_server_id> servers; \
-    arena_t allocate; \
-    int64_t ret = prepare_searchop(*sc, space, chks, chks_sz, &allocate, status, &checks, &servers); \
+    e::arena memory; \
+    int64_t ret = prepare_searchop(*sc, space, chks, chks_sz, &memory, status, &checks, &servers); \
     if (ret < 0) \
     { \
         return ret; \
@@ -355,22 +356,6 @@ client :: sorted_search(const char* space,
 }
 
 int64_t
-client :: group_del(const char* space,
-                    const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                    hyperdex_client_returncode* status)
-{
-    SEARCH_BOILERPLATE
-    int64_t client_id = m_next_client_id++;
-    e::intrusive_ptr<pending_aggregation> op;
-    op = new pending_group_del(client_id, status);
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + pack_size(checks);
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << checks;
-    return perform_aggregation(servers, op, REQ_GROUP_DEL, msg, status);
-}
-
-int64_t
 client :: count(const char* space,
                 const hyperdex_client_attribute_check* chks, size_t chks_sz,
                 hyperdex_client_returncode* status,
@@ -420,64 +405,73 @@ client :: perform_funcall(const hyperdex_client_keyop_info* opinfo,
 
     e::intrusive_ptr<pending> op;
     op = new pending_atomic(m_next_client_id++, status);
-    std::vector<attribute_check> checks;
-    std::vector<funcall> funcs;
-    size_t idx = 0;
-    arena_t allocate;
-
-    // Prepare the checks
-    idx = prepare_checks(space, *sc, chks, chks_sz, &allocate, status, &checks);
-
-    if (idx < chks_sz)
-    {
-        return -2 - idx;
-    }
-
-    // Prepare the attrs
-    idx = prepare_funcs(space, *sc, opinfo, attrs, attrs_sz, &allocate, status, &funcs);
-
-    if (idx < attrs_sz)
-    {
-        return -2 - chks_sz - idx;
-    }
-
-    // Prepare the mapattrs
-    idx = prepare_funcs(space, *sc, opinfo, mapattrs, mapattrs_sz, &allocate, status, &funcs);
-
-    if (idx < mapattrs_sz)
-    {
-        return -2 - chks_sz - attrs_sz - idx;
-    }
-
-    std::stable_sort(checks.begin(), checks.end());
-    std::stable_sort(funcs.begin(), funcs.end());
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + sizeof(uint8_t)
-              + pack_size(key)
-              + pack_size(checks)
-              + pack_size(funcs);
+    std::auto_ptr<e::buffer> msg;
     auth_wallet aw(m_macaroons, m_macaroons_sz);
+    size_t header_sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+                     + pack_size(key);
+    size_t footer_sz = 0;
 
     if (m_macaroons_sz)
     {
-        sz += pack_size(aw);
+        footer_sz += pack_size(aw);
     }
 
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    uint8_t flags = (opinfo->fail_if_not_found ? 1 : 0)
-                  | (opinfo->fail_if_found ? 2 : 0)
-                  | (opinfo->erase ? 0 : 128)
-                  | (m_macaroons_sz ? 64 : 0);
-    e::buffer::packer pa =
-    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ)
-        << key << flags << checks << funcs;
+    int64_t ret = perform_funcall(space, sc, opinfo,
+                                  chks, chks_sz,
+                                  attrs, attrs_sz,
+                                  mapattrs, mapattrs_sz,
+                                  header_sz, footer_sz,
+                                  status, &msg);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << key;
 
     if (m_macaroons_sz)
     {
-        pa = pa << aw;
+        msg->pack_at(msg->capacity() - footer_sz) << aw;
     }
 
     return send_keyop(space, key, REQ_ATOMIC, msg, op, status);
+}
+
+int64_t
+client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
+                                const char* space,
+                                const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                hyperdex_client_returncode* status,
+                                uint64_t* update_count)
+{
+    SEARCH_BOILERPLATE
+    int64_t client_id = m_next_client_id++;
+    e::intrusive_ptr<pending_aggregation> op;
+    op = new pending_group_atomic(client_id, status, update_count);
+    std::auto_ptr<e::buffer> inner_msg;
+    ret = perform_funcall(space, sc, opinfo,
+                          chks, chks_sz,
+                          attrs, attrs_sz,
+                          mapattrs, mapattrs_sz,
+                          0, 0, status, &inner_msg);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+              + sizeof(uint64_t)
+              + pack_size(checks)
+              + inner_msg->size();
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
+    pa = pa << checks;
+    pa.copy(inner_msg->as_slice());
+    return perform_aggregation(servers, op, REQ_GROUP_ATOMIC, msg, status);
 }
 
 int64_t
@@ -731,7 +725,7 @@ client :: attribute_type(const char* space, const char* name,
 size_t
 client :: prepare_checks(const char* space, const schema& sc,
                          const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                         arena_t* allocate,
+                         e::arena* memory,
                          hyperdex_client_returncode* status,
                          std::vector<attribute_check>* checks)
 {
@@ -739,22 +733,10 @@ client :: prepare_checks(const char* space, const schema& sc,
 
     for (size_t i = 0; i < chks_sz; ++i)
     {
-        std::string _attr;
+        std::string scratch;
         const char* attr;
-        const char* dot;
-
-        if ((dot = strchr(chks[i].attr, '.')))
-        {
-            _attr.assign(chks[i].attr, dot);
-            ++dot;
-        }
-        else
-        {
-            _attr.assign(chks[i].attr, strlen(chks[i].attr));
-            dot = NULL;
-        }
-
-        attr = _attr.c_str();
+        const char* path;
+        parse_document_path(chks[i].attr, &attr, &path, &scratch);
         uint16_t attrnum = sc.lookup_attr(attr);
 
         if (attrnum >= sc.attrs_sz)
@@ -779,15 +761,25 @@ client :: prepare_checks(const char* space, const schema& sc,
         c.value = e::slice(chks[i].value, chks[i].value_sz);
         c.datatype = datatype;
         c.predicate = chks[i].predicate;
+        datatype_info* vtype = datatype_info::lookup(c.datatype);
 
-        if (dot)
+        if (!vtype->client_to_server(c.value, memory, &c.value))
         {
-            size_t dot_sz = strlen(dot) + 1;
-            allocate->push_back(std::string());
-            std::string& s(allocate->back());
-            s.append(dot, dot_sz);
-            s.append(chks[i].value, chks[i].value_sz);
-            c.value = e::slice(s);
+            ERROR(WRONGTYPE) << "check[" << i << "], which is on attribute \""
+                             << e::strescape(sc.attrs[attrnum].name)
+                             << "\", does not meet the constraints of its type";
+            return i;
+        }
+
+        if (path)
+        {
+            size_t path_sz = strlen(path) + 1;
+            size_t sz = path_sz + chks[i].value_sz;
+            unsigned char* tmp = NULL;
+            memory->allocate(path_sz + chks[i].value_sz, &tmp);
+            memmove(tmp, path, path_sz);
+            memmove(tmp + path_sz, chks[i].value, chks[i].value_sz);
+            c.value = e::slice(tmp, sz);
         }
 
         if (!validate_attribute_check(sc.attrs[attrnum].type, c))
@@ -807,7 +799,7 @@ size_t
 client :: prepare_funcs(const char* space, const schema& sc,
                         const hyperdex_client_keyop_info* opinfo,
                         const hyperdex_client_attribute* attrs, size_t attrs_sz,
-                        arena_t*,
+                        e::arena* memory,
                         hyperdex_client_returncode* status,
                         std::vector<funcall>* funcs)
 {
@@ -815,11 +807,15 @@ client :: prepare_funcs(const char* space, const schema& sc,
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
-        uint16_t attrnum = sc.lookup_attr(attrs[i].attr);
+        std::string scratch;
+        const char* attr;
+        const char* path;
+        parse_document_path(attrs[i].attr, &attr, &path, &scratch);
+        uint16_t attrnum = sc.lookup_attr(attr);
 
         if (attrnum == sc.attrs_sz)
         {
-            ERROR(UNKNOWNATTR) << "\"" << e::strescape(attrs[i].attr)
+            ERROR(UNKNOWNATTR) << "\"" << e::strescape(attr)
                                << "\" is not an attribute of space \""
                                << e::strescape(space) << "\"";
             return i;
@@ -853,6 +849,21 @@ client :: prepare_funcs(const char* space, const schema& sc,
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
         o.arg1_datatype = datatype;
         datatype_info* type = datatype_info::lookup(sc.attrs[attrnum].type);
+        datatype_info* a1type = datatype_info::lookup(o.arg1_datatype);
+
+        if (!a1type->client_to_server(o.arg1, memory, &o.arg1))
+        {
+            ERROR(WRONGTYPE) << "attribute \""
+                             << e::strescape(attrs[i].attr)
+                             << "\" does not meet the constraints of its type";
+            return i;
+        }
+
+        if (path != NULL)
+        {
+            o.arg2 = e::slice(path, strlen(path) + 1);
+            o.arg2_datatype = HYPERDATATYPE_STRING;
+        }
 
         if (!type->check_args(o))
         {
@@ -872,7 +883,7 @@ size_t
 client :: prepare_funcs(const char* space, const schema& sc,
                         const hyperdex_client_keyop_info* opinfo,
                         const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                        arena_t*,
+                        e::arena* memory,
                         hyperdex_client_returncode* status,
                         std::vector<funcall>* funcs)
 {
@@ -924,6 +935,24 @@ client :: prepare_funcs(const char* space, const schema& sc,
         o.arg1 = e::slice(mapattrs[i].value, mapattrs[i].value_sz);
         o.arg1_datatype = v_datatype;
         datatype_info* type = datatype_info::lookup(sc.attrs[attrnum].type);
+        datatype_info* ktype = datatype_info::lookup(k_datatype);
+        datatype_info* vtype = datatype_info::lookup(k_datatype);
+
+        if (!ktype->client_to_server(o.arg2, memory, &o.arg2))
+        {
+            ERROR(WRONGTYPE) << "key of [" << i << "], which modifies attribute \""
+                             << e::strescape(mapattrs[i].attr)
+                             << "\", does not meet the constraints of its type";
+            return i;
+        }
+
+        if (!vtype->client_to_server(o.arg1, memory, &o.arg1))
+        {
+            ERROR(WRONGTYPE) << "value of [" << i << "], which modifies attribute \""
+                             << e::strescape(mapattrs[i].attr)
+                             << "\", does not meet the constraints of its type";
+            return i;
+        }
 
         if (!type->check_args(o))
         {
@@ -943,12 +972,12 @@ size_t
 client :: prepare_searchop(const schema& sc,
                            const char* space,
                            const hyperdex_client_attribute_check* chks, size_t chks_sz,
-                           arena_t* allocate,
+                           e::arena* memory,
                            hyperdex_client_returncode* status,
                            std::vector<attribute_check>* checks,
                            std::vector<virtual_server_id>* servers)
 {
-    size_t num_checks = prepare_checks(space, sc, chks, chks_sz, allocate, status, checks);
+    size_t num_checks = prepare_checks(space, sc, chks, chks_sz, memory, status, checks);
 
     if (num_checks != chks_sz)
     {
@@ -966,6 +995,61 @@ client :: prepare_searchop(const schema& sc,
         return -1;
     }
 
+    return 0;
+}
+
+int64_t
+client :: perform_funcall(const char* space, const schema* sc,
+                          const hyperdex_client_keyop_info* opinfo,
+                          const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                          const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                          const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                          size_t header_sz,
+                          size_t footer_sz,
+                          hyperdex_client_returncode* status,
+                          std::auto_ptr<e::buffer>* msg)
+{
+    std::vector<attribute_check> checks;
+    std::vector<funcall> funcs;
+    size_t idx = 0;
+    e::arena memory;
+
+    // Prepare the checks
+    idx = prepare_checks(space, *sc, chks, chks_sz, &memory, status, &checks);
+
+    if (idx < chks_sz)
+    {
+        return -2 - idx;
+    }
+
+    // Prepare the attrs
+    idx = prepare_funcs(space, *sc, opinfo, attrs, attrs_sz, &memory, status, &funcs);
+
+    if (idx < attrs_sz)
+    {
+        return -2 - chks_sz - idx;
+    }
+
+    // Prepare the mapattrs
+    idx = prepare_funcs(space, *sc, opinfo, mapattrs, mapattrs_sz, &memory, status, &funcs);
+
+    if (idx < mapattrs_sz)
+    {
+        return -2 - chks_sz - attrs_sz - idx;
+    }
+
+    std::stable_sort(checks.begin(), checks.end());
+    std::stable_sort(funcs.begin(), funcs.end());
+    size_t sz = header_sz + footer_sz
+              + sizeof(uint8_t)
+              + pack_size(checks)
+              + pack_size(funcs);
+    msg->reset(e::buffer::create(sz));
+    uint8_t flags = (opinfo->fail_if_not_found ? 1 : 0)
+                  | (opinfo->fail_if_found ? 2 : 0)
+                  | (opinfo->erase ? 0 : 128)
+                  | (m_macaroons_sz ? 64 : 0);
+    (*msg)->pack_at(header_sz) << flags << checks << funcs;
     return 0;
 }
 

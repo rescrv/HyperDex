@@ -27,9 +27,9 @@
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-AM_CPPFLAGS  = -I${abs_top_srcdir}/include $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(MACAROONS_CFLAGS)
+AM_CPPFLAGS  = -I${abs_top_srcdir}/include $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(MACAROONS_CFLAGS) $(TREADSTONE_CFLAGS)
 AM_CFLAGS    = -fvisibility=hidden $(WANAL_CFLAGS)
-AM_CXXFLAGS  = -fvisibility=hidden -fvisibility-inlines-hidden $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(MACAROONS_CFLAGS) $(WANAL_CXXFLAGS)
+AM_CXXFLAGS  = -fvisibility=hidden -fvisibility-inlines-hidden $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(HYPERLEVELDB_CFLAGS) $(REPLICANT_CFLAGS) $(MACAROONS_CFLAGS) $(TREADSTONE_CFLAGS) $(WANAL_CXXFLAGS)
 AM_MAKEFLAGS = --no-print-directory
 AM_YFLAGS = -d
 HELP2MAN_FLAGS = --no-discard-stderr --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
@@ -242,6 +242,7 @@ hyperdex_daemon_SOURCES += common/datatype_macaroon_secret.cc
 hyperdex_daemon_SOURCES += common/datatype_map.cc
 hyperdex_daemon_SOURCES += common/datatype_set.cc
 hyperdex_daemon_SOURCES += common/datatype_string.cc
+hyperdex_daemon_SOURCES += common/documents.cc
 hyperdex_daemon_SOURCES += common/funcall.cc
 hyperdex_daemon_SOURCES += common/hash.cc
 hyperdex_daemon_SOURCES += common/hyperdex.cc
@@ -301,7 +302,7 @@ hyperdex_daemon_LDADD += $(REPLICANT_LIBS)
 hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(E_LIBS)
-hyperdex_daemon_LDADD += $(JSON_LIBS)
+hyperdex_daemon_LDADD += $(TREADSTONE_LIBS)
 hyperdex_daemon_LDADD += -lpopt -lglog $(LRT_LDFLAGS) -lpthread
 man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc | hyperdex-daemon$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-daemon$(EXEEXT)
@@ -394,7 +395,6 @@ noinst_HEADERS += client/pending_atomic.h
 noinst_HEADERS += client/pending_count.h
 noinst_HEADERS += client/pending_get.h
 noinst_HEADERS += client/pending_get_partial.h
-noinst_HEADERS += client/pending_group_del.h
 noinst_HEADERS += client/pending.h
 noinst_HEADERS += client/pending_search_describe.h
 noinst_HEADERS += client/pending_search.h
@@ -417,6 +417,7 @@ libhyperdex_client_la_SOURCES += common/datatype_map.cc
 libhyperdex_client_la_SOURCES += common/datatype_set.cc
 libhyperdex_client_la_SOURCES += common/datatype_timestamp.cc
 libhyperdex_client_la_SOURCES += common/datatype_string.cc
+libhyperdex_client_la_SOURCES += common/documents.cc
 libhyperdex_client_la_SOURCES += common/funcall.cc
 libhyperdex_client_la_SOURCES += common/hash.cc
 libhyperdex_client_la_SOURCES += common/hyperdex.cc
@@ -440,11 +441,11 @@ libhyperdex_client_la_SOURCES += client/datastructures.cc
 libhyperdex_client_la_SOURCES += client/keyop_info.cc
 libhyperdex_client_la_SOURCES += client/pending_aggregation.cc
 libhyperdex_client_la_SOURCES += client/pending_atomic.cc
+libhyperdex_client_la_SOURCES += client/pending_group_atomic.cc
 libhyperdex_client_la_SOURCES += client/pending.cc
 libhyperdex_client_la_SOURCES += client/pending_count.cc
 libhyperdex_client_la_SOURCES += client/pending_get.cc
 libhyperdex_client_la_SOURCES += client/pending_get_partial.cc
-libhyperdex_client_la_SOURCES += client/pending_group_del.cc
 libhyperdex_client_la_SOURCES += client/pending_search.cc
 libhyperdex_client_la_SOURCES += client/pending_search_describe.cc
 libhyperdex_client_la_SOURCES += client/pending_sorted_search.cc
@@ -454,7 +455,7 @@ libhyperdex_client_la_LIBADD += $(MACAROONS_LIBS)
 libhyperdex_client_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(E_LIBS)
-libhyperdex_client_la_LIBADD += $(JSON_LIBS)
+libhyperdex_client_la_LIBADD += $(TREADSTONE_LIBS)
 
 client/keyop_info.cc: client/keyop_info.gperf client/keyop_info.h
 	$(gperf_verbose)gperf -m 100 $(abs_top_srcdir)/client/keyop_info.gperf --output-file=$(abs_top_builddir)/client/keyop_info.cc
@@ -511,6 +512,7 @@ libhyperdex_admin_la_SOURCES += common/datatype_map.cc
 libhyperdex_admin_la_SOURCES += common/datatype_set.cc
 libhyperdex_admin_la_SOURCES += common/datatype_timestamp.cc
 libhyperdex_admin_la_SOURCES += common/datatype_string.cc
+libhyperdex_admin_la_SOURCES += common/documents.cc
 libhyperdex_admin_la_SOURCES += common/hash.cc
 libhyperdex_admin_la_SOURCES += common/hyperdex.cc
 libhyperdex_admin_la_SOURCES += common/hyperspace.cc
@@ -549,7 +551,7 @@ libhyperdex_admin_la_LIBADD += $(MACAROONS_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
-libhyperdex_admin_la_LIBADD += $(JSON_LIBS)
+libhyperdex_admin_la_LIBADD += $(TREADSTONE_LIBS)
 
 ################################################################################
 ################################### Bindings ###################################
@@ -685,6 +687,7 @@ EXTRA_DIST += bindings/node.js/client.prototypes.cc
 
 if ENABLE_PYTHON_BINDINGS
 pkgpyexec_DATA += bindings/python/hyperdex/__init__.py
+pkgpyexec_DATA += bindings/python/hyperdex/mongo.py
 if ENABLE_CLIENT
 pkgpyexec_LTLIBRARIES += bindings/python/hyperdex/client.la
 endif
@@ -859,6 +862,8 @@ python_wrappers += test/sh/bindings.python.DataTypeSetFloat.sh
 python_wrappers += test/sh/bindings.python.DataTypeSetInt.sh
 python_wrappers += test/sh/bindings.python.DataTypeSetString.sh
 python_wrappers += test/sh/bindings.python.DataTypeString.sh
+python_wrappers += test/sh/bindings.python.GroupAtomic.sh
+python_wrappers += test/sh/bindings.python.HyperMongo.sh
 python_wrappers += test/sh/bindings.python.LengthString.sh
 python_wrappers += test/sh/bindings.python.MultiAttribute.sh
 python_wrappers += test/sh/bindings.python.RangeSearchInt.sh

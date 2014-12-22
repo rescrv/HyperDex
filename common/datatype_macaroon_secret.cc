@@ -59,47 +59,23 @@ datatype_macaroon_secret :: check_args(const funcall& func) const
            validate(func.arg1) && func.name == FUNC_SET;
 }
 
-uint8_t*
+bool
 datatype_macaroon_secret :: apply(const e::slice& old_value,
                                   const funcall* funcs, size_t funcs_sz,
-                                  uint8_t* writeto)
+                                  e::arena* new_memory,
+                                  e::slice* new_value) const
 {
-    uint8_t* const ptr = writeto;
-    size_t sz = old_value.size();
-    memmove(ptr, old_value.data(), sz);
+    *new_value = old_value;
 
-    for (size_t i = 0; i < funcs_sz; ++i)
+    if (funcs_sz > 0)
     {
-        switch (funcs[i].name)
-        {
-            case FUNC_SET:
-                // Overwrite
-                memmove(ptr, funcs[i].arg1.data(), funcs[i].arg1.size());
-                sz = funcs[i].arg1.size();
-                break;
-            case FUNC_FAIL:
-            case FUNC_STRING_PREPEND:
-            case FUNC_STRING_APPEND:
-            case FUNC_NUM_ADD:
-            case FUNC_NUM_SUB:
-            case FUNC_NUM_MUL:
-            case FUNC_NUM_DIV:
-            case FUNC_NUM_MOD:
-            case FUNC_NUM_AND:
-            case FUNC_NUM_OR:
-            case FUNC_NUM_XOR:
-            case FUNC_LIST_LPUSH:
-            case FUNC_LIST_RPUSH:
-            case FUNC_SET_ADD:
-            case FUNC_SET_REMOVE:
-            case FUNC_SET_INTERSECT:
-            case FUNC_SET_UNION:
-            case FUNC_MAP_ADD:
-            case FUNC_MAP_REMOVE:
-            default:
-                abort();
-        }
+        assert(funcs[funcs_sz - 1].name == FUNC_SET);
+        *new_value = funcs[funcs_sz - 1].arg1;
     }
 
-    return ptr + sz;
+    uint8_t* ptr = NULL;
+    new_memory->allocate(new_value->size(), &ptr);
+    memmove(ptr, new_value->data(), new_value->size());
+    *new_value = e::slice(ptr, new_value->size());
+    return true;
 }

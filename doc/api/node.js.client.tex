@@ -122,6 +122,30 @@ cond_put(spacename, key, predicates, attributes, function (success, err) {})
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% group_put %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_put}}
+\label{api:nodejs:group_put}
+\index{group\_put!Node.js API}
+\input{\topdir/api/desc/group_put}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_put(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
 %%%%%%%%%%%%%%%%%%%% put_if_not_exist %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{put\_if\_not\_exist}}
@@ -192,6 +216,28 @@ cond_del(spacename, key, predicates, function (success, err) {})
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% group_del %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_del}}
+\label{api:nodejs:group_del}
+\index{group\_del!Node.js API}
+\input{\topdir/api/desc/group_del}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_del(spacename, predicates, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
 %%%%%%%%%%%%%%%%%%%% atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{atomic\_add}}
@@ -241,6 +287,30 @@ cond_atomic_add(spacename, key, predicates, attributes, function (success, err) 
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% group_atomic_add %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_add}}
+\label{api:nodejs:group_atomic_add}
+\index{group\_atomic\_add!Node.js API}
+\input{\topdir/api/desc/group_atomic_add}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_atomic_add(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
 
 %%%%%%%%%%%%%%%%%%%% atomic_sub %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -292,6 +362,30 @@ cond_atomic_sub(spacename, key, predicates, attributes, function (success, err) 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% group_atomic_sub %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_sub}}
+\label{api:nodejs:group_atomic_sub}
+\index{group\_atomic\_sub!Node.js API}
+\input{\topdir/api/desc/group_atomic_sub}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_atomic_sub(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
 %%%%%%%%%%%%%%%%%%%% atomic_mul %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{atomic\_mul}}
@@ -341,6 +435,30 @@ cond_atomic_mul(spacename, key, predicates, attributes, function (success, err) 
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% group_atomic_mul %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_mul}}
+\label{api:nodejs:group_atomic_mul}
+\index{group\_atomic\_mul!Node.js API}
+\input{\topdir/api/desc/group_atomic_mul}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_atomic_mul(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
 
 %%%%%%%%%%%%%%%%%%%% atomic_div %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -392,6 +510,30 @@ cond_atomic_div(spacename, key, predicates, attributes, function (success, err) 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% group_atomic_div %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_div}}
+\label{api:nodejs:group_atomic_div}
+\index{group\_atomic\_div!Node.js API}
+\input{\topdir/api/desc/group_atomic_div}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_atomic_div(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
 %%%%%%%%%%%%%%%%%%%% atomic_mod %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{atomic\_mod}}
@@ -441,6 +583,30 @@ cond_atomic_mod(spacename, key, predicates, attributes, function (success, err) 
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% group_atomic_mod %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_mod}}
+\label{api:nodejs:group_atomic_mod}
+\index{group\_atomic\_mod!Node.js API}
+\input{\topdir/api/desc/group_atomic_mod}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_atomic_mod(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
 
 %%%%%%%%%%%%%%%%%%%% atomic_and %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -492,6 +658,30 @@ cond_atomic_and(spacename, key, predicates, attributes, function (success, err) 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% group_atomic_and %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_and}}
+\label{api:nodejs:group_atomic_and}
+\index{group\_atomic\_and!Node.js API}
+\input{\topdir/api/desc/group_atomic_and}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_atomic_and(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
 %%%%%%%%%%%%%%%%%%%% atomic_or %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{atomic\_or}}
@@ -542,6 +732,30 @@ cond_atomic_or(spacename, key, predicates, attributes, function (success, err) {
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% group_atomic_or %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_or}}
+\label{api:nodejs:group_atomic_or}
+\index{group\_atomic\_or!Node.js API}
+\input{\topdir/api/desc/group_atomic_or}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_atomic_or(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
 %%%%%%%%%%%%%%%%%%%% atomic_xor %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{atomic\_xor}}
@@ -591,6 +805,178 @@ cond_atomic_xor(spacename, key, predicates, attributes, function (success, err) 
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% group_atomic_xor %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_xor}}
+\label{api:nodejs:group_atomic_xor}
+\index{group\_atomic\_xor!Node.js API}
+\input{\topdir/api/desc/group_atomic_xor}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_atomic_xor(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
+%%%%%%%%%%%%%%%%%%%% atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{atomic\_min}}
+\label{api:nodejs:atomic_min}
+\index{atomic\_min!Node.js API}
+\input{\topdir/api/desc/atomic_min}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+atomic_min(spacename, key, attributes, function (success, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% cond_atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_atomic\_min}}
+\label{api:nodejs:cond_atomic_min}
+\index{cond\_atomic\_min!Node.js API}
+\input{\topdir/api/desc/cond_atomic_min}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+cond_atomic_min(spacename, key, predicates, attributes, function (success, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% group_atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_min}}
+\label{api:nodejs:group_atomic_min}
+\index{group\_atomic\_min!Node.js API}
+\input{\topdir/api/desc/group_atomic_min}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_atomic_min(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
+%%%%%%%%%%%%%%%%%%%% atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{atomic\_max}}
+\label{api:nodejs:atomic_max}
+\index{atomic\_max!Node.js API}
+\input{\topdir/api/desc/atomic_max}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+atomic_max(spacename, key, attributes, function (success, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% cond_atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_atomic\_max}}
+\label{api:nodejs:cond_atomic_max}
+\index{cond\_atomic\_max!Node.js API}
+\input{\topdir/api/desc/cond_atomic_max}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+cond_atomic_max(spacename, key, predicates, attributes, function (success, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% group_atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_atomic\_max}}
+\label{api:nodejs:group_atomic_max}
+\index{group\_atomic\_max!Node.js API}
+\input{\topdir/api/desc/group_atomic_max}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_atomic_max(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
 
 %%%%%%%%%%%%%%%%%%%% string_prepend %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -643,6 +1029,30 @@ cond_string_prepend(
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% group_string_prepend %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_string\_prepend}}
+\label{api:nodejs:group_string_prepend}
+\index{group\_string\_prepend!Node.js API}
+\input{\topdir/api/desc/group_string_prepend}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_string_prepend(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
 %%%%%%%%%%%%%%%%%%%% string_append %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{string\_append}}
@@ -694,6 +1104,30 @@ cond_string_append(
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% group_string_append %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_string\_append}}
+\label{api:nodejs:group_string_append}
+\index{group\_string\_append!Node.js API}
+\input{\topdir/api/desc/group_string_append}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_string_append(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
 %%%%%%%%%%%%%%%%%%%% list_lpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{list\_lpush}}
@@ -744,6 +1178,30 @@ cond_list_lpush(spacename, key, predicates, attributes, function (success, err) 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% group_list_lpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_lpush}}
+\label{api:nodejs:group_list_lpush}
+\index{group\_list\_lpush!Node.js API}
+\input{\topdir/api/desc/group_list_lpush}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_list_lpush(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
 %%%%%%%%%%%%%%%%%%%% list_rpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{list\_rpush}}
@@ -793,6 +1251,30 @@ cond_list_rpush(spacename, key, predicates, attributes, function (success, err) 
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% group_list_rpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{group\_list\_rpush}}
+\label{api:nodejs:group_list_rpush}
+\index{group\_list\_rpush!Node.js API}
+\input{\topdir/api/desc/group_list_rpush}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+group_list_rpush(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
 
 %%%%%%%%%%%%%%%%%%%% set_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1095,16 +1577,16 @@ cond_map_remove(spacename, key, predicates, attributes, function (success, err) 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
-%%%%%%%%%%%%%%%%%%%% document_atomic_add %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% document_rename %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{document\_atomic\_add}}
-\label{api:nodejs:document_atomic_add}
-\index{document\_atomic\_add!Node.js API}
-\input{\topdir/api/desc/document_atomic_add}
+\subsubsection{\code{document\_rename}}
+\label{api:nodejs:document_rename}
+\index{document\_rename!Node.js API}
+\input{\topdir/api/desc/document_rename}
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-document_atomic_add(spacename, key, docattributes, function (success, err) {})
+document_rename(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1112,23 +1594,47 @@ document_atomic_add(spacename, key, docattributes, function (success, err) {})
 \input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
 \item \code{key}\\
 \input{\topdir/api/fragments/node.js/client/in_asynccall_key}
-\item \code{docattributes}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_docattributes}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
-%%%%%%%%%%%%%%%%%%%% document_atomic_sub %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_document_rename %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{document\_atomic\_sub}}
-\label{api:nodejs:document_atomic_sub}
-\index{document\_atomic\_sub!Node.js API}
-\input{\topdir/api/desc/document_atomic_sub}
+\subsubsection{\code{group\_document\_rename}}
+\label{api:nodejs:group_document_rename}
+\index{group\_document\_rename!Node.js API}
+\input{\topdir/api/desc/group_document_rename}
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-document_atomic_sub(spacename, key, docattributes, function (success, err) {})
+group_document_rename(spacename, predicates, attributes, function (count, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
+
+%%%%%%%%%%%%%%%%%%%% document_unset %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{document\_unset}}
+\label{api:nodejs:document_unset}
+\index{document\_unset!Node.js API}
+\input{\topdir/api/desc/document_unset}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+document_unset(spacename, key, attributes, function (success, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
@@ -1136,180 +1642,36 @@ document_atomic_sub(spacename, key, docattributes, function (success, err) {})
 \input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
 \item \code{key}\\
 \input{\topdir/api/fragments/node.js/client/in_asynccall_key}
-\item \code{docattributes}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_docattributes}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
-%%%%%%%%%%%%%%%%%%%% document_atomic_mul %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% group_document_unset %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsubsection{\code{document\_atomic\_mul}}
-\label{api:nodejs:document_atomic_mul}
-\index{document\_atomic\_mul!Node.js API}
-\input{\topdir/api/desc/document_atomic_mul}
+\subsubsection{\code{group\_document\_unset}}
+\label{api:nodejs:group_document_unset}
+\index{group\_document\_unset!Node.js API}
+\input{\topdir/api/desc/group_document_unset}
 
 \paragraph{Definition:}
 \begin{javascriptcode}
-document_atomic_mul(spacename, key, docattributes, function (success, err) {})
+group_document_unset(spacename, predicates, attributes, function (count, err) {})
 \end{javascriptcode}
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
 \item \code{spacename}\\
 \input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
-\item \code{key}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
-\item \code{docattributes}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_docattributes}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_attributes}
 \end{itemize}
 
 \paragraph{Returns:}
-\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
-
-%%%%%%%%%%%%%%%%%%%% document_atomic_div %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_atomic\_div}}
-\label{api:nodejs:document_atomic_div}
-\index{document\_atomic\_div!Node.js API}
-\input{\topdir/api/desc/document_atomic_div}
-
-\paragraph{Definition:}
-\begin{javascriptcode}
-document_atomic_div(spacename, key, docattributes, function (success, err) {})
-\end{javascriptcode}
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
-\item \code{key}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
-\item \code{docattributes}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
-
-%%%%%%%%%%%%%%%%%%%% document_atomic_mod %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_atomic\_mod}}
-\label{api:nodejs:document_atomic_mod}
-\index{document\_atomic\_mod!Node.js API}
-\input{\topdir/api/desc/document_atomic_mod}
-
-\paragraph{Definition:}
-\begin{javascriptcode}
-document_atomic_mod(spacename, key, docattributes, function (success, err) {})
-\end{javascriptcode}
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
-\item \code{key}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
-\item \code{docattributes}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
-
-%%%%%%%%%%%%%%%%%%%% document_atomic_xor %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_atomic\_xor}}
-\label{api:nodejs:document_atomic_xor}
-\index{document\_atomic\_xor!Node.js API}
-\input{\topdir/api/desc/document_atomic_xor}
-
-\paragraph{Definition:}
-\begin{javascriptcode}
-document_atomic_xor(spacename, key, docattributes, function (success, err) {})
-\end{javascriptcode}
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
-\item \code{key}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
-\item \code{docattributes}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
-
-%%%%%%%%%%%%%%%%%%%% document_atomic_or %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_atomic\_or}}
-\label{api:nodejs:document_atomic_or}
-\index{document\_atomic\_or!Node.js API}
-\input{\topdir/api/desc/document_atomic_or}
-
-\paragraph{Definition:}
-\begin{javascriptcode}
-document_atomic_or(spacename, key, docattributes, function (success, err) {})
-\end{javascriptcode}
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
-\item \code{key}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
-\item \code{docattributes}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
-
-%%%%%%%%%%%%%%%%%%%% document_string_prepend %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_string\_prepend}}
-\label{api:nodejs:document_string_prepend}
-\index{document\_string\_prepend!Node.js API}
-\input{\topdir/api/desc/document_string_prepend}
-
-\paragraph{Definition:}
-\begin{javascriptcode}
-document_string_prepend(spacename, key, docattributes, function (success, err) {})
-\end{javascriptcode}
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
-\item \code{key}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
-\item \code{docattributes}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
-
-%%%%%%%%%%%%%%%%%%%% document_string_append %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{document\_string\_append}}
-\label{api:nodejs:document_string_append}
-\index{document\_string\_append!Node.js API}
-\input{\topdir/api/desc/document_string_append}
-
-\paragraph{Definition:}
-\begin{javascriptcode}
-document_string_append(spacename, key, docattributes, function (success, err) {})
-\end{javascriptcode}
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
-\item \code{key}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
-\item \code{docattributes}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_docattributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status_count}
 
 %%%%%%%%%%%%%%%%%%%% map_atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1821,6 +2183,108 @@ cond_map_string_append(
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% map_atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{map\_atomic\_min}}
+\label{api:nodejs:map_atomic_min}
+\index{map\_atomic\_min!Node.js API}
+\input{\topdir/api/desc/map_atomic_min}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+map_atomic_min(spacename, key, mapattributes, function (success, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
+\item \code{mapattributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% cond_map_atomic_min %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_map\_atomic\_min}}
+\label{api:nodejs:cond_map_atomic_min}
+\index{cond\_map\_atomic\_min!Node.js API}
+\input{\topdir/api/desc/cond_map_atomic_min}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+cond_map_atomic_min(
+        spacename, key, predicates, mapattributes, function (success, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{mapattributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% map_atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{map\_atomic\_max}}
+\label{api:nodejs:map_atomic_max}
+\index{map\_atomic\_max!Node.js API}
+\input{\topdir/api/desc/map_atomic_max}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+map_atomic_max(spacename, key, mapattributes, function (success, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
+\item \code{mapattributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% cond_map_atomic_max %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_map\_atomic\_max}}
+\label{api:nodejs:cond_map_atomic_max}
+\index{cond\_map\_atomic\_max!Node.js API}
+\input{\topdir/api/desc/cond_map_atomic_max}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+cond_map_atomic_max(
+        spacename, key, predicates, mapattributes, function (success, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_key}
+\item \code{predicates}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
+\item \code{mapattributes}\\
+\input{\topdir/api/fragments/node.js/client/in_asynccall_mapattributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
+
 %%%%%%%%%%%%%%%%%%%% search %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{search}}
@@ -1892,28 +2356,6 @@ sorted_search(spacename, predicates, sortby, limit, maxmin, function (obj, err) 
 
 \paragraph{Returns:}
 \input{\topdir/api/fragments/node.js/client/return_iterator__status_attributes}
-
-%%%%%%%%%%%%%%%%%%%% group_del %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{group\_del}}
-\label{api:nodejs:group_del}
-\index{group\_del!Node.js API}
-\input{\topdir/api/desc/group_del}
-
-\paragraph{Definition:}
-\begin{javascriptcode}
-group_del(spacename, predicates, function (success, err) {})
-\end{javascriptcode}
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{spacename}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_spacename}
-\item \code{predicates}\\
-\input{\topdir/api/fragments/node.js/client/in_asynccall_predicates}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/api/fragments/node.js/client/return_asynccall__status}
 
 %%%%%%%%%%%%%%%%%%%% count %%%%%%%%%%%%%%%%%%%%
 \pagebreak

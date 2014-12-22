@@ -40,7 +40,7 @@ key_operation :: key_operation(uint64_t old_version,
                                bool _fresh,
                                bool _has_value,
                                const std::vector<e::slice>& _value,
-                               std::auto_ptr<e::buffer> backing)
+                               std::auto_ptr<e::arena> memory)
     : m_ref(0)
     , m_prev_version(old_version)
     , m_this_version(new_version)
@@ -54,7 +54,7 @@ key_operation :: key_operation(uint64_t old_version,
     , m_client()
     , m_nonce()
     , m_value(_value)
-    , m_backing(backing)
+    , m_memory(memory)
     , m_type(UNKNOWN)
     , m_this_old_region()
     , m_this_new_region()

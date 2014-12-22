@@ -559,6 +559,7 @@ search_manager :: group_keyop(const server_id& from,
         if (vsi != virtual_server_id())
         {
             m_daemon->m_comm.send(vsi, mt, msg);
+            result++;
         }
 
         iter->next();

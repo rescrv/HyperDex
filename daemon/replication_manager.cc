@@ -313,11 +313,13 @@ replication_manager :: chain_op(const virtual_server_id& from,
     key_map_t::state_reference ksr;
     key_state* ks = get_or_create_key_state(ri, key, &ksr);
     e::intrusive_ptr<key_operation> op = ks->get(new_version);
+    std::auto_ptr<e::arena> memory(new e::arena());
+    memory->takeover(backing.release());
 
     if (!op)
     {
         op = ks->enqueue_continuous_key_op(old_version, new_version, fresh,
-                                           has_value, value, backing);
+                                           has_value, value, memory);
     }
 
     assert(op);
@@ -363,11 +365,13 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
     key_map_t::state_reference ksr;
     key_state* ks = get_or_create_key_state(ri, key, &ksr);
     e::intrusive_ptr<key_operation> op = ks->get(new_version);
+    std::auto_ptr<e::arena> memory(new e::arena());
+    memory->takeover(backing.release());
 
     if (!op)
     {
         op = ks->enqueue_discontinuous_key_op(old_version, new_version,
-                                              value, backing,
+                                              value, memory,
                                               prev_region, this_old_region,
                                               this_new_region, next_region);
     }

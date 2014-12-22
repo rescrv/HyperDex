@@ -50,19 +50,22 @@ class datatype_map : public datatype_info
         virtual hyperdatatype datatype() const;
         virtual bool validate(const e::slice& value) const;
         virtual bool check_args(const funcall& func) const;
-        virtual uint8_t* apply(const e::slice& old_value,
-                               const funcall* funcs, size_t funcs_sz,
-                               uint8_t* writeto);
+        virtual bool apply(const e::slice& old_value,
+                           const funcall* funcs, size_t funcs_sz,
+                           e::arena* new_memory,
+                           e::slice* new_value) const;
 
     public:
         virtual bool indexable() const;
 
     public:
         virtual bool has_length() const;
-        virtual uint64_t length(const e::slice& value);
+        virtual uint64_t length(const e::slice& value) const;
+
+    public:
         virtual bool has_contains() const;
         virtual hyperdatatype contains_datatype() const;
-        virtual bool contains(const e::slice& value, const e::slice& needle);
+        virtual bool contains(const e::slice& value, const e::slice& needle) const;
 
     private:
         typedef std::map<e::slice, e::slice, datatype_info::compares_less> map_t;
@@ -73,8 +76,8 @@ class datatype_map : public datatype_info
 
     private:
         bool apply_inner(map_t* m,
-                         e::array_ptr<uint8_t>* scratch,
-                         const funcall* func); // XXX don't fail?
+                         const funcall* func,
+                         e::arena* new_memory) const;
 
     private:
         // Datatype of the keys

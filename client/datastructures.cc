@@ -718,7 +718,7 @@ hyperdex_ds_set_finalize(struct hyperdex_ds_set* set,
 
     for (size_t i = 0; i < elems.size(); ++i)
     {
-        wr = di->write(wr, elems[i]);
+        wr = di->write(elems[i], wr);
     }
 
     set->elems = std::string(tmp.begin(), tmp.end());
@@ -1069,8 +1069,8 @@ hyperdex_ds_map_finalize(struct hyperdex_ds_map* map,
 
     for (size_t i = 0; i < pairs.size(); ++i)
     {
-        wr = dik->write(wr, pairs[i].first);
-        wr = div->write(wr, pairs[i].second);
+        wr = dik->write(pairs[i].first, wr);
+        wr = div->write(pairs[i].second, wr);
     }
 
     map->pairs = std::string(tmp.begin(), tmp.end());

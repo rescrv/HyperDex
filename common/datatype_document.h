@@ -31,9 +31,6 @@
 // HyperDex
 #include "namespace.h"
 #include "common/datatype_info.h"
-#include "common/json_path.h"
-
-class json_object;
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -46,41 +43,41 @@ class datatype_document : public datatype_info
     public:
         virtual hyperdatatype datatype() const;
         virtual bool validate(const e::slice& value) const;
-        virtual bool validate_old_values(const std::vector<e::slice>& old_values, const funcall& func) const;
         virtual bool check_args(const funcall& func) const;
-        virtual uint8_t* apply(const e::slice& old_value,
-                               const funcall* funcs, size_t funcs_sz,
-                               uint8_t* writeto);
+        virtual bool apply(const e::slice& old_value,
+                           const funcall* funcs, size_t funcs_sz,
+                           e::arena* new_memory,
+                           e::slice* new_value) const;
+
+    public:
+        virtual bool client_to_server(const e::slice& client,
+                                      e::arena* new_memory,
+                                      e::slice* server) const;
+        virtual bool server_to_client(const e::slice& server,
+                                      e::arena* new_memory,
+                                      e::slice* client) const;
 
     public:
         virtual bool document() const;
         virtual bool document_check(const attribute_check& check,
-                                    const e::slice& value);
+                                    const e::slice& value) const;
 
     public:
-        // Retrieve value in a json document by traversing it
-        // Will allocate a buffer for the data and a slice referencing it
-        bool extract_value(const json_path& path,
-                        const e::slice& document, // the whole document
-                        hyperdatatype hint, // possible datatpe of the result
-                        hyperdatatype* type, // OUT: the datatype of the result
-                        std::vector<char>* scratch, // OUT: the resulting content/value
-                        e::slice* value); // OUT: slice to easier access the content of the scratch
+        bool extract_value(const char* path,
+                           const e::slice& data,
+                           hyperdatatype* type,
+                           std::vector<char>* scratch,
+                           e::slice* value) const;
 
     private:
-        // Convert raw data into a json object
-        json_object* to_json(const e::slice& slice) const;
-
-        // Get the last element of a path (and its name and parent)
-        void get_end(const json_object* root, const json_path& path,
-                                json_object*& parent, json_object*& obj, std::string& obj_name) const;
-
-        // Traverse a path to the last node
-        // Returns NULL if the node doesn't exist
-        json_object* traverse_path(const json_object* root, const json_path& path) const;
-
-        // Go down the path as far as possible
-        json_object* get_last_elem_in_path(const json_object* parent, const json_path& path, json_path& child_path) const;
+        void coerce_primitive_to_binary(hyperdatatype type,
+                                        const e::slice& in,
+                                        std::vector<char>* scratch,
+                                        e::slice* value) const;
+        bool coerce_binary_to_primitive(const e::slice& in,
+                                        hyperdatatype* type,
+                                        std::vector<char>* scratch,
+                                        e::slice* value) const;
 };
 
 END_HYPERDEX_NAMESPACE

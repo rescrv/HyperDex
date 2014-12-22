@@ -29,23 +29,22 @@
 
 // C
 #include <cstdlib>
+#include <math.h>
 
 // e
 #include <e/endian.h>
 #include <e/safe_math.h>
 
 // HyperDex
+#include "common/datatype_float.h"
 #include "common/datatype_int64.h"
 #include "common/ordered_encoding.h"
 
 using hyperdex::datatype_info;
 using hyperdex::datatype_int64;
 
-namespace
-{
-
 int64_t
-unpack(const e::slice& value)
+datatype_int64 :: unpack(const e::slice& value)
 {
     assert(value.size() == 0 || value.size() == sizeof(int64_t));
 
@@ -59,6 +58,33 @@ unpack(const e::slice& value)
     return number;
 }
 
+int64_t
+datatype_int64 :: unpack(const funcall& value)
+{
+    if (value.arg1_datatype == HYPERDATATYPE_INT64)
+    {
+        return datatype_int64::unpack(value.arg1);
+    }
+    else if (value.arg1_datatype == HYPERDATATYPE_FLOAT)
+    {
+        return llrint(datatype_float::unpack(value.arg1));
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+void
+datatype_int64 :: pack(int64_t num, std::vector<char>* scratch, e::slice* value)
+{
+    if (scratch->size() < sizeof(int64_t))
+    {
+        scratch->resize(sizeof(int64_t));
+    }
+
+    e::pack64le(num, &(*scratch)[0]);
+    *value = e::slice(&(*scratch)[0], sizeof(int64_t));
 }
 
 datatype_int64 :: datatype_int64()
@@ -97,51 +123,58 @@ datatype_int64 :: check_args(const funcall& func) const
             func.name == FUNC_NUM_XOR);
 }
 
-uint8_t*
+bool
 datatype_int64 :: apply(const e::slice& old_value,
                         const funcall* funcs, size_t funcs_sz,
-                        uint8_t* writeto)
+                        e::arena* new_memory,
+                        e::slice* new_value) const
 {
     int64_t number = unpack(old_value);
 
     for (size_t i = 0; i < funcs_sz; ++i)
     {
         const funcall* func = funcs + i;
-        int64_t arg = unpack(func->arg1);
+        int64_t arg = unpack(*func);
 
         switch (func->name)
         {
             case FUNC_SET:
                 number = arg;
                 break;
+            case FUNC_NUM_MAX:
+                number = std::max(number, arg);
+                break;
+            case FUNC_NUM_MIN:
+                number = std::min(number, arg);
+                break;
             case FUNC_NUM_ADD:
                 if (!e::safe_add(number, arg, &number))
                 {
-                    return NULL; // XXX signed overflow
+                    return false; // XXX signed overflow
                 }
                 break;
             case FUNC_NUM_SUB:
                 if (!e::safe_sub(number, arg, &number))
                 {
-                    return NULL; // XXX signed overflow
+                    return false; // XXX signed overflow
                 }
                 break;
             case FUNC_NUM_MUL:
                 if (!e::safe_mul(number, arg, &number))
                 {
-                    return NULL; // XXX signed overflow
+                    return false; // XXX signed overflow
                 }
                 break;
             case FUNC_NUM_DIV:
                 if (!e::safe_div(number, arg, &number))
                 {
-                    return NULL; // XXX signed overflow
+                    return false; // XXX signed overflow
                 }
                 break;
             case FUNC_NUM_MOD:
                 if (!e::safe_mod(number, arg, &number))
                 {
-                    return NULL; // XXX signed overflow
+                    return false; // XXX signed overflow
                 }
                 break;
             case FUNC_NUM_AND:
@@ -164,12 +197,18 @@ datatype_int64 :: apply(const e::slice& old_value,
             case FUNC_MAP_ADD:
             case FUNC_MAP_REMOVE:
             case FUNC_FAIL:
+            case FUNC_DOC_RENAME:
+            case FUNC_DOC_UNSET:
             default:
                 abort();
         }
     }
 
-    return e::pack64le(number, writeto);
+    uint8_t* ptr = NULL;
+    new_memory->allocate(sizeof(int64_t), &ptr);
+    e::pack64le(number, ptr);
+    *new_value = e::slice(ptr, sizeof(int64_t));
+    return true;
 }
 
 bool
@@ -179,7 +218,7 @@ datatype_int64 :: hashable() const
 }
 
 uint64_t
-datatype_int64 :: hash(const e::slice& value)
+datatype_int64 :: hash(const e::slice& value) const
 {
     assert(validate(value));
     return ordered_encode_int64(unpack(value));
@@ -200,7 +239,7 @@ datatype_int64 :: containable() const
 bool
 datatype_int64 :: step(const uint8_t** ptr,
                        const uint8_t* end,
-                       e::slice* elem)
+                       e::slice* elem) const
 {
     if (static_cast<size_t>(end - *ptr) < sizeof(int64_t))
     {
@@ -212,12 +251,18 @@ datatype_int64 :: step(const uint8_t** ptr,
     return true;
 }
 
-uint8_t*
-datatype_int64 :: write(uint8_t* writeto,
-                        const e::slice& elem)
+uint64_t
+datatype_int64 :: write_sz(const e::slice& elem) const
 {
-    memmove(writeto, elem.data(), elem.size());
-    return writeto + elem.size();
+    return elem.size();
+}
+
+uint8_t*
+datatype_int64 :: write(const e::slice& elem,
+                        uint8_t* write_to) const
+{
+    memmove(write_to, elem.data(), elem.size());
+    return write_to + elem.size();
 }
 
 bool
@@ -230,8 +275,8 @@ static int
 compare(const e::slice& lhs,
         const e::slice& rhs)
 {
-    int64_t lhsnum = unpack(lhs);
-    int64_t rhsnum = unpack(rhs);
+    int64_t lhsnum = datatype_int64::unpack(lhs);
+    int64_t rhsnum = datatype_int64::unpack(rhs);
 
     if (lhsnum < rhsnum)
     {
@@ -246,7 +291,7 @@ compare(const e::slice& lhs,
 }
 
 int
-datatype_int64 :: compare(const e::slice& lhs, const e::slice& rhs)
+datatype_int64 :: compare(const e::slice& lhs, const e::slice& rhs) const
 {
     return ::compare(lhs, rhs);
 }
@@ -259,7 +304,7 @@ compare_less(const e::slice& lhs,
 }
 
 datatype_info::compares_less
-datatype_int64 :: compare_less()
+datatype_int64 :: compare_less() const
 {
     return &::compare_less;
 }

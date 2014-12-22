@@ -613,7 +613,8 @@ group_del(size_t testno,
           const struct hyperdex_client_attribute_check* checks, size_t checks_sz)
 {
     hyperdex_client_returncode gstatus;
-    int64_t gid = cl->group_del(_space, checks, checks_sz, &gstatus);
+    uint64_t count;
+    int64_t gid = cl->group_del(_space, checks, checks_sz, &gstatus, &count);
 
     if (gid < 0)
     {

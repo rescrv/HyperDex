@@ -154,10 +154,28 @@ def generate_client_c_wrapper(x):
         func += '    return cl->search_describe(space, checks, checks_sz, status, description);\n'
     elif x.name == 'sorted_search':
         func += '    return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maxmin, status, attrs, attrs_sz);\n'
-    elif x.name == 'group_del':
-        func += '    return cl->group_del(space, checks, checks_sz, status);\n'
     elif x.name == 'count':
         func += '    return cl->count(space, checks, checks_sz, status, count);\n'
+    elif x.name.startswith('group_'):
+        args = ('opinfo', 'space', )
+        if bindings.Predicates in x.args_in:
+            args += ('checks', 'checks_sz')
+        else:
+            args += ('NULL', '0')
+        if bindings.Attributes in x.args_in:
+            args += ('attrs', 'attrs_sz')
+        else:
+            args += ('NULL', '0')
+        if bindings.MapAttributes in x.args_in:
+            args += ('mapattrs', 'mapattrs_sz')
+        else:
+            args += ('NULL', '0')
+        args += ('status', 'count')
+        func += '    const hyperdex_client_keyop_info* opinfo;\n'
+        func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
+        func += '    return cl->perform_group_funcall('
+        func += ', '.join([a for a in args])
+        func += ');\n'
     else:
         args = ('opinfo', 'space', 'key', 'key_sz')
         if bindings.Predicates in x.args_in:
@@ -170,8 +188,6 @@ def generate_client_c_wrapper(x):
             args += ('NULL', '0')
         if bindings.MapAttributes in x.args_in:
             args += ('mapattrs', 'mapattrs_sz')
-	elif bindings.DocAttributes in x.args_in:
-	    args += ('docattrs', 'docattrs_sz')
         else:
             args += ('NULL', '0')
         args += ('status',)
