@@ -40,6 +40,7 @@ class datatype_float : public datatype_info
         static double unpack(const e::slice& value);
         static double unpack(const funcall& value);
         static void pack(double num, std::vector<char>* scratch, e::slice* value);
+        static bool static_validate(const e::slice& value);
 
     public:
         datatype_float();

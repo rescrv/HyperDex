@@ -40,6 +40,7 @@ class datatype_int64 : public datatype_info
         static int64_t unpack(const e::slice& value);
         static int64_t unpack(const funcall& func);
         static void pack(int64_t num, std::vector<char>* scratch, e::slice* value);
+        static bool static_validate(const e::slice& value);
 
     public:
         datatype_int64();

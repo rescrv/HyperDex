@@ -248,6 +248,15 @@ datatype_document :: apply(const e::slice& old_value,
                 {
                     return false;
                 }
+
+                if (type == HYPERDATATYPE_INT64 &&
+                    func.arg1_datatype == HYPERDATATYPE_FLOAT)
+                {
+                    int64_t x = datatype_int64::unpack(v);
+                    double d = x;
+                    datatype_float::pack(d, &scratch, &v);
+                    type = HYPERDATATYPE_FLOAT;
+                }
             }
 
             datatype_info* di = datatype_info::lookup(type);

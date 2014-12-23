@@ -87,6 +87,12 @@ datatype_int64 :: pack(int64_t num, std::vector<char>* scratch, e::slice* value)
     *value = e::slice(&(*scratch)[0], sizeof(int64_t));
 }
 
+bool
+datatype_int64 :: static_validate(const e::slice& value)
+{
+    return value.size() == sizeof(int64_t) || value.empty();
+}
+
 datatype_int64 :: datatype_int64()
 {
 }
@@ -104,14 +110,14 @@ datatype_int64 :: datatype() const
 bool
 datatype_int64 :: validate(const e::slice& value) const
 {
-    return value.size() == sizeof(int64_t) || value.empty();
+    return static_validate(value);
 }
 
 bool
 datatype_int64 :: check_args(const funcall& func) const
 {
-    return func.arg1_datatype == HYPERDATATYPE_INT64 &&
-           validate(func.arg1) &&
+    return ((func.arg1_datatype == HYPERDATATYPE_INT64 && validate(func.arg1)) ||
+            (func.arg1_datatype == HYPERDATATYPE_FLOAT && datatype_float::static_validate(func.arg1))) &&
            (func.name == FUNC_SET ||
             func.name == FUNC_NUM_ADD ||
             func.name == FUNC_NUM_SUB ||

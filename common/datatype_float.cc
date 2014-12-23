@@ -85,6 +85,12 @@ datatype_float :: pack(double num, std::vector<char>* scratch, e::slice* value)
     *value = e::slice(&(*scratch)[0], sizeof(double));
 }
 
+bool
+datatype_float :: static_validate(const e::slice& value)
+{
+    return value.size() == sizeof(double) || value.empty();
+}
+
 datatype_float :: datatype_float()
 {
 }
@@ -102,14 +108,14 @@ datatype_float :: datatype() const
 bool
 datatype_float :: validate(const e::slice& value) const
 {
-    return value.size() == sizeof(double) || value.empty();
+    return static_validate(value);
 }
 
 bool
 datatype_float :: check_args(const funcall& func) const
 {
-    return func.arg1_datatype == HYPERDATATYPE_FLOAT &&
-           validate(func.arg1) &&
+    return ((func.arg1_datatype == HYPERDATATYPE_FLOAT && validate(func.arg1)) ||
+            (func.arg1_datatype == HYPERDATATYPE_INT64 && datatype_int64::static_validate(func.arg1))) &&
            (func.name == FUNC_SET ||
             func.name == FUNC_NUM_ADD ||
             func.name == FUNC_NUM_SUB ||
