@@ -78,18 +78,6 @@ assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 , 'c' : {'b' :1}, 'i' :
 assertFalse(c.string_prepend('kv', 'k6',  {'v.i.j' : 'xyz'}))
 assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 , 'c' : {'b' :1}, 'i' : {'j' : {'k' : 'xyz'}}}))
 
-#Lists
-#FIXME unsupported by libbson
-#assertTrue(c.put('kv', 'k5', {'v': Document(['a', 'b', 'c'])}))
-#assertEquals(c.get('kv', 'k5')['v'], Document(['a', 'b', 'c']))
-
-# Test loading a big json file
-#FIXME arrays unsupported by libbson. maybe use a different test document?
-#json_file = open(os.getcwd() + '/test/test-data/big.json')
-#data = json.load(json_file)
-#assertTrue(c.put('kv', 'k2', {'v': Document(data)}))
-#assertEquals(c.get('kv', 'k2')['v'], Document(data))
-
 # Remove a property
 assertTrue(c.put('kv', 'k7', {'v' : Document({'a' : {'b' : 3}})}))
 assertEquals(c.get('kv', 'k7')['v'], Document({'a' : {'b' : 3}}))

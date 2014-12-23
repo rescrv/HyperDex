@@ -114,24 +114,24 @@ noinst_HEADERS += visibility.h
 noinst_HEADERS += common/attribute_check.h
 noinst_HEADERS += common/attribute.h
 noinst_HEADERS += common/auth_wallet.h
-noinst_HEADERS += common/configuration.h
 noinst_HEADERS += common/configuration_flags.h
+noinst_HEADERS += common/configuration.h
 noinst_HEADERS += common/coordinator_link.h
 noinst_HEADERS += common/coordinator_returncode.h
 noinst_HEADERS += common/datatype_document.h
 noinst_HEADERS += common/datatype_float.h
 noinst_HEADERS += common/datatype_info.h
 noinst_HEADERS += common/datatype_int64.h
-noinst_HEADERS += common/datatype_timestamp.h
 noinst_HEADERS += common/datatype_list.h
 noinst_HEADERS += common/datatype_macaroon_secret.h
 noinst_HEADERS += common/datatype_map.h
 noinst_HEADERS += common/datatype_set.h
 noinst_HEADERS += common/datatype_string.h
+noinst_HEADERS += common/datatype_timestamp.h
+noinst_HEADERS += common/documents.h
 noinst_HEADERS += common/funcall.h
 noinst_HEADERS += common/hash.h
 noinst_HEADERS += common/hyperspace.h
-noinst_HEADERS += common/ordered_encoding.h
 noinst_HEADERS += common/ids.h
 noinst_HEADERS += common/index.h
 noinst_HEADERS += common/json_path.h
@@ -140,6 +140,7 @@ noinst_HEADERS += common/macros.h
 noinst_HEADERS += common/mapper.h
 noinst_HEADERS += common/network_msgtype.h
 noinst_HEADERS += common/network_returncode.h
+noinst_HEADERS += common/ordered_encoding.h
 noinst_HEADERS += common/range.h
 noinst_HEADERS += common/range_searches.h
 noinst_HEADERS += common/regex_match.h
@@ -395,6 +396,7 @@ noinst_HEADERS += client/pending_atomic.h
 noinst_HEADERS += client/pending_count.h
 noinst_HEADERS += client/pending_get.h
 noinst_HEADERS += client/pending_get_partial.h
+noinst_HEADERS += client/pending_group_atomic.h
 noinst_HEADERS += client/pending.h
 noinst_HEADERS += client/pending_search_describe.h
 noinst_HEADERS += client/pending_search.h
@@ -780,6 +782,8 @@ bindings_ruby_hyperdex_la_CFLAGS += -DHYPERDEX_ADMIN
 bindings_ruby_hyperdex_la_LIBADD += libhyperdex-admin.la
 endif
 
+###################################### Go ######################################
+
 ################################################################################
 ##################################### Tests ####################################
 ################################################################################
@@ -929,6 +933,35 @@ ruby_wrappers += test/sh/bindings.ruby.RangeSearchString.sh
 ruby_wrappers += test/sh/bindings.ruby.RegexSearch.sh
 shell_wrappers += $(ruby_wrappers)
 
+go_wrappers =
+go_wrappers += test/sh/bindings.go.Basic.sh
+go_wrappers += test/sh/bindings.go.BasicSearch.sh
+go_wrappers += test/sh/bindings.go.CondPut.sh
+go_wrappers += test/sh/bindings.go.DataTypeFloat.sh
+go_wrappers += test/sh/bindings.go.DataTypeInt.sh
+go_wrappers += test/sh/bindings.go.DataTypeListFloat.sh
+go_wrappers += test/sh/bindings.go.DataTypeListInt.sh
+go_wrappers += test/sh/bindings.go.DataTypeListString.sh
+go_wrappers += test/sh/bindings.go.DataTypeMapFloatFloat.sh
+go_wrappers += test/sh/bindings.go.DataTypeMapFloatInt.sh
+go_wrappers += test/sh/bindings.go.DataTypeMapFloatString.sh
+go_wrappers += test/sh/bindings.go.DataTypeMapIntFloat.sh
+go_wrappers += test/sh/bindings.go.DataTypeMapIntInt.sh
+go_wrappers += test/sh/bindings.go.DataTypeMapIntString.sh
+go_wrappers += test/sh/bindings.go.DataTypeMapStringFloat.sh
+go_wrappers += test/sh/bindings.go.DataTypeMapStringInt.sh
+go_wrappers += test/sh/bindings.go.DataTypeMapStringString.sh
+go_wrappers += test/sh/bindings.go.DataTypeSetFloat.sh
+go_wrappers += test/sh/bindings.go.DataTypeSetInt.sh
+go_wrappers += test/sh/bindings.go.DataTypeSetString.sh
+go_wrappers += test/sh/bindings.go.DataTypeString.sh
+go_wrappers += test/sh/bindings.go.LengthString.sh
+go_wrappers += test/sh/bindings.go.MultiAttribute.sh
+go_wrappers += test/sh/bindings.go.RangeSearchInt.sh
+go_wrappers += test/sh/bindings.go.RangeSearchString.sh
+go_wrappers += test/sh/bindings.go.RegexSearch.sh
+shell_wrappers += $(go_wrappers)
+
 if ENABLE_ADMIN
 if ENABLE_CLIENT
 if ENABLE_PYTHON_BINDINGS
@@ -1043,6 +1076,32 @@ EXTRA_DIST += test/ruby/MultiAttribute.rb
 EXTRA_DIST += test/ruby/RangeSearchInt.rb
 EXTRA_DIST += test/ruby/RangeSearchString.rb
 EXTRA_DIST += test/ruby/RegexSearch.rb
+EXTRA_DIST += test/go/Basic.go
+EXTRA_DIST += test/go/BasicSearch.go
+EXTRA_DIST += test/go/CondPut.go
+EXTRA_DIST += test/go/DataTypeFloat.go
+EXTRA_DIST += test/go/DataTypeInt.go
+EXTRA_DIST += test/go/DataTypeListFloat.go
+EXTRA_DIST += test/go/DataTypeListInt.go
+EXTRA_DIST += test/go/DataTypeListString.go
+EXTRA_DIST += test/go/DataTypeMapFloatFloat.go
+EXTRA_DIST += test/go/DataTypeMapFloatInt.go
+EXTRA_DIST += test/go/DataTypeMapFloatString.go
+EXTRA_DIST += test/go/DataTypeMapIntFloat.go
+EXTRA_DIST += test/go/DataTypeMapIntInt.go
+EXTRA_DIST += test/go/DataTypeMapIntString.go
+EXTRA_DIST += test/go/DataTypeMapStringFloat.go
+EXTRA_DIST += test/go/DataTypeMapStringInt.go
+EXTRA_DIST += test/go/DataTypeMapStringString.go
+EXTRA_DIST += test/go/DataTypeSetFloat.go
+EXTRA_DIST += test/go/DataTypeSetInt.go
+EXTRA_DIST += test/go/DataTypeSetString.go
+EXTRA_DIST += test/go/DataTypeString.go
+EXTRA_DIST += test/go/LengthString.go
+EXTRA_DIST += test/go/MultiAttribute.go
+EXTRA_DIST += test/go/RangeSearchInt.go
+EXTRA_DIST += test/go/RangeSearchString.go
+EXTRA_DIST += test/go/RegexSearch.go
 
 test_replication_stress_test_SOURCES = test/replication-stress-test.cc
 test_replication_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt -lpthread

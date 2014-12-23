@@ -1,7 +1,15 @@
 doc/.gitignore
 .gitignore
+hyperdex.cbp
 m4/ax_check_link_flag.m4
 m4/ax_check_preproc_flag.m4
 m4/.gitignore
+Makefile.win
 man/template.md
 .tarballignore
+windows/hyperclientclr.cpp
+windows/hyperclientclr.h
+windows/ieee754.h
+windows/marshal.cpp
+windows/marshal.h
+windows/unistd.h
