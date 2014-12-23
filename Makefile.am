@@ -704,6 +704,7 @@ CLEANFILES += bindings/python/hyperdex/*.pyc
 
 EXTRA_DIST += bindings/python.py
 EXTRA_DIST += bindings/python/hyperdex/__init__.py
+EXTRA_DIST += bindings/python/hyperdex/mongo.py
 
 EXTRA_DIST += bindings/python/hyperdex/client.pyx
 bindings_python_hyperdex_client_la_SOURCES = bindings/python/hyperdex/client.c
