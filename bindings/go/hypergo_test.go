@@ -124,7 +124,7 @@ func TestGetPutDelete(t *testing.T) {
 	}
 
 	objCh, _ := client.Search("profiles", []Predicate{
-		Predicate{
+		{
 			"name", "john", EQUALS,
 		},
 	})
@@ -233,7 +233,7 @@ func TestCondPut(t *testing.T) {
 	// this test failing, why?
 	value := 214.15
 
-	err2 := client.CondPut("profiles", KEY, []Predicate{Predicate{
+	err2 := client.CondPut("profiles", KEY, []Predicate{{
 		Attr:      "profile_views",
 		Value:     124312141241,
 		Predicate: EQUALS,

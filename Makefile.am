@@ -1427,6 +1427,7 @@ maint_lib_check_LDADD = -ldl
 
 maintainer-generate:
 	python2 bindings/c.py
+	python2 bindings/go.py
 	python2 bindings/java.py
 	python2 bindings/nodejs.py
 	python2 bindings/python.py
