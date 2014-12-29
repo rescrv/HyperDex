@@ -134,25 +134,12 @@ datalayer :: initialize(const po6::pathname& path,
     {
         first_time = false;
 
-        if (rbacking == "1.3.1" ||
-            rbacking == "1.3.0")
+        if (rbacking != "v1.6.0 format")
         {
-            LOG(INFO) << "existing data was created with HyperDex "
-                      << rbacking << " but this is version "
-                      << PACKAGE_VERSION;
-            LOG(INFO) << "automatically upgrading to " << PACKAGE_VERSION;
-
-            if (!upgrade_13x_to_14())
-            {
-                return false;
-            }
-        }
-        else if (rbacking != PACKAGE_VERSION)
-        {
-            LOG(ERROR) << "could not restore from disk because "
-                       << "the existing data was created by "
+            LOG(ERROR) << "could not restore daemon "
+                       << "the existing data was created with"
                        << "HyperDex " << rbacking << " but "
-                       << "this is version " << PACKAGE_VERSION;
+                       << "this is requires the v1.6.0-compatible format";
             return false;
         }
     }
