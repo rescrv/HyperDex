@@ -48,11 +48,19 @@
 #include "admin/hyperspace_builder_internal.h"
 #include "admin/partition.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wredundant-decls"
+
 // apparently Bison 2.7.1. emits C funcs, but doesn't call them extern.
 extern "C"
 {
 #include "admin/parse_space_y.h"
+
+extern int
+yyparse(struct hyperspace* space, void* scanner);
 }
+
+#pragma GCC diagnostic pop
 
 #define BUFFER_SIZE 1024
 
