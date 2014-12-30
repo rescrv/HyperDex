@@ -1152,9 +1152,9 @@ hyperdex\_client\_attribute}, with the addition of a field named
 \label{sec:api:c:client:error-handling}
 
 Every call in the client provides a means for reporting failure.  After each
-call, your application should for the error and react appropriately.  Depending
-upon the error, your application may retry the request, or may need to take more
-drastic action.
+call, your application should check for the error and react appropriately.
+Depending upon the error, your application may retry the request, or may need to
+take more drastic action.
 
 Errors are typically reported via \code{enum hyperdex\_client\_returncode}
 defined in \code{hyperdex/client.h}.  Values for this enum fall into three
