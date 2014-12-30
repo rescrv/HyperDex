@@ -298,12 +298,12 @@ hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_in_state.cc
 hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_out_state.cc
 hyperdex_daemon_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
 hyperdex_daemon_LDADD =
+hyperdex_daemon_LDADD += $(TREADSTONE_LIBS)
 hyperdex_daemon_LDADD += $(MACAROONS_LIBS)
 hyperdex_daemon_LDADD += $(REPLICANT_LIBS)
 hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(E_LIBS)
-hyperdex_daemon_LDADD += $(TREADSTONE_LIBS)
 hyperdex_daemon_LDADD += -lpopt -lglog $(LRT_LDFLAGS) -lpthread
 man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc | hyperdex-daemon$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-daemon$(EXEEXT)
@@ -453,11 +453,11 @@ libhyperdex_client_la_SOURCES += client/pending_search_describe.cc
 libhyperdex_client_la_SOURCES += client/pending_sorted_search.cc
 libhyperdex_client_la_SOURCES += client/util.cc
 libhyperdex_client_la_LIBADD =
+libhyperdex_client_la_LIBADD += $(TREADSTONE_LIBS)
 libhyperdex_client_la_LIBADD += $(MACAROONS_LIBS)
 libhyperdex_client_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(E_LIBS)
-libhyperdex_client_la_LIBADD += $(TREADSTONE_LIBS)
 
 client/keyop_info.cc: client/keyop_info.gperf client/keyop_info.h
 	$(gperf_verbose)gperf -m 100 $(abs_top_srcdir)/client/keyop_info.gperf --output-file=$(abs_top_builddir)/client/keyop_info.cc
@@ -549,11 +549,11 @@ libhyperdex_admin_la_SOURCES += admin/pending_string.cc
 libhyperdex_admin_la_SOURCES += admin/raw_backup.cc
 libhyperdex_admin_la_SOURCES += admin/yieldable.cc
 libhyperdex_admin_la_LIBADD =
+libhyperdex_admin_la_LIBADD += $(TREADSTONE_LIBS)
 libhyperdex_admin_la_LIBADD += $(MACAROONS_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
-libhyperdex_admin_la_LIBADD += $(TREADSTONE_LIBS)
 
 ################################################################################
 ################################### Bindings ###################################
