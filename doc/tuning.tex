@@ -1,46 +1,173 @@
 \chapter{Tuning HyperDex}
 \label{chap:tuning}
 
-Out of the box, HyperDex provides a stable system with decent performance.  This
+Out of the box, HyperDex provides a stable system with high performance.  This
 chapter is dedicated to those who are looking to get even more performance out
 of their system.  In this chapter, we'll explore system settings that can impact
-HyperDex's performance.
+HyperDex's performance and stability.
+
+As we navigate the available tuning options, keep in mind that these guidelines
+are general, and may or may not apply to all workloads.  Before tuning a
+cluster, it is advisable to setup an end-to-end benchmark and regularly compare
+the impact each individual setting has on cluster stability and performance.
+Generally, the best benchmarks are derived directly from a HyperDex application,
+but the YCSB Benchmark (Section~\ref{sec:benchmark:ycsb}) provides a set of
+workloads common to many applications and will work nearly as well.
 
 \section{Filesystem}
 \label{sec:tuning:filesystem}
 
-By default, most filesystems are not tuned for optimal performance with
-HyperDex.  In particular, many Linux filesystems update filesystem metadata
-on each read or write operation, and will totally order all operations on disk,
-adversely affecting performance.
+The filesystem is the subsystem to tune to improve performance.  Because most
+operating systems are designed to accommodate a wide variety of workloads, they
+usually will not provide optimal performance for a key-value store.
 
-\subsection{Access Time}
-\label{sec:tuning:atime}
+\subsection{Choosing the Right Filesystem}
 
-HyperDex stores its data in many files on disk, with each file containing a
-small amount of the overall data.  Each read in HyperDex may access multiple
-files to satisfy the read.  While reads are generally cheap, and may be served
-from cache, most filesystems maintain information associated with each file
-about the last time the file was accessed.  Many filesystems can write this
-information to disk each time a file is accessed, converting relatively cheap
-reads into more expensive write operations.
+When deploying a new cluster, the filesystem setup and configuration is the
+first opportunity for optimization.  HyperDex works with any POSIX-compatible
+filesystem because it relies on simple and portable primitives.  Filesystems
+with complex features that extend beyond the basic POSIX feature set (such as
+those provided by ZFS and btrfs) can impose performance penalties if such
+features are not used in the deployment.  Simpler filesystems such as ext3,
+ext4, and XFS are usually a better choice because they are commonly available on
+Linux distributions, have received extensive testing, and provide high
+performance.
 
-For that reason, we recommend that the volume containing the HyperDex daemons'
-data directories be mounted with the ``noatime'' flag.  This prevents the
-filesystem from recording last-accessed times on files with each read.  Although
-the details are filesystem-dependent, the ``noatime'' flag is generally
-configured by modifying \code{/etc/fstab} to contain the flag:
+To chose the best filesystem for a new deployment, start by consulting the
+appropriate documentation for each filesystem.  The following filesystems
+are listed in order of preference:
+
+\begin{itemize}
+    \item \href{https://www.kernel.org/doc/Documentation/filesystems/xfs.txt}{XFS:}
+        Available on Linux, and the default filesystem on Red Hat Enterprise 7,
+        XFS is a filesystem designed for scalability and performance.
+    \item \href{https://www.kernel.org/doc/Documentation/filesystems/ext4.txt}{ext3:}
+        The de facto filesystem on most Linux distributions, ext4 is great for
+        smaller partitions.  With larger filesystems (1TB+), you'll need to tune
+        the amount of space that is reserved for inode allocation .
+    \item \href{https://www.freebsd.org/cgi/man.cgi?query=newfs&apropos=0&sektion=0&manpath=FreeBSD+10.1-RELEASE&arch=default&format=html}{UFS:}
+        UFS is the FreeBSD filesystem.  Its low overhead, and soft-update
+        support make it the ideal choice for use on FreeBSD.
+    \item \href{https://www.freebsd.org/cgi/man.cgi?query=zfs&apropos=0&sektion=0&manpath=FreeBSD+10.1-RELEASE&arch=default&format=html}{ZFS:}
+        Available on Solaris and FreeBSD, ZFS provides advanced features, such
+        as volume management, that replace the need for traditional RAID
+        controllers and soft RAID.  For maximum performance, ZFS requires quite
+        a bit of memory---significantly more than any of the other systems.
+    \item \href{https://www.kernel.org/doc/Documentation/filesystems/btrfs.txt}{btrfs:}
+        Available on Linux, btrfs is the closest thing to ZFS on Linux (besides
+        the ZFS userspace port).  btrfs is relatively new compared to other
+        systems that have decades of experience.   For that reason we recommend
+        avoiding it for the near term.
+\end{itemize}
+
+If you still have doubts, it is best to go with XFS, ext4, or UFS, depending on
+their availability on your platform.  Check your distribution's documentation
+for details.
+
+\subsection{Improving Read Performance by Disabling Access Time Updates}
+
+By default, most filesystems update the access time on a file each time a file
+is accessed.  For key-value workloads, these access time updates convert each
+read into a meta-data write.  This can turn a relatively inexpensive cached read
+into an expensive disk write---which will, in turn, impact the performance of
+reads from disk, and other writes to disk.
+
+Because HyperDex does not rely upon access times for correctness, we can obtain
+higher read performance by disabling access-time updates.  On XFS filesystems,
+this behavior has been the default since 2006, so there is no need to tune this
+setting.  Consult the filesystem documentation for details on other filesystems.
+For example, on ext4, this behavior may be obtained by setting the
+\code{relatime} flag in \code{/etc/fstab} for the partition with HyperDex data:
 
 \begin{verbatim}
-/dev/sda /hyperdex/data/dir ext4 defaults,noatime 0 2
+/dev/sdb1 /hyperdex/data/dir ext4 defaults,relatime 0 2
 \end{verbatim}
 
-Consult your filesystem and distribution's documentation for the proper way to
-disable access-time updates.
+\subsection{Improving ext3/4 Write Performance with \code{data=writeback}}
 
-\subsection{Open Files}
-\label{sec:tuning:ulimit-n}
+The ext3 and ext4 filesystems are journaled filesystems, which means that they
+will often impose an order on disk operations to improve integrity during
+crashes.  HyperDex relies upon application-level integrity checks that render
+this serialization at the filesystem level unnecessary.  By relaxing these
+ordering constraints, we can obtain higher performance on journaled ext systems,
+comparable to the default behavior of XFS.  To do this, add the flag
+\code{data=writeback} to the \code{/etc/fstab}:
+
+\begin{verbatim}
+/dev/sdb1 /hyperdex/data/dir ext4 defaults,data=writeback 0 2
+\end{verbatim}
+
+\subsection{Changing the Linux Disk Scheduler}
+
+On Linux, the disk scheduler impacts the order and latency of disk requests.
+For server workloads, the default scheduler may have undesirable consequences
+for the 99th percentile latency.  A better option is to switch to the
+\code{noop} scheduler on SSDs and the \code{deadline} scheduler on spinning
+disks.  To do this
+\href{https://www.kernel.org/doc/Documentation/block/switching-sched.txt}{switch
+the scheduler} like so (where DEV is your block device):
+
+\begin{consolecode}
+# echo noop > /sys/block/DEV/queue/scheduler
+# echo deadline > /sys/block/DEV/queue/scheduler
+\end{consolecode}
+
+\subsection{Linux VM Tuning}
+
+The Linux kernel buffers writes to disk, by asynchronously flushing them in the
+background.  On occasion, the size of the write buffer can grow to such an
+extent that the kernel will use HyperDex's scheduled time slots to flush data to
+disk instead, appearing to stall the application for periods of time.  There are
+multiple system controls that can be tuned to avoid this situation and reduce
+write latency variation.
+
+To properly tune these parameters, you'll need to know the approximate
+throughput at which your disk devices will service write requests.  This is
+important, because we are simultaneously tuning the threshold at which the
+background flush thread will wakeup, and the threshold at which the kernel will
+begin to block HyperDex.  In the below examples, we'll assume each server has a
+single SSD capable of \unit{500}{\mega\byte\per\second}.
+
+\begin{itemize}
+    \item \code{vm.dirty\_background\_bytes}:  This setting limits the number
+        of bytes that will be marked as dirty before the kernel's flush thread
+        begins to write data to disk.  Increasing this setting will increase the
+        time between flushes to disk, and increase the likelihood that disk I/O
+        will stall userspace applications.  Generally this should be no more
+        than 5\% of system memory, and no more than the data written in 10s at
+        the disk's maximum sustained write speed.  In our example, we'd set it
+        to no more than \unit{5}{\giga\byte}.
+    \item \code{vm.dirty\_bytes}:  This setting limits the number of bytes
+        that may be dirty before the application will block.  This setting
+        should be at least twice the value of
+        \code{vm.dirty\_background\_bytes}, and may be higher.  Experimentation
+        is necessary to select the optimum setting of this value.
+\end{itemize}
+
+For more information on tuning the Linux virtual memory subsystem, consult the
+\href{https://www.kernel.org/doc/Documentation/sysctl/vm.txt}{Linux kernel documentation.}
+
+\section{Improving Stability by Increasing Open File Limits}
 
 Internally, HyperDex maintains multiple open file descriptors corresponding to
 network sockets and data files.  Most Linux systems restrict the number of open
 files to 1024 by default.  We recommend setting this value to 65536 or higher.
+This can be accomplished by adding the following line to
+\code{/etc/security/limits.conf} (the exact file may vary on your distribution):
+
+\begin{verbatim}
+*        -       nofile          65536
+\end{verbatim}
+
+\section{Deploying on EC2 and Other Xen Environments}
+
+Occasionally, Xen-based environments such as EC2 have bugs that demanding
+HyperDex workloads can expose.  When deploying an EC2 cluster, ensure that all
+nodes are deployed with the EC2 enhanced networking to avoid such bugs.  In
+environments where enhanced networking is unavailable, the bug can be worked
+around with the following commands:
+
+\begin{consolecode}
+# ethtool -K eth0 rx off tx off sg off tso off ufo off gso off gro off lro off
+# sysctl -w net.ipv4.route.flush=1
+\end{consolecode}

@@ -1,0 +1,59 @@
+\chapter{Working with Docker}
+\label{chap:docker}
+
+HyperDex supports running within Docker containers for easy deployment.  In this
+chapter, we'll walk through the various ways to integrate HyperDex and Docker
+for both testing and production environments.
+
+Our first Docker environment contains an entirely self-sufficient HyperDex
+cluster in a single container so that developers may quickly setup transient
+single-node cluster for testing and prototyping purposes.  This sample
+environment is fully feature-complete, and applications developed against such
+an environment will work with distributed and sharded HyperDex clusters with
+zero application level changes.
+
+\section{Quickly Setup Transient Clusters}
+
+Docker is a great tool for quickly testing and prototyping new ideas.  With
+Docker, an application is isolated in its own container, unable to change the
+workstation outside the container.  This makes it easy to rapidly deploy new
+applications without worrying about having to cleanup or revert any changes they
+may make to the OS.
+
+For HyperDex, we can leverage containers to setup short-lived clusters that may
+be used for one-off tasks, rapid prototyping, or for going through the HyperDex
+tutorial---all without any commitment or modification to our base OS.  The
+\code{hyperdex/quickstart} container includes everything necessary to run a
+single-node HyperDex cluster, including the coordinator, daemon, and Python
+bindings.
+
+Running the HyperDex quickstart container is a simple three-step process:
+
+\begin{enumerate}
+\item We'll need Docker installed to use this container, which may be done by
+following the \href{https://docs.docker.com/installation/}{Docker installation
+instructions}.
+\item We then fetch the HyperDex with the command \code{docker pull
+hyperdex/quickstart}.
+\item To start the cluster, run \code{docker run --net=host
+hyperdex/quickstart}.  When all goes well, you'll see the following message
+indicating your cluster is ready for use:
+
+\begin{verbatim}
+...
+daemon: I1230 19:59:50.547586    21 daemon.cc:492] reconfiguration complete...
+The transient HyperDex cluster is now online.
+
+This is a transient HyperDex cluster.
+You can connect to this cluster at address=172.17.3.27, port=1982.
+To stop this cluster, run 'docker stop -t 0 b6ae7c60c275'.
+\end{verbatim}
+\end{enumerate}
+
+With this quickstart cluster, both the coordinator and daemon logs will be
+displayed on stdout.  You can connect to the cluster at athe address and port
+listed, and can stop the cluster at any time using the command displayed on your
+console.  When you stop the cluster, the HyperDex cluster will be destroyed, and
+taken offline automatically.  To fully clean up any disk space in use by the
+cluster, run \code{docker rm b6ae7c60c275}, where b6ae7c60c275 is the ID of your
+quickstart container.
