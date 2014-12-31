@@ -1420,7 +1420,6 @@ EXTRA_DIST += maint/generate-doc-shell-stubs.py
 EXTRA_DIST += maint/generate-replication-shell-stubs.py
 EXTRA_DIST += maint/generate-search-shell-stubs.py
 EXTRA_DIST += maint/generate-test-packages.py
-EXTRA_DIST += doc/maint/generate-api-descriptions.py
 
 maint_lib_check_SOURCES = maint/lib-check.c
 maint_lib_check_LDADD = -ldl
