@@ -96,6 +96,8 @@ datalayer :: ~datalayer() throw ()
     m_wiper->shutdown();
 }
 
+#define FORMAT_1_6 "v1.6.0 format"
+
 bool
 datalayer :: initialize(const po6::pathname& path,
                         bool* saved,
@@ -134,7 +136,7 @@ datalayer :: initialize(const po6::pathname& path,
     {
         first_time = false;
 
-        if (rbacking != "v1.6.0 format")
+        if (rbacking != FORMAT_1_6)
         {
             LOG(ERROR) << "could not restore daemon "
                        << "the existing data was created with"
@@ -147,7 +149,7 @@ datalayer :: initialize(const po6::pathname& path,
     {
         first_time = true;
         leveldb::Slice k("hyperdex", 8);
-        leveldb::Slice v(PACKAGE_VERSION, STRLENOF(PACKAGE_VERSION));
+        leveldb::Slice v(FORMAT_1_6, STRLENOF(FORMAT_1_6));
         st = m_db->Put(wopts, k, v);
 
         if (!st.ok())
