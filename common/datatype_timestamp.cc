@@ -109,7 +109,7 @@ datatype_timestamp :: apply(const e::slice& old_value,
 bool
 datatype_timestamp::hashable() const
 {
-    return true;
+    return false;
 }
 
 int64_t  lookup_interesting[] = { 1, 60, 3600, 24*60*60, 7*24*60*60, 30 *7 * 24*60*60};
