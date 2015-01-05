@@ -124,6 +124,8 @@ class HyperSpace:
             return result['v'].doc()
 
     def remove(self, key):
+        self.init()
+
         if not self.exists:
             raise RuntimeError("Can't remove. Space doesn't exist yet")
 
@@ -144,6 +146,9 @@ class HyperSpace:
 
         self.init()
         return self.client.put(self.name, value['_id'], {'v' : self.Document(value)})
+
+    def save(self, value):
+        return self.insert(value)
 
     def list_keys(self):
         self.init()
@@ -200,8 +205,13 @@ class HyperSpace:
 
         return docargs
 
+    # Begin Automatically Generated Methods
+    # End Automatically Generated Methods
+
     def async_group_set(self, select, args):
         self.init()
+        if '_id' in select:
+            return self.async_set(select['_id'], args)
         hyperconds = self.convert_conds(select)
         docargs = self.convert_docargs(args)
 
@@ -212,10 +222,18 @@ class HyperSpace:
 
     def async_group_rename(self, select, args):
         self.init()
+        if '_id' in select:
+            return self.async_rename(select['_id'], args)
         hyperconds = self.convert_conds(select)
         docargs = self.convert_docargs(args)
 
         return self.client.async_group_document_rename(self.name, hyperconds, docargs)
+
+    def async_rename(self, key, value):
+        docargs = self.convert_docargs(value)
+        self.init()
+
+        return self.client.async_document_rename(self.name, key, docargs)
 
     def group_set(self, select, value):
         return self.async_group_set(select, value).wait()
@@ -224,13 +242,15 @@ class HyperSpace:
         docargs = self.convert_docargs(value)
         self.init()
 
-        return self.client.async_document_set(self.name, key, docargs)
+        return self.client.async_put(self.name, key, docargs)
 
     def set(self, key, value):
         return self.async_set(key, value).wait()
 
     def async_group_string_prepend(self, select, args):
         self.init()
+        if '_id' in select:
+            return self.async_string_prepend(select['_id'], args)
         hyperconds = self.convert_conds(select)
         docargs = self.convert_docargs(args)
 
@@ -256,6 +276,8 @@ class HyperSpace:
 
     def async_group_string_append(self, select, args):
         self.init()
+        if '_id' in select:
+            return self.async_string_append(select['_id'], args)
         hyperconds = self.convert_conds(select)
         docargs = self.convert_docargs(args)
 
@@ -272,6 +294,8 @@ class HyperSpace:
 
     def async_group_atomic_add(self, select, args):
         self.init()
+        if '_id' in select:
+            return self.async_atomic_add(select['_id'], args)
         hyperconds = self.convert_conds(select)
         docargs = self.convert_docargs(args)
 
@@ -282,10 +306,17 @@ class HyperSpace:
 
     def async_group_list_rpush(self, select, args):
         self.init()
+        if '_id' in select:
+            return self.async_list_rpush(select['_id'], args)
         hyperconds = self.convert_conds(select)
         docargs = self.convert_docargs(args)
-
         return self.client.async_group_list_rpush(self.name, hyperconds, docargs)
+
+    def async_list_rpush(self, key, value):
+        docargs = self.convert_docargs(value)
+        self.init()
+
+        return self.client.async_list_rpush(self.name, key, docargs)
 
     def group_atomic_add(self, select, args):
         return self.async_group_atomic_add(select, args).wait()
@@ -304,6 +335,8 @@ class HyperSpace:
 
     def async_group_atomic_sub(self, select, args):
         self.init()
+        if '_id' in select:
+            return self.async_atomic_sub(select['_id'], args)
         hyperconds = self.convert_conds(select)
         docargs = self.convert_docargs(args)
 
@@ -323,6 +356,8 @@ class HyperSpace:
 
     def async_group_atomic_mul(self, select, args):
         self.init()
+        if '_id' in select:
+            return self.async_atomic_mul(select['_id'], args)
         hyperconds = self.convert_conds(select)
         docargs = self.convert_docargs(args)
 
@@ -348,6 +383,8 @@ class HyperSpace:
 
     def async_group_atomic_mul(self, select, args):
         self.init()
+        if '_id' in select:
+            return self.async_atomic_mul(select['_id'], args)
         hyperconds = self.convert_conds(select)
         docargs = self.convert_docargs(args)
 
@@ -438,6 +475,3 @@ class HyperDatabase:
                 self.admin.rm_space(k)
 
         self.spaces.clear()
-
-
-
