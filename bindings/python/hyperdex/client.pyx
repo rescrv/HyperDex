@@ -221,44 +221,64 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_group_list_rpush(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_set_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_set_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_set_add(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_set_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_set_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_set_remove(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_set_intersect(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_set_intersect(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_set_intersect(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_set_union(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_set_union(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_cond_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_set_union(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_document_rename(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_document_rename(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_document_rename(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_document_unset(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_document_unset(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_document_unset(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
+    int64_t hyperdex_client_map_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_add(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
+    int64_t hyperdex_client_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_map_remove(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_remove(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_atomic_add(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_atomic_sub(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_atomic_mul(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_atomic_div(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_atomic_mod(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_mod(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_atomic_mod(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_atomic_and(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_and(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_atomic_and(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_atomic_or(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_or(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_atomic_or(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_atomic_xor(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_xor(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_atomic_xor(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_string_prepend(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_string_append(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_atomic_min(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_min(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_atomic_min(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_atomic_max(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_max(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_map_atomic_max(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_search(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_search_describe(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const char** description)
     int64_t hyperdex_client_sorted_search(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const char* sort_by, uint64_t limit, int maxmin, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
@@ -349,6 +369,7 @@ ctypedef int64_t asynccall__spacename_key_predicates__status_fptr(hyperdex_clien
 ctypedef int64_t asynccall__spacename_predicates__status_count_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, uint64_t* count)
 ctypedef int64_t asynccall__spacename_key_mapattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_key_predicates_mapattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
+ctypedef int64_t asynccall__spacename_predicates_mapattributes__status_count_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
 ctypedef int64_t iterator__spacename_predicates__status_attributes_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 ctypedef int64_t asynccall__spacename_predicates__status_description_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const char** description)
 ctypedef int64_t iterator__spacename_predicates_sortby_limit_maxmin__status_attributes_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const char* sort_by, uint64_t limit, int maxmin, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
@@ -1468,6 +1489,25 @@ cdef class Client:
         self.ops[d.reqid] = d
         return d
 
+    cdef asynccall__spacename_predicates_mapattributes__status_count(self, asynccall__spacename_predicates_mapattributes__status_count_fptr f, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        cdef Deferred d = Deferred(self)
+        cdef const char* in_space
+        cdef hyperdex_client_attribute_check* in_checks
+        cdef size_t in_checks_sz
+        cdef hyperdex_client_map_attribute* in_mapattrs
+        cdef size_t in_mapattrs_sz
+        self.convert_spacename(d.arena, spacename, &in_space);
+        self.convert_predicates(d.arena, predicates, &in_checks, &in_checks_sz);
+        self.convert_mapattributes(d.arena, mapattributes, &in_mapattrs, &in_mapattrs_sz);
+        self.set_auth_context(auth)
+        d.reqid = f(self.client, in_space, in_checks, in_checks_sz, in_mapattrs, in_mapattrs_sz, &d.status, &d.count);
+        self.clear_auth_context()
+        if d.reqid < 0:
+            raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
+        d.encode_return = hyperdex_python_client_deferred_encode_status_count
+        self.ops[d.reqid] = d
+        return d
+
     cdef iterator__spacename_predicates__status_attributes(self, iterator__spacename_predicates__status_attributes_fptr f, bytes spacename, dict predicates):
         cdef Iterator it = Iterator(self)
         cdef const char* in_space
@@ -1785,6 +1825,11 @@ cdef class Client:
     def cond_set_add(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.async_cond_set_add(spacename, key, predicates, attributes, auth).wait()
 
+    def async_group_set_add(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_set_add, spacename, predicates, attributes, auth)
+    def group_set_add(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.async_group_set_add(spacename, predicates, attributes, auth).wait()
+
     def async_set_remove(self, bytes spacename, key, dict attributes, auth=None):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_set_remove, spacename, key, attributes, auth)
     def set_remove(self, bytes spacename, key, dict attributes, auth=None):
@@ -1794,6 +1839,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_set_remove, spacename, key, predicates, attributes, auth)
     def cond_set_remove(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.async_cond_set_remove(spacename, key, predicates, attributes, auth).wait()
+
+    def async_group_set_remove(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_set_remove, spacename, predicates, attributes, auth)
+    def group_set_remove(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.async_group_set_remove(spacename, predicates, attributes, auth).wait()
 
     def async_set_intersect(self, bytes spacename, key, dict attributes, auth=None):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_set_intersect, spacename, key, attributes, auth)
@@ -1805,6 +1855,11 @@ cdef class Client:
     def cond_set_intersect(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.async_cond_set_intersect(spacename, key, predicates, attributes, auth).wait()
 
+    def async_group_set_intersect(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_set_intersect, spacename, predicates, attributes, auth)
+    def group_set_intersect(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.async_group_set_intersect(spacename, predicates, attributes, auth).wait()
+
     def async_set_union(self, bytes spacename, key, dict attributes, auth=None):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_set_union, spacename, key, attributes, auth)
     def set_union(self, bytes spacename, key, dict attributes, auth=None):
@@ -1815,30 +1870,20 @@ cdef class Client:
     def cond_set_union(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.async_cond_set_union(spacename, key, predicates, attributes, auth).wait()
 
-    def async_map_add(self, bytes spacename, key, dict mapattributes, auth=None):
-        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_add, spacename, key, mapattributes, auth)
-    def map_add(self, bytes spacename, key, dict mapattributes, auth=None):
-        return self.async_map_add(spacename, key, mapattributes, auth).wait()
-
-    def async_cond_map_add(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
-        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_add, spacename, key, predicates, mapattributes, auth)
-    def cond_map_add(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
-        return self.async_cond_map_add(spacename, key, predicates, mapattributes, auth).wait()
-
-    def async_map_remove(self, bytes spacename, key, dict attributes, auth=None):
-        return self.asynccall__spacename_key_attributes__status(hyperdex_client_map_remove, spacename, key, attributes, auth)
-    def map_remove(self, bytes spacename, key, dict attributes, auth=None):
-        return self.async_map_remove(spacename, key, attributes, auth).wait()
-
-    def async_cond_map_remove(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
-        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_map_remove, spacename, key, predicates, attributes, auth)
-    def cond_map_remove(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
-        return self.async_cond_map_remove(spacename, key, predicates, attributes, auth).wait()
+    def async_group_set_union(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_set_union, spacename, predicates, attributes, auth)
+    def group_set_union(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.async_group_set_union(spacename, predicates, attributes, auth).wait()
 
     def async_document_rename(self, bytes spacename, key, dict attributes, auth=None):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_document_rename, spacename, key, attributes, auth)
     def document_rename(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_document_rename(spacename, key, attributes, auth).wait()
+
+    def async_cond_document_rename(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_document_rename, spacename, key, predicates, attributes, auth)
+    def cond_document_rename(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_document_rename(spacename, key, predicates, attributes, auth).wait()
 
     def async_group_document_rename(self, bytes spacename, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_document_rename, spacename, predicates, attributes, auth)
@@ -1850,10 +1895,45 @@ cdef class Client:
     def document_unset(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_document_unset(spacename, key, attributes, auth).wait()
 
+    def async_cond_document_unset(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_document_unset, spacename, key, predicates, attributes, auth)
+    def cond_document_unset(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_document_unset(spacename, key, predicates, attributes, auth).wait()
+
     def async_group_document_unset(self, bytes spacename, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_document_unset, spacename, predicates, attributes, auth)
     def group_document_unset(self, bytes spacename, dict predicates, dict attributes, auth=None):
         return self.async_group_document_unset(spacename, predicates, attributes, auth).wait()
+
+    def async_map_add(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_add, spacename, key, mapattributes, auth)
+    def map_add(self, bytes spacename, key, dict mapattributes, auth=None):
+        return self.async_map_add(spacename, key, mapattributes, auth).wait()
+
+    def async_cond_map_add(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_add, spacename, key, predicates, mapattributes, auth)
+    def cond_map_add(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
+        return self.async_cond_map_add(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_group_map_add(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_add, spacename, predicates, mapattributes, auth)
+    def group_map_add(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_add(spacename, predicates, mapattributes, auth).wait()
+
+    def async_map_remove(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_map_remove, spacename, key, attributes, auth)
+    def map_remove(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_map_remove(spacename, key, attributes, auth).wait()
+
+    def async_cond_map_remove(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_map_remove, spacename, key, predicates, attributes, auth)
+    def cond_map_remove(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_map_remove(spacename, key, predicates, attributes, auth).wait()
+
+    def async_group_map_remove(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_map_remove, spacename, predicates, attributes, auth)
+    def group_map_remove(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.async_group_map_remove(spacename, predicates, attributes, auth).wait()
 
     def async_map_atomic_add(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_add, spacename, key, mapattributes, auth)
@@ -1865,6 +1945,11 @@ cdef class Client:
     def cond_map_atomic_add(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_atomic_add(spacename, key, predicates, mapattributes, auth).wait()
 
+    def async_group_map_atomic_add(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_add, spacename, predicates, mapattributes, auth)
+    def group_map_atomic_add(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_atomic_add(spacename, predicates, mapattributes, auth).wait()
+
     def async_map_atomic_sub(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_sub, spacename, key, mapattributes, auth)
     def map_atomic_sub(self, bytes spacename, key, dict mapattributes, auth=None):
@@ -1874,6 +1959,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_sub, spacename, key, predicates, mapattributes, auth)
     def cond_map_atomic_sub(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_atomic_sub(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_group_map_atomic_sub(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_sub, spacename, predicates, mapattributes, auth)
+    def group_map_atomic_sub(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_atomic_sub(spacename, predicates, mapattributes, auth).wait()
 
     def async_map_atomic_mul(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_mul, spacename, key, mapattributes, auth)
@@ -1885,6 +1975,11 @@ cdef class Client:
     def cond_map_atomic_mul(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_atomic_mul(spacename, key, predicates, mapattributes, auth).wait()
 
+    def async_group_map_atomic_mul(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_mul, spacename, predicates, mapattributes, auth)
+    def group_map_atomic_mul(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_atomic_mul(spacename, predicates, mapattributes, auth).wait()
+
     def async_map_atomic_div(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_div, spacename, key, mapattributes, auth)
     def map_atomic_div(self, bytes spacename, key, dict mapattributes, auth=None):
@@ -1894,6 +1989,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_div, spacename, key, predicates, mapattributes, auth)
     def cond_map_atomic_div(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_atomic_div(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_group_map_atomic_div(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_div, spacename, predicates, mapattributes, auth)
+    def group_map_atomic_div(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_atomic_div(spacename, predicates, mapattributes, auth).wait()
 
     def async_map_atomic_mod(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_mod, spacename, key, mapattributes, auth)
@@ -1905,6 +2005,11 @@ cdef class Client:
     def cond_map_atomic_mod(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_atomic_mod(spacename, key, predicates, mapattributes, auth).wait()
 
+    def async_group_map_atomic_mod(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_mod, spacename, predicates, mapattributes, auth)
+    def group_map_atomic_mod(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_atomic_mod(spacename, predicates, mapattributes, auth).wait()
+
     def async_map_atomic_and(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_and, spacename, key, mapattributes, auth)
     def map_atomic_and(self, bytes spacename, key, dict mapattributes, auth=None):
@@ -1914,6 +2019,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_and, spacename, key, predicates, mapattributes, auth)
     def cond_map_atomic_and(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_atomic_and(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_group_map_atomic_and(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_and, spacename, predicates, mapattributes, auth)
+    def group_map_atomic_and(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_atomic_and(spacename, predicates, mapattributes, auth).wait()
 
     def async_map_atomic_or(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_or, spacename, key, mapattributes, auth)
@@ -1925,6 +2035,11 @@ cdef class Client:
     def cond_map_atomic_or(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_atomic_or(spacename, key, predicates, mapattributes, auth).wait()
 
+    def async_group_map_atomic_or(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_or, spacename, predicates, mapattributes, auth)
+    def group_map_atomic_or(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_atomic_or(spacename, predicates, mapattributes, auth).wait()
+
     def async_map_atomic_xor(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_xor, spacename, key, mapattributes, auth)
     def map_atomic_xor(self, bytes spacename, key, dict mapattributes, auth=None):
@@ -1934,6 +2049,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_xor, spacename, key, predicates, mapattributes, auth)
     def cond_map_atomic_xor(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_atomic_xor(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_group_map_atomic_xor(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_xor, spacename, predicates, mapattributes, auth)
+    def group_map_atomic_xor(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_atomic_xor(spacename, predicates, mapattributes, auth).wait()
 
     def async_map_string_prepend(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_string_prepend, spacename, key, mapattributes, auth)
@@ -1945,6 +2065,11 @@ cdef class Client:
     def cond_map_string_prepend(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_string_prepend(spacename, key, predicates, mapattributes, auth).wait()
 
+    def async_group_map_string_prepend(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_string_prepend, spacename, predicates, mapattributes, auth)
+    def group_map_string_prepend(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_string_prepend(spacename, predicates, mapattributes, auth).wait()
+
     def async_map_string_append(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_string_append, spacename, key, mapattributes, auth)
     def map_string_append(self, bytes spacename, key, dict mapattributes, auth=None):
@@ -1954,6 +2079,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_string_append, spacename, key, predicates, mapattributes, auth)
     def cond_map_string_append(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_string_append(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_group_map_string_append(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_string_append, spacename, predicates, mapattributes, auth)
+    def group_map_string_append(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_string_append(spacename, predicates, mapattributes, auth).wait()
 
     def async_map_atomic_min(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_min, spacename, key, mapattributes, auth)
@@ -1965,6 +2095,11 @@ cdef class Client:
     def cond_map_atomic_min(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_atomic_min(spacename, key, predicates, mapattributes, auth).wait()
 
+    def async_group_map_atomic_min(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_min, spacename, predicates, mapattributes, auth)
+    def group_map_atomic_min(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_atomic_min(spacename, predicates, mapattributes, auth).wait()
+
     def async_map_atomic_max(self, bytes spacename, key, dict mapattributes, auth=None):
         return self.asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_max, spacename, key, mapattributes, auth)
     def map_atomic_max(self, bytes spacename, key, dict mapattributes, auth=None):
@@ -1974,6 +2109,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_max, spacename, key, predicates, mapattributes, auth)
     def cond_map_atomic_max(self, bytes spacename, key, dict predicates, dict mapattributes, auth=None):
         return self.async_cond_map_atomic_max(spacename, key, predicates, mapattributes, auth).wait()
+
+    def async_group_map_atomic_max(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_max, spacename, predicates, mapattributes, auth)
+    def group_map_atomic_max(self, bytes spacename, dict predicates, dict mapattributes, auth=None):
+        return self.async_group_map_atomic_max(spacename, predicates, mapattributes, auth).wait()
 
     def search(self, bytes spacename, dict predicates):
         return self.iterator__spacename_predicates__status_attributes(hyperdex_client_search, spacename, predicates)

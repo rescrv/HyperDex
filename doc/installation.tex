@@ -36,7 +36,7 @@ instructions}.
 \item We then fetch the HyperDex with the command \code{docker pull
 hyperdex/quickstart}.
 \item To start the cluster, run \code{docker run --net=host
-hyperdex/quickstart}.  When all goes well, you'll see the following message
+-t -i hyperdex/quickstart}.  When all goes well, you'll see the following message
 indicating your cluster is ready for use:
 
 \begin{verbatim}
@@ -46,7 +46,6 @@ The transient HyperDex cluster is now online.
 
 This is a transient HyperDex cluster.
 You can connect to this cluster at address=172.17.3.27, port=1982.
-To stop this cluster, run 'docker stop -t 0 b6ae7c60c275'.
 \end{verbatim}
 \end{enumerate}
 
@@ -125,139 +124,34 @@ the requisite tarball, and then you can install HyperDex like this:
 \section{Installing on OS X Using Homebrew}
 \label{sec:installation:os-x-homebrew}
 
-XXX
+HyperDex is available on Mac OS X using the Homebrew package manager.  The
+following script, available in the HyperDex tarball or repository at
+\code{doc/install/homebrew.sh} may be used to install HyperDex on OS X:
+
+\inputminted[frame=lines,framesep=2mm,firstline=3]{bash}{\topdir/install/homebrew.sh}
 
 \section{Installing From Source}
-\label{sec:installation:source}
 
+Installing from source tarballs is a straightforward process that works on most
+any recent Linux distribution.  Using the source tarballs provides power users
+with control over the installation process and the opportunity to customize
+the HyperDex installation.
 
-An alternative to installing a prepackaged binary is to install from source
-tarballs.  This is a straightforward process that should work on most any recent
-Linux distribution for which there isn't a prepackaged binary.  We'll first list
-the prerequisites to installing HyperDex from a source tarball.  Then, we'll
-describe how to configure HyperDex.  Finally, we'll describe the installation
-step.
+To install from source, we must first prepare the system by installing a
+compiler, and dependencies that are not managed by the HyperDex team.  This
+process will be highly system specific, but should be familiar to most users who
+install from source.  The HyperDex team and community are always happy to
+provide assistance to users installing from source.
 
-\subsection{Prerequisites}
-\label{sec:installation:source:deps}
+On systems like Ubuntu, we can prepare the system for the from-source install
+with these commands:
 
-HyperDex has a minimal number of prerequisites for installation from source.
-Although we list all prerequisites in this section for completeness, the
-HyperDex configuration step will automatically warn about any missing
-dependencies.
+\inputminted[frame=lines,framesep=2mm,firstline=3]{bash}{\topdir/install/ubuntu14.04-source-prereqs.sh}
 
-Required Dependencies:
+With the prereqs installed, installing HyperDex from tarballs may be
+accomplished with this script:
 
-\begin{itemize}
-\item \href{http://code.google.com/p/cityhash/}{Google CityHash}:  Used for
-    hashing strings.  Requires version 1.0.x
-\item \href{http://code.google.com/p/google-glog/}{Google Glog}:  Used for
-    logging.  Requires version 0.3.x.
-\item \href{http://rpm5.org/}{libpopt}: Used for argument parsing.  The
-    developers use 1.16 but any recent version should do.
-\item \href{https://github.com/json-c/json-c}{json-c}:  Used for document type
-    support.  Requires at least version 0.10.
-\item \href{http://hyperdex.org/downloads/}{libpo6}: Used for general POSIX
-    wrappers.  Requires the latest version.  This package is maintained by the
-    HyperDex developers.
-\item \href{http://hyperdex.org/downloads/}{libe}: Used for general C++:
-    utilities.  Requires the latest version.  This package is maintained by the
-    HyperDex developers.
-\item \href{http://hyperdex.org/downloads/}{BusyBee}: Used for server-server
-    and client-server communication.  Requires the latest version.  This package
-    is maintained by the HyperDex developers.
-\item \href{http://hyperdex.org/downloads/}{HyperLevelDB}  Used to store data
-    on the servers.
-\item \href{http://hyperdex.org/downloads/}{Replicant} Used for making the
-    coordinator fault tolerant.  Requires the latest version.  This package is
-    maintained by the HyperDex developers.
-\end{itemize}
-
-Dependencies for Python Bindings:
-
-\begin{itemize}
-\item \href{http://python.org/}{Python}: Version 2.6 or 2.7 with the
-    development headers installed.
-\end{itemize}
-
-Dependencies for Java Bindings:
-
-\begin{itemize}
-\item \href{http://openjdk.java.net/}{Java}: We test against OpenJDK 7.  Your
-    system must include \texttt{javac}, \texttt{jar}, and the JNI development
-    headers.
-\end{itemize}
-
-Dependencies for Yahoo! Cloud Serving Benchmark (YCSB):
-
-\begin{itemize}
-\item \href{https://github.com/brianfrankcooper/YCSB/wiki}{YCSB} The YCSB
-    distribution is a moving target.  We generally build against the latest Git
-    release.
-\end{itemize}
-
-\subsection{Configuring}
-\label{sec:installation:source:configure}
-
-HyperDex uses the Autotools to make configuration and installation as
-straightforward as possible.  After extracting the HyperDex tarball, you'll need
-to configure HyperDex.  The simplest configuration installs HyperDex in its
-default location (\texttt{/usr/local}) using the C++ compiler found on the
-system.  The configuration is performed in the directory extracted from the
-tarball and looks like:
-
-\begin{consolecode}
-./configure
-\end{consolecode}
-
-This basic configuration will configure the HyperDex daemon and native client
-library components to be built; however it omits several useful options for
-configuring HyperDex.  The rest of this section will highlight common ways to
-configure HyperDex.  Unless otherwise noted, all options should work well
-together.
-
-\subsubsection{Java Bindings}
-\label{sec:installation:source:java}
-
-HyperDex does not build Java bindings by default.  To enable the Java bindings,
-you must pass \texttt{--enable-java-bindings} to \texttt{./configure} like so:
-
-\begin{consolecode}
-./configure --enable-java-bindings
-\end{consolecode}
-
-If any of the prerequisites are missing \texttt{./configure} should fail.
-
-\begin{quote}
-Java bindings are currently unavailable in \HyperDexVersion.
-\end{quote}
-
-\subsubsection{Python Bindings}
-\label{sec:installation:source:python}
-
-HyperDex does not build Python bindings by default.  To enable the Python
-bindings, you must pass \texttt{--enable-python-bindings} to
-\texttt{./configure} like so:
-
-\begin{consolecode}
-./configure --enable-python-bindings
-\end{consolecode}
-
-If Python or its headers cannot be found, \texttt{./configure} will fail.
-
-\subsubsection{Yahoo! Cloud Serving Benchmark}
-\label{sec:installation:source:ycsb}
-
-HyperDex provides all the source code necessary to build a HyperDex driver
-for the YCSB benchmark.  If Java bindings are enabled, then YCSB can be built
-with \texttt{--enable-ycsb}.
-
-\begin{consolecode}
-./configure --enable-ycsb
-\end{consolecode}
-
-Note that YCSB must be in your Java \texttt{CLASSPATH}.  Configure cannot detect
-YCSB by itself.
+\inputminted[frame=lines,framesep=2mm,firstline=5]{bash}{\topdir/install/source-install.sh}
 
 \subsubsection{Changing the Installation Directory}
 \label{sec:installation:source:prefix}
@@ -267,82 +161,159 @@ install HyperDex elsewhere, you can specify the installation prefix at configure
 time.  For example, to install HyperDex in \texttt{/opt/hyperdex}:
 
 \begin{consolecode}
+export PKG_CONFIG_PATH=/opt/hyperdex/lib/pkgconfig
 ./configure --prefix=/opt/hyperdex
 \end{consolecode}
 
 Check the \texttt{--help} option to configure for more ways to tune where
 HyperDex places files.
 
-\subsection{Installing}
-\label{sec:installation:source:make}
-
-Once configured, HyperDex is simple to build and install.  Keep in mind that the
-following commands may fail if the installation directory is not writable by the
-current user.
-
-\begin{consolecode}
-make
-make install
-ldconfig
-\end{consolecode}
-
-\section{Installing from Git}
-\label{sec:installation:git}
-
-Developers wishing to contribute to the development of HyperDex may build
-HyperDex directly from Git.  Building from Git is as straightforward as building
-from source tarballs, but requires a few extra dependencies and some setup
-before the \texttt{./configure} step.
-
-In order to build the HyperDex repository, you'll need to have the following
-utilities installed.  Most of these utilities are prepacked for Linux
-distributions.  Note that since these dependencies are only required for
-building from Git, they will not be detected at \texttt{./configure} time and
-instead \texttt{make} will fail with an error message.
-
-Required Dependencies:
-
-\begin{itemize}
-\item \href{http://www.gnu.org/software/autoconf/}{Autoconf} Used as part of
-    the build system.  Required for all builds.
-\item \href{http://www.gnu.org/software/automake/}{Automake} Used as part of
-    the build system.  Required for all builds.
-\item \href{http://www.gnu.org/software/libtool/}{Libtool} Used as part of the
-    build system.  Required for all builds.
-\item \href{http://www.gnu.org/software/autoconf-archive/}{Autoconf Archive}
-    Used as part of the build system.  Required for all builds.
-\item \href{http://www.freedesktop.org/wiki/Software/pkg-config/}{pkg-config}
-    Used as part of the build system.  Required for all builds.
-\item \href{http://flex.sourceforge.net/}{Flex} Used for building internal
-    parsers.  Required for all builds.
-\item \href{http://www.gnu.org/software/bison/}{Bison} Used for building
-    internal parsers.  Required for all builds.
-\item \href{http://cython.org/}{Cython} Used for building Python bindings.
-    Required for \texttt{--enable-python-bindings}.
-    Recommmended version: $\ge$ 0.15.
-\item \href{http://www.gnu.org/software/gperf/}{Gperf}  Generate perfect
-    hashes.  Used in the client library.
-\item \href{http://www.gnu.org/software/help2man/}{help2man}  Generate manual
-    pages with options.  Used for man-pages.
-\item \href{http://johnmacfarlane.net/pandoc/}{pandoc}  Convert manual pages
-    from markdown to man page format.
-\end{itemize}
-
-You'll need to build po6, e, BusyBee, HyperLevelDB Replicant, and HyperDex from
-Git, as the development version often introduces across repositories.
-
-For each of these repositories, you may build and install the code with:
-
-\begin{consolecode}
-autoreconf -i
-./configure
-make
-make install
-ldconfig
-\end{consolecode}
+%Dependencies for Python Bindings:
+%
+%\begin{itemize}
+%\item \href{http://python.org/}{Python}: Version 2.6 or 2.7 with the
+%    development headers installed.
+%\end{itemize}
+%
+%Dependencies for Java Bindings:
+%
+%\begin{itemize}
+%\item \href{http://openjdk.java.net/}{Java}: We test against OpenJDK 7.  Your
+%    system must include \texttt{javac}, \texttt{jar}, and the JNI development
+%    headers.
+%\end{itemize}
+%
+%Dependencies for Yahoo! Cloud Serving Benchmark (YCSB):
+%
+%\begin{itemize}
+%\item \href{https://github.com/brianfrankcooper/YCSB/wiki}{YCSB} The YCSB
+%    distribution is a moving target.  We generally build against the latest Git
+%    release.
+%\end{itemize}
+%
+%\subsection{Configuring}
+%\label{sec:installation:source:configure}
+%
+%HyperDex uses the Autotools to make configuration and installation as
+%straightforward as possible.  After extracting the HyperDex tarball, you'll need
+%to configure HyperDex.  The simplest configuration installs HyperDex in its
+%default location (\texttt{/usr/local}) using the C++ compiler found on the
+%system.  The configuration is performed in the directory extracted from the
+%tarball and looks like:
+%
+%\begin{consolecode}
+%./configure
+%\end{consolecode}
+%
+%This basic configuration will configure the HyperDex daemon and native client
+%library components to be built; however it omits several useful options for
+%configuring HyperDex.  The rest of this section will highlight common ways to
+%configure HyperDex.  Unless otherwise noted, all options should work well
+%together.
+%
+%\subsubsection{Java Bindings}
+%\label{sec:installation:source:java}
+%
+%HyperDex does not build Java bindings by default.  To enable the Java bindings,
+%you must pass \texttt{--enable-java-bindings} to \texttt{./configure} like so:
+%
+%\begin{consolecode}
+%./configure --enable-java-bindings
+%\end{consolecode}
+%
+%If any of the prerequisites are missing \texttt{./configure} should fail.
+%
+%\begin{quote}
+%Java bindings are currently unavailable in \HyperDexVersion.
+%\end{quote}
+%
+%\subsubsection{Python Bindings}
+%\label{sec:installation:source:python}
+%
+%HyperDex does not build Python bindings by default.  To enable the Python
+%bindings, you must pass \texttt{--enable-python-bindings} to
+%\texttt{./configure} like so:
+%
+%\begin{consolecode}
+%./configure --enable-python-bindings
+%\end{consolecode}
+%
+%If Python or its headers cannot be found, \texttt{./configure} will fail.
+%
+%\subsubsection{Yahoo! Cloud Serving Benchmark}
+%\label{sec:installation:source:ycsb}
+%
+%HyperDex provides all the source code necessary to build a HyperDex driver
+%for the YCSB benchmark.  If Java bindings are enabled, then YCSB can be built
+%with \texttt{--enable-ycsb}.
+%
+%\begin{consolecode}
+%./configure --enable-ycsb
+%\end{consolecode}
+%
+%Note that YCSB must be in your Java \texttt{CLASSPATH}.  Configure cannot detect
+%YCSB by itself.
+%
+%\section{Installing from Git}
+%\label{sec:installation:git}
+%
+%Developers wishing to contribute to the development of HyperDex may build
+%HyperDex directly from Git.  Building from Git is as straightforward as building
+%from source tarballs, but requires a few extra dependencies and some setup
+%before the \texttt{./configure} step.
+%
+%In order to build the HyperDex repository, you'll need to have the following
+%utilities installed.  Most of these utilities are prepacked for Linux
+%distributions.  Note that since these dependencies are only required for
+%building from Git, they will not be detected at \texttt{./configure} time and
+%instead \texttt{make} will fail with an error message.
+%
+%Required Dependencies:
+%
+%\begin{itemize}
+%\item \href{http://www.gnu.org/software/autoconf/}{Autoconf} Used as part of
+%    the build system.  Required for all builds.
+%\item \href{http://www.gnu.org/software/automake/}{Automake} Used as part of
+%    the build system.  Required for all builds.
+%\item \href{http://www.gnu.org/software/libtool/}{Libtool} Used as part of the
+%    build system.  Required for all builds.
+%\item \href{http://www.gnu.org/software/autoconf-archive/}{Autoconf Archive}
+%    Used as part of the build system.  Required for all builds.
+%\item \href{http://www.freedesktop.org/wiki/Software/pkg-config/}{pkg-config}
+%    Used as part of the build system.  Required for all builds.
+%\item \href{http://flex.sourceforge.net/}{Flex} Used for building internal
+%    parsers.  Required for all builds.
+%\item \href{http://www.gnu.org/software/bison/}{Bison} Used for building
+%    internal parsers.  Required for all builds.
+%\item \href{http://cython.org/}{Cython} Used for building Python bindings.
+%    Required for \texttt{--enable-python-bindings}.
+%    Recommmended version: $\ge$ 0.15.
+%\item \href{http://www.gnu.org/software/gperf/}{Gperf}  Generate perfect
+%    hashes.  Used in the client library.
+%\item \href{http://www.gnu.org/software/help2man/}{help2man}  Generate manual
+%    pages with options.  Used for man-pages.
+%\item \href{http://johnmacfarlane.net/pandoc/}{pandoc}  Convert manual pages
+%    from markdown to man page format.
+%\end{itemize}
+%
+%You'll need to build po6, e, BusyBee, HyperLevelDB Replicant, and HyperDex from
+%Git, as the development version often introduces across repositories.
+%
+%For each of these repositories, you may build and install the code with:
+%
+%\begin{consolecode}
+%autoreconf -i
+%./configure
+%make
+%make install
+%ldconfig
+%\end{consolecode}
 
 \subsection{Troubleshooting}
 \label{sec:installation:troubleshooting}
+
+This section walks through some common installation problems that might be
+encountered while installing HyperDex from source.
 
 \subsubsection{Missing \texttt{libtool}}
 \label{sec:installation:troubleshooting:libtool}
@@ -362,6 +333,9 @@ Makefile.am: installing `./depcomp'
 autoreconf: automake failed with exit status: 1
 \end{consolecode}
 
+To correct this issue, install the \code{libtool} package using your
+distribution's package manager.
+
 \subsubsection{Missing \texttt{pkgconfig}}
 \label{sec:installation:troubleshooting:pkgconfig}
 
@@ -372,6 +346,9 @@ the following:
 ./configure: line 18348: syntax error near unexpected token `PO6,'
 ./configure: line 18348: `PKG_CHECK_MODULES(PO6, libpo6 >= 0.3.1)'
 \end{consolecode}
+
+To correct this issue, install the \code{pkg-config} package (sometimes called
+\code{pkgconfig}) using your distribution's package manager.
 
 \section{Verifying Installation}
 \label{sec:installation:verify}
@@ -384,6 +361,20 @@ HyperDex is installed correctly and ready for use.
 hyperdex help
 hyperdex daemon --help
 \end{consolecode}
+
+\section{Upgrading to 1.6}
+\label{sec:installation:upgrade1.6}
+
+The 1.6 release introduces new features that are backwards incompatible with
+previous releases, most notably a binary document format.  Before upgrading to
+1.6, backup your data.  Once 1.6 is installed, copy your data into a
+newly-deployed 1.6 cluster.
+
+\section{Upgrading to 1.5}
+\label{sec:installation:upgrade1.5}
+
+HyperDex 1.5 is backwards compatible with the 1.4 on-disk format.  To upgrade
+from 1.4 to 1.5, take a backup and restart the cluster from the backup.
 
 \section{Upgrading to 1.4}
 \label{sec:installation:upgrade1.4}

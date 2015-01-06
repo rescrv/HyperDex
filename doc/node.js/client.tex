@@ -1,0 +1,183 @@
+\chapter{Node API}
+\label{chap:api:node}
+
+\section{Client Library}
+\label{sec:api:node:client}
+
+HyperDex provides Node bindings under the module \code{hyperdex-client}.  This
+library wraps the HyperDex C Client library and enables use of native Javascript
+data types.
+
+This module was re-introduced in HyperDex 1.2.0.
+
+\subsection{Building the HyperDex Node.js Binding}
+\label{sec:api:node:building}
+
+The HyperDex Node.js Binding must be built and installed after HyperDex is built
+and installed.  After installing HyperDex, you can build the Node.js bindings
+from either source or git checkout with:
+
+\begin{consolecode}
+% cd bindings/node.js
+% node rebuild
+\end{consolecode}
+
+\subsection{Using Node.js Within Your Application}
+\label{sec:api:node:using}
+
+All client operation are defined in the \code{hyperdex\_client} module.  You can
+access this in your program with:
+
+\begin{javascriptcode}
+var hyperdex_client = require('hyperdex-client');
+\end{javascriptcode}
+
+\subsection{Hello World}
+\label{sec:api:node:hello-world}
+
+The following is a minimal application that stores the value "Hello World" and
+then immediately retrieves the value:
+
+\inputminted{javascript}{\topdir/node.js/client/hello-world.js}
+
+You can run this example with:
+
+\begin{consolecode}
+% node hello-world.js
+put: true
+get: [object Object]
+\end{consolecode}
+
+Right away, there are several points worth noting in this example:
+
+\begin{itemize}
+\item Each operation takes a callback.  While the operation is outstanding, your
+program is free to execute other code.
+
+\item Javascript types are automatically converted to HyperDex types.  There's
+no need to specify information such as the length of each string, as one would
+do with the C API.
+
+\item There's no need to manually enter the HyperDex event loop.  HyperDex will
+add and remove itself from the event loop as operations start and finish.
+\end{itemize}
+
+\subsection{Asynchronous Operations}
+\label{sec:api:node:async-ops}
+
+HyperDex provides native integration with the asynchronous world of Node.js.
+You can issue several operations concurrently, and Node.js and HyperDex will
+work together to complete these operations quickly and efficiently.  It's easy
+to work with data concurrently.  A common pattern is to keep a constant number
+of operations outstanding concurrently:
+
+\inputminted{javascript}{\topdir/node.js/client/window-pattern.js}
+
+\subsection{Data Structures}
+\label{sec:api:node:data-structures}
+
+The Node bindings automatically manage conversion of data types from Javascript
+to HyperDex types, enabling applications to be written in idiomatic Javascript.
+
+\subsubsection{Examples}
+\label{sec:api:node:examples}
+
+This section shows examples of Java data structures that are recognized by
+HyperDex.  The examples here are for illustration purposes and are not
+exhaustive.
+
+\paragraph{Strings}
+
+The HyperDex client recognizes Javascript strings and buffers and automatically
+converts them to HyperDex strings.  For example, the following two calls have
+the same effect:
+
+\begin{javascriptcode}
+c.put("kv", "somekey", {v: "somevalue"}, function (success, err) {});
+c.put("kv", "somekey", {v: new Buffer("somevalue")}, function (success, err) {});
+\end{javascriptcode}
+
+\paragraph{Integers}
+
+The HyperDex client recognizes Javascript numbers and can convert them to
+HyperDex integers.  For example:
+
+\begin{javascriptcode}
+c.put("kv", "somekey", {v: c.asInt(42)}, function (success, err) {});
+\end{javascriptcode}
+
+\paragraph{Floats}
+
+The HyperDex client recognizes Javascript numbers and can convert them to
+HyperDex floats.  For example:
+
+\begin{javascriptcode}
+c.put("kv", "somekey", {v: c.asFloat(3.1415)}, function (success, err) {});
+\end{javascriptcode}
+
+\paragraph{Lists}
+
+The HyperDex client permits users to construct HyperDex lists from Javascript.
+For example:
+
+\begin{javascriptcode}
+c.put("kv", "somekey", {v: c.asList(['a', 'b', 'c'])}, function (success, err) {});
+c.put("kv", "somekey", {v: c.asList([1, 2, 3])}, function (success, err) {});
+c.put("kv", "somekey", {v: c.asList([1.0, 0.5, 0.25])}, function (success, err) {});
+\end{javascriptcode}
+
+\paragraph{Sets}
+
+The HyperDex client permits users to construct HyperDex sets from Javascript.
+For example:
+
+\begin{javascriptcode}
+c.put("kv", "somekey", {v: c.asSet(['a', 'b', 'c'])}, function (success, err) {});
+c.put("kv", "somekey", {v: c.asSet([1, 2, 3])}, function (success, err) {});
+c.put("kv", "somekey", {v: c.asSet([1.0, 0.5, 0.25])}, function (success, err) {});
+\end{javascriptcode}
+
+\paragraph{Maps}
+
+The HyperDex client permits users to construct HyperDex maps from Javascript.
+For example:
+
+\begin{javascriptcode}
+c.put("kv", "somekey", {v1: c.asMap([["k", "v"]])}, function(success, err) {});
+c.put("kv", "somekey", {v2: c.asMap([[1, 2]])}, function(success, err) {});
+c.put("kv", "somekey", {v3: c.asMap([[3.14, 0.125]])}, function(success, err) {});
+c.put("kv", "somekey", {v4: c.asMap([["a", 1]])}, function(success, err) {});
+\end{javascriptcode}
+
+\subsection{Attributes}
+\label{sec:api:node:attributes}
+
+Attributes in Node are specified in the form of a Javascript object.  As you can
+see in the examples above, attributes are specified in the form:
+
+\begin{javascriptcode}
+{name: "value"}
+\end{javascriptcode}
+
+\subsection{Operations}
+\label{sec:api:node:ops}
+
+\input{\topdir/node.js/client/ops}
+\pagebreak
+
+\subsection{Working with Signals}
+\label{sec:api:node:signals}
+
+The HyperDex client module is signal-safe.  Should a signal interrupt the
+client, it will raise an exception with status
+\code{HYPERDEX\_CLIENT\_INTERRUPTED}.
+
+\subsection{Working with Events}
+\label{sec:api:node:threads}
+
+The Node module naturally integrates with the Node.js event loop.  Each instance
+of \code{Client} registers itself with the Node event loop and makes callbacks
+as soon as events complete on the HyperDex side.
+
+Put simply, a Node.js application can use \code{Client} instances in a
+straight-forward fashion without worrying about threading or manual integration.

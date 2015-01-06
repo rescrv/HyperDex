@@ -1,0 +1,8 @@
+Count the number of objects that match the specified \code{checks}.  This will
+return the number of objects counted by the search.  If an error occurs during
+the count, the count may reflect a partial count.  The real count will be higher
+than the returned value.
+
+A count is the server-side equivalent of performing a search, and counting the
+number of objects that exist.  For that reason, its efficiency closely follows
+that of search, except it will not transfer any objects over the network.

@@ -1,0 +1,8 @@
+This operation will succeed if and only if the predicates specified by
+\code{checks} hold on the pre-existing object.  If any of the predicates are not
+true for the existing object, then the operation will have no effect and fail
+with \code{CMPFAIL}.
+
+All checks are atomic with the write.  HyperDex guarantees that no other
+operation will come between validating the checks, and writing the new version
+of the object..

@@ -1,0 +1,7 @@
+This operation will only affect objects that match the provided \code{checks}.
+Objects that do not match \code{checks} will be unaffected by the group call.
+Each object that matches \code{checks} will be atomically updated with the check
+on the object.  HyperDex guarantees that no object will be altered if the
+\code{checks} do not pass at the time of the write.  Objects that are updated
+concurrently with the group call may or may not be updated; however, regardless
+of any other concurrent operations, the preceding guarantee will always hold.
