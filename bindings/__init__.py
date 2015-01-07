@@ -245,6 +245,8 @@ Admin = [
     Method('disable_perf_counters', NoFailCall, (), ()),
 ]
 
+DoNotDocument = ['search_describe']
+
 def call_name(x):
     call  = x.form.__name__.lower()
     call += '__'

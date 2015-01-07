@@ -6566,57 +6566,6 @@ public Iterator search(String spacename, Map<String, Object> predicates)
 \paragraph{Returns:}
 \input{\topdir/java/client/fragments/return_iterator__status_attributes}
 
-%%%%%%%%%%%%%%%%%%%% search_describe %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{search\_describe}}
-\label{api:java:search_describe}
-\index{search\_describe!Java API}
-\input{\topdir/client/fragments/search_describe}
-
-\paragraph{Definition:}
-\begin{javacode}
-public String search_describe(
-        String spacename,
-        Map<String, Object> predicates) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{Map<String, Object> predicates}\\
-\input{\topdir/java/client/fragments/in_asynccall_predicates}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/java/client/fragments/return_asynccall__status_description}
-
-\pagebreak
-\subsubsection{\code{async\_search\_describe}}
-\label{api:java:async_search_describe}
-\index{async\_search\_describe!Java API}
-\input{\topdir/client/fragments/search_describe}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Deferred async_search_describe(
-        String spacename,
-        Map<String, Object> predicates) throws HyperDexClientException
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{String spacename}\\
-\input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{Map<String, Object> predicates}\\
-\input{\topdir/java/client/fragments/in_asynccall_predicates}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/java/client/fragments/return_async_asynccall__status_description}
-
-\paragraph{See also:}  This is the asynchronous form of \code{search\_describe}.
-
 %%%%%%%%%%%%%%%%%%%% sorted_search %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{sorted\_search}}
