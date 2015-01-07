@@ -31,7 +31,7 @@
 \subsubsection{\code{Get}}
 \label{api:Go:Get}
 \index{Get!Go API}
-\input{\topdir/client/fragments/Get}
+\input{\topdir/client/fragments/get}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -54,7 +54,7 @@ func (client *Client) Get(spacename string, key Value) (attrs Attributes, err *E
 \subsubsection{\code{GetPartial}}
 \label{api:Go:GetPartial}
 \index{GetPartial!Go API}
-\input{\topdir/client/fragments/GetPartial}
+\input{\topdir/client/fragments/get_partial}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -79,7 +79,7 @@ func (client *Client) GetPartial(spacename string, key Value, attributenames Att
 \subsubsection{\code{Put}}
 \label{api:Go:Put}
 \index{Put!Go API}
-\input{\topdir/client/fragments/Put}
+\input{\topdir/client/fragments/put}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -104,7 +104,7 @@ func (client *Client) Put(spacename string, key Value, attributes Attributes) (e
 \subsubsection{\code{CondPut}}
 \label{api:Go:CondPut}
 \index{CondPut!Go API}
-\input{\topdir/client/fragments/CondPut}
+\input{\topdir/client/fragments/cond_put}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -131,7 +131,7 @@ func (client *Client) CondPut(spacename string, key Value, predicates []Predicat
 \subsubsection{\code{GroupPut}}
 \label{api:Go:GroupPut}
 \index{GroupPut!Go API}
-\input{\topdir/client/fragments/GroupPut}
+\input{\topdir/client/fragments/group_put}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -156,7 +156,7 @@ func (client *Client) GroupPut(spacename string, predicates []Predicate, attribu
 \subsubsection{\code{PutIfNotExist}}
 \label{api:Go:PutIfNotExist}
 \index{PutIfNotExist!Go API}
-\input{\topdir/client/fragments/PutIfNotExist}
+\input{\topdir/client/fragments/put_if_not_exist}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -181,7 +181,7 @@ func (client *Client) PutIfNotExist(spacename string, key Value, attributes Attr
 \subsubsection{\code{Del}}
 \label{api:Go:Del}
 \index{Del!Go API}
-\input{\topdir/client/fragments/Del}
+\input{\topdir/client/fragments/del}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -204,7 +204,7 @@ func (client *Client) Del(spacename string, key Value) (err *Error)
 \subsubsection{\code{CondDel}}
 \label{api:Go:CondDel}
 \index{CondDel!Go API}
-\input{\topdir/client/fragments/CondDel}
+\input{\topdir/client/fragments/cond_del}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -229,7 +229,7 @@ func (client *Client) CondDel(spacename string, key Value, predicates []Predicat
 \subsubsection{\code{GroupDel}}
 \label{api:Go:GroupDel}
 \index{GroupDel!Go API}
-\input{\topdir/client/fragments/GroupDel}
+\input{\topdir/client/fragments/group_del}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -252,7 +252,7 @@ func (client *Client) GroupDel(spacename string, predicates []Predicate) (count 
 \subsubsection{\code{AtomicAdd}}
 \label{api:Go:AtomicAdd}
 \index{AtomicAdd!Go API}
-\input{\topdir/client/fragments/AtomicAdd}
+\input{\topdir/client/fragments/atomic_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -277,7 +277,7 @@ func (client *Client) AtomicAdd(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondAtomicAdd}}
 \label{api:Go:CondAtomicAdd}
 \index{CondAtomicAdd!Go API}
-\input{\topdir/client/fragments/CondAtomicAdd}
+\input{\topdir/client/fragments/cond_atomic_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -304,7 +304,7 @@ func (client *Client) CondAtomicAdd(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupAtomicAdd}}
 \label{api:Go:GroupAtomicAdd}
 \index{GroupAtomicAdd!Go API}
-\input{\topdir/client/fragments/GroupAtomicAdd}
+\input{\topdir/client/fragments/group_atomic_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -329,7 +329,7 @@ func (client *Client) GroupAtomicAdd(spacename string, predicates []Predicate, a
 \subsubsection{\code{AtomicSub}}
 \label{api:Go:AtomicSub}
 \index{AtomicSub!Go API}
-\input{\topdir/client/fragments/AtomicSub}
+\input{\topdir/client/fragments/atomic_sub}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -354,7 +354,7 @@ func (client *Client) AtomicSub(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondAtomicSub}}
 \label{api:Go:CondAtomicSub}
 \index{CondAtomicSub!Go API}
-\input{\topdir/client/fragments/CondAtomicSub}
+\input{\topdir/client/fragments/cond_atomic_sub}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -381,7 +381,7 @@ func (client *Client) CondAtomicSub(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupAtomicSub}}
 \label{api:Go:GroupAtomicSub}
 \index{GroupAtomicSub!Go API}
-\input{\topdir/client/fragments/GroupAtomicSub}
+\input{\topdir/client/fragments/group_atomic_sub}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -406,7 +406,7 @@ func (client *Client) GroupAtomicSub(spacename string, predicates []Predicate, a
 \subsubsection{\code{AtomicMul}}
 \label{api:Go:AtomicMul}
 \index{AtomicMul!Go API}
-\input{\topdir/client/fragments/AtomicMul}
+\input{\topdir/client/fragments/atomic_mul}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -431,7 +431,7 @@ func (client *Client) AtomicMul(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondAtomicMul}}
 \label{api:Go:CondAtomicMul}
 \index{CondAtomicMul!Go API}
-\input{\topdir/client/fragments/CondAtomicMul}
+\input{\topdir/client/fragments/cond_atomic_mul}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -458,7 +458,7 @@ func (client *Client) CondAtomicMul(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupAtomicMul}}
 \label{api:Go:GroupAtomicMul}
 \index{GroupAtomicMul!Go API}
-\input{\topdir/client/fragments/GroupAtomicMul}
+\input{\topdir/client/fragments/group_atomic_mul}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -483,7 +483,7 @@ func (client *Client) GroupAtomicMul(spacename string, predicates []Predicate, a
 \subsubsection{\code{AtomicDiv}}
 \label{api:Go:AtomicDiv}
 \index{AtomicDiv!Go API}
-\input{\topdir/client/fragments/AtomicDiv}
+\input{\topdir/client/fragments/atomic_div}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -508,7 +508,7 @@ func (client *Client) AtomicDiv(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondAtomicDiv}}
 \label{api:Go:CondAtomicDiv}
 \index{CondAtomicDiv!Go API}
-\input{\topdir/client/fragments/CondAtomicDiv}
+\input{\topdir/client/fragments/cond_atomic_div}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -535,7 +535,7 @@ func (client *Client) CondAtomicDiv(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupAtomicDiv}}
 \label{api:Go:GroupAtomicDiv}
 \index{GroupAtomicDiv!Go API}
-\input{\topdir/client/fragments/GroupAtomicDiv}
+\input{\topdir/client/fragments/group_atomic_div}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -560,7 +560,7 @@ func (client *Client) GroupAtomicDiv(spacename string, predicates []Predicate, a
 \subsubsection{\code{AtomicMod}}
 \label{api:Go:AtomicMod}
 \index{AtomicMod!Go API}
-\input{\topdir/client/fragments/AtomicMod}
+\input{\topdir/client/fragments/atomic_mod}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -585,7 +585,7 @@ func (client *Client) AtomicMod(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondAtomicMod}}
 \label{api:Go:CondAtomicMod}
 \index{CondAtomicMod!Go API}
-\input{\topdir/client/fragments/CondAtomicMod}
+\input{\topdir/client/fragments/cond_atomic_mod}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -612,7 +612,7 @@ func (client *Client) CondAtomicMod(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupAtomicMod}}
 \label{api:Go:GroupAtomicMod}
 \index{GroupAtomicMod!Go API}
-\input{\topdir/client/fragments/GroupAtomicMod}
+\input{\topdir/client/fragments/group_atomic_mod}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -637,7 +637,7 @@ func (client *Client) GroupAtomicMod(spacename string, predicates []Predicate, a
 \subsubsection{\code{AtomicAnd}}
 \label{api:Go:AtomicAnd}
 \index{AtomicAnd!Go API}
-\input{\topdir/client/fragments/AtomicAnd}
+\input{\topdir/client/fragments/atomic_and}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -662,7 +662,7 @@ func (client *Client) AtomicAnd(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondAtomicAnd}}
 \label{api:Go:CondAtomicAnd}
 \index{CondAtomicAnd!Go API}
-\input{\topdir/client/fragments/CondAtomicAnd}
+\input{\topdir/client/fragments/cond_atomic_and}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -689,7 +689,7 @@ func (client *Client) CondAtomicAnd(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupAtomicAnd}}
 \label{api:Go:GroupAtomicAnd}
 \index{GroupAtomicAnd!Go API}
-\input{\topdir/client/fragments/GroupAtomicAnd}
+\input{\topdir/client/fragments/group_atomic_and}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -714,7 +714,7 @@ func (client *Client) GroupAtomicAnd(spacename string, predicates []Predicate, a
 \subsubsection{\code{AtomicOr}}
 \label{api:Go:AtomicOr}
 \index{AtomicOr!Go API}
-\input{\topdir/client/fragments/AtomicOr}
+\input{\topdir/client/fragments/atomic_or}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -739,7 +739,7 @@ func (client *Client) AtomicOr(spacename string, key Value, attributes Attribute
 \subsubsection{\code{CondAtomicOr}}
 \label{api:Go:CondAtomicOr}
 \index{CondAtomicOr!Go API}
-\input{\topdir/client/fragments/CondAtomicOr}
+\input{\topdir/client/fragments/cond_atomic_or}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -766,7 +766,7 @@ func (client *Client) CondAtomicOr(spacename string, key Value, predicates []Pre
 \subsubsection{\code{GroupAtomicOr}}
 \label{api:Go:GroupAtomicOr}
 \index{GroupAtomicOr!Go API}
-\input{\topdir/client/fragments/GroupAtomicOr}
+\input{\topdir/client/fragments/group_atomic_or}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -791,7 +791,7 @@ func (client *Client) GroupAtomicOr(spacename string, predicates []Predicate, at
 \subsubsection{\code{AtomicXor}}
 \label{api:Go:AtomicXor}
 \index{AtomicXor!Go API}
-\input{\topdir/client/fragments/AtomicXor}
+\input{\topdir/client/fragments/atomic_xor}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -816,7 +816,7 @@ func (client *Client) AtomicXor(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondAtomicXor}}
 \label{api:Go:CondAtomicXor}
 \index{CondAtomicXor!Go API}
-\input{\topdir/client/fragments/CondAtomicXor}
+\input{\topdir/client/fragments/cond_atomic_xor}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -843,7 +843,7 @@ func (client *Client) CondAtomicXor(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupAtomicXor}}
 \label{api:Go:GroupAtomicXor}
 \index{GroupAtomicXor!Go API}
-\input{\topdir/client/fragments/GroupAtomicXor}
+\input{\topdir/client/fragments/group_atomic_xor}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -868,7 +868,7 @@ func (client *Client) GroupAtomicXor(spacename string, predicates []Predicate, a
 \subsubsection{\code{AtomicMin}}
 \label{api:Go:AtomicMin}
 \index{AtomicMin!Go API}
-\input{\topdir/client/fragments/AtomicMin}
+\input{\topdir/client/fragments/atomic_min}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -893,7 +893,7 @@ func (client *Client) AtomicMin(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondAtomicMin}}
 \label{api:Go:CondAtomicMin}
 \index{CondAtomicMin!Go API}
-\input{\topdir/client/fragments/CondAtomicMin}
+\input{\topdir/client/fragments/cond_atomic_min}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -920,7 +920,7 @@ func (client *Client) CondAtomicMin(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupAtomicMin}}
 \label{api:Go:GroupAtomicMin}
 \index{GroupAtomicMin!Go API}
-\input{\topdir/client/fragments/GroupAtomicMin}
+\input{\topdir/client/fragments/group_atomic_min}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -945,7 +945,7 @@ func (client *Client) GroupAtomicMin(spacename string, predicates []Predicate, a
 \subsubsection{\code{AtomicMax}}
 \label{api:Go:AtomicMax}
 \index{AtomicMax!Go API}
-\input{\topdir/client/fragments/AtomicMax}
+\input{\topdir/client/fragments/atomic_max}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -970,7 +970,7 @@ func (client *Client) AtomicMax(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondAtomicMax}}
 \label{api:Go:CondAtomicMax}
 \index{CondAtomicMax!Go API}
-\input{\topdir/client/fragments/CondAtomicMax}
+\input{\topdir/client/fragments/cond_atomic_max}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -997,7 +997,7 @@ func (client *Client) CondAtomicMax(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupAtomicMax}}
 \label{api:Go:GroupAtomicMax}
 \index{GroupAtomicMax!Go API}
-\input{\topdir/client/fragments/GroupAtomicMax}
+\input{\topdir/client/fragments/group_atomic_max}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1022,7 +1022,7 @@ func (client *Client) GroupAtomicMax(spacename string, predicates []Predicate, a
 \subsubsection{\code{StringPrepend}}
 \label{api:Go:StringPrepend}
 \index{StringPrepend!Go API}
-\input{\topdir/client/fragments/StringPrepend}
+\input{\topdir/client/fragments/string_prepend}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1047,7 +1047,7 @@ func (client *Client) StringPrepend(spacename string, key Value, attributes Attr
 \subsubsection{\code{CondStringPrepend}}
 \label{api:Go:CondStringPrepend}
 \index{CondStringPrepend!Go API}
-\input{\topdir/client/fragments/CondStringPrepend}
+\input{\topdir/client/fragments/cond_string_prepend}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1074,7 +1074,7 @@ func (client *Client) CondStringPrepend(spacename string, key Value, predicates 
 \subsubsection{\code{GroupStringPrepend}}
 \label{api:Go:GroupStringPrepend}
 \index{GroupStringPrepend!Go API}
-\input{\topdir/client/fragments/GroupStringPrepend}
+\input{\topdir/client/fragments/group_string_prepend}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1099,7 +1099,7 @@ func (client *Client) GroupStringPrepend(spacename string, predicates []Predicat
 \subsubsection{\code{StringAppend}}
 \label{api:Go:StringAppend}
 \index{StringAppend!Go API}
-\input{\topdir/client/fragments/StringAppend}
+\input{\topdir/client/fragments/string_append}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1124,7 +1124,7 @@ func (client *Client) StringAppend(spacename string, key Value, attributes Attri
 \subsubsection{\code{CondStringAppend}}
 \label{api:Go:CondStringAppend}
 \index{CondStringAppend!Go API}
-\input{\topdir/client/fragments/CondStringAppend}
+\input{\topdir/client/fragments/cond_string_append}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1151,7 +1151,7 @@ func (client *Client) CondStringAppend(spacename string, key Value, predicates [
 \subsubsection{\code{GroupStringAppend}}
 \label{api:Go:GroupStringAppend}
 \index{GroupStringAppend!Go API}
-\input{\topdir/client/fragments/GroupStringAppend}
+\input{\topdir/client/fragments/group_string_append}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1176,7 +1176,7 @@ func (client *Client) GroupStringAppend(spacename string, predicates []Predicate
 \subsubsection{\code{ListLpush}}
 \label{api:Go:ListLpush}
 \index{ListLpush!Go API}
-\input{\topdir/client/fragments/ListLpush}
+\input{\topdir/client/fragments/list_lpush}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1201,7 +1201,7 @@ func (client *Client) ListLpush(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondListLpush}}
 \label{api:Go:CondListLpush}
 \index{CondListLpush!Go API}
-\input{\topdir/client/fragments/CondListLpush}
+\input{\topdir/client/fragments/cond_list_lpush}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1228,7 +1228,7 @@ func (client *Client) CondListLpush(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupListLpush}}
 \label{api:Go:GroupListLpush}
 \index{GroupListLpush!Go API}
-\input{\topdir/client/fragments/GroupListLpush}
+\input{\topdir/client/fragments/group_list_lpush}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1253,7 +1253,7 @@ func (client *Client) GroupListLpush(spacename string, predicates []Predicate, a
 \subsubsection{\code{ListRpush}}
 \label{api:Go:ListRpush}
 \index{ListRpush!Go API}
-\input{\topdir/client/fragments/ListRpush}
+\input{\topdir/client/fragments/list_rpush}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1278,7 +1278,7 @@ func (client *Client) ListRpush(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondListRpush}}
 \label{api:Go:CondListRpush}
 \index{CondListRpush!Go API}
-\input{\topdir/client/fragments/CondListRpush}
+\input{\topdir/client/fragments/cond_list_rpush}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1305,7 +1305,7 @@ func (client *Client) CondListRpush(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupListRpush}}
 \label{api:Go:GroupListRpush}
 \index{GroupListRpush!Go API}
-\input{\topdir/client/fragments/GroupListRpush}
+\input{\topdir/client/fragments/group_list_rpush}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1330,7 +1330,7 @@ func (client *Client) GroupListRpush(spacename string, predicates []Predicate, a
 \subsubsection{\code{SetAdd}}
 \label{api:Go:SetAdd}
 \index{SetAdd!Go API}
-\input{\topdir/client/fragments/SetAdd}
+\input{\topdir/client/fragments/set_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1355,7 +1355,7 @@ func (client *Client) SetAdd(spacename string, key Value, attributes Attributes)
 \subsubsection{\code{CondSetAdd}}
 \label{api:Go:CondSetAdd}
 \index{CondSetAdd!Go API}
-\input{\topdir/client/fragments/CondSetAdd}
+\input{\topdir/client/fragments/cond_set_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1382,7 +1382,7 @@ func (client *Client) CondSetAdd(spacename string, key Value, predicates []Predi
 \subsubsection{\code{GroupSetAdd}}
 \label{api:Go:GroupSetAdd}
 \index{GroupSetAdd!Go API}
-\input{\topdir/client/fragments/GroupSetAdd}
+\input{\topdir/client/fragments/group_set_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1407,7 +1407,7 @@ func (client *Client) GroupSetAdd(spacename string, predicates []Predicate, attr
 \subsubsection{\code{SetRemove}}
 \label{api:Go:SetRemove}
 \index{SetRemove!Go API}
-\input{\topdir/client/fragments/SetRemove}
+\input{\topdir/client/fragments/set_remove}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1432,7 +1432,7 @@ func (client *Client) SetRemove(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondSetRemove}}
 \label{api:Go:CondSetRemove}
 \index{CondSetRemove!Go API}
-\input{\topdir/client/fragments/CondSetRemove}
+\input{\topdir/client/fragments/cond_set_remove}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1459,7 +1459,7 @@ func (client *Client) CondSetRemove(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupSetRemove}}
 \label{api:Go:GroupSetRemove}
 \index{GroupSetRemove!Go API}
-\input{\topdir/client/fragments/GroupSetRemove}
+\input{\topdir/client/fragments/group_set_remove}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1484,7 +1484,7 @@ func (client *Client) GroupSetRemove(spacename string, predicates []Predicate, a
 \subsubsection{\code{SetIntersect}}
 \label{api:Go:SetIntersect}
 \index{SetIntersect!Go API}
-\input{\topdir/client/fragments/SetIntersect}
+\input{\topdir/client/fragments/set_intersect}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1509,7 +1509,7 @@ func (client *Client) SetIntersect(spacename string, key Value, attributes Attri
 \subsubsection{\code{CondSetIntersect}}
 \label{api:Go:CondSetIntersect}
 \index{CondSetIntersect!Go API}
-\input{\topdir/client/fragments/CondSetIntersect}
+\input{\topdir/client/fragments/cond_set_intersect}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1536,7 +1536,7 @@ func (client *Client) CondSetIntersect(spacename string, key Value, predicates [
 \subsubsection{\code{GroupSetIntersect}}
 \label{api:Go:GroupSetIntersect}
 \index{GroupSetIntersect!Go API}
-\input{\topdir/client/fragments/GroupSetIntersect}
+\input{\topdir/client/fragments/group_set_intersect}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1561,7 +1561,7 @@ func (client *Client) GroupSetIntersect(spacename string, predicates []Predicate
 \subsubsection{\code{SetUnion}}
 \label{api:Go:SetUnion}
 \index{SetUnion!Go API}
-\input{\topdir/client/fragments/SetUnion}
+\input{\topdir/client/fragments/set_union}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1586,7 +1586,7 @@ func (client *Client) SetUnion(spacename string, key Value, attributes Attribute
 \subsubsection{\code{CondSetUnion}}
 \label{api:Go:CondSetUnion}
 \index{CondSetUnion!Go API}
-\input{\topdir/client/fragments/CondSetUnion}
+\input{\topdir/client/fragments/cond_set_union}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1613,7 +1613,7 @@ func (client *Client) CondSetUnion(spacename string, key Value, predicates []Pre
 \subsubsection{\code{GroupSetUnion}}
 \label{api:Go:GroupSetUnion}
 \index{GroupSetUnion!Go API}
-\input{\topdir/client/fragments/GroupSetUnion}
+\input{\topdir/client/fragments/group_set_union}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1638,7 +1638,7 @@ func (client *Client) GroupSetUnion(spacename string, predicates []Predicate, at
 \subsubsection{\code{DocumentRename}}
 \label{api:Go:DocumentRename}
 \index{DocumentRename!Go API}
-\input{\topdir/client/fragments/DocumentRename}
+\input{\topdir/client/fragments/document_rename}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1663,7 +1663,7 @@ func (client *Client) DocumentRename(spacename string, key Value, attributes Att
 \subsubsection{\code{CondDocumentRename}}
 \label{api:Go:CondDocumentRename}
 \index{CondDocumentRename!Go API}
-\input{\topdir/client/fragments/CondDocumentRename}
+\input{\topdir/client/fragments/cond_document_rename}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1690,7 +1690,7 @@ func (client *Client) CondDocumentRename(spacename string, key Value, predicates
 \subsubsection{\code{GroupDocumentRename}}
 \label{api:Go:GroupDocumentRename}
 \index{GroupDocumentRename!Go API}
-\input{\topdir/client/fragments/GroupDocumentRename}
+\input{\topdir/client/fragments/group_document_rename}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1715,7 +1715,7 @@ func (client *Client) GroupDocumentRename(spacename string, predicates []Predica
 \subsubsection{\code{DocumentUnset}}
 \label{api:Go:DocumentUnset}
 \index{DocumentUnset!Go API}
-\input{\topdir/client/fragments/DocumentUnset}
+\input{\topdir/client/fragments/document_unset}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1740,7 +1740,7 @@ func (client *Client) DocumentUnset(spacename string, key Value, attributes Attr
 \subsubsection{\code{CondDocumentUnset}}
 \label{api:Go:CondDocumentUnset}
 \index{CondDocumentUnset!Go API}
-\input{\topdir/client/fragments/CondDocumentUnset}
+\input{\topdir/client/fragments/cond_document_unset}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1767,7 +1767,7 @@ func (client *Client) CondDocumentUnset(spacename string, key Value, predicates 
 \subsubsection{\code{GroupDocumentUnset}}
 \label{api:Go:GroupDocumentUnset}
 \index{GroupDocumentUnset!Go API}
-\input{\topdir/client/fragments/GroupDocumentUnset}
+\input{\topdir/client/fragments/group_document_unset}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1792,7 +1792,7 @@ func (client *Client) GroupDocumentUnset(spacename string, predicates []Predicat
 \subsubsection{\code{MapAdd}}
 \label{api:Go:MapAdd}
 \index{MapAdd!Go API}
-\input{\topdir/client/fragments/MapAdd}
+\input{\topdir/client/fragments/map_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1817,7 +1817,7 @@ func (client *Client) MapAdd(spacename string, key Value, mapattributes MapAttri
 \subsubsection{\code{CondMapAdd}}
 \label{api:Go:CondMapAdd}
 \index{CondMapAdd!Go API}
-\input{\topdir/client/fragments/CondMapAdd}
+\input{\topdir/client/fragments/cond_map_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1844,7 +1844,7 @@ func (client *Client) CondMapAdd(spacename string, key Value, predicates []Predi
 \subsubsection{\code{GroupMapAdd}}
 \label{api:Go:GroupMapAdd}
 \index{GroupMapAdd!Go API}
-\input{\topdir/client/fragments/GroupMapAdd}
+\input{\topdir/client/fragments/group_map_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1869,7 +1869,7 @@ func (client *Client) GroupMapAdd(spacename string, predicates []Predicate, mapa
 \subsubsection{\code{MapRemove}}
 \label{api:Go:MapRemove}
 \index{MapRemove!Go API}
-\input{\topdir/client/fragments/MapRemove}
+\input{\topdir/client/fragments/map_remove}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1894,7 +1894,7 @@ func (client *Client) MapRemove(spacename string, key Value, attributes Attribut
 \subsubsection{\code{CondMapRemove}}
 \label{api:Go:CondMapRemove}
 \index{CondMapRemove!Go API}
-\input{\topdir/client/fragments/CondMapRemove}
+\input{\topdir/client/fragments/cond_map_remove}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1921,7 +1921,7 @@ func (client *Client) CondMapRemove(spacename string, key Value, predicates []Pr
 \subsubsection{\code{GroupMapRemove}}
 \label{api:Go:GroupMapRemove}
 \index{GroupMapRemove!Go API}
-\input{\topdir/client/fragments/GroupMapRemove}
+\input{\topdir/client/fragments/group_map_remove}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1946,7 +1946,7 @@ func (client *Client) GroupMapRemove(spacename string, predicates []Predicate, a
 \subsubsection{\code{MapAtomicAdd}}
 \label{api:Go:MapAtomicAdd}
 \index{MapAtomicAdd!Go API}
-\input{\topdir/client/fragments/MapAtomicAdd}
+\input{\topdir/client/fragments/map_atomic_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1971,7 +1971,7 @@ func (client *Client) MapAtomicAdd(spacename string, key Value, mapattributes Ma
 \subsubsection{\code{CondMapAtomicAdd}}
 \label{api:Go:CondMapAtomicAdd}
 \index{CondMapAtomicAdd!Go API}
-\input{\topdir/client/fragments/CondMapAtomicAdd}
+\input{\topdir/client/fragments/cond_map_atomic_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -1998,7 +1998,7 @@ func (client *Client) CondMapAtomicAdd(spacename string, key Value, predicates [
 \subsubsection{\code{GroupMapAtomicAdd}}
 \label{api:Go:GroupMapAtomicAdd}
 \index{GroupMapAtomicAdd!Go API}
-\input{\topdir/client/fragments/GroupMapAtomicAdd}
+\input{\topdir/client/fragments/group_map_atomic_add}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2023,7 +2023,7 @@ func (client *Client) GroupMapAtomicAdd(spacename string, predicates []Predicate
 \subsubsection{\code{MapAtomicSub}}
 \label{api:Go:MapAtomicSub}
 \index{MapAtomicSub!Go API}
-\input{\topdir/client/fragments/MapAtomicSub}
+\input{\topdir/client/fragments/map_atomic_sub}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2048,7 +2048,7 @@ func (client *Client) MapAtomicSub(spacename string, key Value, mapattributes Ma
 \subsubsection{\code{CondMapAtomicSub}}
 \label{api:Go:CondMapAtomicSub}
 \index{CondMapAtomicSub!Go API}
-\input{\topdir/client/fragments/CondMapAtomicSub}
+\input{\topdir/client/fragments/cond_map_atomic_sub}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2075,7 +2075,7 @@ func (client *Client) CondMapAtomicSub(spacename string, key Value, predicates [
 \subsubsection{\code{GroupMapAtomicSub}}
 \label{api:Go:GroupMapAtomicSub}
 \index{GroupMapAtomicSub!Go API}
-\input{\topdir/client/fragments/GroupMapAtomicSub}
+\input{\topdir/client/fragments/group_map_atomic_sub}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2100,7 +2100,7 @@ func (client *Client) GroupMapAtomicSub(spacename string, predicates []Predicate
 \subsubsection{\code{MapAtomicMul}}
 \label{api:Go:MapAtomicMul}
 \index{MapAtomicMul!Go API}
-\input{\topdir/client/fragments/MapAtomicMul}
+\input{\topdir/client/fragments/map_atomic_mul}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2125,7 +2125,7 @@ func (client *Client) MapAtomicMul(spacename string, key Value, mapattributes Ma
 \subsubsection{\code{CondMapAtomicMul}}
 \label{api:Go:CondMapAtomicMul}
 \index{CondMapAtomicMul!Go API}
-\input{\topdir/client/fragments/CondMapAtomicMul}
+\input{\topdir/client/fragments/cond_map_atomic_mul}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2152,7 +2152,7 @@ func (client *Client) CondMapAtomicMul(spacename string, key Value, predicates [
 \subsubsection{\code{GroupMapAtomicMul}}
 \label{api:Go:GroupMapAtomicMul}
 \index{GroupMapAtomicMul!Go API}
-\input{\topdir/client/fragments/GroupMapAtomicMul}
+\input{\topdir/client/fragments/group_map_atomic_mul}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2177,7 +2177,7 @@ func (client *Client) GroupMapAtomicMul(spacename string, predicates []Predicate
 \subsubsection{\code{MapAtomicDiv}}
 \label{api:Go:MapAtomicDiv}
 \index{MapAtomicDiv!Go API}
-\input{\topdir/client/fragments/MapAtomicDiv}
+\input{\topdir/client/fragments/map_atomic_div}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2202,7 +2202,7 @@ func (client *Client) MapAtomicDiv(spacename string, key Value, mapattributes Ma
 \subsubsection{\code{CondMapAtomicDiv}}
 \label{api:Go:CondMapAtomicDiv}
 \index{CondMapAtomicDiv!Go API}
-\input{\topdir/client/fragments/CondMapAtomicDiv}
+\input{\topdir/client/fragments/cond_map_atomic_div}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2229,7 +2229,7 @@ func (client *Client) CondMapAtomicDiv(spacename string, key Value, predicates [
 \subsubsection{\code{GroupMapAtomicDiv}}
 \label{api:Go:GroupMapAtomicDiv}
 \index{GroupMapAtomicDiv!Go API}
-\input{\topdir/client/fragments/GroupMapAtomicDiv}
+\input{\topdir/client/fragments/group_map_atomic_div}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2254,7 +2254,7 @@ func (client *Client) GroupMapAtomicDiv(spacename string, predicates []Predicate
 \subsubsection{\code{MapAtomicMod}}
 \label{api:Go:MapAtomicMod}
 \index{MapAtomicMod!Go API}
-\input{\topdir/client/fragments/MapAtomicMod}
+\input{\topdir/client/fragments/map_atomic_mod}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2279,7 +2279,7 @@ func (client *Client) MapAtomicMod(spacename string, key Value, mapattributes Ma
 \subsubsection{\code{CondMapAtomicMod}}
 \label{api:Go:CondMapAtomicMod}
 \index{CondMapAtomicMod!Go API}
-\input{\topdir/client/fragments/CondMapAtomicMod}
+\input{\topdir/client/fragments/cond_map_atomic_mod}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2306,7 +2306,7 @@ func (client *Client) CondMapAtomicMod(spacename string, key Value, predicates [
 \subsubsection{\code{GroupMapAtomicMod}}
 \label{api:Go:GroupMapAtomicMod}
 \index{GroupMapAtomicMod!Go API}
-\input{\topdir/client/fragments/GroupMapAtomicMod}
+\input{\topdir/client/fragments/group_map_atomic_mod}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2331,7 +2331,7 @@ func (client *Client) GroupMapAtomicMod(spacename string, predicates []Predicate
 \subsubsection{\code{MapAtomicAnd}}
 \label{api:Go:MapAtomicAnd}
 \index{MapAtomicAnd!Go API}
-\input{\topdir/client/fragments/MapAtomicAnd}
+\input{\topdir/client/fragments/map_atomic_and}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2356,7 +2356,7 @@ func (client *Client) MapAtomicAnd(spacename string, key Value, mapattributes Ma
 \subsubsection{\code{CondMapAtomicAnd}}
 \label{api:Go:CondMapAtomicAnd}
 \index{CondMapAtomicAnd!Go API}
-\input{\topdir/client/fragments/CondMapAtomicAnd}
+\input{\topdir/client/fragments/cond_map_atomic_and}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2383,7 +2383,7 @@ func (client *Client) CondMapAtomicAnd(spacename string, key Value, predicates [
 \subsubsection{\code{GroupMapAtomicAnd}}
 \label{api:Go:GroupMapAtomicAnd}
 \index{GroupMapAtomicAnd!Go API}
-\input{\topdir/client/fragments/GroupMapAtomicAnd}
+\input{\topdir/client/fragments/group_map_atomic_and}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2408,7 +2408,7 @@ func (client *Client) GroupMapAtomicAnd(spacename string, predicates []Predicate
 \subsubsection{\code{MapAtomicOr}}
 \label{api:Go:MapAtomicOr}
 \index{MapAtomicOr!Go API}
-\input{\topdir/client/fragments/MapAtomicOr}
+\input{\topdir/client/fragments/map_atomic_or}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2433,7 +2433,7 @@ func (client *Client) MapAtomicOr(spacename string, key Value, mapattributes Map
 \subsubsection{\code{CondMapAtomicOr}}
 \label{api:Go:CondMapAtomicOr}
 \index{CondMapAtomicOr!Go API}
-\input{\topdir/client/fragments/CondMapAtomicOr}
+\input{\topdir/client/fragments/cond_map_atomic_or}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2460,7 +2460,7 @@ func (client *Client) CondMapAtomicOr(spacename string, key Value, predicates []
 \subsubsection{\code{GroupMapAtomicOr}}
 \label{api:Go:GroupMapAtomicOr}
 \index{GroupMapAtomicOr!Go API}
-\input{\topdir/client/fragments/GroupMapAtomicOr}
+\input{\topdir/client/fragments/group_map_atomic_or}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2485,7 +2485,7 @@ func (client *Client) GroupMapAtomicOr(spacename string, predicates []Predicate,
 \subsubsection{\code{MapAtomicXor}}
 \label{api:Go:MapAtomicXor}
 \index{MapAtomicXor!Go API}
-\input{\topdir/client/fragments/MapAtomicXor}
+\input{\topdir/client/fragments/map_atomic_xor}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2510,7 +2510,7 @@ func (client *Client) MapAtomicXor(spacename string, key Value, mapattributes Ma
 \subsubsection{\code{CondMapAtomicXor}}
 \label{api:Go:CondMapAtomicXor}
 \index{CondMapAtomicXor!Go API}
-\input{\topdir/client/fragments/CondMapAtomicXor}
+\input{\topdir/client/fragments/cond_map_atomic_xor}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2537,7 +2537,7 @@ func (client *Client) CondMapAtomicXor(spacename string, key Value, predicates [
 \subsubsection{\code{GroupMapAtomicXor}}
 \label{api:Go:GroupMapAtomicXor}
 \index{GroupMapAtomicXor!Go API}
-\input{\topdir/client/fragments/GroupMapAtomicXor}
+\input{\topdir/client/fragments/group_map_atomic_xor}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2562,7 +2562,7 @@ func (client *Client) GroupMapAtomicXor(spacename string, predicates []Predicate
 \subsubsection{\code{MapStringPrepend}}
 \label{api:Go:MapStringPrepend}
 \index{MapStringPrepend!Go API}
-\input{\topdir/client/fragments/MapStringPrepend}
+\input{\topdir/client/fragments/map_string_prepend}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2587,7 +2587,7 @@ func (client *Client) MapStringPrepend(spacename string, key Value, mapattribute
 \subsubsection{\code{CondMapStringPrepend}}
 \label{api:Go:CondMapStringPrepend}
 \index{CondMapStringPrepend!Go API}
-\input{\topdir/client/fragments/CondMapStringPrepend}
+\input{\topdir/client/fragments/cond_map_string_prepend}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2614,7 +2614,7 @@ func (client *Client) CondMapStringPrepend(spacename string, key Value, predicat
 \subsubsection{\code{GroupMapStringPrepend}}
 \label{api:Go:GroupMapStringPrepend}
 \index{GroupMapStringPrepend!Go API}
-\input{\topdir/client/fragments/GroupMapStringPrepend}
+\input{\topdir/client/fragments/group_map_string_prepend}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2639,7 +2639,7 @@ func (client *Client) GroupMapStringPrepend(spacename string, predicates []Predi
 \subsubsection{\code{MapStringAppend}}
 \label{api:Go:MapStringAppend}
 \index{MapStringAppend!Go API}
-\input{\topdir/client/fragments/MapStringAppend}
+\input{\topdir/client/fragments/map_string_append}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2664,7 +2664,7 @@ func (client *Client) MapStringAppend(spacename string, key Value, mapattributes
 \subsubsection{\code{CondMapStringAppend}}
 \label{api:Go:CondMapStringAppend}
 \index{CondMapStringAppend!Go API}
-\input{\topdir/client/fragments/CondMapStringAppend}
+\input{\topdir/client/fragments/cond_map_string_append}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2691,7 +2691,7 @@ func (client *Client) CondMapStringAppend(spacename string, key Value, predicate
 \subsubsection{\code{GroupMapStringAppend}}
 \label{api:Go:GroupMapStringAppend}
 \index{GroupMapStringAppend!Go API}
-\input{\topdir/client/fragments/GroupMapStringAppend}
+\input{\topdir/client/fragments/group_map_string_append}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2716,7 +2716,7 @@ func (client *Client) GroupMapStringAppend(spacename string, predicates []Predic
 \subsubsection{\code{MapAtomicMin}}
 \label{api:Go:MapAtomicMin}
 \index{MapAtomicMin!Go API}
-\input{\topdir/client/fragments/MapAtomicMin}
+\input{\topdir/client/fragments/map_atomic_min}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2741,7 +2741,7 @@ func (client *Client) MapAtomicMin(spacename string, key Value, mapattributes Ma
 \subsubsection{\code{CondMapAtomicMin}}
 \label{api:Go:CondMapAtomicMin}
 \index{CondMapAtomicMin!Go API}
-\input{\topdir/client/fragments/CondMapAtomicMin}
+\input{\topdir/client/fragments/cond_map_atomic_min}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2768,7 +2768,7 @@ func (client *Client) CondMapAtomicMin(spacename string, key Value, predicates [
 \subsubsection{\code{GroupMapAtomicMin}}
 \label{api:Go:GroupMapAtomicMin}
 \index{GroupMapAtomicMin!Go API}
-\input{\topdir/client/fragments/GroupMapAtomicMin}
+\input{\topdir/client/fragments/group_map_atomic_min}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2793,7 +2793,7 @@ func (client *Client) GroupMapAtomicMin(spacename string, predicates []Predicate
 \subsubsection{\code{MapAtomicMax}}
 \label{api:Go:MapAtomicMax}
 \index{MapAtomicMax!Go API}
-\input{\topdir/client/fragments/MapAtomicMax}
+\input{\topdir/client/fragments/map_atomic_max}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2818,7 +2818,7 @@ func (client *Client) MapAtomicMax(spacename string, key Value, mapattributes Ma
 \subsubsection{\code{CondMapAtomicMax}}
 \label{api:Go:CondMapAtomicMax}
 \index{CondMapAtomicMax!Go API}
-\input{\topdir/client/fragments/CondMapAtomicMax}
+\input{\topdir/client/fragments/cond_map_atomic_max}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2845,7 +2845,7 @@ func (client *Client) CondMapAtomicMax(spacename string, key Value, predicates [
 \subsubsection{\code{GroupMapAtomicMax}}
 \label{api:Go:GroupMapAtomicMax}
 \index{GroupMapAtomicMax!Go API}
-\input{\topdir/client/fragments/GroupMapAtomicMax}
+\input{\topdir/client/fragments/group_map_atomic_max}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2870,7 +2870,7 @@ func (client *Client) GroupMapAtomicMax(spacename string, predicates []Predicate
 \subsubsection{\code{Search}}
 \label{api:Go:Search}
 \index{Search!Go API}
-\input{\topdir/client/fragments/Search}
+\input{\topdir/client/fragments/search}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2893,7 +2893,7 @@ func (client *Client) Search(spacename string, predicates []Predicate) (attrs ch
 \subsubsection{\code{SearchDescribe}}
 \label{api:Go:SearchDescribe}
 \index{SearchDescribe!Go API}
-\input{\topdir/client/fragments/SearchDescribe}
+\input{\topdir/client/fragments/search_describe}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2916,7 +2916,7 @@ func (client *Client) SearchDescribe(spacename string, predicates []Predicate) (
 \subsubsection{\code{SortedSearch}}
 \label{api:Go:SortedSearch}
 \index{SortedSearch!Go API}
-\input{\topdir/client/fragments/SortedSearch}
+\input{\topdir/client/fragments/sorted_search}
 
 \paragraph{Definition:}
 \begin{gocode}
@@ -2945,7 +2945,7 @@ func (client *Client) SortedSearch(spacename string, predicates []Predicate, sor
 \subsubsection{\code{Count}}
 \label{api:Go:Count}
 \index{Count!Go API}
-\input{\topdir/client/fragments/Count}
+\input{\topdir/client/fragments/count}
 
 \paragraph{Definition:}
 \begin{gocode}

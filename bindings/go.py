@@ -276,7 +276,7 @@ def generate_api_block(x, lib):
     block += '\\subsubsection{\code{%s}}\n' % bindings.LaTeX(GoIfy(x.name))
     block += '\\label{api:Go:%s}\n' % GoIfy(x.name)
     block += '\\index{%s!Go API}\n' % bindings.LaTeX(GoIfy(x.name))
-    block += '\\input{\\topdir/%s/fragments/%s}\n\n' % (lib, GoIfy(x.name))
+    block += '\\input{\\topdir/%s/fragments/%s}\n\n' % (lib, x.name)
     block += '\\paragraph{Definition:}\n'
     block += '\\begin{gocode}\n'
     typed_args_in = ', '.join([(arg_name(arg) + ' ' + GOTYPEOF(arg)).strip()
