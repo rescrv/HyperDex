@@ -24,6 +24,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import datetime
 import doctest
 import os
 import sys
@@ -50,7 +51,7 @@ class OutputChecker(doctest.OutputChecker):
         if w is not Sentinel and g is not Sentinel:
             if w == g:
                 return True
-            if isinstance(w, list) and isinstance(w, list) and \
+            if isinstance(w, list) and isinstance(g, list) and \
                sorted(w) == sorted(g):
                 return True
         return doctest.OutputChecker.check_output(self, want, got, optionflags)

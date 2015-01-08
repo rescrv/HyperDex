@@ -321,3 +321,113 @@ Checking where we stand:
 All of the preceding operations could have been issued concurrently -- the
 results will be the same because they commute with each other and are executed
 atomically.
+
+\section{Timestamps}
+
+HyperDex has a special set of data types for storing timestamps.  While one
+could store timestamps as a simple integer, perhaps seconds since the unix
+epoch, such a strategy would not work well if the timestamps were close relative
+to the range of an integer.  HyperDex's timestamp types use a special hash
+function designed for timestamps to spread hash values evenly throughout the
+hash space, while retaining a customizable degree of locality in the data.
+
+\begin{pythoncode}
+>>> a = hyperdex.admin.Admin('127.0.0.1', 1982)
+>>> a.add_space('space events_by_second key timestamp(second) when attribute body')
+True
+\end{pythoncode}
+
+In this space, the key-space will be broken into one second intervals, and
+timestamps that fall within the same interval will be hashed to nearby to each
+other, while timestamps that map to different intervals will be hashed further
+apart in the key space.
+
+The HyperDex timestamp type appears to our application as a normal Python
+\code{datetime.datetime} object, and will be converted to and from this type by
+the Python API.  Here's some example events that we can insert into our space:
+
+\begin{pythoncode}
+>>> import datetime
+>>> c.put('events_by_second', datetime.datetime(2015, 1, 7, 21, 40, 49),
+...       {'body': 'the first event'})
+...
+True
+>>> c.put('events_by_second', datetime.datetime(2015, 1, 7, 21, 40, 49, 1000),
+...       {'body': 'this event happens 1ms after the first'})
+...
+True
+>>> c.put('events_by_second', datetime.datetime(2014, 1, 7, 21, 40, 49),
+...       {'body': 'this event happens a year earlier than the first'})
+...
+True
+>>> c.put('events_by_second', datetime.datetime(2015, 1, 7, 21, 40, 51),
+...       {'body': 'yet another event in our system, 2s after the first'})
+...
+True
+\end{pythoncode}
+
+In this sample data, our first two events happen exactly 1ms apart, but in the
+same second, so they will hash very closely in the key space---likely to the
+exact same server.  The other events will be far apart from the first, and will
+likely reside on different servers in a cluster with more than a few servers.
+
+Once our data is loaded, we can easily search using standard HyperDex
+comparison predicates like these:
+
+\begin{pythoncode}
+>>> from hyperdex.client import * # for the predicates below
+>>> # Search for everything in 2014
+>>> [x for x in c.search('events_by_second',
+...  {'when': [GreaterEqual(datetime.datetime(2014, 1, 1)),
+...            LessThan(datetime.datetime(2015, 1, 1))]})]
+...
+[{'when': datetime.datetime(2014, 1, 7, 21, 40, 49),
+  'body': 'this event happens a year earlier than the first'}]
+>>> # Search for everything in 2015
+>>> [x for x in c.sorted_search('events_by_second',
+...  {'when': [GreaterEqual(datetime.datetime(2015, 1, 1)),
+...            LessThan(datetime.datetime(2016, 1, 1))]},
+...   'when', 10, 'min')]
+...
+[{'when': datetime.datetime(2015, 1, 7, 21, 40, 49),
+  'body': 'the first event'},
+ {'when': datetime.datetime(2015, 1, 7, 21, 40, 49, 1000),
+  'body': 'this event happens 1ms after the first'},
+ {'when': datetime.datetime(2015, 1, 7, 21, 40, 51),
+  'body': 'yet another event in our system, 2s after the first'}]
+\end{pythoncode}
+
+\subsection{Timestamp Intervals}
+
+When we created our space, we declared that we wanted the timestamp to be of
+type \code{timestamp(second)}.  HyperDex supports six different timestamp types
+that spread the data across servers in different ways.  The six types are:
+
+\begin{itemize}[noitemsep]
+    \item \code{timestamp(second)}:  Intervals are one second in size.
+    \item \code{timestamp(minute)}:  Intervals are one minute in size.
+    \item \code{timestamp(hour)}:  Intervals are one hour in size.
+    \item \code{timestamp(day)}:  Intervals are one day in size.
+    \item \code{timestamp(week)}:  Intervals are 7 days in size.
+    \item \code{timestamp(month)}:  Intervals are 28 days in size.
+\end{itemize}
+
+Each of these types will roughly map timestamps that fall within the same time
+interval (e.g., second, month, etc.) nearby to each other in the key space.
+When deciding which timestamp type to use for our data, we should consider the
+data we'll store, and the queries we'll perform.  In general, we wish to pick a
+timestamp type large enough such that range queries will fall within one unit of
+the interval.  For example, if we'll be searching for objects that fall within a
+24-hour window, it doesn't make sense to pick the second, minute, or hour types
+because timestamps from throughout the 24-hour window will be spread throughout
+the cluster.  The day, week, and month timestamps make much more sense for this
+query workload.
+
+Picking too large of a timestamp interval, however, can cause problems when
+inserting timestamps in real time.  For example, if we were to always pick the
+\code{timestamp(month)} type, and insert one event every millisecond, the
+approximately 2.5 billion events inserted would map to the same server, and all
+writes would be directed to a different server each 28-day interval.  If,
+instead, we picked the \code{timestamp(second)} type, writes would be directed
+to a different server each second, evenly consuming disk space across the
+cluster.

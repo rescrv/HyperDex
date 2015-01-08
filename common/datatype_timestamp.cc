@@ -45,7 +45,7 @@ unpack(const e::slice& value)
 
     if (value.empty())
     {
-      return 0;
+        return 0;
     }
 
     int64_t timestamp;
@@ -109,21 +109,111 @@ datatype_timestamp :: apply(const e::slice& old_value,
 bool
 datatype_timestamp::hashable() const
 {
-    return false;
+    return true;
 }
 
-int64_t  lookup_interesting[] = { 1, 60, 3600, 24*60*60, 7*24*60*60, 30 *7 * 24*60*60};
+#define INT_SECONDS 60
+#define INT_MINUTES 60
+#define INT_HOURS 24
+#define INT_DAYS 7
+#define INT_WEEKS 4
+#define INT_MONTHS 12
+
+const uint64_t INTERVALS[] = {INT_SECONDS,
+                              INT_MINUTES,
+                              INT_HOURS,
+                              INT_DAYS,
+                              INT_WEEKS,
+                              INT_MONTHS};
+
+const unsigned TABLE_SECOND[] = {0, 1, 2, 3, 4, 5, 6};
+const unsigned TABLE_MINUTE[] = {1, 0, 2, 3, 4, 5, 6};
+const unsigned TABLE_HOUR[]   = {2, 1, 0, 3, 4, 5, 6};
+const unsigned TABLE_DAY[]    = {3, 2, 1, 0, 4, 5, 6};
+const unsigned TABLE_WEEK[]   = {4, 3, 2, 1, 0, 5, 6};
+const unsigned TABLE_MONTH[]  = {5, 4, 3, 2, 1, 0, 6};
 
 uint64_t
-datatype_timestamp :: hash(const e::slice& value) const
+datatype_timestamp :: hash(const e::slice& v) const
 {
-    int64_t interesting_bits;
-    int64_t extra;
-    int64_t timestamp = unpack(value);
-    interesting_bits = lookup_interesting[(this->m_type & 0x7) - 1];
-    extra = timestamp % interesting_bits;
-    timestamp /= interesting_bits;
-    return CityHash64((const char*)&timestamp, sizeof(int64_t)) + extra;
+    uint64_t timestamp = unpack(v);
+    const unsigned* table = NULL;
+    uint64_t value[7];
+
+    switch (m_type)
+    {
+        case HYPERDATATYPE_TIMESTAMP_SECOND:
+            table = TABLE_SECOND;
+            break;
+        case HYPERDATATYPE_TIMESTAMP_MINUTE:
+            table = TABLE_MINUTE;
+            break;
+        case HYPERDATATYPE_TIMESTAMP_HOUR:
+            table = TABLE_HOUR;
+            break;
+        case HYPERDATATYPE_TIMESTAMP_DAY:
+            table = TABLE_DAY;
+            break;
+        case HYPERDATATYPE_TIMESTAMP_WEEK:
+            table = TABLE_WEEK;
+            break;
+        case HYPERDATATYPE_TIMESTAMP_MONTH:
+            table = TABLE_MONTH;
+            break;
+        case HYPERDATATYPE_GENERIC:
+        case HYPERDATATYPE_STRING:
+        case HYPERDATATYPE_INT64:
+        case HYPERDATATYPE_FLOAT:
+        case HYPERDATATYPE_DOCUMENT:
+        case HYPERDATATYPE_LIST_GENERIC:
+        case HYPERDATATYPE_LIST_STRING:
+        case HYPERDATATYPE_LIST_INT64:
+        case HYPERDATATYPE_LIST_FLOAT:
+        case HYPERDATATYPE_SET_GENERIC:
+        case HYPERDATATYPE_SET_STRING:
+        case HYPERDATATYPE_SET_INT64:
+        case HYPERDATATYPE_SET_FLOAT:
+        case HYPERDATATYPE_MAP_GENERIC:
+        case HYPERDATATYPE_MAP_STRING_KEYONLY:
+        case HYPERDATATYPE_MAP_STRING_STRING:
+        case HYPERDATATYPE_MAP_STRING_INT64:
+        case HYPERDATATYPE_MAP_STRING_FLOAT:
+        case HYPERDATATYPE_MAP_INT64_KEYONLY:
+        case HYPERDATATYPE_MAP_INT64_STRING:
+        case HYPERDATATYPE_MAP_INT64_INT64:
+        case HYPERDATATYPE_MAP_INT64_FLOAT:
+        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+        case HYPERDATATYPE_MAP_FLOAT_STRING:
+        case HYPERDATATYPE_MAP_FLOAT_INT64:
+        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
+        case HYPERDATATYPE_TIMESTAMP_GENERIC:
+        case HYPERDATATYPE_MACAROON_SECRET:
+        case HYPERDATATYPE_GARBAGE:
+        default:
+            return timestamp;
+    }
+
+    uint64_t x = timestamp / 1000000.;
+
+    for (unsigned i = 0; i < 6; ++i)
+    {
+        value[i] = x % INTERVALS[i];
+        x /= INTERVALS[i];
+    }
+
+    value[6] = x;
+    assert(table);
+    uint64_t y = UINT64_MAX;
+    uint64_t h = 0;
+
+    for (unsigned i = 0; i < 6; ++i)
+    {
+        y = y / INTERVALS[table[i]];
+        h += value[table[i]] * y;
+    }
+
+    h += value[table[6]];
+    return h;
 }
 
 bool
