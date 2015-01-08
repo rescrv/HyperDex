@@ -94,3 +94,43 @@ True
 True
 >>> c.get('profiles', 'jsmith1')['upvotes']
 {'http://url1.com': 2, 'http://url2.com': 0}
+>>> a = hyperdex.admin.Admin(HOST, PORT)
+>>> a.add_space('space events_by_second key timestamp(second) when attribute body')
+True
+>>> import datetime
+>>> c.put('events_by_second', datetime.datetime(2015, 1, 7, 21, 40, 49),
+...       {'body': 'the first event'})
+...
+True
+>>> c.put('events_by_second', datetime.datetime(2015, 1, 7, 21, 40, 49, 1000),
+...       {'body': 'this event happens 1ms after the first'})
+...
+True
+>>> c.put('events_by_second', datetime.datetime(2014, 1, 7, 21, 40, 49),
+...       {'body': 'this event happens a year earlier than the first'})
+...
+True
+>>> c.put('events_by_second', datetime.datetime(2015, 1, 7, 21, 40, 51),
+...       {'body': 'yet another event in our system, 2s after the first'})
+...
+True
+>>> from hyperdex.client import * # for the predicates below
+>>> # Search for everything in 2014
+>>> [x for x in c.search('events_by_second',
+...  {'when': [GreaterEqual(datetime.datetime(2014, 1, 1)),
+...            LessThan(datetime.datetime(2015, 1, 1))]})]
+...
+[{'when': datetime.datetime(2014, 1, 7, 21, 40, 49),
+  'body': 'this event happens a year earlier than the first'}]
+>>> # Search for everything in 2015
+>>> [x for x in c.sorted_search('events_by_second',
+...  {'when': [GreaterEqual(datetime.datetime(2015, 1, 1)),
+...            LessThan(datetime.datetime(2016, 1, 1))]},
+...   'when', 10, 'min')]
+...
+[{'when': datetime.datetime(2015, 1, 7, 21, 40, 49),
+  'body': 'the first event'},
+ {'when': datetime.datetime(2015, 1, 7, 21, 40, 49, 1000),
+  'body': 'this event happens 1ms after the first'},
+ {'when': datetime.datetime(2015, 1, 7, 21, 40, 51),
+  'body': 'yet another event in our system, 2s after the first'}]

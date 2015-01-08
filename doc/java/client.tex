@@ -1,0 +1,287 @@
+\chapter{Java API}
+\label{chap:api:java}
+
+\section{Client Library}
+\label{sec:api:java:client}
+
+HyperDex provides Java bindings in the package \code{org.hyperdex.client}.  This
+package wraps the HyperDex C Client library and enables the use of native Java
+data types.
+
+This library was brought up-to-date following the 1.0.5 release.
+
+\subsection{Building the HyperDex Java Binding}
+\label{sec:api:java:building}
+
+The HyperDex Java Binding must be requested at configure time as it is not
+automatically built.  You can ensure that the Java bindings are always built by
+providing the \code{--enable-java-bindings} option to \code{./configure} like
+so:
+
+\begin{consolecode}
+% ./configure --enable-client --enable-java-bindings
+\end{consolecode}
+
+\subsection{Using Java Within Your Application}
+\label{sec:api:java:using}
+
+All client operation are defined in the \code{org.hyperdex.client} package.  You
+can access this in your program with:
+
+\begin{javacode}
+import org.hyperdex.client.*;
+\end{javacode}
+
+\subsection{Hello World}
+\label{sec:api:java:hello-world}
+
+The following is a minimal application that stores the value "Hello World" and
+then immediately retrieves the value:
+
+\inputminted{java}{\topdir/java/client/HelloWorld.java}
+
+You can run this example with:
+
+\begin{consolecode}
+% javac HelloWorld.java
+% java -Djava.library.path=/usr/local/lib HelloWorld
+put: true
+got: {v=Hello World!}
+\end{consolecode}
+
+Right away, there are several points worth noting in this example:
+
+\begin{itemize}
+\item Every operation is synchronous.  The PUT and GET operations run to
+completion by default.
+
+\item Java types are automatically converted to HyperDex types.  There's no need
+to specify information such as the length of each string, as one would do with
+the C API.
+
+\item We specify -Djava.library.path=/usr/local/lib.  This is necessary for
+builds from source, but should not be necessary for Java bindings installed
+using binary packages.
+\end{itemize}
+
+\subsection{Asynchronous Operations}
+\label{sec:api:java:async-ops}
+
+For convenience, the Java bindings treat every operation as synchronous.  This
+enables you to write short programs without concern for asynchronous operations.
+Most operations come with an asynchronous form, denoted by the \code{async\_}
+prefix.  For example, the above Hello World example could be rewritten in
+asynchronous fashion as such:
+
+\inputminted{java}{\topdir/java/client/HelloWorldAsyncWait.java}
+
+This enables applications to issue multiple requests simultaneously and wait for
+their completion in an application-specific order.  It's also possible to use
+the \code{loop} method on the client object to wait for the next request to
+complete:
+
+\inputminted{java}{\topdir/java/client/HelloWorldAsyncLoop.java}
+
+\subsection{Data Structures}
+\label{sec:api:java:data-structures}
+
+The Java bindings automatically manage conversion of data types from Java to
+HyperDex types, enabling applications to be written in idiomatic Java.
+
+\subsubsection{Examples}
+\label{sec:api:java:examples}
+
+This section shows examples of Java data structures that are recognized by
+HyperDex.  The examples here are for illustration purposes and are not
+exhaustive.
+
+\paragraph{Strings}
+
+The HyperDex client recognizes Java's strings and automatically converts them to
+HyperDex strings.  For example, the following call stores a string:
+equivalent and have the same effect:
+
+\begin{javacode}
+Map<String, Object> attrs = new HashMap<String, Object>();
+attrs.put("v", "someattrs");
+c.put("kv", "somekey", attrs);
+\end{javacode}
+
+\paragraph{Integers}
+
+The HyperDex client recognizes Java's integers and automatically converts them
+to HyperDex integers.  For example:
+
+\begin{javacode}
+Map<String, Object> attrs = new HashMap<String, Object>();
+attrs.put("v", 42);
+c.put("kv", "somekey", attrs);
+\end{javacode}
+
+\paragraph{Floats}
+
+The HyperDex client recognizes Java's floating point numbers and automatically
+converts them to HyperDex floats.  For example:
+
+\begin{javacode}
+Map<String, Object> attrs = new HashMap<String, Object>();
+attrs.put("v", 3.1415);
+c.put("kv", "somekey", attrs);
+\end{javacode}
+
+\paragraph{Lists}
+
+The HyperDex client recognizes Java lists and automatically converts them to
+HyperDex lists.  For example:
+
+\begin{javacode}
+List<Object> list = new ArrayList<Object>();
+list.add("a");
+list.add("b");
+list.add("c");
+Map<String, Object> attrs = new HashMap<String, Object>();
+attrs.put("v", list);
+c.put("kv", "somekey", attrs);
+\end{javacode}
+
+\paragraph{Sets}
+
+The HyperDex client recognizes Java sets and automatically converts them to
+HyperDex sets.  For example:
+
+\begin{javacode}
+Set<Object> set = new HashSet<Object>();
+set.add("a");
+set.add("b");
+set.add("c");
+Map<String, Object> attrs = new HashMap<String, Object>();
+attrs.put("v", set);
+c.put("kv", "somekey", attrs);
+\end{javacode}
+
+\paragraph{Maps}
+
+The HyperDex client recognizes Java maps and automatically converts them to
+HyperDex maps.  For example:
+
+\begin{javacode}
+Map<Object, Object> map = new HashMap<Object, Object>();
+map.put("k", "v");
+Map<String, Object> attrs = new HashMap<String, Object>();
+attrs.put("v", map);
+c.put("kv", "somekey", attrs);
+\end{javacode}
+
+\subsection{Attributes}
+\label{sec:api:java:attributes}
+
+Attributes in Java are specified in the form of a map from attribute names to
+their values.  As you can see in the examples above, attributes are specified in
+the form:
+
+\begin{javacode}
+Map<String, Object> attrs = new HashMap<String, Object>();
+\end{javacode}
+
+\subsection{Map Attributes}
+\label{sec:api:java:map-attributes}
+
+Map attributes in Java are specified in the form of a nested map.  The outer
+map key specifies the name, while the inner map key-value pair's specify the
+key-value pair of the map.  For example:
+
+\begin{javacode}
+Map<String, Map<Object, Object>> mapattrs = new HashMap<String, Map<Object, Object>>();
+\end{javacode}
+
+\subsection{Predicates}
+\label{sec:api:java:predicates}
+
+Predicates in Java are specified in the form of a hash from attribute names to
+their predicates.  In the simple case, the predicate is just a value to be
+compared against:
+
+\begin{javacode}
+Map<String, Object> checks = new HashMap<String, Object>();
+checks.put("v", "value");
+\end{javacode}
+
+This is the same as saying:
+
+\begin{javacode}
+Map<String, Object> checks = new HashMap<String, Object>();
+checks.put("v", new Equals("value"));
+\end{javacode}
+
+The Java bindings support the full range of predicates supported by HyperDex
+itself.  For example:
+
+\begin{javacode}
+checks.put("v", new LessEqual(5));
+checks.put("v", new GreaterEqual(5));
+checks.put("v", new RangeEqual(5, 10));
+checks.put("v", new Regex("^s.*"));
+checks.put("v", new LengthEquals(5));
+checks.put("v", new LengthLessEqual(5));
+checks.put("v", new LengthGreaterEqual(5));
+checks.put("v", new Contains('value'));
+\end{javacode}
+
+\subsection{Error Handling}
+\label{sec:api:java:error-handling}
+
+All error handling within the Java bindings is done via the
+\code{try}/\code{catch} mechanism of Java.  Errors will be thrown by the package
+and should be handled by your application.  For example, if we were trying to
+store an integer (5) as attribute \code{"v"}, where \code{"v"} is actually a
+string, we'd generate an error.
+
+\begin{javacode}
+try
+{
+    attrs.put("v", 5);
+    System.out.println("put: " + c.put("kv", "k", attrs));
+}
+catch (HyperDexClientException e)
+{
+    System.out.println(e.status());
+    System.out.println(e.symbol());
+    System.out.println(e.message());
+}
+\end{javacode}
+
+Errors of type \code{HyperDexClientException} will contain both a message
+indicating what went wrong, as well as the underlying \code{enum
+hyperdex\_client\_returncode}.  The member \code{status} indicates the numeric
+value of this enum, while \code{symbol} returns the enum as a string.  The above
+code will fail with the following output:
+
+\begin{verbatim}
+8525
+HYPERDEX_CLIENT_WRONGTYPE
+invalid attribute "v": attribute has the wrong type
+\end{verbatim}
+
+\subsection{Operations}
+\label{sec:api:java:ops}
+
+\input{\topdir/java/client/ops}
+\pagebreak
+
+\subsection{Working with Signals}
+\label{sec:api:java:signals}
+
+The HyperDex client library is signal-safe.  Should a signal interrupt the
+client during a blocking operation, it will raise a
+\code{HyperDexClientException} with status \code{HYPERDEX\_CLIENT\_INTERRUPTED}.
+
+\subsection{Working with Threads}
+\label{sec:api:Java:threads}
+
+The Java package is fully reentrant.  Instances of
+\code{HyperDex::Client::Client} and their associated state may be accessed from
+multiple threads, provided that the application employs its own synchronization
+that provides mutual exclusion.
+
+Put simply, a multi-threaded application should protect each \code{Client}
+instance with a mutex or lock to ensure correct operation.

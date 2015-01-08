@@ -1,0 +1,246 @@
+\chapter{Backup and Recovery}
+\label{chap:backups}
+
+Backups provide disaster recovery and protect against user error.  HyperDex's
+replication provides some of this same protection, but there is no substitute
+for proper backup hygiene.  A full blown backup protection mechanism protects
+the cluster correlated failures that would otherwise violate HyperDex's
+$f$-fault tolerance guarantees.
+
+HyperDex provides one of the best backup experiences available in any NoSQL
+store.  HyperDex's backups enable administrators to backup the on-disk state of
+HyperDex servers in their native on-disk state.  As a result, backups are quick
+and efficient, because there is no need to serialize and deserialize the data
+during the backup process.  The backup/restore process is strongly consistent,
+doesn't require shutting down servers, and enables incremental backup support.
+Further, the process of initiating a backup is quite efficient; it completes
+quickly, and does not consume CPU or I/O for extended periods of time.
+
+\section{Consistent versus Inconsistent Backups}
+
+In a distributed data store, the simple but flawed way to make backups is to
+take a snapshot at each of the shards independently.  Needless to say, this is
+precisely what a number of other systems do.  The problem with this approach is
+that backups taken without coordination among the servers are not going to take
+a consistent cut through the data.  A portion of the data in the backup might
+come from a snapshot at time T0, while others portions come from T1, and yet
+others from different points in time.  Depending on the application, these kinds
+of uncoordinated backups can lead to inconsistencies in the database.  Restoring
+from a backup might take the system to a state that actually never existed. And
+that defeats the entire point of a backup.
+
+In contrast, HyperDex backups are coordinated.  The network pauses for slightly
+less than a second, the operation queues are drained, pending operations are
+completed, and therefore the snapshots capture a consistent, clean view of the
+data.  A restore will take the system back to a precise point in time. 
+
+\section{Simple Backup Strategies}
+
+The simplest strategy for taking a backup is to use the included
+\code{backup-manager} command.  Of course, before you can take a backup of a
+cluster, the cluster has to exist.  We can easily setup a simple cluster with by
+executing following sequence of commands in separate terminals.
+
+\begin{consolecode}
+% hyperdex coordinator -f -l 127.0.0.1 -p 1982
+% hyperdex daemon -f --listen=127.0.0.1 --listen-port=2012 \
+                     --coordinator=127.0.0.1 --coordinator-port=1982 --data=/path/to/data
+\end{consolecode}
+
+This will start a single-node cluster on our local machine.  We can take a
+backup of this cluster by issuing the following command:
+
+\begin{consolecode}
+% hyperdex backup-manager --backup-dir /path/to/backups
+\end{consolecode}
+
+Our backup of the entire cluster now resides under the \code{/path/to/backups}
+directory.  Behind the scenes, this command will:
+
+\begin{enumerate}
+\item Put the cluster into read-only mode
+\item Wait for ongoing writes to quiesce
+\item Take a backup of the coordinator
+\item Take a backup of each individual daemon
+\item Put the cluster back into read-write mode
+\item Copy the coordinator state and each of the daemon's state to
+    \code{/path/to/backups/YYY-mm-ddTHH:MM:SS} for the current date and time,
+    exploiting data available in previous backups if possible.  This relies on
+    having ssh access to the listed hosts, and using rsync to copy the data.
+\end{enumerate}
+
+For example, after the above backup, the directory hierarchy will look like
+this:
+
+\begin{consolecode}
+% find /path/to/backups
+/path/to/backups
+/path/to/backups/LATEST
+/path/to/backups/2015-01-05T18:43:08
+/path/to/backups/2015-01-05T18:43:08/coordinator.bin
+/path/to/backups/2015-01-05T18:43:08/13036267341651542609
+/path/to/backups/2015-01-05T18:43:08/13036267341651542609/000004.log
+/path/to/backups/2015-01-05T18:43:08/13036267341651542609/000006.log
+/path/to/backups/2015-01-05T18:43:08/13036267341651542609/MANIFEST-000002
+/path/to/backups/2015-01-05T18:43:08/13036267341651542609/000005.sst
+/path/to/backups/2015-01-05T18:43:08/13036267341651542609/CURRENT
+/path/to/backups/2015-01-05T18:43:08/13036267341651542609/LOG
+\end{consolecode}
+
+We can see our recent backup is in directory \code{2015-01-05T18:43:08}.  Within
+this directory is a backup of the coordinator state, \code{coordinator.bin}, and
+one directory for the server's state.  Because we only have one server, we have
+one directory.  With more servers, we would see more directories, each
+identified by the server's unique token.  We can get a list of the servers in
+our cluster with this command:
+
+\begin{consolecode}
+% hyperdex show-config | grep server
+\end{consolecode}
+
+We can see that indeed, the only server in our cluster is
+\code{13036267341651542609}.  The files stored within this directory are a copy
+of the on-disk data at our server taken atomically during the backup process.
+
+Suppose the unthinkable happens (a datacenter outage, cooling failure, flood,
+act of God, or more likely, some human error that causes data loss) we need to
+restore from backup on a different set of machines.  Restoring the cluster is as
+simple as copying the backup directory
+\code{/path/to/backups/2015-01-05T18:43:08/13036267341651542609} to a different
+daemon server, and then launching a new coordinator from the backup:
+
+\begin{consolecode}
+% hyperdex coordinator --restore coordinator.bin --foreground -l 127.0.0.1 -p 1983
+\end{consolecode}
+
+We can then bring the remainder of the cluster online by using the copied data
+directory on an entirely different server from the one that initially existed in
+our cluster.
+
+\begin{consolecode}
+% hyperdex daemon -f --listen=127.0.0.1 --listen-port=2013 \
+                     --coordinator=127.0.0.1 --coordinator-port=1983 --data=/path/to/copy
+\end{consolecode}
+
+All freshly-restored clusters come online in read-only mode.  Once all daemons
+have come online, you can make the cluster fully operational by executing:
+
+\begin{consolecode}
+% hyperdex set-read-write -h 127.0.0.1 -p 1983
+\end{consolecode}
+
+At this point, we have two fully functional HyperDex clusters running.  We have
+our original cluster with the coordinator on port 1982, and the daemon on 2012;
+and, we have the restored copy of the cluster running on on ports 1983 and 2013.
+
+\section{Backup Efficiency}
+
+HyperDex's backups are extremely efficient, because they leverage the structure
+of the on-disk format to take snapshots quickly, which may then be copied in the
+background.
+
+HyperDex uses HyperLevelDB as its storage backend, which, in turn, constructs an
+LSM-tree on disk.  The majority of data stored within HyperLevelDB is stored
+within immutable \code{.sst} files.  Once written, these files are never
+overwritten.  The backup feature within HyperDex can extract a snapshot of these
+files via an instantaneous hard link in the filesystem. This state, once
+snapshotted so efficiently, can then be transferred elsewhere at will. 
+
+At the cluster level, backups pause writes for a short period of time while the
+HyperDex daemons take their individual snapshots.  Because individual snapshots
+are efficient, the pause generally takes less than a second.
+
+Finally, the backup tool ensures that the cluster is restored to full operation
+before transferring any data over the network.  This transfer comprises the bulk
+of the backup operation, and happens only after the cluster resumes normal
+operation.
+
+\section{Advanced Backup Techniques}
+
+Backup solutions often require customization; some setups use network attached
+storage and back up to a centralized location, others will demand custom control
+over where and how the snapshots are transferred.  Let's walk through a more
+detailed example where the snapshots are manually managed.
+
+Every custom backup solution will start by initiating a snapshot operation
+within the HyperDex cluster.  The command to take a snapshot is called
+\code{backup}.  For example, this command will create a snapshot named
+\code{my-backup}:
+
+\begin{consolecode}
+% hyperdex backup my-backup
+13036267341651542609 127.0.0.1 /path/to/data/backup-my-backup
+\end{consolecode}
+
+When this command succeeds, it will exit zero, and output a list of the servers
+that hold individual snapshots.  For instance, we can see that our server
+identified by \code{13036267341651542609} on 127.0.0.1 backed up its state to
+\code{13036267341651542609}.
+
+We can then backup this state to wherever we wish to store the backup.  In the
+backup-manager command, we transfer the state to the specified directory using
+rsync like this:
+
+\begin{consolecode}
+% rsync -a --delete -- 127.0.0.1:/path/to/data/backup-my-backup/ 13036267341651542609/
+\end{consolecode}
+
+This command will create a directory named ``13036267341651542609'' and transfer
+all of the server's state to this directory.  This directory is suitable for
+passing to the \code{--data} parameter of HyperDex's daemon.
+
+In addition to the per-daemon state backups, the backup command above also
+creates a file in the curren directory called \code{my-backup.coordinator.bin}.
+This file contains the coordinator's state, suitable for using to bootstrap a
+new coordinator cluster as shown above.
+
+The backup-manager command shown above builds upon this low-level backup
+command, and neatly organizes the backup of each server and the coordinator into
+the backup directory.  Of course, other possible schemes include:
+
+\begin{itemize}
+\item Using filesystem-level snapshots to save the backup directories.  Daemons
+may then be launched from the snapshots in the future.  While this protects
+against some software faults, it doesn't provide as thorough protection against
+disaster recovery as moving the backups offsite.
+
+\item  Having the daemons directly rsync their state to an off-site storage
+location.  This avoids any resource constraints that may limit the effectiveness
+of the backup-manager, and avoids the possibility for hardware failure to
+corrupt filesystem-level snapshots.
+
+\item Restore multiple instances of a cluster simultaneously to experiment with
+your production data.  For example, before deploying a new application to
+production, backup the cluster, and restore the backup in parallel to the
+production cluster.  Then, deploy the new application against the parallel
+cluster before deploying to production.
+\end{itemize}
+
+\section{Incremental Backups with Rsync}
+
+The backup-manager command demonstrated above supports {\em incremental
+backups}, wherein successive calls will only transfer state that has been
+modified since the last backup.  Each backup appears as a full backup of the
+cluster and shares storage resources with previous backups.  Consequently, the
+backup manager will store several complete backups of the cluster without
+requiring the storage space of several complete backups.
+
+The implementation leverages the \code{--link-dest} option to rsync to avoid
+making redundant copies of the data.  When provided this option, rsync will look
+for files in the specified directory.  If the file in the source directory is
+also present, unchanged, in the link-dest directory, then it will be hard-linked
+into place and not copied over the network.
+
+Assuming an existing backup exists in the directory
+\code{13036267341651542609-1},
+we can create an incremental backup in \code{13036267341651542609-2} by issuing:
+
+\begin{consolecode}
+% rsync -a --delete --link-dest=13036267341651542609-1 -- \
+    127.0.0.1:/path/to/data/backup-my-backup/ \
+    13036267341651542609-2
+\end{consolecode}
+
+This will use rsync to de-duplicate the data and avoid redundant copies.  Other
+possibilities include storing the data into a storage service like S3, with a
+higher level application orchestrating the de-duplication logic.

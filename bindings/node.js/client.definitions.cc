@@ -425,6 +425,46 @@ HyperDexClient :: asynccall__spacename_key_predicates_mapattributes__status(int6
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: asynccall__spacename_predicates_mapattributes__status_count(int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, enum hyperdex_client_returncode* status, uint64_t* count), const v8::Arguments& args)
+{
+    v8::HandleScope scope;
+    v8::Local<v8::Object> client_obj = args.This();
+    HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
+    e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
+    v8::Local<v8::Function> func = args[3].As<v8::Function>();
+
+    if (func.IsEmpty() || !func->IsFunction())
+    {
+        v8::ThrowException(v8::String::New("Callback must be a function"));
+        return scope.Close(v8::Undefined());
+    }
+
+    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+    const char* in_space;
+    v8::Local<v8::Value> spacename = args[0];
+    if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
+    const struct hyperdex_client_attribute_check* in_checks;
+    size_t in_checks_sz;
+    v8::Local<v8::Value> predicates = args[1];
+    if (!op->convert_predicates(predicates, &in_checks, &in_checks_sz)) return scope.Close(v8::Undefined());
+    const struct hyperdex_client_map_attribute* in_mapattrs;
+    size_t in_mapattrs_sz;
+    v8::Local<v8::Value> mapattributes = args[2];
+    if (!op->convert_mapattributes(mapattributes, &in_mapattrs, &in_mapattrs_sz)) return scope.Close(v8::Undefined());
+    op->reqid = f(client->client(), in_space, in_checks, in_checks_sz, in_mapattrs, in_mapattrs_sz, &op->status, &op->count);
+
+    if (op->reqid < 0)
+    {
+        op->callback_error_from_status();
+        return scope.Close(v8::Undefined());
+    }
+
+    op->encode_return = &Operation::encode_asynccall_status_count;
+    client->add(op->reqid, op);
+    return scope.Close(v8::Undefined());
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: iterator__spacename_predicates__status_attributes(int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, enum hyperdex_client_returncode* status, const struct hyperdex_client_attribute** attrs, size_t* attrs_sz), const v8::Arguments& args)
 {
     v8::HandleScope scope;
@@ -877,6 +917,12 @@ HyperDexClient :: cond_set_add(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_set_add(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_set_add, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: set_remove(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_set_remove, args);
@@ -886,6 +932,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_set_remove(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_set_remove, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_set_remove(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_set_remove, args);
 }
 
 v8::Handle<v8::Value>
@@ -901,6 +953,12 @@ HyperDexClient :: cond_set_intersect(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_set_intersect(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_set_intersect, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: set_union(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_set_union, args);
@@ -913,33 +971,21 @@ HyperDexClient :: cond_set_union(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
-HyperDexClient :: map_add(const v8::Arguments& args)
+HyperDexClient :: group_set_union(const v8::Arguments& args)
 {
-    return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_add, args);
-}
-
-v8::Handle<v8::Value>
-HyperDexClient :: cond_map_add(const v8::Arguments& args)
-{
-    return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_add, args);
-}
-
-v8::Handle<v8::Value>
-HyperDexClient :: map_remove(const v8::Arguments& args)
-{
-    return asynccall__spacename_key_attributes__status(hyperdex_client_map_remove, args);
-}
-
-v8::Handle<v8::Value>
-HyperDexClient :: cond_map_remove(const v8::Arguments& args)
-{
-    return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_map_remove, args);
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_set_union, args);
 }
 
 v8::Handle<v8::Value>
 HyperDexClient :: document_rename(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_document_rename, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: cond_document_rename(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_document_rename, args);
 }
 
 v8::Handle<v8::Value>
@@ -955,9 +1001,51 @@ HyperDexClient :: document_unset(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: cond_document_unset(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_document_unset, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: group_document_unset(const v8::Arguments& args)
 {
     return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_document_unset, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: map_add(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_add, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: cond_map_add(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_add, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_map_add(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_add, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: map_remove(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_attributes__status(hyperdex_client_map_remove, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: cond_map_remove(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_map_remove, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_map_remove(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_map_remove, args);
 }
 
 v8::Handle<v8::Value>
@@ -973,6 +1061,12 @@ HyperDexClient :: cond_map_atomic_add(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_map_atomic_add(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_add, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: map_atomic_sub(const v8::Arguments& args)
 {
     return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_sub, args);
@@ -982,6 +1076,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_map_atomic_sub(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_sub, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_map_atomic_sub(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_sub, args);
 }
 
 v8::Handle<v8::Value>
@@ -997,6 +1097,12 @@ HyperDexClient :: cond_map_atomic_mul(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_map_atomic_mul(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_mul, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: map_atomic_div(const v8::Arguments& args)
 {
     return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_div, args);
@@ -1006,6 +1112,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_map_atomic_div(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_div, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_map_atomic_div(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_div, args);
 }
 
 v8::Handle<v8::Value>
@@ -1021,6 +1133,12 @@ HyperDexClient :: cond_map_atomic_mod(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_map_atomic_mod(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_mod, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: map_atomic_and(const v8::Arguments& args)
 {
     return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_and, args);
@@ -1030,6 +1148,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_map_atomic_and(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_and, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_map_atomic_and(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_and, args);
 }
 
 v8::Handle<v8::Value>
@@ -1045,6 +1169,12 @@ HyperDexClient :: cond_map_atomic_or(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_map_atomic_or(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_or, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: map_atomic_xor(const v8::Arguments& args)
 {
     return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_xor, args);
@@ -1054,6 +1184,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_map_atomic_xor(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_xor, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_map_atomic_xor(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_xor, args);
 }
 
 v8::Handle<v8::Value>
@@ -1069,6 +1205,12 @@ HyperDexClient :: cond_map_string_prepend(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_map_string_prepend(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_string_prepend, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: map_string_append(const v8::Arguments& args)
 {
     return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_string_append, args);
@@ -1078,6 +1220,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_map_string_append(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_string_append, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_map_string_append(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_string_append, args);
 }
 
 v8::Handle<v8::Value>
@@ -1093,6 +1241,12 @@ HyperDexClient :: cond_map_atomic_min(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: group_map_atomic_min(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_min, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: map_atomic_max(const v8::Arguments& args)
 {
     return asynccall__spacename_key_mapattributes__status(hyperdex_client_map_atomic_max, args);
@@ -1102,6 +1256,12 @@ v8::Handle<v8::Value>
 HyperDexClient :: cond_map_atomic_max(const v8::Arguments& args)
 {
     return asynccall__spacename_key_predicates_mapattributes__status(hyperdex_client_cond_map_atomic_max, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_map_atomic_max(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_mapattributes__status_count(hyperdex_client_group_map_atomic_max, args);
 }
 
 v8::Handle<v8::Value>

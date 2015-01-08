@@ -158,44 +158,64 @@ Client = [
     Method('group_list_rpush', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('set_add', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('cond_set_add', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
+    Method('group_set_add', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('set_remove', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('cond_set_remove', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
+    Method('group_set_remove', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('set_intersect', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('cond_set_intersect', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
+    Method('group_set_intersect', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('set_union', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('cond_set_union', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
-    Method('map_add', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
-    Method('cond_map_add', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
-    Method('map_remove', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
-    Method('cond_map_remove', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
+    Method('group_set_union', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('document_rename', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('cond_document_rename', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_document_rename', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('document_unset', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('cond_document_unset', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_document_unset', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
+    Method('map_add', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
+    Method('cond_map_add', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_add', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
+    Method('map_remove', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('cond_map_remove', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
+    Method('group_map_remove', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('map_atomic_add', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_add', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_atomic_add', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('map_atomic_sub', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_sub', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_atomic_sub', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('map_atomic_mul', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_mul', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_atomic_mul', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('map_atomic_div', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_div', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_atomic_div', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('map_atomic_mod', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_mod', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_atomic_mod', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('map_atomic_and', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_and', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_atomic_and', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('map_atomic_or', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_or', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_atomic_or', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('map_atomic_xor', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_xor', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_atomic_xor', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('map_string_prepend', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_string_prepend', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_string_prepend', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('map_string_append', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_string_append', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_string_append', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('map_atomic_min', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_min', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_atomic_min', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('map_atomic_max', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_max', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
+    Method('group_map_atomic_max', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
     Method('search', Iterator, (SpaceName, Predicates), (Status, Attributes)),
     Method('search_describe', AsyncCall, (SpaceName, Predicates), (Status, Description)),
     Method('sorted_search', Iterator, (SpaceName, Predicates, SortBy, Limit, MaxMin), (Status, Attributes)),
@@ -224,6 +244,8 @@ Admin = [
     Method('enable_perf_counters', AsyncCall, (), (AdminStatus, PerformanceCounters)),
     Method('disable_perf_counters', NoFailCall, (), ()),
 ]
+
+DoNotDocument = ['search_describe']
 
 def call_name(x):
     call  = x.form.__name__.lower()
@@ -289,7 +311,7 @@ def doc_parameter_list(form, args, fragments, label_maker):
         label = label_maker(arg)
         block += '\\item ' + label + '\\\\\n'
         frag = fragments + '_' + form.__name__.lower() + '_' + arg.__name__.lower()
-        block += '\\input{\\topdir/api/fragments/' + frag +'}\n'
+        block += '\\input{\\topdir/' + frag +'}\n'
     block += '\\end{itemize}\n'
     return block
 

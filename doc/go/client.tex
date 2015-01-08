@@ -1,0 +1,187 @@
+\chapter{Go Client API}
+\label{chap:api:go-client}
+
+HyperDex provide Go bindings to the client under the import path
+\code{github.com/rescrv/HyperDex/bindings/go/client}.  This library wraps the C
+client library and enables the use of native Go data types and uses Go's native
+support for concurrency to exploit the asynchronous features of HyperDex.
+
+\subsection{Using Go Within Your Application}
+\label{sec:api:go-client:using}
+
+All client operation are defined in the \code{client} package.  You can
+access this in your program with:
+
+\begin{gocode}
+import ("github.com/rescrv/HyperDex/bindings/go/client")
+\end{gocode}
+
+In your go environment, run this to fetch the module into your \code{GOPATH}.
+
+\begin{consolecode}
+go get github.com/rescrv/HyperDex/bindings/go/client
+\end{consolecode}
+
+\subsection{Hello World}
+\label{sec:api:go-client:hello-world}
+
+The following is a minimal application that stores the value "Hello World" and
+then immediately retrieves the value:
+
+\inputminted{go}{\topdir/go/client/hello-world.go}
+
+You can run this example with:
+
+% XXX
+\begin{consolecode}
+% go run hello-world.go
+put: "Hello World!"
+got: map[v:Hello World!]
+\end{consolecode}
+
+In Go, every HyperDex operation appears to the application as a synchronous
+call.  Operations will appear to block the calling go-routine and suspend
+execution until the operation completes.  Behind the scenes, the client will use
+the concurrency features of Go to allow many concurrent operations using the
+same client library.  Additionally, Go types are automatically converted to
+HyperDex's types under the hood.
+
+\subsection{Data Structures}
+\label{sec:api:go-client:data-structures}
+
+The Go bindings automatically manage conversion of data types from Go to
+HyperDex types, enabling applications to be written in idiomatic Go.
+
+\subsubsection{Examples}
+\label{sec:api:go-client:examples}
+
+This section shows examples of Go data structures that are recognized by
+HyperDex.  The examples here are for illustration purposes and are not
+exhaustive.
+
+\paragraph{Strings}
+
+The HyperDex client recognizes Go's strings and automatically converts them to
+HyperDex strings.  For example:
+
+\begin{gocode}
+err := client.Put("kv", "some key", client.Attributes{"v": "some value"})
+\end{gocode}
+
+\paragraph{Integers}
+
+The HyperDex client recognizes Go's integers and automatically converts them to
+HyperDex integers.  For example:
+
+\begin{gocode}
+err := client.Put("kv", "some key", client.Attributes{"v": 42})
+err = client.Put("kv", "some key", client.Attributes{"v": int64(42)})
+\end{gocode}
+
+\paragraph{Floats}
+
+The HyperDex client recognizes Go's floating point numbers and automatically
+converts them to HyperDex floats.  For example:
+
+\begin{gocode}
+err := client.Put("kv", "some key", client.Attributes{"v": 3.14})
+\end{gocode}
+
+\paragraph{Lists}
+
+The HyperDex client recognizes lists and automatically converts them to HyperDex
+lists.  For example:
+
+\begin{gocode}
+err := client.Put("kv", "some key", client.Attributes{"v": client.List{"A", "B", "C"}})
+\end{gocode}
+
+\paragraph{Sets}
+
+The HyperDex client recognizes sets and automatically converts them to HyperDex
+sets.  For example:
+
+\begin{gocode}
+err := client.Put("kv", "some key", client.Attributes{"v": client.Set{"A", "B", "C"}})
+\end{gocode}
+
+\paragraph{Maps}
+
+The HyperDex client recognizes Go dictionaries and automatically converts them
+to HyperDex maps.  For example:
+
+\begin{gocode}
+err := client.Put("kv", "some key", client.Attributes{"v":
+        client.Map{"A": "X", "B": "Y", "C": "Z"}})
+\end{gocode}
+
+\subsection{Attributes}
+\label{sec:api:go-client:attributes}
+
+Attributes in Go are provided as struct \code{client.Attributes}, which has the
+same syntax as a Go map.  As you can see in the examples above, attributes are
+specified in the form:
+
+\begin{gocode}
+client.Attributes{"v1": "A", "v2": 3.14}
+\end{gocode}
+
+\subsection{Map Attributes}
+\label{sec:api:go-client:map-attributes}
+
+Map attributes in Go are provided as struct \code{client.MapAttributes}, which
+maps attribute names to \code{client.Map} objects that specify the key-value
+pairs to manipulate.
+
+\begin{gocode}
+client.MapAttributes{"v": client.Map{"A": 3.14}}
+\end{gocode}
+
+\subsection{Predicates}
+\label{sec:api:go-client:predicates}
+
+Predicates in Go are specified as a slice of \code{client.Predicate}.  Here's a
+variety of Predicates provided by Go:
+
+\begin{gocode}
+client.Predicate{"attr", "some value", client.EQUALS}
+client.Predicate{"attr", 5, client.LESS_THAN}
+client.Predicate{"attr", 5, client.LESS_EQUAL}
+client.Predicate{"attr", 5, client.GREATER_THAN}
+client.Predicate{"attr", 5, client.GREATER_EQUAL}
+client.Predicate{"attr", "^prefix", client.REGEX}
+client.Predicate{"attr", 42, client.LENGTH_EQUALS}
+client.Predicate{"attr", 42, client.LENGTH_LESS_EQUALS}
+client.Predicate{"attr", 42, client.LENGTH_GREATER_EQUALS}
+client.Predicate{"attr", "needle", client.CONTAINS}
+\end{gocode}
+
+\subsection{Error Handling}
+\label{sec:api:go-client:error-handling}
+
+All error handling within the Go bindings is done via \code{client.Error}
+returned from each operation.  An error object will always be returned, and its
+status should be checked following the call.  For example, we may conditionally
+change the value of \code{v} from \code{"foo"} to \code{"bar"} like this:
+
+\begin{gocode}
+err := client.CondPut("kv", "some key",
+        []client.Predicate{{"v", "foo", client.EQUALS}},
+        client.Attributes{"v": "bar"})
+if err.Status == client.SUCCESS {
+    // it worked
+} else if err.Status == client.CMPFAIL {
+    // the existing value was not "foo"
+} else if err.Status == client.NOTFOUND {
+    // there is no existing value
+} else {
+    // something more fatal happened
+    // this is an exceptional case
+    // propagate the error or try again
+}
+\end{gocode}
+
+\subsection{Operations}
+\label{sec:api:go-client:ops}
+
+\input{\topdir/go/client/ops}

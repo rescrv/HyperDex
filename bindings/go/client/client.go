@@ -1641,6 +1641,62 @@ func (client *Client) AsynccallSpacenameKeyPredicatesMapattributesStatus(stub fu
 	return
 }
 
+func (client *Client) AsynccallSpacenamePredicatesMapattributesStatusCount(stub func(client *C.struct_hyperdex_client, c_space *C.char, c_checks *C.struct_hyperdex_client_attribute_check, c_checks_sz C.size_t, c_mapattrs *C.struct_hyperdex_client_map_attribute, c_mapattrs_sz C.size_t, c_status *C.enum_hyperdex_client_returncode, c_count *C.uint64_t) int64, spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	arena := C.hyperdex_ds_arena_create()
+	defer C.hyperdex_ds_arena_destroy(arena)
+	var c_space *C.char
+	var c_checks *C.struct_hyperdex_client_attribute_check
+	var c_checks_sz C.size_t
+	var c_mapattrs *C.struct_hyperdex_client_map_attribute
+	var c_mapattrs_sz C.size_t
+	var er error
+	er = client.convertSpacename(arena, spacename, &c_space)
+	if er != nil {
+		err = &Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
+	if er != nil {
+		err = &Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	er = client.convertMapattributes(arena, mapattributes, &c_mapattrs, &c_mapattrs_sz)
+	if er != nil {
+		err = &Error{Status(WRONGTYPE), er.Error(), ""}
+		return
+	}
+	var c_status C.enum_hyperdex_client_returncode
+	var c_count C.uint64_t
+	done := make(chan Error)
+	client.mutex.Lock()
+	inner := client.clients[client.counter%uint64(len(client.clients))]
+	client.counter++
+	client.mutex.Unlock()
+	inner.mutex.Lock()
+	reqid := stub(inner.ptr, c_space, c_checks, c_checks_sz, c_mapattrs, c_mapattrs_sz, &c_status, &c_count)
+	if reqid >= 0 {
+		inner.ops[reqid] = done
+	} else {
+		if c_status != SUCCESS {
+			err = &Error{Status(c_status),
+				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
+		}
+	}
+	inner.mutex.Unlock()
+	if reqid >= 0 {
+		rz := <-done
+		if c_status != SUCCESS {
+			err = &rz
+			err.Status = Status(c_status)
+		}
+	}
+	if c_status == SUCCESS {
+		count = uint64(c_count)
+	}
+	return
+}
+
 func (client *Client) IteratorSpacenamePredicatesStatusAttributes(stub func(client *C.struct_hyperdex_client, c_space *C.char, c_checks *C.struct_hyperdex_client_attribute_check, c_checks_sz C.size_t, c_status *C.enum_hyperdex_client_returncode, c_attrs **C.struct_hyperdex_client_attribute, c_attrs_sz *C.size_t) int64, spacename string, predicates []Predicate) (attrs chan Attributes, errs chan Error) {
 	arena := C.hyperdex_ds_arena_create()
 	defer C.hyperdex_ds_arena_destroy(arena)
@@ -2188,6 +2244,13 @@ func (client *Client) CondSetAdd(spacename string, key Value, predicates []Predi
 	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_set_add, spacename, key, predicates, attributes)
 }
 
+func stub_group_set_add(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_set_add(client, space, checks, checks_sz, attrs, attrs_sz, status, count))
+}
+func (client *Client) GroupSetAdd(spacename string, predicates []Predicate, attributes Attributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesAttributesStatusCount(stub_group_set_add, spacename, predicates, attributes)
+}
+
 func stub_set_remove(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_set_remove(client, space, key, key_sz, attrs, attrs_sz, status))
 }
@@ -2200,6 +2263,13 @@ func stub_cond_set_remove(client *C.struct_hyperdex_client, space *C.char, key *
 }
 func (client *Client) CondSetRemove(spacename string, key Value, predicates []Predicate, attributes Attributes) (err *Error) {
 	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_set_remove, spacename, key, predicates, attributes)
+}
+
+func stub_group_set_remove(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_set_remove(client, space, checks, checks_sz, attrs, attrs_sz, status, count))
+}
+func (client *Client) GroupSetRemove(spacename string, predicates []Predicate, attributes Attributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesAttributesStatusCount(stub_group_set_remove, spacename, predicates, attributes)
 }
 
 func stub_set_intersect(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2216,6 +2286,13 @@ func (client *Client) CondSetIntersect(spacename string, key Value, predicates [
 	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_set_intersect, spacename, key, predicates, attributes)
 }
 
+func stub_group_set_intersect(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_set_intersect(client, space, checks, checks_sz, attrs, attrs_sz, status, count))
+}
+func (client *Client) GroupSetIntersect(spacename string, predicates []Predicate, attributes Attributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesAttributesStatusCount(stub_group_set_intersect, spacename, predicates, attributes)
+}
+
 func stub_set_union(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_set_union(client, space, key, key_sz, attrs, attrs_sz, status))
 }
@@ -2230,32 +2307,11 @@ func (client *Client) CondSetUnion(spacename string, key Value, predicates []Pre
 	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_set_union, spacename, key, predicates, attributes)
 }
 
-func stub_map_add(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
-	return int64(C.hyperdex_client_map_add(client, space, key, key_sz, mapattrs, mapattrs_sz, status))
+func stub_group_set_union(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_set_union(client, space, checks, checks_sz, attrs, attrs_sz, status, count))
 }
-func (client *Client) MapAdd(spacename string, key Value, mapattributes MapAttributes) (err *Error) {
-	return client.AsynccallSpacenameKeyMapattributesStatus(stub_map_add, spacename, key, mapattributes)
-}
-
-func stub_cond_map_add(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
-	return int64(C.hyperdex_client_cond_map_add(client, space, key, key_sz, checks, checks_sz, mapattrs, mapattrs_sz, status))
-}
-func (client *Client) CondMapAdd(spacename string, key Value, predicates []Predicate, mapattributes MapAttributes) (err *Error) {
-	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_add, spacename, key, predicates, mapattributes)
-}
-
-func stub_map_remove(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
-	return int64(C.hyperdex_client_map_remove(client, space, key, key_sz, attrs, attrs_sz, status))
-}
-func (client *Client) MapRemove(spacename string, key Value, attributes Attributes) (err *Error) {
-	return client.AsynccallSpacenameKeyAttributesStatus(stub_map_remove, spacename, key, attributes)
-}
-
-func stub_cond_map_remove(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
-	return int64(C.hyperdex_client_cond_map_remove(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
-}
-func (client *Client) CondMapRemove(spacename string, key Value, predicates []Predicate, attributes Attributes) (err *Error) {
-	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_map_remove, spacename, key, predicates, attributes)
+func (client *Client) GroupSetUnion(spacename string, predicates []Predicate, attributes Attributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesAttributesStatusCount(stub_group_set_union, spacename, predicates, attributes)
 }
 
 func stub_document_rename(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2263,6 +2319,13 @@ func stub_document_rename(client *C.struct_hyperdex_client, space *C.char, key *
 }
 func (client *Client) DocumentRename(spacename string, key Value, attributes Attributes) (err *Error) {
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_document_rename, spacename, key, attributes)
+}
+
+func stub_cond_document_rename(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
+	return int64(C.hyperdex_client_cond_document_rename(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
+}
+func (client *Client) CondDocumentRename(spacename string, key Value, predicates []Predicate, attributes Attributes) (err *Error) {
+	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_document_rename, spacename, key, predicates, attributes)
 }
 
 func stub_group_document_rename(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
@@ -2279,11 +2342,60 @@ func (client *Client) DocumentUnset(spacename string, key Value, attributes Attr
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_document_unset, spacename, key, attributes)
 }
 
+func stub_cond_document_unset(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
+	return int64(C.hyperdex_client_cond_document_unset(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
+}
+func (client *Client) CondDocumentUnset(spacename string, key Value, predicates []Predicate, attributes Attributes) (err *Error) {
+	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_document_unset, spacename, key, predicates, attributes)
+}
+
 func stub_group_document_unset(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
 	return int64(C.hyperdex_client_group_document_unset(client, space, checks, checks_sz, attrs, attrs_sz, status, count))
 }
 func (client *Client) GroupDocumentUnset(spacename string, predicates []Predicate, attributes Attributes) (count uint64, err *Error) {
 	return client.AsynccallSpacenamePredicatesAttributesStatusCount(stub_group_document_unset, spacename, predicates, attributes)
+}
+
+func stub_map_add(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
+	return int64(C.hyperdex_client_map_add(client, space, key, key_sz, mapattrs, mapattrs_sz, status))
+}
+func (client *Client) MapAdd(spacename string, key Value, mapattributes MapAttributes) (err *Error) {
+	return client.AsynccallSpacenameKeyMapattributesStatus(stub_map_add, spacename, key, mapattributes)
+}
+
+func stub_cond_map_add(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
+	return int64(C.hyperdex_client_cond_map_add(client, space, key, key_sz, checks, checks_sz, mapattrs, mapattrs_sz, status))
+}
+func (client *Client) CondMapAdd(spacename string, key Value, predicates []Predicate, mapattributes MapAttributes) (err *Error) {
+	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_add, spacename, key, predicates, mapattributes)
+}
+
+func stub_group_map_add(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_add(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapAdd(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_add, spacename, predicates, mapattributes)
+}
+
+func stub_map_remove(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
+	return int64(C.hyperdex_client_map_remove(client, space, key, key_sz, attrs, attrs_sz, status))
+}
+func (client *Client) MapRemove(spacename string, key Value, attributes Attributes) (err *Error) {
+	return client.AsynccallSpacenameKeyAttributesStatus(stub_map_remove, spacename, key, attributes)
+}
+
+func stub_cond_map_remove(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
+	return int64(C.hyperdex_client_cond_map_remove(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
+}
+func (client *Client) CondMapRemove(spacename string, key Value, predicates []Predicate, attributes Attributes) (err *Error) {
+	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_map_remove, spacename, key, predicates, attributes)
+}
+
+func stub_group_map_remove(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_remove(client, space, checks, checks_sz, attrs, attrs_sz, status, count))
+}
+func (client *Client) GroupMapRemove(spacename string, predicates []Predicate, attributes Attributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesAttributesStatusCount(stub_group_map_remove, spacename, predicates, attributes)
 }
 
 func stub_map_atomic_add(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2300,6 +2412,13 @@ func (client *Client) CondMapAtomicAdd(spacename string, key Value, predicates [
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_atomic_add, spacename, key, predicates, mapattributes)
 }
 
+func stub_group_map_atomic_add(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_atomic_add(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapAtomicAdd(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_add, spacename, predicates, mapattributes)
+}
+
 func stub_map_atomic_sub(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_map_atomic_sub(client, space, key, key_sz, mapattrs, mapattrs_sz, status))
 }
@@ -2312,6 +2431,13 @@ func stub_cond_map_atomic_sub(client *C.struct_hyperdex_client, space *C.char, k
 }
 func (client *Client) CondMapAtomicSub(spacename string, key Value, predicates []Predicate, mapattributes MapAttributes) (err *Error) {
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_atomic_sub, spacename, key, predicates, mapattributes)
+}
+
+func stub_group_map_atomic_sub(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_atomic_sub(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapAtomicSub(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_sub, spacename, predicates, mapattributes)
 }
 
 func stub_map_atomic_mul(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2328,6 +2454,13 @@ func (client *Client) CondMapAtomicMul(spacename string, key Value, predicates [
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_atomic_mul, spacename, key, predicates, mapattributes)
 }
 
+func stub_group_map_atomic_mul(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_atomic_mul(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapAtomicMul(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_mul, spacename, predicates, mapattributes)
+}
+
 func stub_map_atomic_div(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_map_atomic_div(client, space, key, key_sz, mapattrs, mapattrs_sz, status))
 }
@@ -2340,6 +2473,13 @@ func stub_cond_map_atomic_div(client *C.struct_hyperdex_client, space *C.char, k
 }
 func (client *Client) CondMapAtomicDiv(spacename string, key Value, predicates []Predicate, mapattributes MapAttributes) (err *Error) {
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_atomic_div, spacename, key, predicates, mapattributes)
+}
+
+func stub_group_map_atomic_div(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_atomic_div(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapAtomicDiv(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_div, spacename, predicates, mapattributes)
 }
 
 func stub_map_atomic_mod(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2356,6 +2496,13 @@ func (client *Client) CondMapAtomicMod(spacename string, key Value, predicates [
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_atomic_mod, spacename, key, predicates, mapattributes)
 }
 
+func stub_group_map_atomic_mod(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_atomic_mod(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapAtomicMod(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_mod, spacename, predicates, mapattributes)
+}
+
 func stub_map_atomic_and(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_map_atomic_and(client, space, key, key_sz, mapattrs, mapattrs_sz, status))
 }
@@ -2368,6 +2515,13 @@ func stub_cond_map_atomic_and(client *C.struct_hyperdex_client, space *C.char, k
 }
 func (client *Client) CondMapAtomicAnd(spacename string, key Value, predicates []Predicate, mapattributes MapAttributes) (err *Error) {
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_atomic_and, spacename, key, predicates, mapattributes)
+}
+
+func stub_group_map_atomic_and(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_atomic_and(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapAtomicAnd(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_and, spacename, predicates, mapattributes)
 }
 
 func stub_map_atomic_or(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2384,6 +2538,13 @@ func (client *Client) CondMapAtomicOr(spacename string, key Value, predicates []
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_atomic_or, spacename, key, predicates, mapattributes)
 }
 
+func stub_group_map_atomic_or(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_atomic_or(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapAtomicOr(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_or, spacename, predicates, mapattributes)
+}
+
 func stub_map_atomic_xor(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_map_atomic_xor(client, space, key, key_sz, mapattrs, mapattrs_sz, status))
 }
@@ -2396,6 +2557,13 @@ func stub_cond_map_atomic_xor(client *C.struct_hyperdex_client, space *C.char, k
 }
 func (client *Client) CondMapAtomicXor(spacename string, key Value, predicates []Predicate, mapattributes MapAttributes) (err *Error) {
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_atomic_xor, spacename, key, predicates, mapattributes)
+}
+
+func stub_group_map_atomic_xor(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_atomic_xor(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapAtomicXor(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_xor, spacename, predicates, mapattributes)
 }
 
 func stub_map_string_prepend(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2412,6 +2580,13 @@ func (client *Client) CondMapStringPrepend(spacename string, key Value, predicat
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_string_prepend, spacename, key, predicates, mapattributes)
 }
 
+func stub_group_map_string_prepend(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_string_prepend(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapStringPrepend(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_string_prepend, spacename, predicates, mapattributes)
+}
+
 func stub_map_string_append(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_map_string_append(client, space, key, key_sz, mapattrs, mapattrs_sz, status))
 }
@@ -2424,6 +2599,13 @@ func stub_cond_map_string_append(client *C.struct_hyperdex_client, space *C.char
 }
 func (client *Client) CondMapStringAppend(spacename string, key Value, predicates []Predicate, mapattributes MapAttributes) (err *Error) {
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_string_append, spacename, key, predicates, mapattributes)
+}
+
+func stub_group_map_string_append(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_string_append(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapStringAppend(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_string_append, spacename, predicates, mapattributes)
 }
 
 func stub_map_atomic_min(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2440,6 +2622,13 @@ func (client *Client) CondMapAtomicMin(spacename string, key Value, predicates [
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_atomic_min, spacename, key, predicates, mapattributes)
 }
 
+func stub_group_map_atomic_min(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_atomic_min(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapAtomicMin(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_min, spacename, predicates, mapattributes)
+}
+
 func stub_map_atomic_max(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_map_atomic_max(client, space, key, key_sz, mapattrs, mapattrs_sz, status))
 }
@@ -2452,6 +2641,13 @@ func stub_cond_map_atomic_max(client *C.struct_hyperdex_client, space *C.char, k
 }
 func (client *Client) CondMapAtomicMax(spacename string, key Value, predicates []Predicate, mapattributes MapAttributes) (err *Error) {
 	return client.AsynccallSpacenameKeyPredicatesMapattributesStatus(stub_cond_map_atomic_max, spacename, key, predicates, mapattributes)
+}
+
+func stub_group_map_atomic_max(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_map_atomic_max(client, space, checks, checks_sz, mapattrs, mapattrs_sz, status, count))
+}
+func (client *Client) GroupMapAtomicMax(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_max, spacename, predicates, mapattributes)
 }
 
 func stub_search(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, status *C.enum_hyperdex_client_returncode, attrs **C.struct_hyperdex_client_attribute, attrs_sz *C.size_t) int64 {
