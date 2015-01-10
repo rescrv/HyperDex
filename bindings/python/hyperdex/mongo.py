@@ -373,7 +373,7 @@ class HyperSpace:
         return self.client.async_atomic_mul(self.name, key, docargs)
 
     def atomic_mul(self, key, value):
-        return self.client.async_atomic_mul(key, value)
+        return self.client.async_atomic_mul(key, value).wait()
 
     def async_atomic_div(self, key, value):
         docargs = self.convert_docargs(value)
@@ -381,10 +381,10 @@ class HyperSpace:
 
         return self.client.async_atomic_div(self.name, key, docargs)
 
-    def async_group_atomic_mul(self, select, args):
+    def async_group_atomic_div(self, select, args):
         self.init()
         if '_id' in select:
-            return self.async_atomic_mul(select['_id'], args)
+            return self.async_atomic_div(select['_id'], args)
         hyperconds = self.convert_conds(select)
         docargs = self.convert_docargs(args)
 
@@ -394,7 +394,7 @@ class HyperSpace:
         return self.async_group_atomic_div(select, args).wait()
 
     def atomic_div(self, key, value):
-        return self.client.async_atomic_div(key, value)
+        return self.client.async_atomic_div(key, value).wait()
 
     def atomic_and(self, key, value):
         docargs = self.convert_docargs(value)
