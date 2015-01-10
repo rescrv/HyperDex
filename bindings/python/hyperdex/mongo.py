@@ -396,29 +396,90 @@ class HyperSpace:
     def atomic_div(self, key, value):
         return self.client.async_atomic_div(key, value).wait()
 
+    def async_atomic_and(self, key, value):
+        docargs = self.convert_docargs(value)
+        self.init()
+
+        return self.client.async_atomic_and(self.name, key, docargs)
+
+    def async_group_atomic_and(self, select, args):
+        self.init()
+        if '_id' in select:
+            return self.async_atomic_and(select['_id'], args)
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
+
+        return self.client.async_group_atomic_and(self.name, hyperconds, docargs)
+
+    def group_atomic_and(self, select, args):
+        return self.async_group_atomic_and(select, args).wait()
+
     def atomic_and(self, key, value):
+        return self.client.async_atomic_and(key, value).wait()
+
+    def async_atomic_or(self, key, value):
         docargs = self.convert_docargs(value)
         self.init()
 
-        return self.client.atomic_and(self.name, key, docargs)
+        return self.client.async_atomic_or(self.name, key, docargs)
 
-    def atomic_xor(self, key, value):
-        docargs = self.convert_docargs(value)
+    def async_group_atomic_or(self, select, args):
         self.init()
+        if '_id' in select:
+            return self.async_atomic_or(select['_id'], args)
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
 
-        return self.client.atomic_xor(self.name, key, docargs)
+        return self.client.async_group_atomic_or(self.name, hyperconds, docargs)
+
+    def group_atomic_or(self, select, args):
+        return self.async_group_atomic_or(select, args).wait()
 
     def atomic_or(self, key, value):
+        return self.client.async_atomic_or(key, value).wait()
+
+    def async_atomic_xor(self, key, value):
         docargs = self.convert_docargs(value)
         self.init()
 
-        return self.client.atomic_or(self.name, key, docargs)
+        return self.client.async_atomic_xor(self.name, key, docargs)
+
+    def async_group_atomic_xor(self, select, args):
+        self.init()
+        if '_id' in select:
+            return self.async_atomic_xor(select['_id'], args)
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
+
+        return self.client.async_group_atomic_xor(self.name, hyperconds, docargs)
+
+    def group_atomic_xor(self, select, args):
+        return self.async_group_atomic_xor(select, args).wait()
+
+    def atomic_xor(self, key, value):
+        return self.client.async_atomic_xor(key, value).wait()
+
+    def async_atomic_mod(self, key, value):
+        docargs = self.convert_docargs(value)
+        self.init()
+
+        return self.client.async_atomic_mod(self.name, key, docargs)
+
+    def async_group_atomic_mod(self, select, args):
+        self.init()
+        if '_id' in select:
+            return self.async_atomic_mod(select['_id'], args)
+        hyperconds = self.convert_conds(select)
+        docargs = self.convert_docargs(args)
+
+        return self.client.async_group_atomic_mod(self.name, hyperconds, docargs)
+
+    def group_atomic_mod(self, select, args):
+        return self.async_group_atomic_mod(select, args).wait()
 
     def atomic_mod(self, key, value):
-        docargs = self.convert_docargs(value)
-        self.init()
+        return self.client.async_atomic_mod(key, value).wait()
 
-        return self.client.atomic_mod(self.name, key, docargs)
 
 
 class HyperDatabase:
