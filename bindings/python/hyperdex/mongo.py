@@ -489,6 +489,7 @@ class HyperDatabase:
     def __init__(self, url, port):
         self.client = hyperdex.client.Client(url, port)
         self.admin  = hyperdex.admin.Admin(url, port)
+        self.db = self
 
         for name in self.admin.list_spaces():
             self.spaces[name] = HyperSpace(self.client, self.admin, name)
