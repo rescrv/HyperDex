@@ -144,10 +144,8 @@ class HyperSpace:
             #TODO auto generate id
             raise ValueError("Document is missing an id field")
         self.init()
-        copy = value.copy()
-        del copy['_id']
         if self.client.put(self.name, value['_id'], {'v' :
-            self.Document(copy)}):
+            self.Document(value)}):
             return value['_id']
 
     def save(self, value):
