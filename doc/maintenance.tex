@@ -1,0 +1,188 @@
+\chapter{Cluster Maintenance}
+\label{chap:maint}
+
+This chapter walks through some basic cluster maintenance tasks one might
+encounter running HyperDex on a day-to-day basis.  This chapter takes the form
+of small recipes that may be applied individually as required.
+
+\section{The Daemons}
+
+This section covers basic tasks for inspecting and manipulating the storage
+daemons in a HyperDex cluster.
+
+\subsection{Scaling Up:  Adding Daemons}
+
+To scale the cluster up, launch additional daemons that connect to the same
+coordinator.  Each new daemon will be automatically integrated into the cluster
+by the coordinator, with no need for further action.  Assuming we already have a
+coordinator at 10.1.1.50:1982, we can launch another daemon like this:
+
+\begin{consolecode}
+$ hyperdex daemon --coordinator 10.1.1.50 --coordinator-port 1982
+\end{consolecode}
+%stopzone
+
+\subsection{Scaling Down:  Removing Daemons}
+
+To scale the cluster down, we remove servers from the cluster, and let the
+cluster rebalance when done.  To remove a server from the cluster, we first
+identify the server we wish to remove.  We can list all servers like this:
+
+\begin{consolecode}
+$ hyperdex show-config | grep '^server'
+server 4094788354897669190 10.1.1.50:2012 AVAILABLE
+server 5430153233975899120 10.1.1.51:2012 AVAILABLE
+server 5578696023185727686 10.1.1.52:2012 AVAILABLE
+server 8033285057934092439 10.1.1.53:2012 OFFLINE
+server 12806351800314218469 10.1.1.54:2012 AVAILABLE
+server 17738609275975365923 10.1.1.55:2012 AVAILABLE
+\end{consolecode}
+%stopzone
+
+Here we can see we have six daemons in the cluster, and that 5/6 of them are
+available, while the sixth is offline.  We can permanently remove this server
+from the cluster---and free resources associated with it like this:
+
+\begin{consolecode}
+$ hyperdex server-kill 8033285057934092439
+\end{consolecode}
+%stopzone
+
+This indicates to our cluster that this daemon is permanently unavailable.  It
+will never be allowed to reintegrate to the cluster, allowing an administrator
+to use the {\em server-kill} command to remove flaky hardware, or rearrange the
+cluster during a migration.  Once a daemon is killed, we can kill the daemon on
+the server itself, and erase its data directory.  Finally, we can totally forget
+the server ever existed with the {\em server-forget} command:
+
+\begin{consolecode}
+$ hyperdex server-forget 8033285057934092439
+\end{consolecode}
+%stopzone
+
+While it's not necessary to use the kill and forget commands to remove daemons,
+doing so has several distinct advantages:  first, it enables the cluster to
+permanently reassign the hyperspace that belonged to the failed server, and,
+second, it prevents the failed server from consuming resources in the cluster
+coordinator indefinitely.
+
+\section{The Coordinator}
+
+HyperDex's coordinator acts as one coherent entity that shepherds the rest of
+the cluster through global state changes, such as when servers join or depart,
+and when spaces are added, removed, or modified.
+
+The coordinator is comprised of a set of servers that act in concert to agree
+upon these state changes.  So long as a majority of these servers are available,
+the coordinator as a whole is available.
+
+Underneath the hood, the HyperDex coordinator is powered by {\em replicant},
+which replicates the logic of the HyperDex coordinator.
+
+\subsection{Listing Coordinator Servers}
+
+To get a list of all servers that comprise the coordinator, we can use the {\em
+list-servers} command provided by replicant.
+
+\begin{consolecode}
+$ replicant list-servers
+10.1.1.50:1982
+10.1.1.51:1982
+10.1.1.52:1982
+10.1.1.53:1982
+\end{consolecode}
+%stopzone
+
+We can see that there are four servers currently active.  Any one of these four
+may be used as the address to which a HyperDex client connects.  In an advanced
+deployment, it's recommended to tie the listed servers into the DNS so that
+clients may connect to any one live server.  For example, we could create a
+round-robin DNS entry for "hyperdex.example.org" that resolves to the above
+servers.  The entry should be reasonably up-to-date, but once a daemon or client
+connects to the cluster, it will track the list of coordinator servers
+automatically, so introducing it to any one server is sufficient.
+
+\subsection{Scaling up the Coordinator}
+
+To scale up the coordinator, launch another instance of the HyperDex coordinator
+and tell it to connect to a pre-existing address.  For example, we can add a
+sixth server to the cluster on 10.1.1.54:1982 by running this command on that
+host:
+
+\begin{consolecode}
+$ hyperdex coordinator --connect 10.1.1.52 --connect-port 1982 --listen 10.1.1.54
+\end{consolecode}
+%stopzone
+
+The coordinator will only ever make use of five servers at a time, so launching
+more than five servers at a time is unnecessary and will not improve cluster
+scalability or stability.
+
+\section{Spaces}
+
+HyperDex's spaces are meta-data that is stored in the coordinator and
+distributed throughout the HyperDex cluster.  Spaces are relatively lightweight
+to construct and remove.
+
+\subsection{Adding a Space}
+
+In the preceding chapters, we've looked at a variety of spaces that we could
+create with HyperDex.  The command {\em add-space} can be used to add a space to
+the cluster from the command line.  For example, if our coordinator is on
+10.1.1.50:1982, we can add a new space called "people" like this:
+
+\begin{consolecode}
+$ hyperdex add-space -h 10.1.1.50 -p 1982 << EOF
+space people key name attribute document profile
+EOF
+\end{consolecode}
+%stopzone
+
+\subsection{Removing a Space}
+
+Removing a space can be done from the commandline with the {\em rm-space}
+command.  For example, if our coordinator is on 10.1.1.50:1982, we can remove
+the space ``people'' like this:
+
+\begin{consolecode}
+$ hyperdex rm-space -h 10.1.1.50 -p 1982 people
+\end{consolecode}
+%stopzone
+
+\subsection{Renaming a Space}
+
+The {\em mv-space} command provides a means by which the name of a space may be
+changed.  The command changes the meta-data for the space, and does not rewrite
+any data stored within the space.  Consequently, it is a relatively lightweight
+operation.  For example, we can rename the space "persons" to "people" like
+this:
+
+\begin{consolecode}
+$ hyperdex rm-space -h 10.1.1.50 -p 1982 persons people
+\end{consolecode}
+%stopzone
+
+\subsection{Listing Spaces}
+
+It is also possible to list spaces from the commandline with the {\em
+list-spaces} command.  For example:
+
+\begin{consolecode}
+$ hyperdex list-spaces -h 10.1.1.50 -p 1982
+people
+\end{consolecode}
+%stopzone
+
+\subsection{Changing a Space's Fault Tolerance}
+
+To change a space's fault tolerance, use the command {\em set-fault-tolerance}
+like this:
+
+\begin{consolecode}
+$ hyperdex set-fault-tolerance people 2
+\end{consolecode}
+%stopzone
+
+This changes the fault tolerance of the space "people" from the default of 1, to
+a setting of 2.  This means the space can tolerate two concurrent failures
+without any unavailability.
