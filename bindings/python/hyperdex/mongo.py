@@ -29,20 +29,22 @@ from hyperdex.client import *
 import hyperdex.admin
 
 class HyperIterator:
-    def __init__(self, innerIter_):
-        self.innerIter = innerIter_
+    def __init__(self, innerIter):
+        self.innerIter = innerIter
 
     def hasNext(self):
         return self.innerIter.hasNext()
 
     def __iter__(self):
-        return self.innerIter
+        return self
 
     def next(self):
         if not self.hasNext():
-            raise RuntimeError('Cannot get next element. There is none!')
-
-        return self.innerIter.next()['v'].doc()
+            raise StopIteration()
+        o = self.innerIter.next()
+        x = o['v'].doc()
+        x['_id'] = o['k']
+        return x
 
 class HyperSpace:
     Document = hyperdex.client.Document
@@ -103,12 +105,10 @@ class HyperSpace:
         self.init()
         hyperconds = self.convert_conds(conditions)
         result = self.client.search(self.name, hyperconds)
-
         return HyperIterator(result)
 
-    def findOne(self, conditions = {}):
+    def find_one(self, conditions = {}):
         it = self.find(conditions)
-
         if not it.hasNext():
             return None
         else:
@@ -143,9 +143,12 @@ class HyperSpace:
         if value is None or value['_id'] is None:
             #TODO auto generate id
             raise ValueError("Document is missing an id field")
-
         self.init()
-        return self.client.put(self.name, value['_id'], {'v' : self.Document(value)})
+        copy = value.copy()
+        del copy['_id']
+        if self.client.put(self.name, value['_id'], {'v' :
+            self.Document(copy)}):
+            return value['_id']
 
     def save(self, value):
         return self.insert(value)
@@ -160,39 +163,41 @@ class HyperSpace:
 
     def update(self, select, arg):
         self.init()
+        count = None
 
         for k,v in arg.items():
             if k == "$inc":
-                self.group_atomic_add(select, v)
+                count = count or self.group_atomic_add(select, v)
             elif k == '$bit':
                 if not isinstance(v, dict):
                     raise ValueError('$bit argument must a dict')
-
-                op, mask = v.iteritems().next()
-
-                if op == 'and':
-                    self.group_atomic_and(select, mask)
-                elif op == 'or':
-                    self.group_atomic_or(select, mask)
-                elif op == 'mod':
-                    self.group_atomic_mod(select, mask)
-                elif op =='xor':
-                    self.group_atomic_xor(select, mask)
-                else:
-                    raise ValueError("Unknown bit-operation")
-
+                for field, ops in v.items():
+                    for op, mask in ops.items():
+                        mask = {field: mask}
+                        if op == 'and':
+                            count = count or self.group_atomic_and(select, mask)
+                        elif op == 'or':
+                            count = count or self.group_atomic_or(select, mask)
+                        elif op == 'mod':
+                            count = count or self.group_atomic_mod(select, mask)
+                        elif op =='xor':
+                            count = count or self.group_atomic_xor(select, mask)
+                        else:
+                            raise ValueError("Unknown bit-operation")
             elif k == '$set':
-                self.group_set(select, v)
+                count = count or self.group_set(select, v)
             elif k == '$mul':
-                self.group_atomic_mul(select, v)
+                count = count or self.group_atomic_mul(select, v)
             elif k == '$div':
-                self.group_atomic_div(select, v)
+                count = count or self.group_atomic_div(select, v)
             elif k == '$push':
-                self.group_list_rpush(select, v)
+                count = count or self.group_list_rpush(select, v)
             elif k == '$rename':
-                self.group_rename(select, v)
+                count = count or self.group_rename(select, v)
             else:
                 raise ValueError("Unknown command " + k)
+        return {'updatedExisting': bool(count), u'nModified': count, u'ok': 1,
+                u'n': 1 if count else 0}
 
     def convert_docargs(self, args):
         if (not isinstance(args, dict)) or (len(args) is 0):
