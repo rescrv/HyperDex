@@ -1439,3 +1439,4 @@ maintainer-generate:
 	python2 test/doc-extract.py python doc/atomic-ops.tex test/doc.atomic-ops.py
 	python2 test/doc-extract.py python doc/documents.tex test/doc.documents.py
 	python2 test/doc-extract.py python doc/authorization.tex test/doc.authorization.py
+	python2 test/doc-extract.py python doc/mongo.tex test/doc.mongo.py
