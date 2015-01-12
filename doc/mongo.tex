@@ -1,0 +1,276 @@
+\chapter{MongoDB Compatibility}
+\label{chap:mongodb}
+
+The previous chapters focus on HyperDex's API, and demonstrate how it may be
+leveraged in new applications.  In this chapter, we'll focus on another portion
+of the HyperDex API, the {\em Mongo Veneer}, that is API compatible with its
+namesake.  This enables applications written for MongoDB to be ported to
+HyperDex with little to no modification.
+
+With the Mongo Veneer, applications may take advantage of the familiar MongoDB
+API, with HyperDex's strong consistency, configurable fault tolerance, and
+consistent backups in the backend.
+
+Let's take a brief look at HyperDex's Mongo Veneer.
+
+\section{Setup}
+\label{sec:mongodb:setup}
+
+As in the previous chapters, the first step is to deploy the cluster and connect
+a client.  The cluster setup below is similar to the previous chapters, so if
+you have a running cluster, you can skip to the next step:
+
+First, we launch and initialize the coordinator:
+
+\begin{consolecode}
+hyperdex coordinator -f -l 127.0.0.1 -p 1982
+\end{consolecode}
+
+Next, let's launch a daemon process to store data:
+
+\begin{consolecode}
+hyperdex daemon -f --listen=127.0.0.1 --listen-port=2012 \
+                   --coordinator=127.0.0.1 --coordinator-port=1982 --data=/path/to/data
+\end{consolecode}
+
+We now have a HyperDex cluster ready to serve our Mongo application.  There's no
+need to create spaces at this time as the API will automatically handle that for
+us.
+
+\section{Switching to HyperDex}
+
+Switching from Mongo to HyperDex is trivial. Suppose you have some
+application code that uses MongoDB:
+
+\begin{pythoncode}
+>>> import pymongo # the old import
+>>> client = pymongo.MongoClient('localhost', 27017)
+\end{pythoncode}
+
+Switching to HyperDex involves simply replacing this snippet with the following:
+
+\begin{pythoncode}
+>>> import hyperdex.mongo as pymongo
+>>> client = pymongo.HyperDatabase('localhost', 1982)
+\end{pythoncode}
+
+The rest of the code, like the snippet below, remains unaffected and continues to work:
+
+\begin{pythoncode}
+>>> # Here's the code you don't change
+>>> collection = client.db.profiles
+>>> collection.insert({'_id': 'jane', 'name': 'Jane Doe', 'sessioncount': 1})
+'jane'
+>>> collection.update({'name': 'Jane Doe'}, {'$inc': {'sessioncount': 1}})
+{'updatedExisting': True, u'nModified': 1, u'ok': 1, u'n': 0}
+\end{pythoncode}
+%stopzone
+
+Just as in MongoDB, there's no need to explicitly declare schemas or
+hyperspaces. The Mongo veneer automatically creates and manages the necessary
+data spaces, and translates MongoDB queries and updates to HyperDex calls. 
+
+Let's examine the document type that this veneer supports, and delve into the
+operations supported on documents.
+
+\section{The Document Type}
+
+The Mongo Veneer builds on HyperDex's existing documents. This datatype allows
+us to store, retrieve and operate on JSON documents directly.  HyperDex imposes
+few limits on the structure of documents -- they can be deeply nested, contain
+any number of fields, and so forth; it requires only that they be valid JSON,
+not contain more than 200 levels of nesting, and not exceed 32MB.  These limits
+are double what is supported by the latest release (2.6) of MongoDB.
+
+\section{The Document API}
+
+The HyperDex document API supports many of the operations and operators
+supported by MongoDB.  The following code examples work identically under both
+MongoDB and HyperDex, and will produce the output shown.  Many MongoDB tutorials
+can now be executed, word for word, on the HyperDex Mongo Veneer instead.
+
+\subsection{Operations}
+
+Of the features present in MongoDB, this latest release (1.6) supports
+operations like:
+
+\begin{itemize}
+    \item \textbf{insert} Store a document into the database.  For example, this
+        will insert a document with the key "andy1":
+
+\begin{pythoncode}
+>>> collection.insert({'_id': 'andy1', 'name': 'Andy', 'friends': []})
+'andy1'
+\end{pythoncode}
+
+    \item \textbf{save}  Overwrite a document, changing its value, possibly
+        inserting it if it does not exist.  For example, this overwrites the
+        Andy object with a new one, where his name is "Andy", and he has an Age
+        of 17:
+
+\begin{pythoncode}
+>>> collection.save({'_id': 'andy1', 'name': 'Andrew', 'age': 17, 'friends': []})
+'andy1'
+\end{pythoncode}
+
+    \item \textbf{find}  This will find all documents that match a particular
+        predicate.  So we can find every user named Andrew:
+
+\begin{pythoncode}
+>>> list(collection.find({'name': 'Andrew'}))
+[{u'age': 17, u'_id': u'andy1', u'friends': [], u'name': u'Andrew'}]
+\end{pythoncode}
+
+    \item \textbf{find\_one}  This will find at most one document that matches the
+        predicate.  So we can find any one user named Andrew:
+
+\begin{pythoncode}
+>>> collection.find_one({'name': 'Andrew'})
+{u'age': 17, u'_id': u'andy1', u'friends': [], u'name': u'Andrew'}
+\end{pythoncode}
+
+    \item \textbf{update}  This will update the documents that match a
+        particular predicate.  The predicate is the same form as the selection
+        used for "find".  For example, this sets value "is\_andrew" to true for
+        every user named Andrew:
+
+\begin{pythoncode}
+>>> collection.update({'name': 'Andrew'}, {'$set': {'is_andrew': True}})
+{'updatedExisting': True, u'nModified': 1, u'ok': 1, u'n': 1}
+>>> collection.find_one({'name': 'Andrew'})
+{u'age': 17, u'_id': u'andy1', u'friends': [], u'name': u'Andrew', 'is_andrew': 1}
+\end{pythoncode}
+%stopzone
+\end{itemize}
+
+\subsection{Update Operators}
+
+The new veneer supports many of the modification operators, such as:
+
+\begin{itemize}
+    \item \textbf{\$set}  This will set a field within a document to the
+        specified value.  For example, we can change Andrew's name back to Andy
+        with this:
+
+\begin{pythoncode}
+>>> collection.update({'_id': 'andy1'}, {'$set': {'name': 'Andy'}})
+{'updatedExisting': True, u'nModified': 1, u'ok': 1, u'n': 1}
+>>> collection.find_one({'name': 'Andy'})
+{u'age': 17, u'_id': u'andy1', u'friends': [], u'name': u'Andy', 'is_andrew': 1}
+\end{pythoncode}
+%stopzone
+
+    \item \textbf{\$inc}  Increment a particular field.  If Andy acquires ten
+        trinkets, we can increment his trinket count by ten.  Since the field
+        doesn't exist, the field will be created and set to 0 + 10, like this:
+
+\begin{pythoncode}
+>>> collection.update({'name': 'Andy'}, {'$inc': {'trinkets': 10}})
+{'updatedExisting': True, u'nModified': 1, u'ok': 1, u'n': 1}
+>>> collection.find_one({'name': 'Andy'})
+{u'age': 17, u'_id': u'andy1', u'friends': [], u'name': u'Andy',
+ u'is_andrew': 1, 'trinkets': 10}
+\end{pythoncode}
+%stopzone
+
+    \item \textbf{\$mul}  Multiply the existing value by the provided value.
+        For example, to add 1\% interest to his existing value, we could
+        multiply it by 1.01 like this:
+
+\begin{pythoncode}
+>>> collection.update({'name': 'Andy'}, {'$mul': {'trinkets': 1.01}})
+{'updatedExisting': True, u'nModified': 1, u'ok': 1, u'n': 1}
+>>> collection.find_one({'name': 'Andy'})
+{u'age': 17, u'_id': u'andy1', u'friends': [], u'name': u'Andy',
+ u'is_andrew': 1, 'trinkets': 10.1}
+\end{pythoncode}
+%stopzone
+
+    \item \textbf{\$div}  Divide is very similar to the "\$mul" operator.  For
+        example, we can reduce Andy's holdings of trinkets by half like so
+        (note:  MongoDB does not provide \$div):
+
+\begin{pythoncode}
+>>> collection.update({'name': 'Andy'}, {'$div': {'trinkets': 2.0}})
+{'updatedExisting': True, u'nModified': 1, u'ok': 1, u'n': 1}
+>>> collection.find_one({'name': 'Andy'})
+{u'age': 17, u'_id': u'andy1', u'friends': [], u'name': u'Andy',
+ u'is_andrew': 1, 'trinkets': 5.05}
+\end{pythoncode}
+%stopzone
+
+    \item \textbf{\$push}  The push operator appends to an array.  We can add
+        Buzz to the list of Andy's friends like this:
+
+\begin{pythoncode}
+>>> collection.update({'name': 'Andy'}, {'$push': {'friends': 'Buzz'}})
+{'updatedExisting': True, u'nModified': 1, u'ok': 1, u'n': 1}
+>>> collection.find_one({'name': 'Andy'})
+{u'age': 17, u'_id': u'andy1', u'friends': [u'Buzz'], u'name': u'Andy',
+ u'is_andrew': 1, 'trinkets': 5.05}
+\end{pythoncode}
+%stopzone
+
+    \item \textbf{\$rename}  Move a field within a document.  We can change the
+        "is\_andrew" field to "is\_andy" like this:
+
+\begin{pythoncode}
+>>> collection.update({'name': 'Andy'}, {'$rename': {'is_andrew': 'is_andy'}})
+{'updatedExisting': True, u'nModified': 1, u'ok': 1, u'n': 1}
+>>> collection.find_one({'name': 'Andy'})
+{u'age': 17, u'_id': u'andy1', u'friends': [u'Buzz'], u'name': u'Andy',
+ u'is_andy': 1, 'trinkets': 5.05}
+\end{pythoncode}
+%stopzone
+
+    \item \textbf{\$bit}  Manipulate fields in a bitwise fashion.  For instance:
+
+\begin{pythoncode}
+>>> collection.update({'name': 'Andy'}, {'$bit': {'perms': {'and': 488}}})
+{'updatedExisting': True, u'nModified': 1, u'ok': 1, u'n': 1}
+>>> collection.find_one({'name': 'Andy'})
+{u'age': 17, u'_id': u'andy1', u'friends': [u'Buzz'], u'name': u'Andy',
+ u'is_andy': 1, 'trinkets': 5.05, 'perms': 0}
+
+>>> collection.update({'name': 'Andy'}, {'$bit': {'perms': {'or': 055}}})
+{'updatedExisting': True, u'nModified': 1, u'ok': 1, u'n': 1}
+>>> collection.find_one({'name': 'Andy'})
+{u'age': 17, u'_id': u'andy1', u'friends': [u'Buzz'], u'name': u'Andy',
+ u'is_andy': 1, 'trinkets': 5.05, 'perms': 45}
+\end{pythoncode}
+%stopzone
+\end{itemize}
+
+\subsection{Predicates}
+
+HyperDex also supports many of the same predicates, such as:
+
+\begin{itemize}
+    \item \textbf{\$eq}  Check that the values are equal.  Here we find everyone
+        named Andy:
+
+\begin{pythoncode}
+>>> list(collection.find({'name': {'$eq': 'Andy'}}))
+[{u'trinkets': 5.05, u'name': u'Andy', u'is_andy': 1, u'age': 17,
+  u'perms': 45, u'_id': 'andy1', u'friends': [u'Buzz']}]
+\end{pythoncode}
+%stopzone
+
+    \item \textbf{\$lt}, \textbf{\$lte}, \textbf{\$gte}, \textbf{\$gt}:  Less
+        than, lesser-equal, greater-equal, and greater-than.  These operators
+        will work to compare numbers like this:
+
+\begin{pythoncode}
+>>> # Find people who are underage
+>>> list(collection.find({'age': {'$lt': 18}}))
+[{u'trinkets': 5.05, u'name': u'Andy', u'is_andy': 1, u'age': 17,
+  u'perms': 45, u'_id': 'andy1', u'friends': [u'Buzz']}]
+>>> # Find people who qualify for AARP
+>>> list(collection.find({'age': {'$gt': 65}}))
+[]
+>>> # Find people in the [25-35] demographic
+>>> list(collection.find({'age': {'$gte': 25, '$lte': 35}}))
+[]
+\end{pythoncode}
+%stopzone
+\end{itemize}
