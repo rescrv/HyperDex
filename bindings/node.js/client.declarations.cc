@@ -47,6 +47,7 @@ static v8::Handle<v8::Value> get(const v8::Arguments& args);
 static v8::Handle<v8::Value> get_partial(const v8::Arguments& args);
 static v8::Handle<v8::Value> put(const v8::Arguments& args);
 static v8::Handle<v8::Value> cond_put(const v8::Arguments& args);
+static v8::Handle<v8::Value> cond_put_or_create(const v8::Arguments& args);
 static v8::Handle<v8::Value> group_put(const v8::Arguments& args);
 static v8::Handle<v8::Value> put_if_not_exist(const v8::Arguments& args);
 static v8::Handle<v8::Value> del(const v8::Arguments& args);

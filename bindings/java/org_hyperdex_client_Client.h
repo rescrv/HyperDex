@@ -81,6 +81,14 @@ JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1co
 
 /*
  * Class:     org_hyperdex_client_Client
+ * Method:    async_cond_put_or_create
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1put_1or_1create
+  (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Client
  * Method:    async_group_put
  * Signature: (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */

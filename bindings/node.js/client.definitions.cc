@@ -623,6 +623,12 @@ HyperDexClient :: cond_put(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: cond_put_or_create(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_put_or_create, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: group_put(const v8::Arguments& args)
 {
     return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_put, args);

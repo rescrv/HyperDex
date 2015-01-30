@@ -578,6 +578,12 @@ Java_org_hyperdex_client_Client_async_1cond_1put(JNIEnv* env, jobject obj, jstri
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_async_1cond_1put_1or_1create(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
+{
+    return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_put_or_create, spacename, key, predicates, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1group_1put(JNIEnv* env, jobject obj, jstring spacename, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(env, obj, hyperdex_client_group_put, spacename, predicates, attributes);

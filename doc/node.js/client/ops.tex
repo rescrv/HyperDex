@@ -122,6 +122,33 @@ cond_put(spacename, key, predicates, attributes, function (success, err) {})
 \paragraph{Returns:}
 \input{\topdir/node.js/client/fragments/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% cond_put_or_create %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_put\_or\_create}}
+\label{api:nodejs:cond_put_or_create}
+\index{cond\_put\_or\_create!Node.js API}
+\input{\topdir/client/fragments/cond_put_or_create}
+
+\paragraph{Definition:}
+\begin{javascriptcode}
+cond_put_or_create(
+        spacename, key, predicates, attributes, function (success, err) {})
+\end{javascriptcode}
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/node.js/client/fragments/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/node.js/client/fragments/in_asynccall_key}
+\item \code{predicates}\\
+\input{\topdir/node.js/client/fragments/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/node.js/client/fragments/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/node.js/client/fragments/return_asynccall__status}
+
 %%%%%%%%%%%%%%%%%%%% group_put %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{group\_put}}
