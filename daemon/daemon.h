@@ -46,6 +46,7 @@
 #include "common/ids.h"
 #include "daemon/communication.h"
 #include "daemon/coordinator_link_wrapper.h"
+#include "daemon/wan_manager.h"
 #include "daemon/datalayer.h"
 #include "daemon/performance_counter.h"
 #include "daemon/replication_manager.h"
@@ -70,6 +71,8 @@ class daemon
                 po6::net::location bind_to,
                 bool set_coordinator,
                 po6::net::hostname coordinator,
+                bool set_failover,
+                po6::net::hostname failover_coordinator,
                 unsigned threads);
 
     private:
@@ -113,6 +116,7 @@ class daemon
         friend class background_thread;
         friend class communication;
         friend class coordinator_link_wrapper;
+        friend class wan_manager;
         friend class datalayer;
         friend class key_state;
         friend class replication_manager;
@@ -126,6 +130,7 @@ class daemon
         e::garbage_collector m_gc;
         e::garbage_collector::thread_state m_gc_ts;
         coordinator_link_wrapper m_coord;
+        wan_manager m_wan;
         std::string m_data_dir;
         datalayer m_data;
         communication m_comm;

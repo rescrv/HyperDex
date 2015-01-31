@@ -59,6 +59,9 @@ main(int argc, const char* argv[])
     long coordinator_port = 1982;
     long threads = 0;
     bool log_immediate = false;
+    // WAN test state
+    bool is_backup = false;
+    long failover_coordinator_port = 1982; // hard-coded port A, B is different
 
     e::argparser ap;
     ap.autohelp();
@@ -95,6 +98,10 @@ main(int argc, const char* argv[])
     ap.arg().long_name("log-immediate")
             .description("immediately flush all log output")
             .set_true(&log_immediate).hidden();
+    ap.arg().name('b', "backup")
+            .description("run daemon as backup")
+            .set_true(&is_backup);
+
 
     if (!ap.parse(argc, argv))
     {
@@ -196,13 +203,30 @@ main(int argc, const char* argv[])
             return EXIT_FAILURE;
         }
 
-        return d.run(daemonize,
-                     po6::pathname(data),
-                     po6::pathname(log ? log : data),
-                     po6::pathname(pidfile), has_pidfile,
-                     listen, bind_to,
-                     coordinator, po6::net::hostname(coordinator_host, coordinator_port),
-                     threads);
+        if (is_backup) {
+            return d.run(daemonize,
+                         po6::pathname(data),
+                         po6::pathname(log ? log : data),
+                         po6::pathname(pidfile), has_pidfile,
+                         listen, bind_to,
+                         coordinator,
+                         po6::net::hostname(coordinator_host, coordinator_port),
+                         is_backup,
+                         po6::net::hostname(coordinator_host, failover_coordinator_port),
+                         threads);
+        } else {
+            return d.run(daemonize,
+                         po6::pathname(data),
+                         po6::pathname(log ? log : data),
+                         po6::pathname(pidfile), has_pidfile,
+                         listen, bind_to,
+                         coordinator,
+                         po6::net::hostname(coordinator_host, coordinator_port),
+                         is_backup,
+                         po6::net::hostname(coordinator_host, failover_coordinator_port),
+                         threads);
+        }
+
     }
     catch (std::exception& e)
     {

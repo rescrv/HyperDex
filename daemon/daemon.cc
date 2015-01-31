@@ -101,6 +101,7 @@ daemon :: daemon()
     , m_gc()
     , m_gc_ts()
     , m_coord(this)
+    , m_wan(this)
     , m_data_dir()
     , m_data(this)
     , m_comm(this)
@@ -184,6 +185,8 @@ daemon :: run(bool daemonize,
               po6::net::location bind_to,
               bool set_coordinator,
               po6::net::hostname coordinator,
+              bool set_failover,
+              po6::net::hostname failover_coordinator,
               unsigned threads)
 {
     if (!install_signal_handler(SIGHUP, exit_on_signal))
@@ -334,6 +337,10 @@ daemon :: run(bool daemonize,
 
     m_bind_to = bind_to;
     m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
+    if (set_failover) {
+        LOG(INFO) << "This cluster is a backup cluster, contacting coordinator of primary cluster.";
+        m_wan.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
+    }
 
     if (!saved)
     {
@@ -448,6 +455,17 @@ daemon :: run(bool daemonize,
 
         m_gc.quiescent_state(&m_gc_ts);
         m_gc.offline(&m_gc_ts);
+
+        if (set_failover) {
+            if (!m_wan.maintain_link()) {
+                LOG(INFO) << "WAN MANAGER COULD NOT MAINTAIN LINK";
+            }
+
+            configuration new_prmry_config;
+            m_wan.copy_config(&new_prmry_config);
+            LOG(INFO) << "WAN Manager: config from primary coordinator acquired, dumping config";
+            LOG(INFO) << new_prmry_config.dump();
+        }
 
         if (!m_coord.maintain_link())
         {
