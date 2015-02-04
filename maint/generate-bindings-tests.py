@@ -759,6 +759,198 @@ func sloppyEqualAttributes(lhs client.Attributes, rhs client.Attributes) bool {
         else:
             raise RuntimeError("Cannot convert {0!r} to go".format(x))
 
+
+class RustGenerator(BindingGenerator):
+    def __init__(self):
+        self.f = None
+
+    def test(self, name, space):
+        assert self.f is None
+        self.count = 0
+        self.path = 'test/rust/{0}.rs'.format(name)
+        precmd = 'rustc --out-dir "${{HYPERDEX_BUILDDIR}}"/test/rust -o {0} "${{HYPERDEX_SRCDIR}}"/test/rust/{0}.rs'.format(name)
+        cmd = '"${{HYPERDEX_BUILDDIR}}"/{0}'.format(name)
+        gen_shell('rust', name, cmd, space, precmd=precmd)
+        self.f = open(self.path, 'w')
+        self.f.write('''
+extern crate hyperdex;
+
+use std::os;
+
+use hyperdex::{Client, NewHyperObject};
+
+fn main() {
+    let args = os::args();
+    let mut client = Client::new(from_str(format!("{}:{}", args[1], args[2])).unwrap()).unwrap();
+''')
+
+    def finish(self):
+        self.f.write('}\n')
+        self.f.flush()
+        self.f.close()
+        self.f = None
+
+    def get(self, space, key, expected):
+        self.f.write('let expected = {0};'.format(self.to_rust(expected)))
+        if expected is None:
+            self.f.write('''
+                match client.get({0}, {1}) {{
+                    Ok(obj) => {{
+                         panic!("this object should not be found!");
+                    }},
+                    Err(err) => (),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key)))
+        else:
+            self.f.write('''
+                match client.get({0}, {1}) {{
+                    Ok(obj) => {{
+                        if obj != expected {{
+                         panic!("expected: {{:?}}\nactual: {{:?}}", expected, obj);
+                        }}
+                    }},
+                    Err(err) => panic!(err),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key)))
+
+    def get_partial(self, space, key, attrs, expected):
+        self.f.write('let expected = {0};'.format(self.to_rust(expected)))
+        if expected is None:
+            self.f.write('''
+                match client.get_partial({0}, {1}, {2}) {{
+                    Ok(obj) => {{
+                         panic!("this object should not be found!");
+                    }},
+                    Err(err) => (),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(attrs)))
+        else:
+            self.f.write('''
+                match client.get_partial({0}, {1}, {2}) {{
+                    Ok(obj) => {{
+                        if obj != expected {{
+                         panic!("expected: {{:?}}\nactual: {{:?}}", expected, obj);
+                        }}
+                    }},
+                    Err(err) => panic!(err),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(attrs)))
+
+    def put(self, space, key, value, expected):
+        if expected:
+            self.f.write('''
+                match client.put({0}, {1}, {2}) {{
+                    Ok(()) => (),
+                    Err(err) => panic!(err),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(value)))
+        else:
+            self.f.write('''
+                match client.put({0}, {1}, {2}) {{
+                    Ok(()) => panic!("this PUT operation should have failed"),
+                    Err(err) => (),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(value)))
+
+    def cond_put(self, space, key, pred, value, expected):
+        if expected:
+            self.f.write('''
+                match client.cond_put({0}, {1}, {2}, {3}) {{
+                    Ok(()) => (),
+                    Err(err) => panic!(err),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(pred), self.to_rust(value)))
+        else:
+            self.f.write('''
+                match client.put({0}, {1}, {2}, {3}) {{
+                    Ok(()) => panic!("this CONDPUT operation should have failed"),
+                    Err(err) => (),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(pred), self.to_rust(value)))
+
+    def delete(self, space, key, expected):
+        self.f.write('''
+            match client.del({0}, {1}) {{
+                Ok(()) => (),
+                Err(err) => panic!(err),
+            }}
+        '''.format(self.to_rust(space), self.to_rust(key)))
+
+    def search(self, space, pred, expected):
+        self.f.write('''
+            let res = client.search({0}, {1});
+            let elems = res.iter().collect();
+            assert!(elems.len() == {2}.len());
+        '''.format(self.to_rust(space), self.to_preds(pred), self.to_rust(expected)))
+
+    def to_preds(self, preds):
+        preds_as_strs = []
+        for name, val in preds.iteritems():
+            pred = 'EQUALS'
+            if isinstance(val, Range):
+                preds_as_strs.append('HyperPredicate::new({0}, {1}, {2})'.format(self.to_rust(name), self.to_rust(val.x), 'GREATER_EQUAL'))
+                preds_as_strs.append('HyperPredicate::new({0}, {1}, {2})'.format(self.to_rust(name), self.to_rust(val.y), 'LESS_EQUAL'))
+                continue
+            elif isinstance(val, LessEqual):
+                val = val.x
+                pred = 'LESS_EQUAL'
+            elif isinstance(val, GreaterEqual):
+                val = val.x
+                pred = 'GREATER_EQUAL'
+            elif isinstance(val, LessThan):
+                val = val.x
+                pred = 'LESS_THAN'
+            elif isinstance(val, GreaterThan):
+                val = val.x
+                pred = 'GREATER_THAN'
+            elif isinstance(val, Regex):
+                val = val.x
+                pred = 'REGEX'
+            elif isinstance(val, LengthEquals):
+                val = val.x
+                pred = 'LENGTH_EQUALS'
+            elif isinstance(val, LengthLessEqual):
+                val = val.x
+                pred = 'LENGTH_LESS_EQUAL'
+            elif isinstance(val, LengthGreaterEqual):
+                val = val.x
+                pred = 'LENGTH_GREATER_EQUAL'
+            preds_as_strs.append('HyperPredicate::new({0}, {1}, {2})'.format(self.to_rust(name), pred, self.to_rust(val)))
+        return 'vec!(' + ', '.join(preds_as_strs) + ')'
+
+    def to_rust(self, x):
+        if x is True:
+            return 'true'
+        elif x is False:
+            return 'false'
+        elif x is None:
+            return 'nil'
+        elif isinstance(x, str):
+            return double_quote(x)
+        elif isinstance(x, long) or isinstance(x, int):
+            return '%s as i64' % str(x)
+        elif isinstance(x, float):
+            return '%s as f64' % str(x)
+        elif isinstance(x, list):
+            s = 'vec!('
+            s += ', '.join(['{0}'.format(self.to_rust(v)) for v in x])
+            s += ');'
+            return s
+        elif isinstance(x, set):
+            s = 'BTreeSet::from_iter(vec!('
+            s += ', '.join(['{0}'.format(self.to_rust(v)) for v in sorted(x)])
+            s += ').iter());'
+            return s
+        elif isinstance(x, dict):
+            s = 'NewHyperObject!('
+            s += ', '.join(['{0}, {1}'.format(self.to_rust(k), self.to_rust(v))
+                            for k, v in sorted(x.items())])
+            s += ')'
+            return s
+        else:
+            raise RuntimeError("Cannot convert {0!r} to rust".format(x))
+
+
 class TestGenerator(object):
 
     def __init__(self):
