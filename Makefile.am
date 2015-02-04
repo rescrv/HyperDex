@@ -963,6 +963,35 @@ go_wrappers += test/sh/bindings.go.RangeSearchString.sh
 go_wrappers += test/sh/bindings.go.RegexSearch.sh
 shell_wrappers += $(go_wrappers)
 
+rust_wrappers =
+rust_wrappers += test/sh/bindings.rs.Basic.sh
+rust_wrappers += test/sh/bindings.rs.BasicSearch.sh
+rust_wrappers += test/sh/bindings.rs.CondPut.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeFloat.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeInt.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeListFloat.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeListInt.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeListString.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeMapFloatFloat.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeMapFloatInt.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeMapFloatString.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeMapIntFloat.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeMapIntInt.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeMapIntString.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeMapStringFloat.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeMapStringInt.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeMapStringString.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeSetFloat.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeSetInt.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeSetString.sh
+rust_wrappers += test/sh/bindings.rs.DataTypeString.sh
+rust_wrappers += test/sh/bindings.rs.LengthString.sh
+rust_wrappers += test/sh/bindings.rs.MultiAttribute.sh
+rust_wrappers += test/sh/bindings.rs.RangeSearchInt.sh
+rust_wrappers += test/sh/bindings.rs.RangeSearchString.sh
+rust_wrappers += test/sh/bindings.rs.RegexSearch.sh
+shell_wrappers += $(rust_wrappers)
+
 if ENABLE_ADMIN
 if ENABLE_CLIENT
 if ENABLE_PYTHON_BINDINGS
@@ -982,6 +1011,10 @@ endif
 
 if ENABLE_RUBY_BINDINGS
 TESTS += $(ruby_wrappers)
+endif
+
+if ENABLE_RUST_BINDINGS
+TESTS += $(rust_wrappers)
 endif
 
 endif # ENABLE_PYTHON_BINDINGS
