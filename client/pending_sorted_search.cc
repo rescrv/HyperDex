@@ -93,7 +93,7 @@ pending_sorted_search :: yield(hyperdex_client_returncode* status, e::error* err
     ++m_results_idx;
 
     if (!value_to_attributes(*m_cl->m_coord.config(), m_ri, key.data(), key.size(),
-                             value, &op_status, &op_error, m_attrs, m_attrs_sz))
+                             value, &op_status, &op_error, m_attrs, m_attrs_sz, m_cl->m_convert_types))
     {
         set_status(op_status);
         set_error(op_error);

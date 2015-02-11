@@ -116,6 +116,8 @@ class client
         // helpers for bindings
         hyperdatatype attribute_type(const char* space, const char* name,
                                      hyperdex_client_returncode* status);
+        // enable or disable type conversion on the client-side
+        void set_type_conversion(bool enabled);
 
     private:
         struct pending_server_pair
@@ -208,6 +210,7 @@ class client
         e::error m_last_error;
         const char** m_macaroons;
         size_t m_macaroons_sz;
+        bool m_convert_types;
 
     private:
         client(const client&);

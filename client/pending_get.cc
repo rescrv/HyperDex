@@ -180,7 +180,7 @@ pending_get :: handle_message(client* cl,
     if (!value_to_attributes(*cl->m_coord.config(),
                              cl->m_coord.config()->get_region_id(vsi),
                              NULL, 0, value, &op_status, &op_error,
-                             m_attrs, m_attrs_sz))
+                             m_attrs, m_attrs_sz, cl->m_convert_types))
     {
         set_status(op_status);
         set_error(op_error);
