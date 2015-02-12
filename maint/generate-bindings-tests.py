@@ -29,6 +29,7 @@ import abc
 import collections
 import os
 import sys
+import subprocess
 
 def double_quote(x):
     y = repr(x)
@@ -761,27 +762,36 @@ func sloppyEqualAttributes(lhs client.Attributes, rhs client.Attributes) bool {
 
 
 class RustGenerator(BindingGenerator):
+
     def __init__(self):
         self.f = None
+        self.lib_dir = 'rust_hyperdex'
+        subprocess.call(['git', 'clone', 'https://github.com/derekchiang/rust-hyperdex.git', self.lib_dir])
+        subprocess.call(['cargo', 'build'], cwd=self.lib_dir)
 
     def test(self, name, space):
         assert self.f is None
         self.count = 0
         self.path = 'test/rust/{0}.rs'.format(name)
-        precmd = 'rustc --out-dir "${{HYPERDEX_BUILDDIR}}"/test/rust -o {0} "${{HYPERDEX_SRCDIR}}"/test/rust/{0}.rs'.format(name)
-        cmd = '"${{HYPERDEX_BUILDDIR}}"/{0}'.format(name)
+        precmd = 'rustc -L {1} -o "${{HYPERDEX_BUILDDIR}}"/test/rust/{0} "${{HYPERDEX_SRCDIR}}"/test/rust/{0}.rs'.format(name, self.lib_dir + '/target')
+        cmd = '"${{HYPERDEX_BUILDDIR}}"/test/rust/{0}'.format(name)
         gen_shell('rust', name, cmd, space, precmd=precmd)
         self.f = open(self.path, 'w')
         self.f.write('''
-extern crate hyperdex;
+#[macro_use] extern crate hyperdex;
 
 use std::os;
+use std::str::FromStr;
+use std::collections::BTreeSet;
+use std::collections::HashMap;
+use std::iter::FromIterator;
 
-use hyperdex::{Client, NewHyperObject};
+use hyperdex::*;
+use hyperdex::HyperPredicateType::*;
 
 fn main() {
     let args = os::args();
-    let mut client = Client::new(from_str(format!("{}:{}", args[1], args[2])).unwrap()).unwrap();
+    let mut client = Client::new(FromStr::from_str(format!("{}:{}", args[1], args[2]).as_slice()).unwrap()).unwrap();
 ''')
 
     def finish(self):
@@ -791,7 +801,6 @@ fn main() {
         self.f = None
 
     def get(self, space, key, expected):
-        self.f.write('let expected = {0};'.format(self.to_rust(expected)))
         if expected is None:
             self.f.write('''
                 match client.get({0}, {1}) {{
@@ -802,6 +811,7 @@ fn main() {
                 }}
             '''.format(self.to_rust(space), self.to_rust(key)))
         else:
+            self.f.write('let expected = {0};'.format(self.to_rust(expected)))
             self.f.write('''
                 match client.get({0}, {1}) {{
                     Ok(obj) => {{
@@ -814,7 +824,6 @@ fn main() {
             '''.format(self.to_rust(space), self.to_rust(key)))
 
     def get_partial(self, space, key, attrs, expected):
-        self.f.write('let expected = {0};'.format(self.to_rust(expected)))
         if expected is None:
             self.f.write('''
                 match client.get_partial({0}, {1}, {2}) {{
@@ -825,6 +834,7 @@ fn main() {
                 }}
             '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(attrs)))
         else:
+            self.f.write('let expected = {0};'.format(self.to_rust(expected)))
             self.f.write('''
                 match client.get_partial({0}, {1}, {2}) {{
                     Ok(obj) => {{
@@ -859,14 +869,14 @@ fn main() {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }}
-            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(pred), self.to_rust(value)))
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_preds(pred), self.to_rust(value)))
         else:
             self.f.write('''
-                match client.put({0}, {1}, {2}, {3}) {{
+                match client.cond_put({0}, {1}, {2}, {3}) {{
                     Ok(()) => panic!("this CONDPUT operation should have failed"),
                     Err(err) => (),
                 }}
-            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(pred), self.to_rust(value)))
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_preds(pred), self.to_rust(value)))
 
     def delete(self, space, key, expected):
         self.f.write('''
@@ -879,7 +889,7 @@ fn main() {
     def search(self, space, pred, expected):
         self.f.write('''
             let res = client.search({0}, {1});
-            let elems = res.iter().collect();
+            let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
             assert!(elems.len() == {2}.len());
         '''.format(self.to_rust(space), self.to_preds(pred), self.to_rust(expected)))
 
@@ -888,8 +898,8 @@ fn main() {
         for name, val in preds.iteritems():
             pred = 'EQUALS'
             if isinstance(val, Range):
-                preds_as_strs.append('HyperPredicate::new({0}, {1}, {2})'.format(self.to_rust(name), self.to_rust(val.x), 'GREATER_EQUAL'))
-                preds_as_strs.append('HyperPredicate::new({0}, {1}, {2})'.format(self.to_rust(name), self.to_rust(val.y), 'LESS_EQUAL'))
+                preds_as_strs.append('HyperPredicate::new({0}, {1}, {2})'.format(self.to_rust(name), 'GREATER_EQUAL', self.to_rust(val.x)))
+                preds_as_strs.append('HyperPredicate::new({0}, {1}, {2})'.format(self.to_rust(name), 'LESS_EQUAL', self.to_rust(val.y)))
                 continue
             elif isinstance(val, LessEqual):
                 val = val.x
@@ -918,35 +928,56 @@ fn main() {
             preds_as_strs.append('HyperPredicate::new({0}, {1}, {2})'.format(self.to_rust(name), pred, self.to_rust(val)))
         return 'vec!(' + ', '.join(preds_as_strs) + ')'
 
-    def to_rust(self, x):
+    def to_rust(self, x, inner=False):
         if x is True:
             return 'true'
         elif x is False:
             return 'false'
         elif x is None:
-            return 'nil'
+            return 'None'
         elif isinstance(x, str):
             return double_quote(x)
         elif isinstance(x, long) or isinstance(x, int):
             return '%s as i64' % str(x)
         elif isinstance(x, float):
-            return '%s as f64' % str(x)
+            if inner:
+                return 'F64(%s as f64)' % str(x)
+            else:
+                return '%s as f64' % str(x)
         elif isinstance(x, list):
             s = 'vec!('
             s += ', '.join(['{0}'.format(self.to_rust(v)) for v in x])
-            s += ');'
-            return s
-        elif isinstance(x, set):
-            s = 'BTreeSet::from_iter(vec!('
-            s += ', '.join(['{0}'.format(self.to_rust(v)) for v in sorted(x)])
-            s += ').iter());'
-            return s
-        elif isinstance(x, dict):
-            s = 'NewHyperObject!('
-            s += ', '.join(['{0}, {1}'.format(self.to_rust(k), self.to_rust(v))
-                            for k, v in sorted(x.items())])
             s += ')'
             return s
+        elif isinstance(x, set):
+            if len(x):
+                s = '{\n'
+                s += 'let mut s = BTreeSet::new();\n'
+                for v in x:
+                    s += 's.insert({0});\n'.format(self.to_rust(v))
+                s += 's\n}\n'
+                return s
+            else:
+                return 'BTreeSet::<Vec<u8>>::new()'
+        elif isinstance(x, dict):
+            if inner:
+                if len(x):
+                    s = '{\n'
+                    s += 'let mut m = HashMap::new();\n'
+                    for k, v in x.items():
+                        s += 'm.insert({}, {});\n'.format(self.to_rust(k, inner=True), self.to_rust(v))
+                    s += 'm\n}\n'
+                else:
+                    s = 'HashMap::<Vec<u8>, Vec<u8>>::new()'
+                return s
+            elif len(x):
+                s = 'NewHyperObject!('
+                s += ', '.join(['{0}, {1}'.format(self.to_rust(k), self.to_rust(v, inner=True))
+                                for k, v in sorted(x.items())])
+                s += ',)'
+                return s
+            else:
+                return "HyperObject::new()"
         else:
             raise RuntimeError("Cannot convert {0!r} to rust".format(x))
 

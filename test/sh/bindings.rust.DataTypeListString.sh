@@ -1,5 +1,5 @@
 #!/bin/sh
-rustc --out-dir "${HYPERDEX_BUILDDIR}"/test/rust -o DataTypeListString "${HYPERDEX_SRCDIR}"/test/rust/DataTypeListString.rs
+rustc -L rust_hyperdex/target -o "${HYPERDEX_BUILDDIR}"/test/rust/DataTypeListString "${HYPERDEX_SRCDIR}"/test/rust/DataTypeListString.rs
 
 python2 "${HYPERDEX_SRCDIR}"/test/runner.py --space="space kv key k attributes list(string) v" --daemons=1 -- \
-    "${HYPERDEX_BUILDDIR}"/DataTypeListString {HOST} {PORT}
+    "${HYPERDEX_BUILDDIR}"/test/rust/DataTypeListString {HOST} {PORT}

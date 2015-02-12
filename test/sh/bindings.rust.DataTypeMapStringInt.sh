@@ -1,5 +1,5 @@
 #!/bin/sh
-rustc --out-dir "${HYPERDEX_BUILDDIR}"/test/rust -o DataTypeMapStringInt "${HYPERDEX_SRCDIR}"/test/rust/DataTypeMapStringInt.rs
+rustc -L rust_hyperdex/target -o "${HYPERDEX_BUILDDIR}"/test/rust/DataTypeMapStringInt "${HYPERDEX_SRCDIR}"/test/rust/DataTypeMapStringInt.rs
 
 python2 "${HYPERDEX_SRCDIR}"/test/runner.py --space="space kv key k attributes map(string, int) v" --daemons=1 -- \
-    "${HYPERDEX_BUILDDIR}"/DataTypeMapStringInt {HOST} {PORT}
+    "${HYPERDEX_BUILDDIR}"/test/rust/DataTypeMapStringInt {HOST} {PORT}
