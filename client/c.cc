@@ -163,7 +163,6 @@ hyperdex_client_error_message(hyperdex_client* _cl)
 HYPERDEX_API void
 hyperdex_client_set_type_conversion(hyperdex_client* _cl, bool enabled)
 {
-    FAKE_STATUS;
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
     cl->set_type_conversion(enabled);
 }
