@@ -41,6 +41,7 @@ extern "C"
 #endif /* __cplusplus */
 
 struct hyperdex_client;
+struct hyperdex_microtransaction;
 
 struct hyperdex_client_attribute
 {
@@ -967,6 +968,21 @@ hyperdex_client_group_map_atomic_max(struct hyperdex_client* client,
                                      const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                      enum hyperdex_client_returncode* status,
                                      uint64_t* count);
+
+struct hyperdex_microtransaction*
+hyperdex_client_microtransaction_init(struct hyperdex_client* _cl,
+                      const char* space,
+                      enum hyperdex_client_returncode *status);
+
+int64_t
+hyperdex_client_microtransaction_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_microtransaction *transaction,
+                                const char* key, size_t key_sz);
+
+int64_t
+hyperdex_client_microtransaction_put(struct hyperdex_client* _cl,
+                                     struct hyperdex_microtransaction *transaction,
+                                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 
 int64_t
 hyperdex_client_search(struct hyperdex_client* client,

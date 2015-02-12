@@ -163,7 +163,6 @@ hyperdex_client_error_message(hyperdex_client* _cl)
 HYPERDEX_API void
 hyperdex_client_set_type_conversion(hyperdex_client* _cl, bool enabled)
 {
-    FAKE_STATUS;
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
     cl->set_type_conversion(enabled);
 }
@@ -1933,6 +1932,48 @@ hyperdex_client_sorted_search(struct hyperdex_client* _cl,
     return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maxmin, status, attrs, attrs_sz);
     );
 }
+
+HYPERDEX_API struct hyperdex_microtransaction*
+hyperdex_client_microtransaction_init(struct hyperdex_client* _cl,
+                      const char* space,
+                      enum hyperdex_client_returncode *status)
+{
+
+    SIGNAL_PROTECT_ERR(NULL);
+    hyperdex::client *cl = reinterpret_cast<hyperdex::client*>(_cl);
+    hyperdex::microtransaction *tx = cl->microtransaction_init(space, status);
+
+    return reinterpret_cast<struct hyperdex_microtransaction*>(tx);
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_microtransaction_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_microtransaction *transaction,
+                                const char* key, size_t key_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
+    hyperdex_client_returncode *status = tx->status;
+
+    C_WRAP_EXCEPT(
+    return cl->microtransaction_commit(tx, key, key_sz);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_microtransaction_put(struct hyperdex_client* _cl,
+                                     struct hyperdex_microtransaction *transaction,
+                                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
+    hyperdex_client_returncode *status = tx->status;
+
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(put), strlen(XSTR(put)));
+    return cl->microtransaciton_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+    );
+}
+
 
 HYPERDEX_API int64_t
 hyperdex_client_count(struct hyperdex_client* _cl,

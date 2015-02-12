@@ -79,6 +79,7 @@
     return false;
 
 using hyperdex::client;
+using hyperdex::microtransaction;
 
 client :: client(const char* coordinator, uint16_t port)
     : m_coord(coordinator, port)
@@ -1234,6 +1235,96 @@ client :: handle_disruption(const server_id& si)
     m_busybee.drop(si.get());
 }
 
+microtransaction* client::microtransaction_init(const char* space, hyperdex_client_returncode *status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return NULL;
+    }
+
+    const schema* sc = m_coord.config()->get_schema(space);
+
+    if (!sc)
+    {
+        ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist";
+        return NULL;
+    }
+
+    return new microtransaction(space, *sc, status);
+}
+
+int64_t client::microtransaciton_add_funcall(microtransaction *transaction,
+                                  const hyperdex_client_keyop_info* opinfo,
+                                  const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                  const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz)
+{
+    size_t idx = 0;
+    e::arena memory;
+
+    // Prepare the attrs
+    idx = prepare_funcs(transaction->space, transaction->sc, opinfo, attrs, attrs_sz, &memory, transaction->status, &transaction->funcalls);
+
+    if (idx < attrs_sz)
+    {
+        return -2 - idx;
+    }
+
+    // Prepare the mapattrs
+    idx = prepare_funcs(transaction->space, transaction->sc, opinfo, mapattrs, mapattrs_sz, &memory, transaction->status, &transaction->funcalls);
+
+    if (idx < mapattrs_sz)
+    {
+        return -2 - attrs_sz - idx;
+    }
+
+    return 0;
+}
+
+int64_t client::microtransaction_commit(microtransaction *transaction,
+                                const char* _key, size_t _key_sz)
+{
+    hyperdex_client_returncode *status = transaction->status;
+
+    datatype_info* di = datatype_info::lookup(transaction->sc.attrs[0].type);
+    assert(di);
+    e::slice key(_key, _key_sz);
+
+    if (!di->validate(key))
+    {
+        ERROR(WRONGTYPE) << "key must be type " << transaction->sc.attrs[0].type;
+        return -1;
+    }
+
+    e::intrusive_ptr<pending> op;
+    op = new pending_atomic(m_next_client_id++, status);
+    std::auto_ptr<e::buffer> msg;
+    auth_wallet aw(m_macaroons, m_macaroons_sz);
+    size_t header_sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+                     + pack_size(key);
+    size_t footer_sz = 0;
+
+    if (m_macaroons_sz)
+    {
+        footer_sz += pack_size(aw);
+    }
+
+    int ret = transaction->generate_message(header_sz, footer_sz, &msg);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << key;
+
+    if (m_macaroons_sz)
+    {
+        msg->pack_at(msg->capacity() - footer_sz) << aw;
+    }
+
+    return send_keyop(transaction->space, key, REQ_ATOMIC, msg, op, status);
+}
+
 HYPERDEX_API std::ostream&
 operator << (std::ostream& lhs, hyperdex_client_returncode rhs)
 {
@@ -1277,4 +1368,22 @@ void
 client :: set_type_conversion(bool enabled)
 {
     m_convert_types = enabled;
+}
+
+int64_t
+microtransaction::generate_message(size_t header_sz, size_t footer_sz,
+                                            std::auto_ptr<e::buffer>* msg)
+{
+    const bool fail_if_not_found = true;
+    std::vector<attribute_check> checks;
+
+    std::stable_sort(funcalls.begin(), funcalls.end());
+    size_t sz = header_sz + footer_sz
+              + sizeof(uint8_t)
+              + pack_size(checks)
+              + pack_size(funcalls);
+    msg->reset(e::buffer::create(sz));
+    uint8_t flags = (fail_if_not_found ? 1 : 0);
+    (*msg)->pack_at(header_sz) << flags << checks << funcalls;
+    return 0;
 }
