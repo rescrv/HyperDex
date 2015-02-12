@@ -50,7 +50,8 @@ value_to_attributes(const configuration& config,
                     hyperdex_client_returncode* op_status,
                     e::error* op_error,
                     const hyperdex_client_attribute** attrs,
-                    size_t* attrs_sz);
+                    size_t* attrs_sz,
+                    bool convert_types);
 
 bool
 value_to_attributes(const configuration& config,
@@ -59,7 +60,8 @@ value_to_attributes(const configuration& config,
                     hyperdex_client_returncode* op_status,
                     e::error* op_error,
                     const hyperdex_client_attribute** attrs,
-                    size_t* attrs_sz);
+                    size_t* attrs_sz,
+                    bool convert_types);
 
 END_HYPERDEX_NAMESPACE
 

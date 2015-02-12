@@ -49,7 +49,8 @@ hyperdex :: value_to_attributes(const configuration& config,
                                 hyperdex_client_returncode* op_status,
                                 e::error* op_error,
                                 const hyperdex_client_attribute** attrs,
-                                size_t* attrs_sz)
+                                size_t* attrs_sz,
+                                bool convert_types)
 {
     std::vector<e::slice> value(_value);
     const schema* sc = config.get_schema(rid);
@@ -63,14 +64,17 @@ hyperdex :: value_to_attributes(const configuration& config,
         return false;
     }
 
-    for (size_t i = 0; i < value.size(); ++i)
+    if (convert_types)
     {
-        datatype_info* di = datatype_info::lookup(sc->attrs[i + 1].type);
-
-        if (!di->server_to_client(value[i], &memory, &value[i]))
+        for (size_t i = 0; i < value.size(); ++i)
         {
-            UTIL_ERROR(SERVERERROR) << "cannot convert from server-side form";
-            return false;
+            datatype_info* di = datatype_info::lookup(sc->attrs[i + 1].type);
+
+            if (!di->server_to_client(value[i], &memory, &value[i]))
+            {
+                UTIL_ERROR(SERVERERROR) << "cannot convert from server-side form";
+                return false;
+            }
         }
     }
 
@@ -145,7 +149,8 @@ hyperdex :: value_to_attributes(const configuration& config,
                                 hyperdex_client_returncode* op_status,
                                 e::error* op_error,
                                 const hyperdex_client_attribute** attrs,
-                                size_t* attrs_sz)
+                                size_t* attrs_sz,
+                                bool convert_types)
 {
     std::vector<std::pair<uint16_t, e::slice> > value(_value);
     const schema* sc = config.get_schema(rid);
@@ -168,10 +173,13 @@ hyperdex :: value_to_attributes(const configuration& config,
         sz += strlen(sc->attrs[attr].name) + 1 + value[i].second.size();
         datatype_info* di = datatype_info::lookup(sc->attrs[attr].type);
 
-        if (!di->server_to_client(value[i].second, &memory, &value[i].second))
+        if (convert_types)
         {
-            UTIL_ERROR(SERVERERROR) << "cannot convert from server-side form";
-            return false;
+            if (!di->server_to_client(value[i].second, &memory, &value[i].second))
+            {
+                UTIL_ERROR(SERVERERROR) << "cannot convert from server-side form";
+                return false;
+            }
         }
     }
 

@@ -96,6 +96,7 @@ client :: client(const char* coordinator, uint16_t port)
     , m_last_error()
     , m_macaroons(NULL)
     , m_macaroons_sz(0)
+    , m_convert_types(true)
 {
     m_gc.register_thread(&m_gc_ts);
 }
@@ -116,6 +117,7 @@ client :: client(const char* conn_str)
     , m_last_error()
     , m_macaroons(NULL)
     , m_macaroons_sz(0)
+    , m_convert_types(true)
 {
     m_gc.register_thread(&m_gc_ts);
 }
@@ -851,12 +853,15 @@ client :: prepare_funcs(const char* space, const schema& sc,
         datatype_info* type = datatype_info::lookup(sc.attrs[attrnum].type);
         datatype_info* a1type = datatype_info::lookup(o.arg1_datatype);
 
-        if (!a1type->client_to_server(o.arg1, memory, &o.arg1))
+        if (m_convert_types)
         {
-            ERROR(WRONGTYPE) << "attribute \""
+            if (!a1type->client_to_server(o.arg1, memory, &o.arg1))
+            {
+                ERROR(WRONGTYPE) << "attribute \""
                              << e::strescape(attrs[i].attr)
                              << "\" does not meet the constraints of its type";
-            return i;
+                return i;
+            }
         }
 
         if (path != NULL)
@@ -1265,4 +1270,11 @@ operator << (std::ostream& lhs, hyperdex_client_returncode rhs)
     }
 
     return lhs;
+}
+
+// enable or disable type conversion on the client-side
+void
+client :: set_type_conversion(bool enabled)
+{
+    m_convert_types = enabled;
 }
