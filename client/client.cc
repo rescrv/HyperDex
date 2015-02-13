@@ -1374,7 +1374,10 @@ int64_t
 microtransaction::generate_message(size_t header_sz, size_t footer_sz,
                                             std::auto_ptr<e::buffer>* msg)
 {
-    const bool fail_if_not_found = true;
+    const bool fail_if_not_found = false;
+    const bool fail_if_found = false;
+    const bool erase = false;
+
     std::vector<attribute_check> checks;
 
     std::stable_sort(funcalls.begin(), funcalls.end());
@@ -1383,7 +1386,9 @@ microtransaction::generate_message(size_t header_sz, size_t footer_sz,
               + pack_size(checks)
               + pack_size(funcalls);
     msg->reset(e::buffer::create(sz));
-    uint8_t flags = (fail_if_not_found ? 1 : 0);
+    uint8_t flags = (fail_if_not_found ? 1 : 0)
+            | (fail_if_found ? 2 : 0)
+            | (erase ? 0 : 128);
     (*msg)->pack_at(header_sz) << flags << checks << funcalls;
     return 0;
 }

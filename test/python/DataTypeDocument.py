@@ -145,5 +145,5 @@ tx.put({'v.c' : 3})
 tx.commit('k20')
 
 res = c.search('kv', {'k' : 'k20'})
-assertEquals(res.next(), Document({'a' : 1, 'b' : 2, 'c' : 3}))
+assertEquals(c.get('kv', 'k20')['v'], Document({'a' : 1, 'b' : 2, 'c' : 3}))
 

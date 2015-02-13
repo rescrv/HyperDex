@@ -176,7 +176,7 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_put(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     hyperdex_microtransaction* hyperdex_client_microtransaction_init(hyperdex_client* _cl, const char* space, hyperdex_client_returncode *status);
     int64_t hyperdex_client_microtransaction_commit(hyperdex_client* _cl, hyperdex_microtransaction *transaction, const char* key, size_t key_sz);
-    int64_t hyperdex_client_microtransaction_put(hyperdex_client* client, hyperdex_microtransaction* tx, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_microtransaction_put(hyperdex_client* client, hyperdex_microtransaction* tx, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_put(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_put(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_put_if_not_exist(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
@@ -1171,7 +1171,7 @@ cdef class Microtransaction:
     def __cinit__(self, Client c, bytes spacename):
         cdef const char* in_space
         self.client = c
-        self.deferred = Deferred(self)
+        self.deferred = Deferred(self.client)
         self.client.convert_spacename(self.deferred.arena, spacename, &in_space);
         self.transaction = hyperdex_client_microtransaction_init(self.client.client, in_space, &self.deferred.status)
 
@@ -1180,6 +1180,8 @@ cdef class Microtransaction:
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz);
 
+        hyperdex_client_microtransaction_put(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+
     def async_commit(self, bytes key):
         cdef const char* in_key
         cdef size_t in_key_sz
@@ -1187,7 +1189,7 @@ cdef class Microtransaction:
 
         self.deferred.reqid = hyperdex_client_microtransaction_commit(self.client.client, self.transaction, in_key, in_key_sz)
 
-        self.clear_auth_context()
+        self.client.clear_auth_context()
         if self.deferred.reqid < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         self.deferred.encode_return = hyperdex_python_client_deferred_encode_status
@@ -1602,7 +1604,7 @@ cdef class Client:
         self.ops[it.reqid] = it
         return it
 
-    cdef microtransaction_init(self, bytes spacename):
+    def microtransaction_init(self, bytes spacename):
         return Microtransaction(self, spacename)
 
     def async_get(self, bytes spacename, key, auth=None):

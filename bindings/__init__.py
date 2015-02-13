@@ -220,6 +220,7 @@ Client = [
     Method('search_describe', AsyncCall, (SpaceName, Predicates), (Status, Description)),
     Method('sorted_search', Iterator, (SpaceName, Predicates, SortBy, Limit, MaxMin), (Status, Attributes)),
     Method('count', AsyncCall, (SpaceName, Predicates), (Status, Count)),
+    Method('microtransaction_init'. AsyncCall, (SpaceName,), (Status)),
 ]
 
 Admin = [
