@@ -257,6 +257,18 @@ datatype_document :: apply(const e::slice& old_value,
                     datatype_float::pack(d, &scratch, &v);
                     type = HYPERDATATYPE_FLOAT;
                 }
+
+                if (func.name != FUNC_SET &&
+                    func.name != FUNC_DOC_UNSET &&
+                    func.name != FUNC_DOC_RENAME)
+                {
+                    // More complex modifications (string append etc)
+                    // only work with the same type
+                    if(type != func.arg1_datatype)
+                    {
+                        return false;
+                    }
+                }
             }
 
             datatype_info* di = datatype_info::lookup(type);
@@ -447,6 +459,43 @@ datatype_document :: coerce_primitive_to_binary(hyperdatatype type,
     scratch->resize(v_sz);
     memmove(&(*scratch)[0], v, v_sz);
     *value = e::slice(&(*scratch)[0], v_sz);
+}
+
+bool
+datatype_document :: comparable() const
+{
+    return true;
+}
+
+// Same as string compare
+static int
+compare(const e::slice& lhs,
+        const e::slice& rhs)
+{
+    int cmp = memcmp(lhs.data(), rhs.data(), std::min(lhs.size(), rhs.size()));
+
+    if (cmp == 0)
+    {
+        if (lhs.size() < rhs.size())
+        {
+            return -1;
+        }
+
+        if (lhs.size() > rhs.size())
+        {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    return cmp;
+}
+
+int
+datatype_document :: compare(const e::slice& lhs, const e::slice& rhs) const
+{
+    return ::compare(lhs, rhs);
 }
 
 bool

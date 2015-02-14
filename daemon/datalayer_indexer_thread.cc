@@ -303,7 +303,7 @@ datalayer :: indexer_thread :: play(const region_id& ri, const schema* sc)
     leveldb::ReadOptions ro;
     ro.fill_cache = false;
     iip.reset(leveldb_snapshot_ptr(db, NULL), db->NewIterator(ro));
-    index_encoding* ie = index_encoding::lookup(sc->attrs[0].type);
+    const index_encoding* ie = index_encoding::lookup(sc->attrs[0].type);
     return new region_iterator(iip, ri, ie);
 }
 

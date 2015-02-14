@@ -63,6 +63,10 @@ class datatype_document : public datatype_info
                                     const e::slice& value) const;
 
     public:
+        bool comparable() const;
+        int compare(const e::slice& lhs, const e::slice& rhs) const;
+
+    public:
         bool extract_value(const char* path,
                            const e::slice& data,
                            hyperdatatype* type,

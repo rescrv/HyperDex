@@ -36,9 +36,14 @@
 
 // HyperDex
 #include "daemon/datalayer_iterator.h"
+#include "daemon/datalayer_encodings.h"
 #include "daemon/index_document.h"
 
 using hyperdex::index_document;
+using hyperdex::index_encoding_document;
+
+inline leveldb::Slice e2level(const e::slice& s) { return leveldb::Slice(reinterpret_cast<const char*>(s.data()), s.size()); }
+inline e::slice level2e(const leveldb::Slice& s) { return e::slice(s.data(), s.size()); }
 
 index_document :: index_document()
     : m_di()
@@ -50,7 +55,7 @@ index_document :: ~index_document() throw ()
 }
 
 hyperdatatype
-index_document :: datatype()
+index_document :: datatype() const
 {
     return HYPERDATATYPE_DOCUMENT;
 }
@@ -58,11 +63,11 @@ index_document :: datatype()
 void
 index_document :: index_changes(const index* idx,
                                 const region_id& ri,
-                                index_encoding* key_ie,
+                                const index_encoding* key_ie,
                                 const e::slice& key,
                                 const e::slice* old_document,
                                 const e::slice* new_document,
-                                leveldb::WriteBatch* updates)
+                                leveldb::WriteBatch* updates) const
 {
     type_t t;
     std::vector<char> scratch_value;
@@ -93,7 +98,7 @@ index_document :: iterator_from_check(leveldb_snapshot_ptr snap,
                                       const region_id& ri,
                                       const index_id& ii,
                                       const attribute_check& check,
-                                      index_encoding* key_ie)
+                                      const index_encoding* key_ie) const
 {
     const char* path = reinterpret_cast<const char*>(check.value.data());
     size_t path_sz = strnlen(path, check.value.size());
@@ -105,7 +110,8 @@ index_document :: iterator_from_check(leveldb_snapshot_ptr snap,
 
     if (check.datatype != HYPERDATATYPE_STRING &&
         check.datatype != HYPERDATATYPE_INT64 &&
-        check.datatype != HYPERDATATYPE_FLOAT)
+        check.datatype != HYPERDATATYPE_FLOAT &&
+        check.datatype != HYPERDATATYPE_DOCUMENT)
     {
         return NULL;
     }
@@ -133,7 +139,26 @@ index_document :: iterator_from_check(leveldb_snapshot_ptr snap,
     e::slice limit;
     bool has_start;
     bool has_limit;
-    type_t t = check.datatype == HYPERDATATYPE_STRING ? STRING : NUMBER;
+
+    type_t t;
+
+    if(check.datatype == HYPERDATATYPE_STRING)
+    {
+        t = STRING;
+    }
+    else if(check.datatype == HYPERDATATYPE_DOCUMENT)
+    {
+        if(check.predicate != HYPERPREDICATE_EQUALS)
+        {
+            return NULL;
+        }
+
+        t = DOCUMENT;
+    }
+    else
+    {
+        t = NUMBER;
+    }
 
     index_entry(ri, ii, t, value, &scratch_a, &a);
     index_entry(ri, ii, t, &scratch_b, &b);
@@ -165,19 +190,7 @@ index_document :: iterator_from_check(leveldb_snapshot_ptr snap,
             return NULL;
     }
 
-    index_encoding* ie;
-
-    switch (t)
-    {
-        case STRING:
-            ie = index_encoding::lookup(HYPERDATATYPE_STRING);
-            break;
-        case NUMBER:
-            ie = index_encoding::lookup(HYPERDATATYPE_FLOAT);
-            break;
-        default:
-            abort();
-    }
+    const index_encoding* ie = lookup_encoding(t);
 
     has_start = a.data() == start.data();
     has_limit = a.data() == limit.data();
@@ -187,12 +200,30 @@ index_document :: iterator_from_check(leveldb_snapshot_ptr snap,
                                                ie, key_ie);
 }
 
+const hyperdex::index_encoding*
+index_document :: lookup_encoding(type_t t) const
+{
+    switch (t)
+    {
+        case STRING:
+            return index_encoding::lookup(HYPERDATATYPE_STRING);
+        case NUMBER:
+            return index_encoding::lookup(HYPERDATATYPE_FLOAT);
+        case DOCUMENT:
+            return index_encoding::lookup(HYPERDATATYPE_DOCUMENT);
+        default:
+            abort();
+    }
+
+    return NULL;
+}
+
 bool
 index_document :: parse_path(const index* idx,
                              const e::slice& document,
                              type_t* t,
                              std::vector<char>* scratch,
-                             e::slice* value)
+                             e::slice* value) const
 {
     hyperdatatype type;
 
@@ -208,13 +239,18 @@ index_document :: parse_path(const index* idx,
             *t = NUMBER;
             return true;
         }
+        else if (type == HYPERDATATYPE_DOCUMENT)
+        {
+            *t = DOCUMENT;
+            return true;
+        }
     }
 
     return false;
 }
 
 size_t
-index_document :: index_entry_prefix_size(const region_id& ri, const index_id& ii)
+index_document :: index_entry_prefix_size(const region_id& ri, const index_id& ii) const
 {
     return sizeof(uint8_t)
          + e::varint_length(ri.get())
@@ -227,7 +263,7 @@ index_document :: index_entry(const region_id& ri,
                               const index_id& ii,
                               type_t t,
                               std::vector<char>* scratch,
-                              e::slice* slice)
+                              e::slice* slice) const
 {
     size_t sz = sizeof(uint8_t)
               + e::varint_length(ri.get())
@@ -239,7 +275,20 @@ index_document :: index_entry(const region_id& ri,
         scratch->resize(sz);
     }
 
-    uint8_t t8 = t == STRING ? 's' : 'i';
+    uint8_t t8;
+    if(t == STRING)
+    {
+        t8 = 's';
+    }
+    else if(t == NUMBER)
+    {
+        t8 = 'i';
+    }
+    else
+    {
+        t8 = 'd';
+    }
+
     char* ptr = &scratch->front();
     ptr = e::pack8be('i', ptr);
     ptr = e::packvarint64(ri.get(), ptr);
@@ -255,10 +304,10 @@ index_document :: index_entry(const region_id& ri,
                               type_t t,
                               const e::slice& value,
                               std::vector<char>* scratch,
-                              e::slice* slice)
+                              e::slice* slice) const
 {
-    index_encoding* val_ie = t == STRING ? index_encoding::lookup(HYPERDATATYPE_STRING)
-                                         : index_encoding::lookup(HYPERDATATYPE_FLOAT);
+    const index_encoding* val_ie = lookup_encoding(t);
+
     size_t val_sz = val_ie->encoded_size(value);
     size_t sz = sizeof(uint8_t)
               + e::varint_length(ri.get())
@@ -271,7 +320,20 @@ index_document :: index_entry(const region_id& ri,
         scratch->resize(sz);
     }
 
-    uint8_t t8 = t == STRING ? 's' : 'i';
+    uint8_t t8;
+    if(t == STRING)
+    {
+        t8 = 's';
+    }
+    else if(t == NUMBER)
+    {
+        t8 = 'i';
+    }
+    else
+    {
+        t8 = 'd';
+    }
+
     char* ptr = &scratch->front();
     ptr = e::pack8be('i', ptr);
     ptr = e::packvarint64(ri.get(), ptr);
@@ -282,18 +344,77 @@ index_document :: index_entry(const region_id& ri,
     *slice = e::slice(&scratch->front(), sz);
 }
 
+hyperdex::datalayer::index_iterator*
+index_document :: iterator_for_keys(leveldb_snapshot_ptr snap,
+                                     const region_id& ri) const
+{
+    range scan;
+    scan.attr = 0;
+    scan.type = HYPERDATATYPE_DOCUMENT;
+    scan.has_start = false;
+    scan.has_end = false;
+    scan.invalid = false;
+    const index_encoding* ie = index_encoding::lookup(scan.type);
+    return iterator_key(snap, ri, scan, ie);
+}
+
+hyperdex::datalayer::index_iterator*
+index_document :: iterator_key(leveldb_snapshot_ptr snap,
+                                const region_id& ri,
+                                const range& r,
+                                const index_encoding* key_ie) const
+{
+    std::vector<char> scratch_start;
+    std::vector<char> scratch_limit;
+    e::slice start;
+    e::slice limit;
+
+    size_t range_prefix_sz = object_prefix_sz(ri);
+
+    if (r.has_start)
+    {
+        leveldb::Slice _start;
+        encode_key(ri, r.type, r.start, &scratch_start, &_start);
+        start = level2e(_start);
+    }
+    else
+    {
+        leveldb::Slice _start;
+        encode_object_region(ri, &scratch_start, &_start);
+        start = level2e(_start);
+    }
+
+    if (r.has_end)
+    {
+        leveldb::Slice _limit;
+        encode_key(ri, r.type, r.end, &scratch_limit, &_limit);
+        limit = level2e(_limit);
+    }
+    else
+    {
+        leveldb::Slice _limit;
+        encode_object_region(ri, &scratch_limit, &_limit);
+        limit = level2e(_limit);
+    }
+
+    return new hyperdex::datalayer::range_index_iterator(snap, range_prefix_sz,
+                                               start, limit,
+                                               r.has_start, r.has_end,
+                                               NULL, key_ie);
+}
+
 void
 index_document :: index_entry(const region_id& ri,
                               const index_id& ii,
                               type_t t,
-                              index_encoding* key_ie,
+                              const index_encoding* key_ie,
                               const e::slice& key,
                               const e::slice& value,
                               std::vector<char>* scratch,
-                              e::slice* slice)
+                              e::slice* slice) const
 {
-    index_encoding* val_ie = t == STRING ? index_encoding::lookup(HYPERDATATYPE_STRING)
-                                         : index_encoding::lookup(HYPERDATATYPE_FLOAT);
+    const index_encoding* val_ie = lookup_encoding(t);
+
     size_t key_sz = key_ie->encoded_size(key);
     size_t val_sz = val_ie->encoded_size(value);
     bool variable = !key_ie->encoding_fixed() && !val_ie->encoding_fixed();
@@ -310,7 +431,20 @@ index_document :: index_entry(const region_id& ri,
         scratch->resize(sz);
     }
 
-    uint8_t t8 = t == STRING ? 's' : 'i';
+    uint8_t t8;
+    if(t == STRING)
+    {
+        t8 = 's';
+    }
+    else if(t == NUMBER)
+    {
+        t8 = 'i';
+    }
+    else
+    {
+        t8 = 'd';
+    }
+
     char* ptr = &scratch->front();
     ptr = e::pack8be('i', ptr);
     ptr = e::packvarint64(ri.get(), ptr);
@@ -326,4 +460,44 @@ index_document :: index_entry(const region_id& ri,
 
     assert(ptr == &scratch->front() + sz);
     *slice = e::slice(&scratch->front(), sz);
+}
+
+index_encoding_document :: index_encoding_document()
+{
+}
+
+index_encoding_document :: ~index_encoding_document() throw ()
+{
+}
+
+bool
+index_encoding_document :: encoding_fixed() const
+{
+    return false;
+}
+
+size_t
+index_encoding_document :: encoded_size(const e::slice& decoded) const
+{
+    return decoded.size();
+}
+
+char*
+index_encoding_document :: encode(const e::slice& decoded, char* encoded) const
+{
+    memmove(encoded, decoded.data(), decoded.size());
+    return encoded + decoded.size();
+}
+
+size_t
+index_encoding_document :: decoded_size(const e::slice& encoded) const
+{
+    return encoded.size();
+}
+
+char*
+index_encoding_document :: decode(const e::slice& encoded, char* decoded) const
+{
+    memmove(decoded, encoded.data(), encoded.size());
+    return decoded + encoded.size();
 }

@@ -49,16 +49,14 @@ index_container :: ~index_container() throw ()
 void
 index_container :: index_changes(const index* idx,
                                  const region_id& ri,
-                                 index_encoding* key_ie,
+                                 const index_encoding* key_ie,
                                  const e::slice& key,
                                  const e::slice* old_value,
                                  const e::slice* new_value,
-                                 leveldb::WriteBatch* updates)
+                                 leveldb::WriteBatch* updates) const
 {
     std::vector<e::slice> old_elems;
     std::vector<e::slice> new_elems;
-    std::vector<char> scratch;
-    leveldb::Slice slice;
 
     if (old_value)
     {
@@ -79,7 +77,7 @@ index_container :: index_changes(const index* idx,
     new_elems.resize(it - new_elems.begin());
     size_t old_idx = 0;
     size_t new_idx = 0;
-    index_info* ii = this->element_index_info();
+    const index_info* ii = this->element_index_info();
 
     while (old_idx < old_elems.size() &&
            new_idx < new_elems.size())
@@ -126,7 +124,7 @@ index_container :: iterator_from_check(leveldb_snapshot_ptr snap,
                                        const region_id& ri,
                                        const index_id& ii,
                                        const attribute_check& c,
-                                       index_encoding* key_ie)
+                                       const index_encoding* key_ie) const
 {
     if (c.predicate == HYPERPREDICATE_CONTAINS &&
         c.datatype == this->element_datatype_info()->datatype())

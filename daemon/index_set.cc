@@ -45,14 +45,14 @@ index_set :: ~index_set() throw ()
 }
 
 hyperdatatype
-index_set :: datatype()
+index_set :: datatype() const
 {
     return CREATE_CONTAINER(HYPERDATATYPE_SET_GENERIC, m_datatype);
 }
 
 void
 index_set :: extract_elements(const e::slice& set,
-                              std::vector<e::slice>* elems)
+                              std::vector<e::slice>* elems) const
 {
     datatype_info* elem = datatype_info::lookup(m_datatype);
     const uint8_t* ptr = set.data();
@@ -69,14 +69,14 @@ index_set :: extract_elements(const e::slice& set,
     assert(ptr == end);
 }
 
-datatype_info*
-index_set :: element_datatype_info()
+const datatype_info*
+index_set :: element_datatype_info() const
 {
     return datatype_info::lookup(m_datatype);
 }
 
-index_info*
-index_set :: element_index_info()
+const index_info*
+index_set :: element_index_info() const
 {
     return index_info::lookup(m_datatype);
 }
