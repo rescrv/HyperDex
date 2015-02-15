@@ -129,10 +129,14 @@ assertEquals(c.get('kv', 'k11')['v'], Document({'a' : [0,1,2,3,4,"5",{'x':'y'}]}
 
 # Search on Documents
 assertTrue(c.put('kv', 'k9', {'v' : Document({'x' : {'b' : 'c'}})}))
-#res1 = c.search('kv', {'v.x.b' : 'c'})
+res1 = c.search('kv', {'v.x.b' : 'c'})
 res2 = c.search('kv', {'v.x' : Document({'b' : 'c'})})
-#assertEquals(res1.next(), {'k' : 'k9', 'v' : Document({'x' : {'b' : 'c'}})})
-#assertFalse(res1.hasNext())
+res3 = c.search('kv', {'v' : Document({'x' : {'b' : 'c'}})})
+assertEquals(res1.next(), {'k' : 'k9', 'v' : Document({'x' : {'b' : 'c'}})})
+assertFalse(res1.hasNext())
 assertEquals(res2.next(), {'k' : 'k9', 'v' : Document({'x' : {'b' : 'c'}})})
 assertFalse(res2.hasNext())
+assertEquals(res3.next(), {'k' : 'k9', 'v' : Document({'x' : {'b' : 'c'}})})
+assertFalse(res3.hasNext())
+
 

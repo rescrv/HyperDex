@@ -279,6 +279,7 @@ datatype_document :: apply(const e::slice& old_value,
                 return false;
             }
 
+            // Pass funcall down to underlying datatype (string, integer etc...)
             if (!di->apply(v, &func, 1, new_memory, &tmp_value))
             {
                 return false;
@@ -360,11 +361,8 @@ bool
 datatype_document :: document_check(const attribute_check& check,
                                     const e::slice& doc) const
 {
-    if (check.datatype == HYPERDATATYPE_DOCUMENT)
-    {
-        return check.predicate == HYPERPREDICATE_EQUALS &&
-               check.value == doc;
-    }
+    // We expected the follwing format:
+    // <path>\0\n<value>
 
     const char* path = reinterpret_cast<const char*>(check.value.data());
     size_t path_sz = strnlen(path, check.value.size());
@@ -383,13 +381,24 @@ datatype_document :: document_check(const attribute_check& check,
         return false;
     }
 
-    attribute_check new_check;
-    new_check.attr      = check.attr;
-    new_check.value     = check.value;
-    new_check.datatype  = check.datatype;
-    new_check.predicate = check.predicate;
-    new_check.value.advance(path_sz + 1);
-    return passes_attribute_check(type, new_check, value);
+    if(type == HYPERDATATYPE_DOCUMENT)
+    {
+        // Compare two subdocuments
+        e::slice chk_value = check.value;
+        chk_value.advance(path_sz + 1);
+        return (value == chk_value);
+    }
+    else
+    {
+        // Pass down to underlying datatype
+        attribute_check new_check;
+        new_check.attr      = check.attr;
+        new_check.value     = check.value;
+        new_check.datatype  = check.datatype;
+        new_check.predicate = check.predicate;
+        new_check.value.advance(path_sz + 1);
+        return passes_attribute_check(type, new_check, value);
+    }
 }
 
 bool
@@ -462,43 +471,6 @@ datatype_document :: coerce_primitive_to_binary(hyperdatatype type,
 }
 
 bool
-datatype_document :: comparable() const
-{
-    return true;
-}
-
-// Same as string compare
-static int
-compare(const e::slice& lhs,
-        const e::slice& rhs)
-{
-    int cmp = memcmp(lhs.data(), rhs.data(), std::min(lhs.size(), rhs.size()));
-
-    if (cmp == 0)
-    {
-        if (lhs.size() < rhs.size())
-        {
-            return -1;
-        }
-
-        if (lhs.size() > rhs.size())
-        {
-            return 1;
-        }
-
-        return 0;
-    }
-
-    return cmp;
-}
-
-int
-datatype_document :: compare(const e::slice& lhs, const e::slice& rhs) const
-{
-    return ::compare(lhs, rhs);
-}
-
-bool
 datatype_document :: coerce_binary_to_primitive(const e::slice& in,
                                                 hyperdatatype* type,
                                                 std::vector<char>* scratch,
@@ -532,7 +504,9 @@ datatype_document :: coerce_binary_to_primitive(const e::slice& in,
     else
     {
         *type = HYPERDATATYPE_DOCUMENT;
-        *value = in;
+        scratch->resize(in.size());
+        memmove(scratch->data(), in.data(), in.size());
+        *value = e::slice(&(*scratch)[0], in.size());
     }
 
     return true;

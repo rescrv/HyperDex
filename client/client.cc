@@ -773,14 +773,21 @@ client :: prepare_checks(const char* space, const schema& sc,
             return i;
         }
 
+        if (!path && datatype == HYPERDATATYPE_DOCUMENT)
+        {
+            // Document datatype always requires a path. Empty means root.
+            path = "";
+        }
+
         if (path)
         {
             size_t path_sz = strlen(path) + 1;
-            size_t sz = path_sz + chks[i].value_sz;
+            size_t sz = path_sz + c.value.size();
             unsigned char* tmp = NULL;
-            memory->allocate(path_sz + chks[i].value_sz, &tmp);
+            memory->allocate(path_sz + c.value.size(), &tmp);
             memmove(tmp, path, path_sz);
-            memmove(tmp + path_sz, chks[i].value, chks[i].value_sz);
+            memmove(tmp + path_sz, c.value.data(), c.value.size());
+
             c.value = e::slice(tmp, sz);
         }
 
