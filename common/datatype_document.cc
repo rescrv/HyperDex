@@ -37,11 +37,15 @@
 #include "common/datatype_int64.h"
 #include "common/datatype_float.h"
 
-#define IS_DOCUMENT_PRIMITIVE(X) \
-    ((X) == HYPERDATATYPE_STRING || \
-     (X) == HYPERDATATYPE_INT64 || \
-     (X) == HYPERDATATYPE_FLOAT || \
-     (X) == HYPERDATATYPE_DOCUMENT)
+inline bool is_numeral(const hyperdatatype& t)
+{
+    return t == HYPERDATATYPE_FLOAT || t == HYPERDATATYPE_INT64;
+}
+
+inline bool is_document_primitive(const hyperdatatype& t)
+{
+    return is_numeral(t) || t == HYPERDATATYPE_STRING || t == HYPERDATATYPE_DOCUMENT;
+}
 
 using hyperdex::datatype_document;
 
@@ -76,7 +80,7 @@ datatype_document :: check_args(const funcall& func) const
 {
     // A transformation that either sets (all/part of) the document, or
     // pushes/pops an array (that is/within) the document.
-    if (IS_DOCUMENT_PRIMITIVE(func.arg1_datatype) &&
+    if (is_document_primitive(func.arg1_datatype) &&
         (func.name == FUNC_SET ||
          func.name == FUNC_LIST_LPUSH ||
          func.name == FUNC_LIST_RPUSH))
@@ -103,7 +107,7 @@ datatype_document :: check_args(const funcall& func) const
     }
     // Perform a nested operation on primitives
     else if (func.arg2_datatype == HYPERDATATYPE_STRING &&
-             IS_DOCUMENT_PRIMITIVE(func.arg1_datatype) &&
+             is_document_primitive(func.arg1_datatype) &&
              func.arg1_datatype != HYPERDATATYPE_DOCUMENT)
     {
         datatype_info* di = datatype_info::lookup(func.arg1_datatype);
@@ -153,7 +157,7 @@ datatype_document :: apply(const e::slice& old_value,
     {
         const funcall& func = funcs[idx];
 
-        if (IS_DOCUMENT_PRIMITIVE(func.arg1_datatype) &&
+        if (is_document_primitive(func.arg1_datatype) &&
             (func.name == FUNC_SET ||
              func.name == FUNC_LIST_LPUSH ||
              func.name == FUNC_LIST_RPUSH))
@@ -226,7 +230,7 @@ datatype_document :: apply(const e::slice& old_value,
             }
         }
         else if (func.arg2_datatype == HYPERDATATYPE_STRING &&
-                 IS_DOCUMENT_PRIMITIVE(func.arg1_datatype) &&
+                 is_document_primitive(func.arg1_datatype) &&
                  func.arg1_datatype != HYPERDATATYPE_DOCUMENT)
         {
             unsigned char* value = NULL;
@@ -239,15 +243,18 @@ datatype_document :: apply(const e::slice& old_value,
 
             if (treadstone_transformer_extract_value(trans, path.c_str(), &value, &value_sz) < 0)
             {
+                // Value doesn't exist yet
                 type = func.arg1_datatype;
                 v = e::slice();
             }
             else
             {
+                // Extract existing value from the document
                 if (!coerce_binary_to_primitive(e::slice(value, value_sz), &type, &scratch, &v))
                 {
                     return false;
                 }
+
 
                 if (type == HYPERDATATYPE_INT64 &&
                     func.arg1_datatype == HYPERDATATYPE_FLOAT)
@@ -258,9 +265,13 @@ datatype_document :: apply(const e::slice& old_value,
                     type = HYPERDATATYPE_FLOAT;
                 }
 
+                // Both types are numberal (integer or float)
+                const bool numeral = is_numeral(type) && is_numeral(func.arg1_datatype);
+
                 if (func.name != FUNC_SET &&
                     func.name != FUNC_DOC_UNSET &&
-                    func.name != FUNC_DOC_RENAME)
+                    func.name != FUNC_DOC_RENAME &&
+                    !numeral)
                 {
                     // More complex modifications (string append etc)
                     // only work with the same type
@@ -435,7 +446,7 @@ datatype_document :: coerce_primitive_to_binary(hyperdatatype type,
                                                 std::vector<char>* scratch,
                                                 e::slice* value) const
 {
-    assert(IS_DOCUMENT_PRIMITIVE(type));
+    assert(is_document_primitive(type));
     unsigned char* v = NULL;
     size_t v_sz = 0;
     e::guard g = e::makeguard(free_if_allocated, &v);
