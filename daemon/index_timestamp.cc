@@ -49,7 +49,7 @@ index_timestamp :: ~index_timestamp() throw ()
 }
 
 hyperdatatype
-index_timestamp :: datatype()
+index_timestamp :: datatype() const
 {
     return m_type;
 }
@@ -64,31 +64,31 @@ index_encoding_timestamp :: ~index_encoding_timestamp() throw ()
 }
 
 bool
-index_encoding_timestamp :: encoding_fixed()
+index_encoding_timestamp :: encoding_fixed() const
 {
     return m_iei.encoding_fixed();
 }
 
 size_t
-index_encoding_timestamp :: encoded_size(const e::slice& x)
+index_encoding_timestamp :: encoded_size(const e::slice& x) const
 {
     return m_iei.encoded_size(x);
 }
 
 char*
-index_encoding_timestamp :: encode(const e::slice& decoded, char* encoded)
+index_encoding_timestamp :: encode(const e::slice& decoded, char* encoded) const
 {
     return m_iei.encode(decoded, encoded);
 }
 
 size_t
-index_encoding_timestamp :: decoded_size(const e::slice& x)
+index_encoding_timestamp :: decoded_size(const e::slice& x) const
 {
     return m_iei.decoded_size(x);
 }
 
 char*
-index_encoding_timestamp :: decode(const e::slice& encoded, char* decoded)
+index_encoding_timestamp :: decode(const e::slice& encoded, char* decoded) const
 {
     return m_iei.decode(encoded, decoded);
 }

@@ -41,38 +41,39 @@ using hyperdex::datalayer;
 using hyperdex::index_encoding;
 using hyperdex::index_info;
 
-static hyperdex::index_encoding_string e_string;
-static hyperdex::index_encoding_int64 e_int64;
-static hyperdex::index_encoding_float e_float;
-static hyperdex::index_encoding_timestamp e_timestamp;
+static const hyperdex::index_encoding_string e_string;
+static const hyperdex::index_encoding_document e_document;
+static const hyperdex::index_encoding_int64 e_int64;
+static const hyperdex::index_encoding_float e_float;
+static const hyperdex::index_encoding_timestamp e_timestamp;
 
-static hyperdex::index_string i_string;
-static hyperdex::index_int64 i_int64;
-static hyperdex::index_float i_float;
-static hyperdex::index_document i_document;
-static hyperdex::index_list i_list_string(HYPERDATATYPE_STRING);
-static hyperdex::index_list i_list_int64(HYPERDATATYPE_INT64);
-static hyperdex::index_list i_list_float(HYPERDATATYPE_FLOAT);
-static hyperdex::index_set i_set_string(HYPERDATATYPE_STRING);
-static hyperdex::index_set i_set_int64(HYPERDATATYPE_INT64);
-static hyperdex::index_set i_set_float(HYPERDATATYPE_FLOAT);
-static hyperdex::index_map i_map_string_string(HYPERDATATYPE_STRING, HYPERDATATYPE_STRING);
-static hyperdex::index_map i_map_string_int64(HYPERDATATYPE_STRING, HYPERDATATYPE_INT64);
-static hyperdex::index_map i_map_string_float(HYPERDATATYPE_STRING, HYPERDATATYPE_FLOAT);
-static hyperdex::index_map i_map_int64_string(HYPERDATATYPE_INT64, HYPERDATATYPE_STRING);
-static hyperdex::index_map i_map_int64_int64(HYPERDATATYPE_INT64, HYPERDATATYPE_INT64);
-static hyperdex::index_map i_map_int64_float(HYPERDATATYPE_INT64, HYPERDATATYPE_FLOAT);
-static hyperdex::index_map i_map_float_string(HYPERDATATYPE_FLOAT, HYPERDATATYPE_STRING);
-static hyperdex::index_map i_map_float_int64(HYPERDATATYPE_FLOAT, HYPERDATATYPE_INT64);
-static hyperdex::index_map i_map_float_float(HYPERDATATYPE_FLOAT, HYPERDATATYPE_FLOAT);
-static hyperdex::index_timestamp i_timestamp_second(HYPERDATATYPE_TIMESTAMP_SECOND);
-static hyperdex::index_timestamp i_timestamp_minute(HYPERDATATYPE_TIMESTAMP_MINUTE);
-static hyperdex::index_timestamp i_timestamp_hour(HYPERDATATYPE_TIMESTAMP_HOUR);
-static hyperdex::index_timestamp i_timestamp_day(HYPERDATATYPE_TIMESTAMP_DAY);
-static hyperdex::index_timestamp i_timestamp_week(HYPERDATATYPE_TIMESTAMP_WEEK);
-static hyperdex::index_timestamp i_timestamp_month(HYPERDATATYPE_TIMESTAMP_MONTH);
+static const hyperdex::index_string i_string;
+static const hyperdex::index_int64 i_int64;
+static const hyperdex::index_float i_float;
+static const hyperdex::index_document i_document;
+static const hyperdex::index_list i_list_string(HYPERDATATYPE_STRING);
+static const hyperdex::index_list i_list_int64(HYPERDATATYPE_INT64);
+static const hyperdex::index_list i_list_float(HYPERDATATYPE_FLOAT);
+static const hyperdex::index_set i_set_string(HYPERDATATYPE_STRING);
+static const hyperdex::index_set i_set_int64(HYPERDATATYPE_INT64);
+static const hyperdex::index_set i_set_float(HYPERDATATYPE_FLOAT);
+static const hyperdex::index_map i_map_string_string(HYPERDATATYPE_STRING, HYPERDATATYPE_STRING);
+static const hyperdex::index_map i_map_string_int64(HYPERDATATYPE_STRING, HYPERDATATYPE_INT64);
+static const hyperdex::index_map i_map_string_float(HYPERDATATYPE_STRING, HYPERDATATYPE_FLOAT);
+static const hyperdex::index_map i_map_int64_string(HYPERDATATYPE_INT64, HYPERDATATYPE_STRING);
+static const hyperdex::index_map i_map_int64_int64(HYPERDATATYPE_INT64, HYPERDATATYPE_INT64);
+static const hyperdex::index_map i_map_int64_float(HYPERDATATYPE_INT64, HYPERDATATYPE_FLOAT);
+static const hyperdex::index_map i_map_float_string(HYPERDATATYPE_FLOAT, HYPERDATATYPE_STRING);
+static const hyperdex::index_map i_map_float_int64(HYPERDATATYPE_FLOAT, HYPERDATATYPE_INT64);
+static const hyperdex::index_map i_map_float_float(HYPERDATATYPE_FLOAT, HYPERDATATYPE_FLOAT);
+static const hyperdex::index_timestamp i_timestamp_second(HYPERDATATYPE_TIMESTAMP_SECOND);
+static const hyperdex::index_timestamp i_timestamp_minute(HYPERDATATYPE_TIMESTAMP_MINUTE);
+static const hyperdex::index_timestamp i_timestamp_hour(HYPERDATATYPE_TIMESTAMP_HOUR);
+static const hyperdex::index_timestamp i_timestamp_day(HYPERDATATYPE_TIMESTAMP_DAY);
+static const hyperdex::index_timestamp i_timestamp_week(HYPERDATATYPE_TIMESTAMP_WEEK);
+static const hyperdex::index_timestamp i_timestamp_month(HYPERDATATYPE_TIMESTAMP_MONTH);
 
-index_encoding*
+const index_encoding*
 index_encoding :: lookup(hyperdatatype datatype)
 {
     switch (datatype)
@@ -90,8 +91,9 @@ index_encoding :: lookup(hyperdatatype datatype)
         case HYPERDATATYPE_TIMESTAMP_WEEK:
         case HYPERDATATYPE_TIMESTAMP_MONTH:
             return &e_timestamp;
-        case HYPERDATATYPE_GENERIC:
         case HYPERDATATYPE_DOCUMENT:
+            return &e_document;
+        case HYPERDATATYPE_GENERIC:
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_LIST_STRING:
         case HYPERDATATYPE_LIST_INT64:
@@ -129,7 +131,7 @@ index_encoding :: ~index_encoding() throw ()
 {
 }
 
-index_info*
+const index_info*
 index_info :: lookup(hyperdatatype datatype)
 {
     switch (datatype)
@@ -209,7 +211,7 @@ index_info :: ~index_info() throw ()
 
 datalayer::index_iterator*
 index_info :: iterator_for_keys(leveldb_snapshot_ptr,
-                                const region_id&)
+                                const region_id&) const
 {
     return NULL;
 }
@@ -219,7 +221,7 @@ index_info :: iterator_from_range(leveldb_snapshot_ptr,
                                   const region_id&,
                                   const index_id&,
                                   const range&,
-                                  index_encoding*)
+                                  const index_encoding*) const
 {
     return NULL;
 }
@@ -229,7 +231,7 @@ index_info :: iterator_from_check(leveldb_snapshot_ptr,
                                   const region_id&,
                                   const index_id&,
                                   const attribute_check&,
-                                  index_encoding*)
+                                  const index_encoding*) const
 {
     return NULL;
 }

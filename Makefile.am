@@ -844,7 +844,7 @@ stress_wrappers += test/sh/search.combination.keytype=string,daemons=4.fault-tol
 shell_wrappers += $(stress_wrappers)
 
 python_wrappers =
-#python_wrappers += test/sh/bindings.python.Admin.sh
+python_wrappers += test/sh/bindings.python.Admin.sh
 python_wrappers += test/sh/bindings.python.BasicSearch.sh
 python_wrappers += test/sh/bindings.python.Basic.sh
 python_wrappers += test/sh/bindings.python.CondPut.sh
@@ -870,6 +870,7 @@ python_wrappers += test/sh/bindings.python.DataTypeString.sh
 python_wrappers += test/sh/bindings.python.GroupAtomic.sh
 python_wrappers += test/sh/bindings.python.HyperMongo.sh
 python_wrappers += test/sh/bindings.python.LengthString.sh
+python_wrappers += test/sh/bindings.python.Microtransactions.sh
 python_wrappers += test/sh/bindings.python.MultiAttribute.sh
 python_wrappers += test/sh/bindings.python.RangeSearchInt.sh
 python_wrappers += test/sh/bindings.python.RangeSearchString.sh

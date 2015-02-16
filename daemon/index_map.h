@@ -43,11 +43,11 @@ class index_map : public index_container
         virtual ~index_map() throw ();
 
     private:
-        virtual hyperdatatype datatype();
+        virtual hyperdatatype datatype() const;
         virtual void extract_elements(const e::slice& container,
-                                      std::vector<e::slice>* elems);
-        virtual datatype_info* element_datatype_info();
-        virtual index_info* element_index_info();
+                                      std::vector<e::slice>* elems) const;
+        virtual const datatype_info* element_datatype_info() const;
+        virtual const index_info* element_index_info() const;
 
     private:
         hyperdatatype m_key_datatype;

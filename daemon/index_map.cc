@@ -47,7 +47,7 @@ index_map :: ~index_map() throw ()
 }
 
 hyperdatatype
-index_map :: datatype()
+index_map :: datatype() const
 {
     return CREATE_CONTAINER2(HYPERDATATYPE_MAP_GENERIC,
                              m_key_datatype,
@@ -56,7 +56,7 @@ index_map :: datatype()
 
 void
 index_map :: extract_elements(const e::slice& map,
-                              std::vector<e::slice>* elems)
+                              std::vector<e::slice>* elems) const
 {
     datatype_info* elem_k = datatype_info::lookup(m_key_datatype);
     datatype_info* elem_v = datatype_info::lookup(m_val_datatype);
@@ -78,14 +78,14 @@ index_map :: extract_elements(const e::slice& map,
     assert(ptr == end);
 }
 
-datatype_info*
-index_map :: element_datatype_info()
+const datatype_info*
+index_map :: element_datatype_info() const
 {
     return datatype_info::lookup(m_key_datatype);
 }
 
-index_info*
-index_map :: element_index_info()
+const index_info*
+index_map :: element_index_info() const
 {
     return index_info::lookup(m_key_datatype);
 }

@@ -97,7 +97,7 @@ hyperdex :: encode_key(const region_id& ri,
                        std::vector<char>* scratch,
                        leveldb::Slice* out)
 {
-    index_encoding* ie(index_encoding::lookup(key_type));
+    const index_encoding* ie(index_encoding::lookup(key_type));
     size_t sz = object_prefix_sz(ri) + ie->encoded_size(key);
 
     if (scratch->size() < sz)
@@ -291,7 +291,7 @@ hyperdex :: create_index_changes(const schema& sc,
     assert(!old_value || !new_value || old_value->size() == new_value->size());
     assert(!old_value || old_value->size() + 1 == sc.attrs_sz);
     assert(!new_value || new_value->size() + 1 == sc.attrs_sz);
-    index_encoding* key_ie = index_encoding::lookup(sc.attrs[0].type);
+    const index_encoding* key_ie = index_encoding::lookup(sc.attrs[0].type);
 
     for (size_t i = 0; i < indices.size(); ++i)
     {
@@ -300,7 +300,7 @@ hyperdex :: create_index_changes(const schema& sc,
         assert(idx->attr > 0);
         assert(idx->attr < sc.attrs_sz);
 
-        index_info* ai = index_info::lookup(sc.attrs[idx->attr].type);
+        const index_info* ai = index_info::lookup(sc.attrs[idx->attr].type);
         assert(ai);
 
         const e::slice* old_attr = NULL;

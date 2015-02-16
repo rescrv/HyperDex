@@ -40,7 +40,7 @@ using hyperdex::index_primitive;
 inline leveldb::Slice e2level(const e::slice& s) { return leveldb::Slice(reinterpret_cast<const char*>(s.data()), s.size()); }
 inline e::slice level2e(const leveldb::Slice& s) { return e::slice(s.data(), s.size()); }
 
-index_primitive :: index_primitive(index_encoding* ie)
+index_primitive :: index_primitive(const index_encoding* ie)
     : m_ie(ie)
 {
 }
@@ -52,11 +52,11 @@ index_primitive :: ~index_primitive() throw ()
 void
 index_primitive :: index_changes(const index* idx,
                                  const region_id& ri,
-                                 index_encoding* key_ie,
+                                 const index_encoding* key_ie,
                                  const e::slice& key,
                                  const e::slice* old_value,
                                  const e::slice* new_value,
-                                 leveldb::WriteBatch* updates)
+                                 leveldb::WriteBatch* updates) const
 {
     std::vector<char> scratch;
     e::slice slice;
@@ -81,7 +81,7 @@ index_primitive :: index_changes(const index* idx,
 
 datalayer::index_iterator*
 index_primitive :: iterator_for_keys(leveldb_snapshot_ptr snap,
-                                     const region_id& ri)
+                                     const region_id& ri) const
 {
     range scan;
     scan.attr = 0;
@@ -89,7 +89,7 @@ index_primitive :: iterator_for_keys(leveldb_snapshot_ptr snap,
     scan.has_start = false;
     scan.has_end = false;
     scan.invalid = false;
-    index_encoding* ie = index_encoding::lookup(scan.type);
+    const index_encoding* ie = index_encoding::lookup(scan.type);
     return iterator_key(snap, ri, scan, ie);
 }
 
@@ -98,7 +98,7 @@ index_primitive :: iterator_from_range(leveldb_snapshot_ptr snap,
                                        const region_id& ri,
                                        const index_id& ii,
                                        const range& r,
-                                       index_encoding* key_ie)
+                                       const index_encoding* key_ie) const
 {
     if (r.invalid)
     {
@@ -119,7 +119,7 @@ datalayer::index_iterator*
 index_primitive :: iterator_key(leveldb_snapshot_ptr snap,
                                 const region_id& ri,
                                 const range& r,
-                                index_encoding* key_ie)
+                                const index_encoding* key_ie) const
 {
     std::vector<char> scratch_start;
     std::vector<char> scratch_limit;
@@ -165,7 +165,7 @@ index_primitive :: iterator_attr(leveldb_snapshot_ptr snap,
                                  const region_id& ri,
                                  const index_id& ii,
                                  const range& r,
-                                 index_encoding* key_ie)
+                                 const index_encoding* key_ie) const
 {
     std::vector<char> scratch_start;
     std::vector<char> scratch_limit;
@@ -199,7 +199,7 @@ index_primitive :: iterator_attr(leveldb_snapshot_ptr snap,
 }
 
 size_t
-index_primitive :: index_entry_prefix_size(const region_id& ri, const index_id& ii)
+index_primitive :: index_entry_prefix_size(const region_id& ri, const index_id& ii) const
 {
     return sizeof(uint8_t)
          + e::varint_length(ri.get())
@@ -210,7 +210,7 @@ void
 index_primitive :: index_entry(const region_id& ri,
                                const index_id& ii,
                                std::vector<char>* scratch,
-                               e::slice* slice)
+                               e::slice* slice) const
 {
     size_t sz = sizeof(uint8_t)
               + e::varint_length(ri.get())
@@ -234,7 +234,7 @@ index_primitive :: index_entry(const region_id& ri,
                                const index_id& ii,
                                const e::slice& value,
                                std::vector<char>* scratch,
-                               e::slice* slice)
+                               e::slice* slice) const
 {
     size_t val_sz = m_ie->encoded_size(value);
     size_t sz = sizeof(uint8_t)
@@ -262,7 +262,7 @@ index_primitive :: index_entry(const region_id& ri,
                                const e::slice& internal_key,
                                const e::slice& value,
                                std::vector<char>* scratch,
-                               e::slice* slice)
+                               e::slice* slice) const
 {
     size_t key_sz = internal_key.size();
     size_t val_sz = m_ie->encoded_size(value);
@@ -291,11 +291,11 @@ index_primitive :: index_entry(const region_id& ri,
 void
 index_primitive :: index_entry(const region_id& ri,
                                const index_id& ii,
-                               index_encoding* key_ie,
+                               const index_encoding* key_ie,
                                const e::slice& key,
                                const e::slice& value,
                                std::vector<char>* scratch,
-                               e::slice* slice)
+                               e::slice* slice) const
 {
     size_t key_sz = key_ie->encoded_size(key);
     size_t val_sz = m_ie->encoded_size(value);

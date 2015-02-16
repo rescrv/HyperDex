@@ -698,8 +698,8 @@ datalayer :: make_search_iterator(snapshot snap,
     // pull a set of range queries from checks
     std::vector<range> ranges;
     range_searches(sc, checks, &ranges);
-    index_encoding* key_ie = index_encoding::lookup(sc.attrs[0].type);
-    index_info* key_ii = index_info::lookup(sc.attrs[0].type);
+    const index_encoding* key_ie = index_encoding::lookup(sc.attrs[0].type);
+    const index_info* key_ii = index_info::lookup(sc.attrs[0].type);
 
     // for each range query, construct an iterator
     for (size_t i = 0; i < ranges.size(); ++i)
@@ -719,7 +719,7 @@ datalayer :: make_search_iterator(snapshot snap,
         {
             assert(indices[j]->attr == ranges[i].attr);
             const index* idx = indices[j];
-            index_info* ii = index_info::lookup(ranges[i].type);
+            const index_info* ii = index_info::lookup(ranges[i].type);
 
             if (!ii)
             {
@@ -749,7 +749,7 @@ datalayer :: make_search_iterator(snapshot snap,
         for (size_t j = 0; j < indices.size(); ++j)
         {
             const index* idx = indices[j];
-            index_info* ii = index_info::lookup(sc.attrs[checks[i].attr].type);
+            const index_info* ii = index_info::lookup(sc.attrs[checks[i].attr].type);
 
             if (!ii)
             {
