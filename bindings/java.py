@@ -68,7 +68,6 @@ def CTYPEOF(x):
         return 'jobject'
 
 def generate_prototype(x):
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
     args_list = ', '.join([JTYPEOF(arg) + ' ' + arg.__name__.lower() for arg in x.args_in])
     if x.form == bindings.AsyncCall:
         if x.args_out == (bindings.Status, bindings.Attributes):
@@ -90,15 +89,19 @@ def generate_prototype(x):
         proto += '        return ({2}) async_{0}({1}).waitForIt();\n'.format(x.name, args_list, ret)
         proto += '    }\n'
         return proto
-    if x.form == bindings.Iterator:
+    elif (x.form == bindings.MicrotransactionCall or x.form == bindings.Iterator):
         return '    public native Iterator {0}({1});\n'.format(x.name, args_list)
+    else:
+        assert False
 
 def generate_worker(call, x):
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
     if x.form == bindings.AsyncCall:
         cls = 'deferred'
-    if x.form == bindings.Iterator:
+    elif x.form == bindings.Iterator:
         cls = 'iterator'
+    else:
+        assert False
+        
     fptr = bindings.c.generate_func_ptr(x, 'client')
     func = 'JNIEXPORT HYPERDEX_API jobject JNICALL\n'
     func += 'hyperdex_java_client_{0}(JNIEnv* env, jobject obj, {1}'.format(call, fptr)
@@ -141,16 +144,21 @@ def generate_workers(xs):
         call = bindings.call_name(x)
         if call in calls:
             continue
+        if x.form is bindings.MicrotransactionCall:
+            return
         yield generate_worker(call, x)
         calls.add(call)
 
 def generate_definition(x):
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
     func = 'JNIEXPORT HYPERDEX_API jobject JNICALL\n'
     if x.form == bindings.AsyncCall:
         func += 'Java_org_hyperdex_client_Client_async_1{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
-    if x.form == bindings.Iterator:
+    elif x.form == bindings.Iterator:
         func += 'Java_org_hyperdex_client_Client_{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
+    elif x.form == bindings.MicrotransactionCall:
+        func += 'Java_org_hyperdex_client_Client_{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
+    else:
+        assert False
     for arg in x.args_in:
         func += ', ' + CTYPEOF(arg) + ' ' + arg.__name__.lower()
     func += ')\n{\n'
@@ -238,7 +246,7 @@ def generate_api_block(x, lib):
 
 def generate_client_java():
     fout = open(os.path.join(BASE, 'bindings/java/org/hyperdex/client/Client.java'), 'w')
-    fout.write(bindings.copyright('*', '2013-2014'))
+    fout.write(bindings.copyright('*', '2013-2015'))
     fout.write(bindings.java.JAVA_HEAD)
     fout.write('\n'.join([generate_prototype(c) for c in bindings.Client]))
     fout.write('}\n')

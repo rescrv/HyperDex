@@ -1260,7 +1260,7 @@ microtransaction* client::microtransaction_init(const char* space, hyperdex_clie
     return new microtransaction(space, *sc, status);
 }
 
-int64_t client::microtransaciton_add_funcall(microtransaction *transaction,
+int64_t client::microtransaction_add_funcall(microtransaction *transaction,
                                   const hyperdex_client_keyop_info* opinfo,
                                   const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                   const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz)

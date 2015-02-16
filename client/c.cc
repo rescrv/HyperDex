@@ -1969,10 +1969,12 @@ hyperdex_client_microtransaction_put(struct hyperdex_client* _cl,
                                      struct hyperdex_client_microtransaction* microtransaction,
                                      const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
 {
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
     C_WRAP_EXCEPT(
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(microtransaction_put), strlen(XSTR(microtransaction_put)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+    return cl->microtransaction_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
     );
 }
 

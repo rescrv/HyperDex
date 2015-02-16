@@ -1242,3 +1242,9 @@ Java_org_hyperdex_client_Client_async_1count(JNIEnv* env, jobject obj, jstring s
 {
     return hyperdex_java_client_asynccall__spacename_predicates__status_count(env, obj, hyperdex_client_count, spacename, predicates);
 }
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_microtransaction_1put(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_microtransaction_put, microtransaction, attributes);
+}

@@ -135,7 +135,7 @@ class client
                                    hyperdex_client_returncode *status);
 
         // Add a new funcall to the microstransaction
-        int64_t microtransaciton_add_funcall(microtransaction *transaction,
+        int64_t microtransaction_add_funcall(microtransaction *transaction,
                                           const hyperdex_client_keyop_info* opinfo,
                                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                           const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz);

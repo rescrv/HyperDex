@@ -143,25 +143,12 @@ def generate_client_c_wrapper(x):
         func += ',\n' + padd
         func += ', '.join([p + '* ' + n for p, n in arg.args])
     func += ')\n{\n'
-    func += '    C_WRAP_EXCEPT(\n'
-    if x.name == 'get':
-        func += '    return cl->get(space, key, key_sz, status, attrs, attrs_sz);\n'
-    elif x.name == 'get_partial':
-        func += '    return cl->get_partial(space, key, key_sz, attrnames, attrnames_sz, status, attrs, attrs_sz);\n'
-    elif x.name == 'search':
-        func += '    return cl->search(space, checks, checks_sz, status, attrs, attrs_sz);\n'
-    elif x.name == 'search_describe':
-        func += '    return cl->search_describe(space, checks, checks_sz, status, description);\n'
-    elif x.name == 'sorted_search':
-        func += '    return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maxmin, status, attrs, attrs_sz);\n'
-    elif x.name == 'count':
-        func += '    return cl->count(space, checks, checks_sz, status, count);\n'
-    elif x.name.startswith('group_'):
-        args = ('opinfo', 'space', )
-        if bindings.Predicates in x.args_in:
-            args += ('checks', 'checks_sz')
-        else:
-            args += ('NULL', '0')
+    
+    if x.name.startswith('microtransaction_'):
+        func += '    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);\n'
+        func += '    hyperdex_client_returncode *status = tx->status;\n'
+        func += '    C_WRAP_EXCEPT(\n'
+        args = ('tx',  'opinfo')
         if bindings.Attributes in x.args_in:
             args += ('attrs', 'attrs_sz')
         else:
@@ -170,33 +157,67 @@ def generate_client_c_wrapper(x):
             args += ('mapattrs', 'mapattrs_sz')
         else:
             args += ('NULL', '0')
-        args += ('status', 'count')
         func += '    const hyperdex_client_keyop_info* opinfo;\n'
         func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
-        func += '    return cl->perform_group_funcall('
+        func += '    return cl->microtransaction_add_funcall('
         func += ', '.join([a for a in args])
         func += ');\n'
+        func += '    );\n'
     else:
-        args = ('opinfo', 'space', 'key', 'key_sz')
-        if bindings.Predicates in x.args_in:
-            args += ('checks', 'checks_sz')
+        func += '    C_WRAP_EXCEPT(\n'
+        if x.name == 'get':
+            func += '    return cl->get(space, key, key_sz, status, attrs, attrs_sz);\n'
+        elif x.name == 'get_partial':
+            func += '    return cl->get_partial(space, key, key_sz, attrnames, attrnames_sz, status, attrs, attrs_sz);\n'
+        elif x.name == 'search':
+            func += '    return cl->search(space, checks, checks_sz, status, attrs, attrs_sz);\n'
+        elif x.name == 'search_describe':
+            func += '    return cl->search_describe(space, checks, checks_sz, status, description);\n'
+        elif x.name == 'sorted_search':
+            func += '    return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maxmin, status, attrs, attrs_sz);\n'
+        elif x.name == 'count':
+            func += '    return cl->count(space, checks, checks_sz, status, count);\n'
+        elif x.name.startswith('group_'):
+            args = ('opinfo', 'space', )
+            if bindings.Predicates in x.args_in:
+                args += ('checks', 'checks_sz')
+            else:
+                args += ('NULL', '0')
+            if bindings.Attributes in x.args_in:
+                args += ('attrs', 'attrs_sz')
+            else:
+                args += ('NULL', '0')
+            if bindings.MapAttributes in x.args_in:
+                args += ('mapattrs', 'mapattrs_sz')
+            else:
+                args += ('NULL', '0')
+            args += ('status', 'count')
+            func += '    const hyperdex_client_keyop_info* opinfo;\n'
+            func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
+            func += '    return cl->perform_group_funcall('
+            func += ', '.join([a for a in args])
+            func += ');\n'
         else:
-            args += ('NULL', '0')
-        if bindings.Attributes in x.args_in:
-            args += ('attrs', 'attrs_sz')
-        else:
-            args += ('NULL', '0')
-        if bindings.MapAttributes in x.args_in:
-            args += ('mapattrs', 'mapattrs_sz')
-        else:
-            args += ('NULL', '0')
-        args += ('status',)
-        func += '    const hyperdex_client_keyop_info* opinfo;\n'
-        func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
-        func += '    return cl->perform_funcall('
-        func += ', '.join([a for a in args])
-        func += ');\n'
-    func += '    );\n'
+            args = ('opinfo', 'space', 'key', 'key_sz')
+            if bindings.Predicates in x.args_in:
+                args += ('checks', 'checks_sz')
+            else:
+                args += ('NULL', '0')
+            if bindings.Attributes in x.args_in:
+                args += ('attrs', 'attrs_sz')
+            else:
+                args += ('NULL', '0')
+            if bindings.MapAttributes in x.args_in:
+                args += ('mapattrs', 'mapattrs_sz')
+            else:
+                args += ('NULL', '0')
+            args += ('status',)
+            func += '    const hyperdex_client_keyop_info* opinfo;\n'
+            func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
+            func += '    return cl->perform_funcall('
+            func += ', '.join([a for a in args])
+            func += ');\n'
+        func += '    );\n'
     func += '}\n'
     return func
 

@@ -967,6 +967,14 @@ JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_sorted_1s
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1count
   (JNIEnv *, jobject, jstring, jobject);
 
+/*
+ * Class:     org_hyperdex_client_Client
+ * Method:    microtransaction_put
+ * Signature: (Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_microtransaction_1put
+  (JNIEnv *, jobject, jobject, jobject);
+
 #ifdef __cplusplus
 }
 #endif

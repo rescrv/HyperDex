@@ -59,8 +59,10 @@ def PYTYPEOF(x):
         return 'int'
     elif x == bindings.MaxMin:
         return 'str'
-    print x
-    assert False
+    elif x == bindings.Microtransaction:
+        return ''
+    else:
+        raise RuntimeError("Unknown type" + str(x))
 
 def indent(x):
     ret = ''
@@ -149,7 +151,7 @@ def generate_function_pointer_typedefs(xs, lib):
         call = bindings.call_name(x)
         if call in calls:
             continue
-        assert x.form in (bindings.AsyncCall, bindings.Iterator)
+        assert x.form in (bindings.AsyncCall, bindings.Iterator, bindings.MicrotransactionCall)
         yield 'ctypedef ' + generate_function_ptr(x, call + '_fptr', lib)
         calls.add(call)
 
@@ -159,17 +161,36 @@ def generate_workers(xs):
         call = bindings.call_name(x)
         if call in calls:
             continue
-        assert x.form in (bindings.AsyncCall, bindings.Iterator)
+        if x.form is bindings.MicrotransactionCall:
+            continue
         if x.form == bindings.AsyncCall:
             yield generate_worker_asynccall(call, x)
-        if x.form == bindings.Iterator:
+        elif x.form == bindings.Iterator:
             yield generate_worker_iterator(call, x)
+        else:
+            raise RuntimeError('unknown function type')
         calls.add(call)
+        
+def generate_microtransaction_method(x, lib):
+    if not (x.form is bindings.MicrotransactionCall):
+        return ''
+        
+    typed_args = ', '.join([(PYTYPEOF(arg) + ' ' + arg_name(arg)).strip()
+                             for arg in x.args_in])
+    arg_list = ', '.join([arg_name(arg) for arg in x.args_in])
+    
+    meth =  'def {0}(self, {1}):\n'.format(name(x), typed_args)
+    meth += '    cdef hyperdex_client_attribute* in_attrs\n'
+    meth += '    cdef size_t in_attrs_sz\n'
+    meth += '    self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)\n'
+    meth += '    hyperdex_{1}_{0}(self.client.client, self.transaction, in_attrs, in_attrs_sz)\n'.format(x.name, lib)
+    meth += '    return True'
+    
+    return indent(meth)[:-1]
 
 def generate_method(x, lib, auth=True):
     auth_f = ', auth=None' if auth else ''
     auth_a = ', auth' if auth else ''
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
     typed_args = ', '.join([(PYTYPEOF(arg) + ' ' + arg_name(arg)).strip()
                              for arg in x.args_in])
     arg_list = ', '.join([arg_name(arg) for arg in x.args_in])
@@ -185,9 +206,13 @@ def generate_method(x, lib, auth=True):
         meth += 'def {0}(self, {1}{3}{2}):\n'.format(name(x), typed_args, excess, auth_f)
         meth += magic_attr
         meth += '    return self.async_{0}({1}{2}).wait()\n'.format(name(x), arg_list, auth_a)
-    if x.form == bindings.Iterator:
+    elif x.form == bindings.Iterator:
         meth  = 'def {0}(self, {1}):\n'.format(name(x), typed_args)
         meth += '    return self.{0}(hyperdex_{3}_{1}, {2})\n'.format(bindings.call_name(x), x.name, arg_list, lib)
+    elif x.form == bindings.MicrotransactionCall:
+        return '' #not in client
+    else:
+        raise RuntimeError('unknown function type')
     return indent(meth)[:-1]
 
 def generate_api_norm_func(func):
@@ -250,6 +275,8 @@ def generate_client_python():
     methods += '\n'
     methods += '\n'.join([generate_method(c, 'client') for c in bindings.Client])
     current = bindings.substitute_generated('Methods', current, methods, prefix='#')
+    utx_methods = '\n'.join([generate_microtransaction_method(c, 'client') for c in bindings.Client])
+    current = bindings.substitute_generated('UTX Methods', current, utx_methods, prefix='#')
     fout.write(current)
 
 def generate_client_doc():
