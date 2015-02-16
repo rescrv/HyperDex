@@ -158,7 +158,7 @@ def generate_client_c_wrapper(x):
         else:
             args += ('NULL', '0')
         func += '    const hyperdex_client_keyop_info* opinfo;\n'
-        func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
+        func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name.replace('microtransaction_', ''))
         func += '    return cl->microtransaction_add_funcall('
         func += ', '.join([a for a in args])
         func += ');\n'

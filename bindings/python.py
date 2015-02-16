@@ -175,11 +175,13 @@ def generate_microtransaction_method(x, lib):
     if not (x.form is bindings.MicrotransactionCall):
         return ''
         
+    py_name = name(x).replace('microtransaction_', '') 
+        
     typed_args = ', '.join([(PYTYPEOF(arg) + ' ' + arg_name(arg)).strip()
                              for arg in x.args_in])
     arg_list = ', '.join([arg_name(arg) for arg in x.args_in])
     
-    meth =  'def {0}(self, {1}):\n'.format(name(x), typed_args)
+    meth =  'def {0}(self, dict attributes):\n'.format(py_name)
     meth += '    cdef hyperdex_client_attribute* in_attrs\n'
     meth += '    cdef size_t in_attrs_sz\n'
     meth += '    self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)\n'
