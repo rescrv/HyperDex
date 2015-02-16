@@ -4120,3 +4120,30 @@ int64_t hyperdex_client_count(struct hyperdex_client* client,
 \item \code{uint64\_t* count}\\
 \input{\topdir/c/client/fragments/out_asynccall_count}
 \end{itemize}
+
+%%%%%%%%%%%%%%%%%%%% microtransaction_put %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsection{\code{microtransaction\_put}}
+\label{api:c:microtransaction_put}
+\index{microtransaction\_put!C API}
+\input{\topdir/client/fragments/microtransaction_put}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_client_microtransaction_put(struct hyperdex_client* client,
+        struct hyperdex_client_microtransaction* microtransaction,
+        const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/c/client/fragments/in_microtransactioncall_structclient}
+\item \code{struct hyperdex\_client\_microtransaction* microtransaction}\\
+\input{\topdir/c/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/c/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+Nothing

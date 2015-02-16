@@ -162,6 +162,7 @@ cdef extern from "hyperdex/client.h":
         HYPERDEX_CLIENT_GARBAGE      = 8575
 
     hyperdex_client* hyperdex_client_create(char* coordinator, uint16_t port)
+    hyperdex_microtransaction* hyperdex_client_microtransaction_init(hyperdex_client* _cl, const char* space, hyperdex_client_returncode *status)
     void hyperdex_client_destroy(hyperdex_client* client)
     int64_t hyperdex_client_loop(hyperdex_client* client, int timeout, hyperdex_client_returncode* status)
     void hyperdex_client_destroy_attrs(hyperdex_client_attribute* attrs, size_t attrs_sz)
@@ -174,7 +175,6 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_get(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_get_partial(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_put(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    hyperdex_microtransaction* hyperdex_client_microtransaction_init(hyperdex_client* _cl, const char* space, hyperdex_client_returncode *status);
     int64_t hyperdex_client_microtransaction_commit(hyperdex_client* _cl, hyperdex_microtransaction *transaction, const char* key, size_t key_sz);
     int64_t hyperdex_client_microtransaction_put(hyperdex_client* client, hyperdex_microtransaction* tx, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_put(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)

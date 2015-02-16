@@ -103,7 +103,7 @@ def generate_enum(prefix, E):
 ################################ Code Generation ###############################
 
 def generate_func(x, lib, struct=None, sep='\n', namesep='_', padd=None):
-    assert x.form in (bindings.AsyncCall, bindings.SyncCall,
+    assert x.form in (bindings.AsyncCall, bindings.SyncCall, bindings.MicrotransactionCall,
                       bindings.NoFailCall, bindings.Iterator)
     struct = struct or lib
     return_type = 'int64_t'
@@ -133,7 +133,7 @@ def generate_func_ptr(x, lib):
     return fptr
 
 def generate_client_c_wrapper(x):
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
+    assert x.form in (bindings.AsyncCall, bindings.Iterator, bindings.MicrotransactionCall)
     func = 'HYPERDEX_API int64_t\nhyperdex_client_%s(struct hyperdex_client* _cl' % x.name
     padd = ' ' * (len('hyperdex_client_') + len(x.name) + 1)
     for arg in x.args_in:
@@ -333,6 +333,7 @@ extern "C"
 #endif /* __cplusplus */
 
 struct hyperdex_client;
+struct hyperdex_client_microtransaction;
 
 struct hyperdex_client_attribute
 {
@@ -384,6 +385,16 @@ hyperdex_client_clear_auth_context(struct hyperdex_client* client);
 void
 hyperdex_client_set_auth_context(struct hyperdex_client* client,
                                  const char** macaroons, size_t macaroons_sz);
+
+struct hyperdex_client_microtransaction*
+hyperdex_client_microtransaction_init(struct hyperdex_client* _cl,
+                      const char* space,
+                      enum hyperdex_client_returncode *status);
+
+int64_t
+hyperdex_client_microtransaction_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz);
 
 '''
 
@@ -665,6 +676,32 @@ hyperdex_client_set_auth_context(struct hyperdex_client* _cl,
     SIGNAL_PROTECT_VOID;
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
     cl->set_auth_context(macaroons, macaroons_sz);
+}
+
+HYPERDEX_API struct hyperdex_client_microtransaction*
+hyperdex_client_microtransaction_init(struct hyperdex_client* _cl,
+                      const char* space,
+                      enum hyperdex_client_returncode *status)
+{
+
+    SIGNAL_PROTECT_ERR(NULL);
+    hyperdex::client *cl = reinterpret_cast<hyperdex::client*>(_cl);
+    hyperdex::microtransaction *tx = cl->microtransaction_init(space, status);
+
+    return reinterpret_cast<struct hyperdex_client_microtransaction*>(tx);
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_microtransaction_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
+    hyperdex_client_returncode *status = tx->status;
+
+    C_WRAP_EXCEPT(
+    return cl->microtransaction_commit(tx, key, key_sz);
+    );
 }
 
 '''

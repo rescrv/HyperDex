@@ -24,6 +24,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+class MicrotransactionCall : pass
 class AsyncCall: pass
 class SyncCall: pass
 class NoFailCall: pass
@@ -33,6 +34,8 @@ class StructClient(object):
     args = (('struct hyperdex_client*', 'client'),)
 class StructAdmin(object):
     args = (('struct hyperdex_admin*', 'admin'),)
+class Microtransaction(object):
+    args = (('struct hyperdex_client_microtransaction*', 'microtransaction'),)
 class SpaceName(object):
     args = (('const char*', 'space'),)
 class SpaceNameSource(object):
@@ -220,7 +223,7 @@ Client = [
     Method('search_describe', AsyncCall, (SpaceName, Predicates), (Status, Description)),
     Method('sorted_search', Iterator, (SpaceName, Predicates, SortBy, Limit, MaxMin), (Status, Attributes)),
     Method('count', AsyncCall, (SpaceName, Predicates), (Status, Count)),
-    Method('microtransaction_init'. AsyncCall, (SpaceName,), (Status)),
+    Method('microtransaction_put', MicrotransactionCall, (Microtransaction, Attributes), ()),
 ]
 
 Admin = [
