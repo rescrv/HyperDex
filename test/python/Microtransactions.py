@@ -20,9 +20,9 @@ tx = c.microtransaction_init('kv')
 tx.atomic_add({'v.a' : 2})
 tx.atomic_add({'v.b' : -1})
 tx.atomic_add({'v.c' : 3})
-#tx.put({'v.d' : Document({'x' : 'y'})})
+tx.put({'v.d' : Document({'x' : 'y'})})
 assertTrue(tx.commit('k2'))
-assertEquals(c.get('kv', 'k2')['v'], Document({'a' : 3, 'b' : -1, 'c' : 3}))
+assertEquals(c.get('kv', 'k2')['v'], Document({'a' : 3, 'b' : -1, 'c' : 3, 'd' : {'x' : 'y'}}))
 
 tx = c.microtransaction_init('kv')
 tx.atomic_div({'v.a' : 3})
@@ -31,12 +31,14 @@ tx.atomic_mul({'v.c' : 0})
 tx.document_rename({'v.d': 'v.e'})
 tx = c.microtransaction_init('kv')
 assertTrue(tx.commit('k2')) 
-assertEquals(c.get('kv', 'k2')['v'], Document({'a' : 3, 'b' : -1, 'c' : 3})) #rename should fail...
+assertEquals(c.get('kv', 'k2')['v'], Document({'a' : 3, 'b' : -1, 'c' : 3, 'd' : {'x' : 'y'}})) #rename should fail...
 
 tx = c.microtransaction_init('kv')
 tx.atomic_div({'v.a' : 3})
 tx.atomic_div({'v.b' : -1})
 tx.atomic_mul({'v.c' : 0})
 assertTrue(tx.commit('k2'))
-assertEquals(c.get('kv', 'k2')['v'], Document({'a' : 1, 'b' : 1, 'c' : 0}))
+assertEquals(c.get('kv', 'k2')['v'], Document({'a' : 1, 'b' : 1, 'c' : 0, 'd' : {'x' : 'y'}}))
+
+
 

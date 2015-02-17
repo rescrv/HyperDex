@@ -1266,10 +1266,9 @@ int64_t client::microtransaction_add_funcall(microtransaction *transaction,
                                   const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz)
 {
     size_t idx = 0;
-    e::arena memory;
 
     // Prepare the attrs
-    idx = prepare_funcs(transaction->space, transaction->sc, opinfo, attrs, attrs_sz, &memory, transaction->status, &transaction->funcalls);
+    idx = prepare_funcs(transaction->space, transaction->sc, opinfo, attrs, attrs_sz, &transaction->memory, transaction->status, &transaction->funcalls);
 
     if (idx < attrs_sz)
     {
@@ -1277,7 +1276,7 @@ int64_t client::microtransaction_add_funcall(microtransaction *transaction,
     }
 
     // Prepare the mapattrs
-    idx = prepare_funcs(transaction->space, transaction->sc, opinfo, mapattrs, mapattrs_sz, &memory, transaction->status, &transaction->funcalls);
+    idx = prepare_funcs(transaction->space, transaction->sc, opinfo, mapattrs, mapattrs_sz, &transaction->memory, transaction->status, &transaction->funcalls);
 
     if (idx < mapattrs_sz)
     {

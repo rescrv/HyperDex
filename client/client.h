@@ -53,7 +53,7 @@ struct microtransaction
 {
     microtransaction(const char* space_, const schema& sc_,
                               hyperdex_client_returncode *status_)
-        : space(space_), sc(sc_), status(status_), funcalls()
+        : space(space_), sc(sc_), status(status_), funcalls(), memory()
     {}
 
     PO6_NONCOPYABLE(microtransaction);
@@ -65,7 +65,7 @@ struct microtransaction
     const schema& sc;
     hyperdex_client_returncode* status;
     std::vector<funcall> funcalls;
-
+    e::arena memory;
 };
 
 class client
