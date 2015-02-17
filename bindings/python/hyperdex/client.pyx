@@ -1196,7 +1196,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_put(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_put(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1209,7 +1210,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_atomic_add(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_atomic_add(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1218,7 +1220,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_atomic_sub(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_atomic_sub(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1227,7 +1230,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_atomic_mul(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_atomic_mul(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1236,7 +1240,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_atomic_div(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_atomic_div(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1248,7 +1253,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_atomic_and(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_atomic_and(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1257,7 +1263,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_atomic_or(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_atomic_or(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1275,7 +1282,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_string_prepend(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_string_prepend(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1284,7 +1292,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_string_append(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_string_append(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1293,7 +1302,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_list_lpush(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_list_lpush(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1302,7 +1312,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_list_rpush(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_list_rpush(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1323,7 +1334,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_document_rename(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_document_rename(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 
@@ -1332,7 +1344,8 @@ cdef class Microtransaction:
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
         self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
-        hyperdex_client_microtransaction_document_unset(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        res = hyperdex_client_microtransaction_document_unset(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
 
 

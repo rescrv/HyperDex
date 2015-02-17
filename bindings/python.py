@@ -185,9 +185,10 @@ def generate_microtransaction_method(x, lib):
     meth += '    cdef hyperdex_client_attribute* in_attrs\n'
     meth += '    cdef size_t in_attrs_sz\n'
     meth += '    self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)\n'
-    meth += '    hyperdex_{1}_{0}(self.client.client, self.transaction, in_attrs, in_attrs_sz)\n'.format(x.name, lib)
-    meth += '    return True'
-    
+    meth += '    res = hyperdex_{1}_{0}(self.client.client, self.transaction, in_attrs, in_attrs_sz)\n'.format(x.name, lib)
+    meth += '    if res < 0:'
+    meth += '        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))\n'
+    meth += '    return True'    
     return indent(meth)[:-1]
 
 def generate_method(x, lib, auth=True):
