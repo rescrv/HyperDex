@@ -132,6 +132,12 @@ public class Client
         return (Boolean) async_cond_put(spacename, key, predicates, attributes).waitForIt();
     }
 
+    public native Deferred async_cond_put_or_create(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_put_or_create(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Boolean) async_cond_put_or_create(spacename, key, predicates, attributes).waitForIt();
+    }
+
     public native Deferred async_group_put(String spacename, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Long group_put(String spacename, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {

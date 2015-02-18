@@ -35,6 +35,8 @@ rb_define_method(class_client, "async_put", hyperdex_ruby_client_put, 3);
 rb_define_method(class_client, "put", hyperdex_ruby_client_wait_put, 3);
 rb_define_method(class_client, "async_cond_put", hyperdex_ruby_client_cond_put, 4);
 rb_define_method(class_client, "cond_put", hyperdex_ruby_client_wait_cond_put, 4);
+rb_define_method(class_client, "async_cond_put_or_create", hyperdex_ruby_client_cond_put_or_create, 4);
+rb_define_method(class_client, "cond_put_or_create", hyperdex_ruby_client_wait_cond_put_or_create, 4);
 rb_define_method(class_client, "async_group_put", hyperdex_ruby_client_group_put, 3);
 rb_define_method(class_client, "group_put", hyperdex_ruby_client_wait_group_put, 3);
 rb_define_method(class_client, "async_put_if_not_exist", hyperdex_ruby_client_put_if_not_exist, 3);

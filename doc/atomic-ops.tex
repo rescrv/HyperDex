@@ -249,6 +249,21 @@ make sure that our object reflects the changes we have applied:
 {'f': 0.0, 'i': 0, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
 \end{pythoncode}
 
+The operation \code{cond\_put\_or\_create} is a combination of \code{put\_if\_not\_exist} and \code{cond\_put}.  If the object does not exist, it will create the object, but if the object exists it will be modified only if certain fields match expected values.
+
+\begin{pythoncode}
+>>> c.cond_put_or_create('alldatatypes', 'anotherkey', {'s': 'a'}, {'s': 'b'})
+True
+>>> c.cond_put_or_create('alldatatypes', 'anotherkey', {'s': 'a'}, {'s': 'b'})
+False
+>>> c.get('alldatatypes', 'anotherkey')
+{'f': 0.0, 'i': 0, 'mss': {}, 'ss': set([]), 's': 'b', 'ls': [], 'msi': {}}
+>>> c.cond_put_or_create('alldatatypes', 'anotherkey', {'s': 'b'}, {'s': 'a'})
+True
+>>> c.get('alldatatypes', 'anotherkey')
+{'f': 0.0, 'i': 0, 'mss': {}, 'ss': set([]), 's': 'a', 'ls': [], 'msi': {}}
+\end{pythoncode}
+
 Let's now perform some atomic operations on integers and floats. These are
 self-explanatory, so we'll let the code do the talking. You will note that the
 float "f" and integer "i" fields are the ones of interest here, the rest are

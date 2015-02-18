@@ -1901,6 +1901,13 @@ func (client *Client) CondPut(spacename string, key Value, predicates []Predicat
 	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_put, spacename, key, predicates, attributes)
 }
 
+func stub_cond_put_or_create(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
+	return int64(C.hyperdex_client_cond_put_or_create(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
+}
+func (client *Client) CondPutOrCreate(spacename string, key Value, predicates []Predicate, attributes Attributes) (err *Error) {
+	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_put_or_create, spacename, key, predicates, attributes)
+}
+
 func stub_group_put(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
 	return int64(C.hyperdex_client_group_put(client, space, checks, checks_sz, attrs, attrs_sz, status, count))
 }
