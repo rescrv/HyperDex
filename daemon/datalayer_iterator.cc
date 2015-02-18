@@ -92,7 +92,7 @@ datalayer :: iterator :: ~iterator() throw ()
 
 datalayer :: replay_iterator :: replay_iterator(const region_id& ri,
                                                 leveldb_replay_iterator_ptr ptr,
-                                                index_encoding* ie)
+                                                const index_encoding* ie)
     : m_ri(ri)
     , m_iter(ptr.get())
     , m_ptr(ptr)
@@ -218,7 +218,7 @@ datalayer :: dummy_iterator :: ~dummy_iterator() throw ()
 
 datalayer :: region_iterator :: region_iterator(leveldb_iterator_ptr iter,
                                                 const region_id& ri,
-                                                index_encoding* ie)
+                                                const index_encoding* ie)
     : iterator(iter.snap())
     , m_iter(iter)
     , m_ri(ri)
@@ -337,8 +337,8 @@ datalayer :: range_index_iterator :: range_index_iterator(leveldb_snapshot_ptr s
                                                           const e::slice& range_upper,
                                                           bool has_value_lower,
                                                           bool has_value_upper,
-                                                          index_encoding* val_ie,
-                                                          index_encoding* key_ie)
+                                                          const index_encoding* val_ie,
+                                                          const index_encoding* key_ie)
     : index_iterator(s)
     , m_iter()
     , m_val_ie(val_ie)

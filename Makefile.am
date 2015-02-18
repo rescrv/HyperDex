@@ -844,11 +844,11 @@ stress_wrappers += test/sh/search.combination.keytype=string,daemons=4.fault-tol
 shell_wrappers += $(stress_wrappers)
 
 python_wrappers =
-#python_wrappers += test/sh/bindings.python.Admin.sh
+python_wrappers += test/sh/bindings.python.Admin.sh
 python_wrappers += test/sh/bindings.python.BasicSearch.sh
 python_wrappers += test/sh/bindings.python.Basic.sh
 python_wrappers += test/sh/bindings.python.CondPut.sh
-#python_wrappers += test/sh/bindings.python.DataTypeDocument.sh
+python_wrappers += test/sh/bindings.python.DataTypeDocument.sh
 python_wrappers += test/sh/bindings.python.DataTypeFloat.sh
 python_wrappers += test/sh/bindings.python.DataTypeInt.sh
 python_wrappers += test/sh/bindings.python.DataTypeListFloat.sh

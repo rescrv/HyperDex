@@ -46,7 +46,7 @@ index_string :: ~index_string() throw ()
 }
 
 hyperdatatype
-index_string :: datatype()
+index_string :: datatype() const
 {
     return HYPERDATATYPE_STRING;
 }
@@ -60,32 +60,32 @@ index_encoding_string :: ~index_encoding_string() throw ()
 }
 
 bool
-index_encoding_string :: encoding_fixed()
+index_encoding_string :: encoding_fixed() const
 {
     return false;
 }
 
 size_t
-index_encoding_string :: encoded_size(const e::slice& decoded)
+index_encoding_string :: encoded_size(const e::slice& decoded) const
 {
     return decoded.size();
 }
 
 char*
-index_encoding_string :: encode(const e::slice& decoded, char* encoded)
+index_encoding_string :: encode(const e::slice& decoded, char* encoded) const
 {
     memmove(encoded, decoded.data(), decoded.size());
     return encoded + decoded.size();
 }
 
 size_t
-index_encoding_string :: decoded_size(const e::slice& encoded)
+index_encoding_string :: decoded_size(const e::slice& encoded) const
 {
     return encoded.size();
 }
 
 char*
-index_encoding_string :: decode(const e::slice& encoded, char* decoded)
+index_encoding_string :: decode(const e::slice& encoded, char* decoded) const
 {
     memmove(decoded, encoded.data(), encoded.size());
     return decoded + encoded.size();

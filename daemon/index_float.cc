@@ -47,7 +47,7 @@ index_float :: ~index_float() throw ()
 }
 
 hyperdatatype
-index_float :: datatype()
+index_float :: datatype() const
 {
     return HYPERDATATYPE_FLOAT;
 }
@@ -61,19 +61,20 @@ index_encoding_float :: ~index_encoding_float() throw ()
 }
 
 bool
-index_encoding_float :: encoding_fixed()
+index_encoding_float :: encoding_fixed() const
 {
     return true;
 }
 
 size_t
-index_encoding_float :: encoded_size(const e::slice&)
+index_encoding_float :: encoded_size(const e::slice&) const
 {
+    // why?
     return 2 * sizeof(double);
 }
 
 char*
-index_encoding_float :: encode(const e::slice& decoded, char* encoded)
+index_encoding_float :: encode(const e::slice& decoded, char* encoded) const
 {
     datatype_info* di = datatype_info::lookup(HYPERDATATYPE_FLOAT);
     double number = 0;
@@ -90,13 +91,13 @@ index_encoding_float :: encode(const e::slice& decoded, char* encoded)
 }
 
 size_t
-index_encoding_float :: decoded_size(const e::slice&)
+index_encoding_float :: decoded_size(const e::slice&) const
 {
     return sizeof(double);
 }
 
 char*
-index_encoding_float :: decode(const e::slice& encoded, char* decoded)
+index_encoding_float :: decode(const e::slice& encoded, char* decoded) const
 {
     double number = 0;
 

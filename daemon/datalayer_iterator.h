@@ -69,7 +69,7 @@ class datalayer::iterator
 class datalayer::replay_iterator
 {
     public:
-        replay_iterator(const region_id& ri, leveldb_replay_iterator_ptr ptr, index_encoding* ie);
+        replay_iterator(const region_id& ri, leveldb_replay_iterator_ptr ptr, const index_encoding* ie);
 
     public:
         bool valid();
@@ -86,7 +86,7 @@ class datalayer::replay_iterator
         leveldb::ReplayIterator* m_iter;
         leveldb_replay_iterator_ptr m_ptr;
         std::vector<char> m_decoded;
-        index_encoding* m_ie;
+        const index_encoding *const m_ie;
 
     private:
         replay_iterator(const replay_iterator&);
@@ -114,7 +114,7 @@ class datalayer::region_iterator : public iterator
     public:
         region_iterator(leveldb_iterator_ptr iter,
                         const region_id& ri,
-                        index_encoding* ie);
+                        const index_encoding* ie);
         virtual ~region_iterator() throw ();
 
     public:
@@ -132,7 +132,7 @@ class datalayer::region_iterator : public iterator
         leveldb_iterator_ptr m_iter;
         region_id m_ri;
         std::vector<char> m_decoded;
-        index_encoding* m_ie;
+        const index_encoding *const m_ie;
 };
 
 class datalayer::index_iterator : public iterator
@@ -159,8 +159,8 @@ class datalayer::range_index_iterator : public index_iterator
                              const e::slice& range_upper,
                              bool has_value_lower,
                              bool has_value_upper,
-                             index_encoding* val_ie,
-                             index_encoding* key_ie);
+                             const index_encoding* val_ie,
+                             const index_encoding* key_ie);
         virtual ~range_index_iterator() throw ();
 
     public:
@@ -187,8 +187,8 @@ class datalayer::range_index_iterator : public index_iterator
 
     private:
         leveldb_iterator_ptr m_iter;
-        index_encoding* m_val_ie;
-        index_encoding* m_key_ie;
+        const index_encoding *const m_val_ie;
+        const index_encoding *const m_key_ie;
         e::slice m_range_prefix;
         e::slice m_range_lower;
         e::slice m_range_upper;

@@ -47,7 +47,7 @@ index_int64 :: ~index_int64() throw ()
 }
 
 hyperdatatype
-index_int64 :: datatype()
+index_int64 :: datatype() const
 {
     return HYPERDATATYPE_INT64;
 }
@@ -61,31 +61,31 @@ index_encoding_int64 :: ~index_encoding_int64() throw ()
 }
 
 bool
-index_encoding_int64 :: encoding_fixed()
+index_encoding_int64 :: encoding_fixed() const
 {
     return true;
 }
 
 size_t
-index_encoding_int64 :: encoded_size(const e::slice&)
+index_encoding_int64 :: encoded_size(const e::slice&) const
 {
     return sizeof(int64_t);
 }
 
 char*
-index_encoding_int64 :: encode(const e::slice& decoded, char* encoded)
+index_encoding_int64 :: encode(const e::slice& decoded, char* encoded) const
 {
     return e::pack64be(datatype_info::lookup(HYPERDATATYPE_INT64)->hash(decoded), encoded);
 }
 
 size_t
-index_encoding_int64 :: decoded_size(const e::slice&)
+index_encoding_int64 :: decoded_size(const e::slice&) const
 {
     return sizeof(int64_t);
 }
 
 char*
-index_encoding_int64 :: decode(const e::slice& encoded, char* decoded)
+index_encoding_int64 :: decode(const e::slice& encoded, char* decoded) const
 {
     uint64_t x = 0;
 
