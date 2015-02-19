@@ -44,28 +44,31 @@ def JTYPEOF(x):
         return 'List<String>'
     elif x == bindings.Predicates:
         return 'Map<String, Object>'
-    elif x == bindings.SpaceName:
+    elif x in (bindings.Key, bindings.SpaceName, bindings.SortBy):
         return 'String'
-    elif x == bindings.SortBy:
-        return 'String'
-    elif x == bindings.Limit:
+    elif x in (bindings.Limit, bindings.Count):
         return 'int'
     elif x == bindings.MaxMin:
         return 'boolean'
-    else:
+    elif x == bindings.Microtransaction:
+        return 'Microtransaction'
+    elif x in (bindings.Status, bindings.Description):
         return 'Object'
+    else:
+        raise RuntimeError('Unknown type: ' + str(x))
 
 def CTYPEOF(x):
-    if x == bindings.SpaceName:
-        return 'jstring'
-    elif x == bindings.SortBy:
+    if x in (bindings.SpaceName, bindings.Key, bindings.SortBy):
         return 'jstring'
     elif x == bindings.Limit:
         return 'jint'
-    elif x== bindings.MaxMin:
+    elif x == bindings.MaxMin:
         return 'jboolean'
-    else:
+    elif x in (bindings.AttributeNames, bindings.Attributes, bindings.MapAttributes,
+               bindings.Predicates, bindings.Status, bindings.Description, bindings.Microtransaction):
         return 'jobject'
+    else:
+        raise RuntimeError('Unknown type: ' + str(x))
 
 def generate_prototype(x):
     args_list = ', '.join([JTYPEOF(arg) + ' ' + arg.__name__.lower() for arg in x.args_in])
