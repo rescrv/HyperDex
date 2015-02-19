@@ -175,7 +175,7 @@ def generate_microtransaction_method(x, lib):
     if not (x.form is bindings.MicrotransactionCall):
         return ''
         
-    py_name = name(x).replace('microtransaction_', '') 
+    py_name = name(x).replace('uxact_', '') 
         
     typed_args = ', '.join([(PYTYPEOF(arg) + ' ' + arg_name(arg)).strip()
                              for arg in x.args_in])
@@ -186,7 +186,7 @@ def generate_microtransaction_method(x, lib):
     meth += '    cdef size_t in_attrs_sz\n'
     meth += '    self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)\n'
     meth += '    res = hyperdex_{1}_{0}(self.client.client, self.transaction, in_attrs, in_attrs_sz)\n'.format(x.name, lib)
-    meth += '    if res < 0:'
+    meth += '    if res < 0:\n'
     meth += '        raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))\n'
     meth += '    return True'    
     return indent(meth)[:-1]

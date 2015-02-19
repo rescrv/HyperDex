@@ -1242,7 +1242,7 @@ client :: handle_disruption(const server_id& si)
     m_busybee.drop(si.get());
 }
 
-microtransaction* client::microtransaction_init(const char* space, hyperdex_client_returncode *status)
+microtransaction* client::uxact_init(const char* space, hyperdex_client_returncode *status)
 {
     if (!maintain_coord_connection(status))
     {
@@ -1260,7 +1260,7 @@ microtransaction* client::microtransaction_init(const char* space, hyperdex_clie
     return new microtransaction(space, *sc, status);
 }
 
-int64_t client::microtransaction_add_funcall(microtransaction *transaction,
+int64_t client::uxact_add_funcall(microtransaction *transaction,
                                   const hyperdex_client_keyop_info* opinfo,
                                   const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                   const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz)
@@ -1286,7 +1286,7 @@ int64_t client::microtransaction_add_funcall(microtransaction *transaction,
     return 0;
 }
 
-int64_t client::microtransaction_commit(microtransaction *transaction,
+int64_t client::uxact_commit(microtransaction *transaction,
                                 const char* _key, size_t _key_sz)
 {
     hyperdex_client_returncode *status = transaction->status;

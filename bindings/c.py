@@ -144,7 +144,7 @@ def generate_client_c_wrapper(x):
         func += ', '.join([p + '* ' + n for p, n in arg.args])
     func += ')\n{\n'
     
-    if x.name.startswith('microtransaction_'):
+    if x.name.startswith('uxact_'):
         func += '    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);\n'
         func += '    hyperdex_client_returncode *status = tx->status;\n'
         func += '    C_WRAP_EXCEPT(\n'
@@ -158,8 +158,8 @@ def generate_client_c_wrapper(x):
         else:
             args += ('NULL', '0')
         func += '    const hyperdex_client_keyop_info* opinfo;\n'
-        func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name.replace('microtransaction_', ''))
-        func += '    return cl->microtransaction_add_funcall('
+        func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name.replace('uxact_', ''))
+        func += '    return cl->uxact_add_funcall('
         func += ', '.join([a for a in args])
         func += ');\n'
         func += '    );\n'
@@ -408,12 +408,12 @@ hyperdex_client_set_auth_context(struct hyperdex_client* client,
                                  const char** macaroons, size_t macaroons_sz);
 
 struct hyperdex_client_microtransaction*
-hyperdex_client_microtransaction_init(struct hyperdex_client* _cl,
+hyperdex_client_uxact_init(struct hyperdex_client* _cl,
                       const char* space,
                       enum hyperdex_client_returncode *status);
 
 int64_t
-hyperdex_client_microtransaction_commit(struct hyperdex_client* _cl,
+hyperdex_client_uxact_commit(struct hyperdex_client* _cl,
                                 struct hyperdex_client_microtransaction *transaction,
                                 const char* key, size_t key_sz);
 
@@ -700,20 +700,20 @@ hyperdex_client_set_auth_context(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API struct hyperdex_client_microtransaction*
-hyperdex_client_microtransaction_init(struct hyperdex_client* _cl,
+hyperdex_client_uxact_init(struct hyperdex_client* _cl,
                       const char* space,
                       enum hyperdex_client_returncode *status)
 {
 
     SIGNAL_PROTECT_ERR(NULL);
     hyperdex::client *cl = reinterpret_cast<hyperdex::client*>(_cl);
-    hyperdex::microtransaction *tx = cl->microtransaction_init(space, status);
+    hyperdex::microtransaction *tx = cl->uxact_init(space, status);
 
     return reinterpret_cast<struct hyperdex_client_microtransaction*>(tx);
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_microtransaction_commit(struct hyperdex_client* _cl,
+hyperdex_client_uxact_commit(struct hyperdex_client* _cl,
                                 struct hyperdex_client_microtransaction *transaction,
                                 const char* key, size_t key_sz)
 {
@@ -721,7 +721,7 @@ hyperdex_client_microtransaction_commit(struct hyperdex_client* _cl,
     hyperdex_client_returncode *status = tx->status;
 
     C_WRAP_EXCEPT(
-    return cl->microtransaction_commit(tx, key, key_sz);
+    return cl->uxact_commit(tx, key, key_sz);
     );
 }
 

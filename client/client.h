@@ -131,17 +131,17 @@ class client
 
         // Initiate a microtransaction
         // Status and transaction object must remain valid until the operation has completed
-        microtransaction *microtransaction_init(const char* space,
+        microtransaction *uxact_init(const char* space,
                                    hyperdex_client_returncode *status);
 
         // Add a new funcall to the microstransaction
-        int64_t microtransaction_add_funcall(microtransaction *transaction,
+        int64_t uxact_add_funcall(microtransaction *transaction,
                                           const hyperdex_client_keyop_info* opinfo,
                                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                           const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz);
 
         // Issue a microtransaction to a specific key using specific checks
-        int64_t microtransaction_commit(microtransaction *transaction,
+        int64_t uxact_commit(microtransaction *transaction,
                                         const char* key, size_t key_sz);
 
         // looping/polling

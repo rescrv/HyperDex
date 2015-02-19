@@ -131,16 +131,16 @@ int64_t hyperdex_client_put(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_put %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_put %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_put}}
-\label{api:c:microtransaction_put}
-\index{microtransaction\_put!C API}
-\input{\topdir/client/fragments/microtransaction_put}
+\subsection{\code{uxact\_put}}
+\label{api:c:uxact_put}
+\index{uxact\_put!C API}
+\input{\topdir/client/fragments/uxact_put}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_put(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_put(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -398,16 +398,16 @@ int64_t hyperdex_client_atomic_add(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_atomic_add %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_atomic\_add}}
-\label{api:c:microtransaction_atomic_add}
-\index{microtransaction\_atomic\_add!C API}
-\input{\topdir/client/fragments/microtransaction_atomic_add}
+\subsection{\code{uxact\_atomic\_add}}
+\label{api:c:uxact_atomic_add}
+\index{uxact\_atomic\_add!C API}
+\input{\topdir/client/fragments/uxact_atomic_add}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_atomic_add(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_atomic_add(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -532,16 +532,16 @@ int64_t hyperdex_client_atomic_sub(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_atomic_sub %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_sub %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_atomic\_sub}}
-\label{api:c:microtransaction_atomic_sub}
-\index{microtransaction\_atomic\_sub!C API}
-\input{\topdir/client/fragments/microtransaction_atomic_sub}
+\subsection{\code{uxact\_atomic\_sub}}
+\label{api:c:uxact_atomic_sub}
+\index{uxact\_atomic\_sub!C API}
+\input{\topdir/client/fragments/uxact_atomic_sub}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_atomic_sub(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_atomic_sub(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -666,16 +666,16 @@ int64_t hyperdex_client_atomic_mul(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_atomic_mul %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_mul %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_atomic\_mul}}
-\label{api:c:microtransaction_atomic_mul}
-\index{microtransaction\_atomic\_mul!C API}
-\input{\topdir/client/fragments/microtransaction_atomic_mul}
+\subsection{\code{uxact\_atomic\_mul}}
+\label{api:c:uxact_atomic_mul}
+\index{uxact\_atomic\_mul!C API}
+\input{\topdir/client/fragments/uxact_atomic_mul}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_atomic_mul(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_atomic_mul(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -800,16 +800,16 @@ int64_t hyperdex_client_atomic_div(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_atomic_div %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_div %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_atomic\_div}}
-\label{api:c:microtransaction_atomic_div}
-\index{microtransaction\_atomic\_div!C API}
-\input{\topdir/client/fragments/microtransaction_atomic_div}
+\subsection{\code{uxact\_atomic\_div}}
+\label{api:c:uxact_atomic_div}
+\index{uxact\_atomic\_div!C API}
+\input{\topdir/client/fragments/uxact_atomic_div}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_atomic_div(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_atomic_div(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -1042,16 +1042,16 @@ int64_t hyperdex_client_atomic_and(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_atomic_and %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_and %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_atomic\_and}}
-\label{api:c:microtransaction_atomic_and}
-\index{microtransaction\_atomic\_and!C API}
-\input{\topdir/client/fragments/microtransaction_atomic_and}
+\subsection{\code{uxact\_atomic\_and}}
+\label{api:c:uxact_atomic_and}
+\index{uxact\_atomic\_and!C API}
+\input{\topdir/client/fragments/uxact_atomic_and}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_atomic_and(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_atomic_and(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -1176,16 +1176,16 @@ int64_t hyperdex_client_atomic_or(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_atomic_or %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_or %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_atomic\_or}}
-\label{api:c:microtransaction_atomic_or}
-\index{microtransaction\_atomic\_or!C API}
-\input{\topdir/client/fragments/microtransaction_atomic_or}
+\subsection{\code{uxact\_atomic\_or}}
+\label{api:c:uxact_atomic_or}
+\index{uxact\_atomic\_or!C API}
+\input{\topdir/client/fragments/uxact_atomic_or}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_atomic_or(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_atomic_or(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -1634,16 +1634,16 @@ int64_t hyperdex_client_string_prepend(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_string_prepend %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_string_prepend %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_string\_prepend}}
-\label{api:c:microtransaction_string_prepend}
-\index{microtransaction\_string\_prepend!C API}
-\input{\topdir/client/fragments/microtransaction_string_prepend}
+\subsection{\code{uxact\_string\_prepend}}
+\label{api:c:uxact_string_prepend}
+\index{uxact\_string\_prepend!C API}
+\input{\topdir/client/fragments/uxact_string_prepend}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_string_prepend(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_string_prepend(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -1768,16 +1768,16 @@ int64_t hyperdex_client_string_append(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_string_append %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_string_append %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_string\_append}}
-\label{api:c:microtransaction_string_append}
-\index{microtransaction\_string\_append!C API}
-\input{\topdir/client/fragments/microtransaction_string_append}
+\subsection{\code{uxact\_string\_append}}
+\label{api:c:uxact_string_append}
+\index{uxact\_string\_append!C API}
+\input{\topdir/client/fragments/uxact_string_append}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_string_append(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_string_append(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -1902,16 +1902,16 @@ int64_t hyperdex_client_list_lpush(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_list_lpush %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_list_lpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_list\_lpush}}
-\label{api:c:microtransaction_list_lpush}
-\index{microtransaction\_list\_lpush!C API}
-\input{\topdir/client/fragments/microtransaction_list_lpush}
+\subsection{\code{uxact\_list\_lpush}}
+\label{api:c:uxact_list_lpush}
+\index{uxact\_list\_lpush!C API}
+\input{\topdir/client/fragments/uxact_list_lpush}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_list_lpush(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_list_lpush(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -2036,16 +2036,16 @@ int64_t hyperdex_client_list_rpush(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_list_rpush %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_list_rpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_list\_rpush}}
-\label{api:c:microtransaction_list_rpush}
-\index{microtransaction\_list\_rpush!C API}
-\input{\topdir/client/fragments/microtransaction_list_rpush}
+\subsection{\code{uxact\_list\_rpush}}
+\label{api:c:uxact_list_rpush}
+\index{uxact\_list\_rpush!C API}
+\input{\topdir/client/fragments/uxact_list_rpush}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_list_rpush(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_list_rpush(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -2602,16 +2602,16 @@ int64_t hyperdex_client_document_rename(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_document_rename %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_document_rename %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_document\_rename}}
-\label{api:c:microtransaction_document_rename}
-\index{microtransaction\_document\_rename!C API}
-\input{\topdir/client/fragments/microtransaction_document_rename}
+\subsection{\code{uxact\_document\_rename}}
+\label{api:c:uxact_document_rename}
+\index{uxact\_document\_rename!C API}
+\input{\topdir/client/fragments/uxact_document_rename}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_document_rename(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_document_rename(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
@@ -2736,16 +2736,16 @@ int64_t hyperdex_client_document_unset(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
-%%%%%%%%%%%%%%%%%%%% microtransaction_document_unset %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% uxact_document_unset %%%%%%%%%%%%%%%%%%%%
 \pagebreak
-\subsection{\code{microtransaction\_document\_unset}}
-\label{api:c:microtransaction_document_unset}
-\index{microtransaction\_document\_unset!C API}
-\input{\topdir/client/fragments/microtransaction_document_unset}
+\subsection{\code{uxact\_document\_unset}}
+\label{api:c:uxact_document_unset}
+\index{uxact\_document\_unset!C API}
+\input{\topdir/client/fragments/uxact_document_unset}
 
 \paragraph{Definition:}
 \begin{ccode}
-int64_t hyperdex_client_microtransaction_document_unset(struct hyperdex_client* client,
+int64_t hyperdex_client_uxact_document_unset(struct hyperdex_client* client,
         struct hyperdex_client_microtransaction* microtransaction,
         const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 \end{ccode}
