@@ -191,6 +191,29 @@ public Deferred async_put(
 
 \paragraph{See also:}  This is the asynchronous form of \code{put}.
 
+%%%%%%%%%%%%%%%%%%%% uxact_put %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_put}}
+\label{api:java:uxact_put}
+\index{uxact\_put!Java API}
+\input{\topdir/client/fragments/uxact_put}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_put(Object microtransaction, Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% cond_put %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{cond\_put}}
@@ -582,6 +605,31 @@ public Deferred async_atomic_add(
 
 \paragraph{See also:}  This is the asynchronous form of \code{atomic\_add}.
 
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_add %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_atomic\_add}}
+\label{api:java:uxact_atomic_add}
+\index{uxact\_atomic\_add!Java API}
+\input{\topdir/client/fragments/uxact_atomic_add}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_atomic_add(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% cond_atomic_add %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{cond\_atomic\_add}}
@@ -758,6 +806,31 @@ public Deferred async_atomic_sub(
 \input{\topdir/java/client/fragments/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{atomic\_sub}.
+
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_sub %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_atomic\_sub}}
+\label{api:java:uxact_atomic_sub}
+\index{uxact\_atomic\_sub!Java API}
+\input{\topdir/client/fragments/uxact_atomic_sub}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_atomic_sub(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_sub %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -936,6 +1009,31 @@ public Deferred async_atomic_mul(
 
 \paragraph{See also:}  This is the asynchronous form of \code{atomic\_mul}.
 
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_mul %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_atomic\_mul}}
+\label{api:java:uxact_atomic_mul}
+\index{uxact\_atomic\_mul!Java API}
+\input{\topdir/client/fragments/uxact_atomic_mul}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_atomic_mul(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% cond_atomic_mul %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{cond\_atomic\_mul}}
@@ -1112,6 +1210,31 @@ public Deferred async_atomic_div(
 \input{\topdir/java/client/fragments/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{atomic\_div}.
+
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_div %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_atomic\_div}}
+\label{api:java:uxact_atomic_div}
+\index{uxact\_atomic\_div!Java API}
+\input{\topdir/client/fragments/uxact_atomic_div}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_atomic_div(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_div %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1467,6 +1590,31 @@ public Deferred async_atomic_and(
 
 \paragraph{See also:}  This is the asynchronous form of \code{atomic\_and}.
 
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_and %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_atomic\_and}}
+\label{api:java:uxact_atomic_and}
+\index{uxact\_atomic\_and!Java API}
+\input{\topdir/client/fragments/uxact_atomic_and}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_atomic_and(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% cond_atomic_and %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{cond\_atomic\_and}}
@@ -1643,6 +1791,31 @@ public Deferred async_atomic_or(
 \input{\topdir/java/client/fragments/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{atomic\_or}.
+
+%%%%%%%%%%%%%%%%%%%% uxact_atomic_or %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_atomic\_or}}
+\label{api:java:uxact_atomic_or}
+\index{uxact\_atomic\_or!Java API}
+\input{\topdir/client/fragments/uxact_atomic_or}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_atomic_or(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% cond_atomic_or %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -2352,6 +2525,31 @@ public Deferred async_string_prepend(
 
 \paragraph{See also:}  This is the asynchronous form of \code{string\_prepend}.
 
+%%%%%%%%%%%%%%%%%%%% uxact_string_prepend %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_string\_prepend}}
+\label{api:java:uxact_string_prepend}
+\index{uxact\_string\_prepend!Java API}
+\input{\topdir/client/fragments/uxact_string_prepend}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_string_prepend(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% cond_string_prepend %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{cond\_string\_prepend}}
@@ -2528,6 +2726,31 @@ public Deferred async_string_append(
 \input{\topdir/java/client/fragments/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{string\_append}.
+
+%%%%%%%%%%%%%%%%%%%% uxact_string_append %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_string\_append}}
+\label{api:java:uxact_string_append}
+\index{uxact\_string\_append!Java API}
+\input{\topdir/client/fragments/uxact_string_append}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_string_append(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% cond_string_append %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -2706,6 +2929,31 @@ public Deferred async_list_lpush(
 
 \paragraph{See also:}  This is the asynchronous form of \code{list\_lpush}.
 
+%%%%%%%%%%%%%%%%%%%% uxact_list_lpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_list\_lpush}}
+\label{api:java:uxact_list_lpush}
+\index{uxact\_list\_lpush!Java API}
+\input{\topdir/client/fragments/uxact_list_lpush}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_list_lpush(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% cond_list_lpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{cond\_list\_lpush}}
@@ -2882,6 +3130,31 @@ public Deferred async_list_rpush(
 \input{\topdir/java/client/fragments/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{list\_rpush}.
+
+%%%%%%%%%%%%%%%%%%%% uxact_list_rpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_list\_rpush}}
+\label{api:java:uxact_list_rpush}
+\index{uxact\_list\_rpush!Java API}
+\input{\topdir/client/fragments/uxact_list_rpush}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_list_rpush(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% cond_list_rpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -3768,6 +4041,31 @@ public Deferred async_document_rename(
 
 \paragraph{See also:}  This is the asynchronous form of \code{document\_rename}.
 
+%%%%%%%%%%%%%%%%%%%% uxact_document_rename %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_document\_rename}}
+\label{api:java:uxact_document_rename}
+\index{uxact\_document\_rename!Java API}
+\input{\topdir/client/fragments/uxact_document_rename}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_document_rename(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% cond_document_rename %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{cond\_document\_rename}}
@@ -3944,6 +4242,31 @@ public Deferred async_document_unset(
 \input{\topdir/java/client/fragments/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{document\_unset}.
+
+%%%%%%%%%%%%%%%%%%%% uxact_document_unset %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{uxact\_document\_unset}}
+\label{api:java:uxact_document_unset}
+\index{uxact\_document\_unset!Java API}
+\input{\topdir/client/fragments/uxact_document_unset}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Iterator uxact_document_unset(
+        Object microtransaction,
+        Map<String, Object> attributes)
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{Object microtransaction}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% cond_document_unset %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -6650,28 +6973,3 @@ public Deferred async_count(
 \input{\topdir/java/client/fragments/return_async_asynccall__status_count}
 
 \paragraph{See also:}  This is the asynchronous form of \code{count}.
-
-%%%%%%%%%%%%%%%%%%%% microtransaction_put %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{microtransaction\_put}}
-\label{api:java:microtransaction_put}
-\index{microtransaction\_put!Java API}
-\input{\topdir/client/fragments/microtransaction_put}
-
-\paragraph{Definition:}
-\begin{javacode}
-public Iterator microtransaction_put(
-        Object microtransaction,
-        Map<String, Object> attributes)
-\end{javacode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{Object microtransaction}\\
-\input{\topdir/java/client/fragments/in_microtransactioncall_microtransaction}
-\item \code{Map<String, Object> attributes}\\
-\input{\topdir/java/client/fragments/in_microtransactioncall_attributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/java/client/fragments/return_microtransactioncall__}

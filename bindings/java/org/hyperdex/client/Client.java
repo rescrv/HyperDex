@@ -126,6 +126,8 @@ public class Client
         return (Boolean) async_put(spacename, key, attributes).waitForIt();
     }
 
+    public native Iterator uxact_put(Object microtransaction, Map<String, Object> attributes);
+
     public native Deferred async_cond_put(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_put(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
@@ -168,6 +170,8 @@ public class Client
         return (Boolean) async_atomic_add(spacename, key, attributes).waitForIt();
     }
 
+    public native Iterator uxact_atomic_add(Object microtransaction, Map<String, Object> attributes);
+
     public native Deferred async_cond_atomic_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_atomic_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
@@ -185,6 +189,8 @@ public class Client
     {
         return (Boolean) async_atomic_sub(spacename, key, attributes).waitForIt();
     }
+
+    public native Iterator uxact_atomic_sub(Object microtransaction, Map<String, Object> attributes);
 
     public native Deferred async_cond_atomic_sub(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_atomic_sub(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
@@ -204,6 +210,8 @@ public class Client
         return (Boolean) async_atomic_mul(spacename, key, attributes).waitForIt();
     }
 
+    public native Iterator uxact_atomic_mul(Object microtransaction, Map<String, Object> attributes);
+
     public native Deferred async_cond_atomic_mul(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_atomic_mul(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
@@ -221,6 +229,8 @@ public class Client
     {
         return (Boolean) async_atomic_div(spacename, key, attributes).waitForIt();
     }
+
+    public native Iterator uxact_atomic_div(Object microtransaction, Map<String, Object> attributes);
 
     public native Deferred async_cond_atomic_div(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_atomic_div(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
@@ -258,6 +268,8 @@ public class Client
         return (Boolean) async_atomic_and(spacename, key, attributes).waitForIt();
     }
 
+    public native Iterator uxact_atomic_and(Object microtransaction, Map<String, Object> attributes);
+
     public native Deferred async_cond_atomic_and(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_atomic_and(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
@@ -275,6 +287,8 @@ public class Client
     {
         return (Boolean) async_atomic_or(spacename, key, attributes).waitForIt();
     }
+
+    public native Iterator uxact_atomic_or(Object microtransaction, Map<String, Object> attributes);
 
     public native Deferred async_cond_atomic_or(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_atomic_or(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
@@ -348,6 +362,8 @@ public class Client
         return (Boolean) async_string_prepend(spacename, key, attributes).waitForIt();
     }
 
+    public native Iterator uxact_string_prepend(Object microtransaction, Map<String, Object> attributes);
+
     public native Deferred async_cond_string_prepend(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_string_prepend(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
@@ -365,6 +381,8 @@ public class Client
     {
         return (Boolean) async_string_append(spacename, key, attributes).waitForIt();
     }
+
+    public native Iterator uxact_string_append(Object microtransaction, Map<String, Object> attributes);
 
     public native Deferred async_cond_string_append(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_string_append(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
@@ -384,6 +402,8 @@ public class Client
         return (Boolean) async_list_lpush(spacename, key, attributes).waitForIt();
     }
 
+    public native Iterator uxact_list_lpush(Object microtransaction, Map<String, Object> attributes);
+
     public native Deferred async_cond_list_lpush(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_list_lpush(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
@@ -401,6 +421,8 @@ public class Client
     {
         return (Boolean) async_list_rpush(spacename, key, attributes).waitForIt();
     }
+
+    public native Iterator uxact_list_rpush(Object microtransaction, Map<String, Object> attributes);
 
     public native Deferred async_cond_list_rpush(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_list_rpush(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
@@ -492,6 +514,8 @@ public class Client
         return (Boolean) async_document_rename(spacename, key, attributes).waitForIt();
     }
 
+    public native Iterator uxact_document_rename(Object microtransaction, Map<String, Object> attributes);
+
     public native Deferred async_cond_document_rename(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_document_rename(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
@@ -509,6 +533,8 @@ public class Client
     {
         return (Boolean) async_document_unset(spacename, key, attributes).waitForIt();
     }
+
+    public native Iterator uxact_document_unset(Object microtransaction, Map<String, Object> attributes);
 
     public native Deferred async_cond_document_unset(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean cond_document_unset(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
@@ -789,6 +815,4 @@ public class Client
     {
         return (Long) async_count(spacename, predicates).waitForIt();
     }
-
-    public native Iterator microtransaction_put(Object microtransaction, Map<String, Object> attributes);
 }

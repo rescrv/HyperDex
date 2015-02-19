@@ -164,6 +164,7 @@ cdef extern from "hyperdex/client.h":
     hyperdex_client* hyperdex_client_create(char* coordinator, uint16_t port)
     hyperdex_client_microtransaction* hyperdex_client_uxact_init(hyperdex_client* _cl, const char* space, hyperdex_client_returncode *status)
     int64_t hyperdex_client_uxact_commit(hyperdex_client* _cl, hyperdex_client_microtransaction *utx, const char* key, size_t key_sz)
+    int64_t hyperdex_client_uxact_group_commit(hyperdex_client* _cl, hyperdex_client_microtransaction *utx, const hyperdex_client_attribute_check *chks, size_t chks_sz, uint64_t* count)
     void hyperdex_client_destroy(hyperdex_client* client)
     int64_t hyperdex_client_loop(hyperdex_client* client, int timeout, hyperdex_client_returncode* status)
     void hyperdex_client_destroy_attrs(hyperdex_client_attribute* attrs, size_t attrs_sz)
@@ -1408,6 +1409,24 @@ cdef class Microtransaction:
 
 
     # End Automatically Generated UTX Methods
+    def async_group_commit(self, dict checks):
+        cdef hyperdex_client_attribute_check* chks
+        cdef size_t chks_sz
+        self.client.convert_predicates(self.deferred.arena, checks, &chks, &chks_sz)
+
+        self.deferred.reqid = hyperdex_client_uxact_group_commit(self.client.client, self.transaction, chks, chks_sz, &self.deferred.count)
+
+        self.client.clear_auth_context()
+        if self.deferred.reqid < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        self.deferred.encode_return = hyperdex_python_client_deferred_encode_status
+
+        self.client.ops[self.deferred.reqid] = self.deferred
+        self.deferred.encode_return = hyperdex_python_client_deferred_encode_status_count
+        return self.deferred
+
+    def group_commit(self, dict checks):
+        return self.async_group_commit(checks).wait()
     
     def async_commit(self, bytes key):
         cdef const char* in_key

@@ -12,7 +12,7 @@ extern "C" {
  * Method:    _create
  * Signature: ()V
  */
-JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Deferred__1create
+JNIEXPORT HYPERDEX_API HYPERDEX_API void JNICALL Java_org_hyperdex_client_Deferred__1create
   (JNIEnv *, jobject);
 
 /*
@@ -20,7 +20,7 @@ JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Deferred__1create
  * Method:    _destroy
  * Signature: ()V
  */
-JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Deferred__1destroy
+JNIEXPORT HYPERDEX_API HYPERDEX_API void JNICALL Java_org_hyperdex_client_Deferred__1destroy
   (JNIEnv *, jobject);
 
 /*
@@ -28,7 +28,7 @@ JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Deferred__1destroy
  * Method:    waitForIt
  * Signature: ()Ljava/lang/Object;
  */
-JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Deferred_waitForIt
+JNIEXPORT HYPERDEX_API HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Deferred_waitForIt
   (JNIEnv *, jobject);
 
 /*
@@ -36,7 +36,7 @@ JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Deferred_waitFor
  * Method:    callback
  * Signature: ()V
  */
-JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Deferred_callback
+JNIEXPORT HYPERDEX_API HYPERDEX_API void JNICALL Java_org_hyperdex_client_Deferred_callback
   (JNIEnv *, jobject);
 
 #ifdef __cplusplus

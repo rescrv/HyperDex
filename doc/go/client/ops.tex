@@ -99,6 +99,29 @@ func (client *Client) Put(spacename string, key Value, attributes Attributes) (e
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% UxactPut %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactPut}}
+\label{api:Go:UxactPut}
+\index{UxactPut!Go API}
+\input{\topdir/client/fragments/uxact_put}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactPut(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% CondPut %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{CondPut}}
@@ -272,6 +295,29 @@ func (client *Client) AtomicAdd(spacename string, key Value, attributes Attribut
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% UxactAtomicAdd %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactAtomicAdd}}
+\label{api:Go:UxactAtomicAdd}
+\index{UxactAtomicAdd!Go API}
+\input{\topdir/client/fragments/uxact_atomic_add}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactAtomicAdd(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% CondAtomicAdd %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{CondAtomicAdd}}
@@ -348,6 +394,29 @@ func (client *Client) AtomicSub(spacename string, key Value, attributes Attribut
 
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% UxactAtomicSub %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactAtomicSub}}
+\label{api:Go:UxactAtomicSub}
+\index{UxactAtomicSub!Go API}
+\input{\topdir/client/fragments/uxact_atomic_sub}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactAtomicSub(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% CondAtomicSub %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -426,6 +495,29 @@ func (client *Client) AtomicMul(spacename string, key Value, attributes Attribut
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% UxactAtomicMul %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactAtomicMul}}
+\label{api:Go:UxactAtomicMul}
+\index{UxactAtomicMul!Go API}
+\input{\topdir/client/fragments/uxact_atomic_mul}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactAtomicMul(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% CondAtomicMul %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{CondAtomicMul}}
@@ -502,6 +594,29 @@ func (client *Client) AtomicDiv(spacename string, key Value, attributes Attribut
 
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% UxactAtomicDiv %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactAtomicDiv}}
+\label{api:Go:UxactAtomicDiv}
+\index{UxactAtomicDiv!Go API}
+\input{\topdir/client/fragments/uxact_atomic_div}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactAtomicDiv(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% CondAtomicDiv %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -657,6 +772,29 @@ func (client *Client) AtomicAnd(spacename string, key Value, attributes Attribut
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% UxactAtomicAnd %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactAtomicAnd}}
+\label{api:Go:UxactAtomicAnd}
+\index{UxactAtomicAnd!Go API}
+\input{\topdir/client/fragments/uxact_atomic_and}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactAtomicAnd(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% CondAtomicAnd %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{CondAtomicAnd}}
@@ -733,6 +871,29 @@ func (client *Client) AtomicOr(spacename string, key Value, attributes Attribute
 
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% UxactAtomicOr %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactAtomicOr}}
+\label{api:Go:UxactAtomicOr}
+\index{UxactAtomicOr!Go API}
+\input{\topdir/client/fragments/uxact_atomic_or}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactAtomicOr(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% CondAtomicOr %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1042,6 +1203,29 @@ func (client *Client) StringPrepend(spacename string, key Value, attributes Attr
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% UxactStringPrepend %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactStringPrepend}}
+\label{api:Go:UxactStringPrepend}
+\index{UxactStringPrepend!Go API}
+\input{\topdir/client/fragments/uxact_string_prepend}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactStringPrepend(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% CondStringPrepend %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{CondStringPrepend}}
@@ -1118,6 +1302,29 @@ func (client *Client) StringAppend(spacename string, key Value, attributes Attri
 
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% UxactStringAppend %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactStringAppend}}
+\label{api:Go:UxactStringAppend}
+\index{UxactStringAppend!Go API}
+\input{\topdir/client/fragments/uxact_string_append}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactStringAppend(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% CondStringAppend %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1196,6 +1403,29 @@ func (client *Client) ListLpush(spacename string, key Value, attributes Attribut
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% UxactListLpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactListLpush}}
+\label{api:Go:UxactListLpush}
+\index{UxactListLpush!Go API}
+\input{\topdir/client/fragments/uxact_list_lpush}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactListLpush(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% CondListLpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{CondListLpush}}
@@ -1272,6 +1502,29 @@ func (client *Client) ListRpush(spacename string, key Value, attributes Attribut
 
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% UxactListRpush %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactListRpush}}
+\label{api:Go:UxactListRpush}
+\index{UxactListRpush!Go API}
+\input{\topdir/client/fragments/uxact_list_rpush}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactListRpush(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% CondListRpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -1658,6 +1911,29 @@ func (client *Client) DocumentRename(spacename string, key Value, attributes Att
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
 
+%%%%%%%%%%%%%%%%%%%% UxactDocumentRename %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactDocumentRename}}
+\label{api:Go:UxactDocumentRename}
+\index{UxactDocumentRename!Go API}
+\input{\topdir/client/fragments/uxact_document_rename}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactDocumentRename(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
+
 %%%%%%%%%%%%%%%%%%%% CondDocumentRename %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{CondDocumentRename}}
@@ -1734,6 +2010,29 @@ func (client *Client) DocumentUnset(spacename string, key Value, attributes Attr
 
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% UxactDocumentUnset %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{UxactDocumentUnset}}
+\label{api:Go:UxactDocumentUnset}
+\index{UxactDocumentUnset!Go API}
+\input{\topdir/client/fragments/uxact_document_unset}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) UxactDocumentUnset(microtransaction Microtransaction, attributes Attributes)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{microtransaction}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_microtransactioncall__}
 
 %%%%%%%%%%%%%%%%%%%% CondDocumentUnset %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -2939,26 +3238,3 @@ func (client *Client) Count(spacename string, predicates []Predicate) (count uin
 
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status_count}
-
-%%%%%%%%%%%%%%%%%%%% MicrotransactionPut %%%%%%%%%%%%%%%%%%%%
-\pagebreak
-\subsubsection{\code{MicrotransactionPut}}
-\label{api:Go:MicrotransactionPut}
-\index{MicrotransactionPut!Go API}
-\input{\topdir/client/fragments/microtransaction_put}
-
-\paragraph{Definition:}
-\begin{gocode}
-func (client *Client) MicrotransactionPut(microtransaction Microtransaction, attributes Attributes)
-\end{gocode}
-
-\paragraph{Parameters:}
-\begin{itemize}[noitemsep]
-\item \code{microtransaction}\\
-\input{\topdir/go/client/fragments/in_microtransactioncall_microtransaction}
-\item \code{attributes}\\
-\input{\topdir/go/client/fragments/in_microtransactioncall_attributes}
-\end{itemize}
-
-\paragraph{Returns:}
-\input{\topdir/go/client/fragments/return_microtransactioncall__}

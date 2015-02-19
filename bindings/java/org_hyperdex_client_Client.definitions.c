@@ -138,421 +138,6 @@ hyperdex_java_client_asynccall__spacename_key_attributes__status(JNIEnv* env, jo
     ERROR_CHECK(0);
     return op;
 }
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_attribute* attrs, size_t attrs_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key, jobject predicates, jobject attributes);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_attribute* attrs, size_t attrs_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key, jobject predicates, jobject attributes)
-{
-    const char* in_space;
-    const char* in_key;
-    size_t in_key_sz;
-    const struct hyperdex_client_attribute_check* in_checks;
-    size_t in_checks_sz;
-    const struct hyperdex_client_attribute* in_attrs;
-    size_t in_attrs_sz;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, obj);
-    struct hyperdex_java_client_deferred* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_deferred_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_key(env, obj, o->arena, key, &in_key, &in_key_sz);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_predicates(env, obj, o->arena, predicates, &in_checks, &in_checks_sz);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_attributes(env, obj, o->arena, attributes, &in_attrs, &in_attrs_sz);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_key, in_key_sz, in_checks, in_checks_sz, in_attrs, in_attrs_sz, &o->status);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_deferred_encode_status;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_attribute* attrs, size_t attrs_sz, enum hyperdex_client_returncode* status, uint64_t* count), jstring spacename, jobject predicates, jobject attributes);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_predicates_attributes__status_count(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_attribute* attrs, size_t attrs_sz, enum hyperdex_client_returncode* status, uint64_t* count), jstring spacename, jobject predicates, jobject attributes)
-{
-    const char* in_space;
-    const struct hyperdex_client_attribute_check* in_checks;
-    size_t in_checks_sz;
-    const struct hyperdex_client_attribute* in_attrs;
-    size_t in_attrs_sz;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, obj);
-    struct hyperdex_java_client_deferred* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_deferred_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_predicates(env, obj, o->arena, predicates, &in_checks, &in_checks_sz);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_attributes(env, obj, o->arena, attributes, &in_attrs, &in_attrs_sz);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_checks, in_checks_sz, in_attrs, in_attrs_sz, &o->status, &o->count);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_deferred_encode_status_count;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key)
-{
-    const char* in_space;
-    const char* in_key;
-    size_t in_key_sz;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, obj);
-    struct hyperdex_java_client_deferred* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_deferred_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_key(env, obj, o->arena, key, &in_key, &in_key_sz);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_key, in_key_sz, &o->status);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_deferred_encode_status;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key_predicates__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key, jobject predicates);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key_predicates__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key, jobject predicates)
-{
-    const char* in_space;
-    const char* in_key;
-    size_t in_key_sz;
-    const struct hyperdex_client_attribute_check* in_checks;
-    size_t in_checks_sz;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, obj);
-    struct hyperdex_java_client_deferred* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_deferred_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_key(env, obj, o->arena, key, &in_key, &in_key_sz);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_predicates(env, obj, o->arena, predicates, &in_checks, &in_checks_sz);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_key, in_key_sz, in_checks, in_checks_sz, &o->status);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_deferred_encode_status;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_predicates__status_count(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, enum hyperdex_client_returncode* status, uint64_t* count), jstring spacename, jobject predicates);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_predicates__status_count(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, enum hyperdex_client_returncode* status, uint64_t* count), jstring spacename, jobject predicates)
-{
-    const char* in_space;
-    const struct hyperdex_client_attribute_check* in_checks;
-    size_t in_checks_sz;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, obj);
-    struct hyperdex_java_client_deferred* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_deferred_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_predicates(env, obj, o->arena, predicates, &in_checks, &in_checks_sz);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_checks, in_checks_sz, &o->status, &o->count);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_deferred_encode_status_count;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key_mapattributes__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key, jobject mapattributes);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key_mapattributes__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key, jobject mapattributes)
-{
-    const char* in_space;
-    const char* in_key;
-    size_t in_key_sz;
-    const struct hyperdex_client_map_attribute* in_mapattrs;
-    size_t in_mapattrs_sz;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, obj);
-    struct hyperdex_java_client_deferred* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_deferred_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_key(env, obj, o->arena, key, &in_key, &in_key_sz);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_mapattributes(env, obj, o->arena, mapattributes, &in_mapattrs, &in_mapattrs_sz);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_key, in_key_sz, in_mapattrs, in_mapattrs_sz, &o->status);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_deferred_encode_status;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key_predicates_mapattributes__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key, jobject predicates, jobject mapattributes);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_key_predicates_mapattributes__status(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const char* key, size_t key_sz, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, enum hyperdex_client_returncode* status), jstring spacename, jobject key, jobject predicates, jobject mapattributes)
-{
-    const char* in_space;
-    const char* in_key;
-    size_t in_key_sz;
-    const struct hyperdex_client_attribute_check* in_checks;
-    size_t in_checks_sz;
-    const struct hyperdex_client_map_attribute* in_mapattrs;
-    size_t in_mapattrs_sz;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, obj);
-    struct hyperdex_java_client_deferred* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_deferred_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_key(env, obj, o->arena, key, &in_key, &in_key_sz);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_predicates(env, obj, o->arena, predicates, &in_checks, &in_checks_sz);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_mapattributes(env, obj, o->arena, mapattributes, &in_mapattrs, &in_mapattrs_sz);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_key, in_key_sz, in_checks, in_checks_sz, in_mapattrs, in_mapattrs_sz, &o->status);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_deferred_encode_status;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_predicates_mapattributes__status_count(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, enum hyperdex_client_returncode* status, uint64_t* count), jstring spacename, jobject predicates, jobject mapattributes);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_predicates_mapattributes__status_count(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, enum hyperdex_client_returncode* status, uint64_t* count), jstring spacename, jobject predicates, jobject mapattributes)
-{
-    const char* in_space;
-    const struct hyperdex_client_attribute_check* in_checks;
-    size_t in_checks_sz;
-    const struct hyperdex_client_map_attribute* in_mapattrs;
-    size_t in_mapattrs_sz;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, obj);
-    struct hyperdex_java_client_deferred* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_deferred_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_predicates(env, obj, o->arena, predicates, &in_checks, &in_checks_sz);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_mapattributes(env, obj, o->arena, mapattributes, &in_mapattrs, &in_mapattrs_sz);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_checks, in_checks_sz, in_mapattrs, in_mapattrs_sz, &o->status, &o->count);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_deferred_encode_status_count;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_iterator__spacename_predicates__status_attributes(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, enum hyperdex_client_returncode* status, const struct hyperdex_client_attribute** attrs, size_t* attrs_sz), jstring spacename, jobject predicates);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_iterator__spacename_predicates__status_attributes(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, enum hyperdex_client_returncode* status, const struct hyperdex_client_attribute** attrs, size_t* attrs_sz), jstring spacename, jobject predicates)
-{
-    const char* in_space;
-    const struct hyperdex_client_attribute_check* in_checks;
-    size_t in_checks_sz;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _iterator, _iterator_init, obj);
-    struct hyperdex_java_client_iterator* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_iterator_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_predicates(env, obj, o->arena, predicates, &in_checks, &in_checks_sz);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_checks, in_checks_sz, &o->status, &o->attrs, &o->attrs_sz);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_iterator_encode_status_attributes;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_predicates__status_description(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, enum hyperdex_client_returncode* status, const char** description), jstring spacename, jobject predicates);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_asynccall__spacename_predicates__status_description(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, enum hyperdex_client_returncode* status, const char** description), jstring spacename, jobject predicates)
-{
-    const char* in_space;
-    const struct hyperdex_client_attribute_check* in_checks;
-    size_t in_checks_sz;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, obj);
-    struct hyperdex_java_client_deferred* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_deferred_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_predicates(env, obj, o->arena, predicates, &in_checks, &in_checks_sz);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_checks, in_checks_sz, &o->status, &o->description);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_deferred_encode_status_description;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_iterator__spacename_predicates_sortby_limit_maxmin__status_attributes(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const char* sort_by, uint64_t limit, int maxmin, enum hyperdex_client_returncode* status, const struct hyperdex_client_attribute** attrs, size_t* attrs_sz), jstring spacename, jobject predicates, jstring sortby, jint limit, jboolean maxmin);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-hyperdex_java_client_iterator__spacename_predicates_sortby_limit_maxmin__status_attributes(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, const char* space, const struct hyperdex_client_attribute_check* checks, size_t checks_sz, const char* sort_by, uint64_t limit, int maxmin, enum hyperdex_client_returncode* status, const struct hyperdex_client_attribute** attrs, size_t* attrs_sz), jstring spacename, jobject predicates, jstring sortby, jint limit, jboolean maxmin)
-{
-    const char* in_space;
-    const struct hyperdex_client_attribute_check* in_checks;
-    size_t in_checks_sz;
-    const char* in_sort_by;
-    uint64_t in_limit;
-    int in_maxmin;
-    int success = 0;
-    struct hyperdex_client* client = hyperdex_get_client_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _iterator, _iterator_init, obj);
-    struct hyperdex_java_client_iterator* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_iterator_ptr(env, op);
-    ERROR_CHECK(0);
-    success = hyperdex_java_client_convert_spacename(env, obj, o->arena, spacename, &in_space);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_predicates(env, obj, o->arena, predicates, &in_checks, &in_checks_sz);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_sortby(env, obj, o->arena, sortby, &in_sort_by);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_limit(env, obj, o->arena, limit, &in_limit);
-    if (success < 0) return 0;
-    success = hyperdex_java_client_convert_maxmin(env, obj, o->arena, maxmin, &in_maxmin);
-    if (success < 0) return 0;
-    o->reqid = f(client, in_space, in_checks, in_checks_sz, in_sort_by, in_limit, in_maxmin, &o->status, &o->attrs, &o->attrs_sz);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_client_iterator_encode_status_attributes;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
-}
 JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1get(JNIEnv* env, jobject obj, jstring spacename, jobject key)
 {
@@ -569,6 +154,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1put(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_put, spacename, key, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1put(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_put, microtransaction, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -614,6 +205,12 @@ Java_org_hyperdex_client_Client_async_1atomic_1add(JNIEnv* env, jobject obj, jst
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1atomic_1add(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_add, microtransaction, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1atomic_1add(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_atomic_add, spacename, key, predicates, attributes);
@@ -629,6 +226,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1atomic_1sub(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_atomic_sub, spacename, key, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1atomic_1sub(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_sub, microtransaction, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -650,6 +253,12 @@ Java_org_hyperdex_client_Client_async_1atomic_1mul(JNIEnv* env, jobject obj, jst
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1atomic_1mul(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_mul, microtransaction, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1atomic_1mul(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_atomic_mul, spacename, key, predicates, attributes);
@@ -665,6 +274,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1atomic_1div(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_atomic_div, spacename, key, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1atomic_1div(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_div, microtransaction, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -704,6 +319,12 @@ Java_org_hyperdex_client_Client_async_1atomic_1and(JNIEnv* env, jobject obj, jst
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1atomic_1and(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_and, microtransaction, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1atomic_1and(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_atomic_and, spacename, key, predicates, attributes);
@@ -719,6 +340,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1atomic_1or(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_atomic_or, spacename, key, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1atomic_1or(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_or, microtransaction, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -794,6 +421,12 @@ Java_org_hyperdex_client_Client_async_1string_1prepend(JNIEnv* env, jobject obj,
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1string_1prepend(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_string_prepend, microtransaction, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1string_1prepend(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_string_prepend, spacename, key, predicates, attributes);
@@ -809,6 +442,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1string_1append(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_string_append, spacename, key, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1string_1append(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_string_append, microtransaction, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -830,6 +469,12 @@ Java_org_hyperdex_client_Client_async_1list_1lpush(JNIEnv* env, jobject obj, jst
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1list_1lpush(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_list_lpush, microtransaction, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1list_1lpush(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_list_lpush, spacename, key, predicates, attributes);
@@ -845,6 +490,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1list_1rpush(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_list_rpush, spacename, key, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1list_1rpush(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_list_rpush, microtransaction, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -938,6 +589,12 @@ Java_org_hyperdex_client_Client_async_1document_1rename(JNIEnv* env, jobject obj
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1document_1rename(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_document_rename, microtransaction, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1cond_1document_1rename(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject predicates, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_predicates_attributes__status(env, obj, hyperdex_client_cond_document_rename, spacename, key, predicates, attributes);
@@ -953,6 +610,12 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1document_1unset(JNIEnv* env, jobject obj, jstring spacename, jobject key, jobject attributes)
 {
     return hyperdex_java_client_asynccall__spacename_key_attributes__status(env, obj, hyperdex_client_document_unset, spacename, key, attributes);
+}
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Client_uxact_1document_1unset(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+{
+    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_document_unset, microtransaction, attributes);
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
@@ -1241,10 +904,4 @@ JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Client_async_1count(JNIEnv* env, jobject obj, jstring spacename, jobject predicates)
 {
     return hyperdex_java_client_asynccall__spacename_predicates__status_count(env, obj, hyperdex_client_count, spacename, predicates);
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-Java_org_hyperdex_client_Client_microtransaction_1put(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
-{
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_microtransaction_put, microtransaction, attributes);
 }

@@ -12,7 +12,7 @@ extern "C" {
  * Method:    checksSize
  * Signature: ()J
  */
-JNIEXPORT HYPERDEX_API jlong JNICALL Java_org_hyperdex_client_Range_checksSize
+JNIEXPORT HYPERDEX_API HYPERDEX_API jlong JNICALL Java_org_hyperdex_client_Range_checksSize
   (JNIEnv *, jobject);
 
 /*
@@ -20,7 +20,7 @@ JNIEXPORT HYPERDEX_API jlong JNICALL Java_org_hyperdex_client_Range_checksSize
  * Method:    convertChecks
  * Signature: (JJJ)J
  */
-JNIEXPORT HYPERDEX_API jlong JNICALL Java_org_hyperdex_client_Range_convertChecks
+JNIEXPORT HYPERDEX_API HYPERDEX_API jlong JNICALL Java_org_hyperdex_client_Range_convertChecks
   (JNIEnv *, jobject, jlong, jlong, jlong);
 
 #ifdef __cplusplus

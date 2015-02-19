@@ -40,5 +40,19 @@ tx.atomic_mul({'v.c' : 0})
 assertTrue(tx.commit('k2'))
 assertEquals(c.get('kv', 'k2')['v'], Document({'a' : 1, 'b' : 1, 'c' : 0, 'd' : {'x' : 'y'}}))
 
+## Group commit
+assertTrue(c.put('kv', 'k1', {'v' : Document({'a' : 2})}))
+assertTrue(c.put('kv', 'k2', {'v' : Document({'a' : 1})}))
+assertTrue(c.put('kv', 'k3', {'v' : Document({'a' : 1})}))
+tx = c.microtransaction_init('kv')
+tx.atomic_add({'v.a' : 2})
+tx.atomic_add({'v.b' : -1})
+tx.atomic_add({'v.c' : 3})
+tx.put({'v.d' : Document({'x' : 'y'})})
+assertEquals(tx.group_commit({'v.a' : 1}), 2)
+assertEquals(c.get('kv', 'k1')['v'], Document({'a' : 2}))
+assertEquals(c.get('kv', 'k2')['v'], Document({'a' : 3, 'b' : -1, 'c' : 3, 'd' : {'x' : 'y'}}))
+assertEquals(c.get('kv', 'k3')['v'], Document({'a' : 3, 'b' : -1, 'c' : 3, 'd' : {'x' : 'y'}}))
+
 
 

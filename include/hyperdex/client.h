@@ -131,6 +131,18 @@ int64_t
 hyperdex_client_uxact_commit(struct hyperdex_client* _cl,
                                 struct hyperdex_client_microtransaction *transaction,
                                 const char* key, size_t key_sz);
+                                
+int64_t
+hyperdex_client_uxact_group_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const struct hyperdex_client_attribute_check *chks, size_t chks_sz,
+                                uint64_t *count);
+                                
+int64_t
+hyperdex_client_uxact_cond_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz,
+                                const struct hyperdex_client_attribute_check *chks, size_t chks_sz);
 
 int64_t
 hyperdex_client_get(struct hyperdex_client* client,

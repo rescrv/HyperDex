@@ -294,6 +294,34 @@ hyperdex_client_uxact_commit(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_uxact_group_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const hyperdex_client_attribute_check *chks, size_t chks_sz,
+                                uint64_t *count)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
+    hyperdex_client_returncode *status = tx->status;
+
+    C_WRAP_EXCEPT(
+    return cl->uxact_group_commit(tx, chks, chks_sz, count);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_cond_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz,
+                                const hyperdex_client_attribute_check *chks, size_t chks_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
+    hyperdex_client_returncode *status = tx->status;
+
+    C_WRAP_EXCEPT(
+    return cl->uxact_cond_commit(tx, key, key_sz, chks, chks_sz);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_get(struct hyperdex_client* _cl,
                     const char* space,
                     const char* key, size_t key_sz,

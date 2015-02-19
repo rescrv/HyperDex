@@ -59,6 +59,7 @@ struct microtransaction
     PO6_NONCOPYABLE(microtransaction);
 
     int64_t generate_message(size_t header_sz, size_t footer_sz,
+                             const std::vector<attribute_check>& checks,
                              std::auto_ptr<e::buffer>* msg);
 
     const char* space;
@@ -140,9 +141,19 @@ class client
                                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                           const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz);
 
-        // Issue a microtransaction to a specific key using specific checks
+        // Issue a microtransaction to a specific key
         int64_t uxact_commit(microtransaction *transaction,
-                                        const char* key, size_t key_sz);
+                             const char* key, size_t key_sz);
+
+        // Issue a microtransaction to a specific key only if checks passs
+        int64_t uxact_cond_commit(microtransaction *transaction,
+                                  const char* key, size_t key_sz,
+                                  const hyperdex_client_attribute_check* checks, size_t checks_sz);
+
+        // Issue a mircotransaction to a all entries matching the checks
+        int64_t uxact_group_commit(microtransaction *transaction,
+                                   const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                   uint64_t *update_count);
 
         // looping/polling
         int64_t loop(int timeout, hyperdex_client_returncode* status);
