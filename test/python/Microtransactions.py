@@ -54,5 +54,26 @@ assertEquals(c.get('kv', 'k1')['v'], Document({'a' : 2}))
 assertEquals(c.get('kv', 'k2')['v'], Document({'a' : 3, 'b' : -1, 'c' : 3, 'd' : {'x' : 'y'}}))
 assertEquals(c.get('kv', 'k3')['v'], Document({'a' : 3, 'b' : -1, 'c' : 3, 'd' : {'x' : 'y'}}))
 
+## Cond commit
+assertTrue(c.put('kv', 'k1', {'v' : Document({'a' : 2})}))
+
+tx = c.microtransaction_init('kv')
+tx.atomic_add({'v.a' : 2})
+tx.atomic_add({'v.b' : -1})
+tx.atomic_add({'v.c' : 3})
+tx.put({'v.d' : Document({'x' : 'y'})})
+assertTrue(tx.cond_commit('k1', {'v.a' : 1}))
+assertEquals(c.get('kv', 'k1')['v'], Document({'a' : 2}))
+
+tx = c.microtransaction_init('kv')
+tx.atomic_add({'v.a' : 2})
+tx.atomic_add({'v.b' : -1})
+tx.atomic_add({'v.c' : 3})
+tx.put({'v.d' : Document({'x' : 'y'})})
+assertTrue(tx.cond_commit('k1', {'v.a' : 2}))
+assertEquals(c.get('kv', 'k1')['v'], Document({'a' : 3, 'b' : -1, 'c' : 3, 'd' : {'x' : 'y'}}))
+
+
+
 
 
