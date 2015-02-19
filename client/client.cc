@@ -1329,7 +1329,9 @@ int64_t client::uxact_commit(microtransaction *transaction,
         msg->pack_at(msg->capacity() - footer_sz) << aw;
     }
 
-    return send_keyop(transaction->space, key, REQ_ATOMIC, msg, op, status);
+    int64_t result = send_keyop(transaction->space, key, REQ_ATOMIC, msg, op, status);
+    delete transaction;
+    return result;
 }
 
 int64_t
@@ -1421,7 +1423,10 @@ client :: uxact_group_commit(microtransaction *transaction,
     e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
     pa = pa << checks;
     pa.copy(inner_msg->as_slice());
-    return perform_aggregation(servers, op, REQ_GROUP_ATOMIC, msg, status);
+
+    int64_t result = perform_aggregation(servers, op, REQ_GROUP_ATOMIC, msg, status);
+    delete transaction;
+    return result;
 }
 
 
