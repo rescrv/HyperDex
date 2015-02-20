@@ -200,9 +200,6 @@ public Deferred async_put(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_put(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -616,9 +613,6 @@ public Deferred async_atomic_add(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_atomic_add(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -818,9 +812,6 @@ public Deferred async_atomic_sub(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_atomic_sub(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -1020,9 +1011,6 @@ public Deferred async_atomic_mul(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_atomic_mul(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -1222,9 +1210,6 @@ public Deferred async_atomic_div(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_atomic_div(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -1601,9 +1586,6 @@ public Deferred async_atomic_and(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_atomic_and(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -1803,9 +1785,6 @@ public Deferred async_atomic_or(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_atomic_or(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -2536,9 +2515,6 @@ public Deferred async_string_prepend(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_string_prepend(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -2738,9 +2714,6 @@ public Deferred async_string_append(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_string_append(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -2940,9 +2913,6 @@ public Deferred async_list_lpush(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_list_lpush(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -3142,9 +3112,6 @@ public Deferred async_list_rpush(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_list_rpush(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -4052,9 +4019,6 @@ public Deferred async_document_rename(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_document_rename(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -4254,9 +4218,6 @@ public Deferred async_document_unset(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Iterator uxact_document_unset(
-        Microtransaction microtransaction,
-        Map<String, Object> attributes)
 \end{javacode}
 
 \paragraph{Parameters:}
@@ -6890,6 +6851,57 @@ public Iterator search(String spacename, Map<String, Object> predicates)
 
 \paragraph{Returns:}
 \input{\topdir/java/client/fragments/return_iterator__status_attributes}
+
+%%%%%%%%%%%%%%%%%%%% search_describe %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{search\_describe}}
+\label{api:java:search_describe}
+\index{search\_describe!Java API}
+\input{\topdir/client/fragments/search_describe}
+
+\paragraph{Definition:}
+\begin{javacode}
+public String search_describe(
+        String spacename,
+        Map<String, Object> predicates) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/java/client/fragments/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/java/client/fragments/in_asynccall_predicates}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_asynccall__status_description}
+
+\pagebreak
+\subsubsection{\code{async\_search\_describe}}
+\label{api:java:async_search_describe}
+\index{async\_search\_describe!Java API}
+\input{\topdir/client/fragments/search_describe}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_search_describe(
+        String spacename,
+        Map<String, Object> predicates) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/java/client/fragments/in_asynccall_spacename}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/java/client/fragments/in_asynccall_predicates}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_async_asynccall__status_description}
+
+\paragraph{See also:}  This is the asynchronous form of \code{search\_describe}.
 
 %%%%%%%%%%%%%%%%%%%% sorted_search %%%%%%%%%%%%%%%%%%%%
 \pagebreak
