@@ -84,6 +84,16 @@ True
 False
 >>> c.get('alldatatypes', 'somekey')
 {'f': 0.0, 'i': 0, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+>>> c.cond_put_or_create('alldatatypes', 'anotherkey', {'s': 'a'}, {'s': 'b'})
+True
+>>> c.cond_put_or_create('alldatatypes', 'anotherkey', {'s': 'a'}, {'s': 'b'})
+False
+>>> c.get('alldatatypes', 'anotherkey')
+{'f': 0.0, 'i': 0, 'mss': {}, 'ss': set([]), 's': 'b', 'ls': [], 'msi': {}}
+>>> c.cond_put_or_create('alldatatypes', 'anotherkey', {'s': 'b'}, {'s': 'a'})
+True
+>>> c.get('alldatatypes', 'anotherkey')
+{'f': 0.0, 'i': 0, 'mss': {}, 'ss': set([]), 's': 'a', 'ls': [], 'msi': {}}
 >>> c.atomic_add('alldatatypes', 'somekey', {'i': 1, 'f': 0.25})
 True
 >>> c.get('alldatatypes', 'somekey')

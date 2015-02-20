@@ -194,6 +194,43 @@ int64_t hyperdex_client_cond_put(struct hyperdex_client* client,
 \input{\topdir/c/client/fragments/out_asynccall_status}
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%% cond_put_or_create %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsection{\code{cond\_put\_or\_create}}
+\label{api:c:cond_put_or_create}
+\index{cond\_put\_or\_create!C API}
+\input{\topdir/client/fragments/cond_put_or_create}
+
+\paragraph{Definition:}
+\begin{ccode}
+int64_t hyperdex_client_cond_put_or_create(struct hyperdex_client* client,
+        const char* space,
+        const char* key, size_t key_sz,
+        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+        const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+        enum hyperdex_client_returncode* status);
+\end{ccode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{struct hyperdex\_client* client}\\
+\input{\topdir/c/client/fragments/in_asynccall_structclient}
+\item \code{const char* space}\\
+\input{\topdir/c/client/fragments/in_asynccall_spacename}
+\item \code{const char* key, size\_t key\_sz}\\
+\input{\topdir/c/client/fragments/in_asynccall_key}
+\item \code{const struct hyperdex\_client\_attribute\_check* checks, size\_t checks\_sz}\\
+\input{\topdir/c/client/fragments/in_asynccall_predicates}
+\item \code{const struct hyperdex\_client\_attribute* attrs, size\_t attrs\_sz}\\
+\input{\topdir/c/client/fragments/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\begin{itemize}[noitemsep]
+\item \code{enum hyperdex\_client\_returncode* status}\\
+\input{\topdir/c/client/fragments/out_asynccall_status}
+\end{itemize}
+
 %%%%%%%%%%%%%%%%%%%% group_put %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsection{\code{group\_put}}

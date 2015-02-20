@@ -86,10 +86,6 @@ key_change :: check(const schema& sc,
     {
         return NET_NOTFOUND;
     }
-    else if (!has_old_value && !kc->checks.empty())
-    {
-        return NET_CMPFAIL;
-    }
     else if (has_old_value && kc->fail_if_found)
     {
         return NET_CMPFAIL;

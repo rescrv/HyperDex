@@ -160,7 +160,7 @@ client.Predicate{"attr", "needle", client.CONTAINS}
 \label{sec:api:go-client:error-handling}
 
 All error handling within the Go bindings is done via \code{client.Error}
-returned from each operation.  An error object will always be returned, and its
+returned from each operation.  If an error object is returned, its
 status should be checked following the call.  For example, we may conditionally
 change the value of \code{v} from \code{"foo"} to \code{"bar"} like this:
 
@@ -168,7 +168,7 @@ change the value of \code{v} from \code{"foo"} to \code{"bar"} like this:
 err := client.CondPut("kv", "some key",
         []client.Predicate{{"v", "foo", client.EQUALS}},
         client.Attributes{"v": "bar"})
-if err.Status == client.SUCCESS {
+if err != nil {
     // it worked
 } else if err.Status == client.CMPFAIL {
     // the existing value was not "foo"

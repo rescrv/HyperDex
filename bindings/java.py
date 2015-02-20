@@ -44,7 +44,7 @@ def JTYPEOF(x):
         return 'List<String>'
     elif x == bindings.Predicates:
         return 'Map<String, Object>'
-    elif x in (bindings.Key, bindings.SpaceName, bindings.SortBy):
+    elif x in (bindings.SpaceName, bindings.SortBy):
         return 'String'
     elif x in (bindings.Limit, bindings.Count):
         return 'int'
@@ -52,19 +52,19 @@ def JTYPEOF(x):
         return 'boolean'
     elif x == bindings.Microtransaction:
         return 'Microtransaction'
-    elif x in (bindings.Status, bindings.Description):
+    elif x in (bindings.Status, bindings.Key, bindings.Description):
         return 'Object'
     else:
         raise RuntimeError('Unknown type: ' + str(x))
 
 def CTYPEOF(x):
-    if x in (bindings.SpaceName, bindings.Key, bindings.SortBy):
+    if x in (bindings.SpaceName, bindings.SortBy):
         return 'jstring'
     elif x == bindings.Limit:
         return 'jint'
     elif x == bindings.MaxMin:
         return 'jboolean'
-    elif x in (bindings.AttributeNames, bindings.Attributes, bindings.MapAttributes,
+    elif x in (bindings.AttributeNames,  bindings.Key, bindings.Attributes, bindings.MapAttributes,
                bindings.Predicates, bindings.Status, bindings.Description, bindings.Microtransaction):
         return 'jobject'
     else:
@@ -142,6 +142,7 @@ def generate_worker(call, x):
     func += '    ERROR_CHECK(0);\n'
     func += '    return op;\n'
     func += '}\n'
+    
     return func
 
 def generate_workers(xs):
@@ -151,7 +152,7 @@ def generate_workers(xs):
         if call in calls:
             continue
         if x.form is bindings.MicrotransactionCall:
-            return
+            continue
         yield generate_worker(call, x)
         calls.add(call)
         

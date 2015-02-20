@@ -12,40 +12,40 @@ func sloppyEqual(lhs map[interface{}]interface{}, rhs map[interface{}]interface{
 	}
 	for key, lval := range lhs {
 		if rval, ok := rhs[key]; ok {
-			lstr := fmt.Sprintln(lval)
-			rstr := fmt.Sprintln(rval)
-			for i := 0; i < 1000; i++ {
-				if lstr != rstr {
-					rstr = fmt.Sprintln(rval)
-				}
-			}
-			lmap, lok := lval.(client.Map)
-			rmap, rok := rval.(client.Map)
+            lstr := fmt.Sprintln(lval)
+            rstr := fmt.Sprintln(rval)
+            for i := 0; i < 1000; i++ {
+                if lstr != rstr {
+                    rstr = fmt.Sprintln(rval)
+                }
+            }
+            lmap, lok := lval.(client.Map)
+            rmap, rok := rval.(client.Map)
 			if !(lval == rval || reflect.DeepEqual(lval, rval) ||
-				(lok && rok && sloppyEqualMap(lmap, rmap)) ||
-				lstr == rstr) {
+                (lok && rok && sloppyEqualMap(lmap, rmap)) ||
+                lstr == rstr) {
 				return false
-			}
+            }
 		} else {
 			return false
 		}
 	}
 	for key, rval := range rhs {
 		if lval, ok := lhs[key]; ok {
-			lstr := fmt.Sprintln(lval)
-			rstr := fmt.Sprintln(rval)
-			for i := 0; i < 1000; i++ {
-				if lstr != rstr {
-					rstr = fmt.Sprintln(rval)
-				}
-			}
-			lmap, lok := lval.(client.Map)
-			rmap, rok := rval.(client.Map)
+            lstr := fmt.Sprintln(lval)
+            rstr := fmt.Sprintln(rval)
+            for i := 0; i < 1000; i++ {
+                if lstr != rstr {
+                    rstr = fmt.Sprintln(rval)
+                }
+            }
+            lmap, lok := lval.(client.Map)
+            rmap, rok := rval.(client.Map)
 			if !(lval == rval || reflect.DeepEqual(lval, rval) ||
-				(lok && rok && sloppyEqualMap(lmap, rmap)) ||
-				lstr == rstr) {
+                (lok && rok && sloppyEqualMap(lmap, rmap)) ||
+                lstr == rstr) {
 				return false
-			}
+            }
 		} else {
 			return false
 		}
@@ -54,27 +54,27 @@ func sloppyEqual(lhs map[interface{}]interface{}, rhs map[interface{}]interface{
 }
 
 func sloppyEqualMap(lhs client.Map, rhs client.Map) bool {
-	lmap := map[interface{}]interface{}{}
-	rmap := map[interface{}]interface{}{}
-	for k, v := range lhs {
-		lmap[k] = v
-	}
-	for k, v := range rhs {
-		rmap[k] = v
-	}
-	return sloppyEqual(lmap, rmap)
+    lmap := map[interface{}]interface{}{}
+    rmap := map[interface{}]interface{}{}
+    for k, v := range lhs {
+        lmap[k] = v
+    }
+    for k, v := range rhs {
+        rmap[k] = v
+    }
+    return sloppyEqual(lmap, rmap)
 }
 
 func sloppyEqualAttributes(lhs client.Attributes, rhs client.Attributes) bool {
-	lmap := map[interface{}]interface{}{}
-	rmap := map[interface{}]interface{}{}
-	for k, v := range lhs {
-		lmap[k] = v
-	}
-	for k, v := range rhs {
-		rmap[k] = v
-	}
-	return sloppyEqual(lmap, rmap)
+    lmap := map[interface{}]interface{}{}
+    rmap := map[interface{}]interface{}{}
+    for k, v := range lhs {
+        lmap[k] = v
+    }
+    for k, v := range rhs {
+        rmap[k] = v
+    }
+    return sloppyEqual(lmap, rmap)
 }
 
 func main() {

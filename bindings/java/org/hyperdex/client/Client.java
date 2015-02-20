@@ -108,29 +108,35 @@ public class Client
         ops.remove(l);
     }
     /* operations */
-    public native Deferred async_get(String spacename, String key) throws HyperDexClientException;
-    public Map<String, Object> get(String spacename, String key) throws HyperDexClientException
+    public native Deferred async_get(String spacename, Object key) throws HyperDexClientException;
+    public Map<String, Object> get(String spacename, Object key) throws HyperDexClientException
     {
         return (Map<String, Object>) async_get(spacename, key).waitForIt();
     }
 
-    public native Deferred async_get_partial(String spacename, String key, List<String> attributenames) throws HyperDexClientException;
-    public Map<String, Object> get_partial(String spacename, String key, List<String> attributenames) throws HyperDexClientException
+    public native Deferred async_get_partial(String spacename, Object key, List<String> attributenames) throws HyperDexClientException;
+    public Map<String, Object> get_partial(String spacename, Object key, List<String> attributenames) throws HyperDexClientException
     {
         return (Map<String, Object>) async_get_partial(spacename, key, attributenames).waitForIt();
     }
 
-    public native Deferred async_put(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean put(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_put(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean put(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_put(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_put(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_put(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_put(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_put(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_put(spacename, key, predicates, attributes).waitForIt();
+    }
+
+    public native Deferred async_cond_put_or_create(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_put_or_create(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Boolean) async_cond_put_or_create(spacename, key, predicates, attributes).waitForIt();
     }
 
     public native Deferred async_group_put(String spacename, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
@@ -139,20 +145,20 @@ public class Client
         return (Long) async_group_put(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_put_if_not_exist(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean put_if_not_exist(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_put_if_not_exist(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean put_if_not_exist(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_put_if_not_exist(spacename, key, attributes).waitForIt();
     }
 
-    public native Deferred async_del(String spacename, String key) throws HyperDexClientException;
-    public Boolean del(String spacename, String key) throws HyperDexClientException
+    public native Deferred async_del(String spacename, Object key) throws HyperDexClientException;
+    public Boolean del(String spacename, Object key) throws HyperDexClientException
     {
         return (Boolean) async_del(spacename, key).waitForIt();
     }
 
-    public native Deferred async_cond_del(String spacename, String key, Map<String, Object> predicates) throws HyperDexClientException;
-    public Boolean cond_del(String spacename, String key, Map<String, Object> predicates) throws HyperDexClientException
+    public native Deferred async_cond_del(String spacename, Object key, Map<String, Object> predicates) throws HyperDexClientException;
+    public Boolean cond_del(String spacename, Object key, Map<String, Object> predicates) throws HyperDexClientException
     {
         return (Boolean) async_cond_del(spacename, key, predicates).waitForIt();
     }
@@ -163,15 +169,15 @@ public class Client
         return (Long) async_group_del(spacename, predicates).waitForIt();
     }
 
-    public native Deferred async_atomic_add(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean atomic_add(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_atomic_add(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean atomic_add(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_atomic_add(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_atomic_add(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_atomic_add(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_atomic_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_atomic_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_atomic_add(spacename, key, predicates, attributes).waitForIt();
     }
@@ -182,15 +188,15 @@ public class Client
         return (Long) async_group_atomic_add(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_atomic_sub(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean atomic_sub(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_atomic_sub(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean atomic_sub(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_atomic_sub(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_atomic_sub(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_atomic_sub(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_atomic_sub(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_atomic_sub(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_atomic_sub(spacename, key, predicates, attributes).waitForIt();
     }
@@ -201,15 +207,15 @@ public class Client
         return (Long) async_group_atomic_sub(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_atomic_mul(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean atomic_mul(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_atomic_mul(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean atomic_mul(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_atomic_mul(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_atomic_mul(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_atomic_mul(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_atomic_mul(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_atomic_mul(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_atomic_mul(spacename, key, predicates, attributes).waitForIt();
     }
@@ -220,15 +226,15 @@ public class Client
         return (Long) async_group_atomic_mul(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_atomic_div(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean atomic_div(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_atomic_div(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean atomic_div(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_atomic_div(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_atomic_div(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_atomic_div(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_atomic_div(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_atomic_div(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_atomic_div(spacename, key, predicates, attributes).waitForIt();
     }
@@ -239,14 +245,14 @@ public class Client
         return (Long) async_group_atomic_div(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_atomic_mod(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean atomic_mod(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_atomic_mod(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean atomic_mod(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_atomic_mod(spacename, key, attributes).waitForIt();
     }
 
-    public native Deferred async_cond_atomic_mod(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_atomic_mod(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_atomic_mod(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_atomic_mod(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_atomic_mod(spacename, key, predicates, attributes).waitForIt();
     }
@@ -257,15 +263,15 @@ public class Client
         return (Long) async_group_atomic_mod(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_atomic_and(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean atomic_and(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_atomic_and(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean atomic_and(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_atomic_and(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_atomic_and(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_atomic_and(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_atomic_and(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_atomic_and(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_atomic_and(spacename, key, predicates, attributes).waitForIt();
     }
@@ -276,15 +282,15 @@ public class Client
         return (Long) async_group_atomic_and(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_atomic_or(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean atomic_or(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_atomic_or(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean atomic_or(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_atomic_or(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_atomic_or(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_atomic_or(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_atomic_or(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_atomic_or(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_atomic_or(spacename, key, predicates, attributes).waitForIt();
     }
@@ -295,14 +301,14 @@ public class Client
         return (Long) async_group_atomic_or(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_atomic_xor(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean atomic_xor(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_atomic_xor(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean atomic_xor(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_atomic_xor(spacename, key, attributes).waitForIt();
     }
 
-    public native Deferred async_cond_atomic_xor(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_atomic_xor(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_atomic_xor(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_atomic_xor(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_atomic_xor(spacename, key, predicates, attributes).waitForIt();
     }
@@ -313,14 +319,14 @@ public class Client
         return (Long) async_group_atomic_xor(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_atomic_min(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean atomic_min(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_atomic_min(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean atomic_min(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_atomic_min(spacename, key, attributes).waitForIt();
     }
 
-    public native Deferred async_cond_atomic_min(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_atomic_min(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_atomic_min(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_atomic_min(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_atomic_min(spacename, key, predicates, attributes).waitForIt();
     }
@@ -331,14 +337,14 @@ public class Client
         return (Long) async_group_atomic_min(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_atomic_max(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean atomic_max(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_atomic_max(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean atomic_max(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_atomic_max(spacename, key, attributes).waitForIt();
     }
 
-    public native Deferred async_cond_atomic_max(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_atomic_max(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_atomic_max(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_atomic_max(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_atomic_max(spacename, key, predicates, attributes).waitForIt();
     }
@@ -349,15 +355,15 @@ public class Client
         return (Long) async_group_atomic_max(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_string_prepend(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean string_prepend(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_string_prepend(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean string_prepend(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_string_prepend(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_string_prepend(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_string_prepend(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_string_prepend(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_string_prepend(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_string_prepend(spacename, key, predicates, attributes).waitForIt();
     }
@@ -368,15 +374,15 @@ public class Client
         return (Long) async_group_string_prepend(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_string_append(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean string_append(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_string_append(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean string_append(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_string_append(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_string_append(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_string_append(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_string_append(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_string_append(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_string_append(spacename, key, predicates, attributes).waitForIt();
     }
@@ -387,15 +393,15 @@ public class Client
         return (Long) async_group_string_append(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_list_lpush(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean list_lpush(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_list_lpush(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean list_lpush(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_list_lpush(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_list_lpush(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_list_lpush(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_list_lpush(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_list_lpush(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_list_lpush(spacename, key, predicates, attributes).waitForIt();
     }
@@ -406,15 +412,15 @@ public class Client
         return (Long) async_group_list_lpush(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_list_rpush(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean list_rpush(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_list_rpush(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean list_rpush(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_list_rpush(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_list_rpush(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_list_rpush(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_list_rpush(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_list_rpush(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_list_rpush(spacename, key, predicates, attributes).waitForIt();
     }
@@ -425,14 +431,14 @@ public class Client
         return (Long) async_group_list_rpush(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_set_add(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean set_add(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_set_add(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean set_add(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_set_add(spacename, key, attributes).waitForIt();
     }
 
-    public native Deferred async_cond_set_add(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_set_add(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_set_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_set_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_set_add(spacename, key, predicates, attributes).waitForIt();
     }
@@ -443,14 +449,14 @@ public class Client
         return (Long) async_group_set_add(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_set_remove(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean set_remove(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_set_remove(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean set_remove(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_set_remove(spacename, key, attributes).waitForIt();
     }
 
-    public native Deferred async_cond_set_remove(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_set_remove(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_set_remove(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_set_remove(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_set_remove(spacename, key, predicates, attributes).waitForIt();
     }
@@ -461,14 +467,14 @@ public class Client
         return (Long) async_group_set_remove(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_set_intersect(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean set_intersect(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_set_intersect(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean set_intersect(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_set_intersect(spacename, key, attributes).waitForIt();
     }
 
-    public native Deferred async_cond_set_intersect(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_set_intersect(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_set_intersect(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_set_intersect(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_set_intersect(spacename, key, predicates, attributes).waitForIt();
     }
@@ -479,14 +485,14 @@ public class Client
         return (Long) async_group_set_intersect(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_set_union(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean set_union(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_set_union(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean set_union(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_set_union(spacename, key, attributes).waitForIt();
     }
 
-    public native Deferred async_cond_set_union(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_set_union(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_set_union(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_set_union(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_set_union(spacename, key, predicates, attributes).waitForIt();
     }
@@ -497,15 +503,15 @@ public class Client
         return (Long) async_group_set_union(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_document_rename(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean document_rename(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_document_rename(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean document_rename(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_document_rename(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_document_rename(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_document_rename(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_document_rename(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_document_rename(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_document_rename(spacename, key, predicates, attributes).waitForIt();
     }
@@ -516,15 +522,15 @@ public class Client
         return (Long) async_group_document_rename(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_document_unset(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean document_unset(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_document_unset(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean document_unset(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_document_unset(spacename, key, attributes).waitForIt();
     }
 
 
-    public native Deferred async_cond_document_unset(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_document_unset(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_document_unset(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_document_unset(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_document_unset(spacename, key, predicates, attributes).waitForIt();
     }
@@ -535,14 +541,14 @@ public class Client
         return (Long) async_group_document_unset(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_map_add(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_add(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_add(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_add(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_add(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_add(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_add(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_add(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -553,14 +559,14 @@ public class Client
         return (Long) async_group_map_add(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_remove(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean map_remove(String spacename, String key, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_map_remove(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean map_remove(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_map_remove(spacename, key, attributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_remove(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
-    public Boolean cond_map_remove(String spacename, String key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    public native Deferred async_cond_map_remove(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_map_remove(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_remove(spacename, key, predicates, attributes).waitForIt();
     }
@@ -571,14 +577,14 @@ public class Client
         return (Long) async_group_map_remove(spacename, predicates, attributes).waitForIt();
     }
 
-    public native Deferred async_map_atomic_add(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_atomic_add(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_atomic_add(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_atomic_add(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_atomic_add(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_atomic_add(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_atomic_add(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_atomic_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_atomic_add(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_atomic_add(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -589,14 +595,14 @@ public class Client
         return (Long) async_group_map_atomic_add(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_atomic_sub(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_atomic_sub(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_atomic_sub(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_atomic_sub(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_atomic_sub(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_atomic_sub(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_atomic_sub(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_atomic_sub(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_atomic_sub(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_atomic_sub(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -607,14 +613,14 @@ public class Client
         return (Long) async_group_map_atomic_sub(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_atomic_mul(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_atomic_mul(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_atomic_mul(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_atomic_mul(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_atomic_mul(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_atomic_mul(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_atomic_mul(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_atomic_mul(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_atomic_mul(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_atomic_mul(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -625,14 +631,14 @@ public class Client
         return (Long) async_group_map_atomic_mul(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_atomic_div(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_atomic_div(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_atomic_div(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_atomic_div(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_atomic_div(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_atomic_div(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_atomic_div(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_atomic_div(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_atomic_div(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_atomic_div(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -643,14 +649,14 @@ public class Client
         return (Long) async_group_map_atomic_div(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_atomic_mod(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_atomic_mod(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_atomic_mod(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_atomic_mod(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_atomic_mod(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_atomic_mod(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_atomic_mod(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_atomic_mod(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_atomic_mod(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_atomic_mod(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -661,14 +667,14 @@ public class Client
         return (Long) async_group_map_atomic_mod(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_atomic_and(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_atomic_and(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_atomic_and(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_atomic_and(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_atomic_and(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_atomic_and(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_atomic_and(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_atomic_and(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_atomic_and(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_atomic_and(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -679,14 +685,14 @@ public class Client
         return (Long) async_group_map_atomic_and(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_atomic_or(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_atomic_or(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_atomic_or(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_atomic_or(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_atomic_or(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_atomic_or(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_atomic_or(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_atomic_or(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_atomic_or(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_atomic_or(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -697,14 +703,14 @@ public class Client
         return (Long) async_group_map_atomic_or(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_atomic_xor(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_atomic_xor(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_atomic_xor(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_atomic_xor(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_atomic_xor(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_atomic_xor(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_atomic_xor(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_atomic_xor(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_atomic_xor(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_atomic_xor(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -715,14 +721,14 @@ public class Client
         return (Long) async_group_map_atomic_xor(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_string_prepend(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_string_prepend(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_string_prepend(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_string_prepend(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_string_prepend(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_string_prepend(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_string_prepend(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_string_prepend(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_string_prepend(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_string_prepend(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -733,14 +739,14 @@ public class Client
         return (Long) async_group_map_string_prepend(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_string_append(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_string_append(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_string_append(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_string_append(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_string_append(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_string_append(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_string_append(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_string_append(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_string_append(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_string_append(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -751,14 +757,14 @@ public class Client
         return (Long) async_group_map_string_append(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_atomic_min(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_atomic_min(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_atomic_min(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_atomic_min(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_atomic_min(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_atomic_min(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_atomic_min(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_atomic_min(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_atomic_min(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_atomic_min(spacename, key, predicates, mapattributes).waitForIt();
     }
@@ -769,14 +775,14 @@ public class Client
         return (Long) async_group_map_atomic_min(spacename, predicates, mapattributes).waitForIt();
     }
 
-    public native Deferred async_map_atomic_max(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean map_atomic_max(String spacename, String key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_map_atomic_max(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean map_atomic_max(String spacename, Object key, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_map_atomic_max(spacename, key, mapattributes).waitForIt();
     }
 
-    public native Deferred async_cond_map_atomic_max(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
-    public Boolean cond_map_atomic_max(String spacename, String key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
+    public native Deferred async_cond_map_atomic_max(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException;
+    public Boolean cond_map_atomic_max(String spacename, Object key, Map<String, Object> predicates, Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
     {
         return (Boolean) async_cond_map_atomic_max(spacename, key, predicates, mapattributes).waitForIt();
     }

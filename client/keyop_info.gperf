@@ -23,6 +23,7 @@ extern "C"
 put,                     false, false, false,  hyperdex::FUNC_SET
 uxact_put,               false, false, false,  hyperdex::FUNC_SET
 cond_put,                false, true,  false,  hyperdex::FUNC_SET
+cond_put_or_create,      false, false, false,  hyperdex::FUNC_SET
 group_put,               false, true,  false,  hyperdex::FUNC_SET
 put_if_not_exist,        false, false, true,   hyperdex::FUNC_SET
 del,                     true,  true,  false,  hyperdex::FUNC_FAIL

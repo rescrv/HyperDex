@@ -180,6 +180,7 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_put(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_uxact_put(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_put(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_cond_put_or_create(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_put(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_put_if_not_exist(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_del(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status)
@@ -1898,6 +1899,11 @@ cdef class Client:
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_put, spacename, key, predicates, attributes, auth)
     def cond_put(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.async_cond_put(spacename, key, predicates, attributes, auth).wait()
+
+    def async_cond_put_or_create(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_put_or_create, spacename, key, predicates, attributes, auth)
+    def cond_put_or_create(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_put_or_create(spacename, key, predicates, attributes, auth).wait()
 
     def async_group_put(self, bytes spacename, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_put, spacename, predicates, attributes, auth)

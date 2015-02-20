@@ -113,6 +113,7 @@ Client = [
     Method('put', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('uxact_put', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_put', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
+    Method('cond_put_or_create', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_put', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('put_if_not_exist', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('del', AsyncCall, (SpaceName, Key), (Status,)),

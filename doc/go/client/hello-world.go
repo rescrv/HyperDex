@@ -18,12 +18,12 @@ func main() {
 	}()
 	// do the operations
 	err := c.Put("kv", "some key", client.Attributes{"v": "Hello World!"})
-	if err.Status != client.SUCCESS {
+	if err != nil {
 		// handle the error here
 	}
 	fmt.Println("put: \"Hello World!\"")
 	obj, err := c.Get("kv", "some key")
-	if err.Status != client.SUCCESS {
+	if err != nil {
 		// handle the error here
 	}
 	fmt.Println("got:", obj)

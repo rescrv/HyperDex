@@ -32,6 +32,7 @@ NODE_SET_PROTOTYPE_METHOD(tpl, "get", HyperDexClient::get);
 NODE_SET_PROTOTYPE_METHOD(tpl, "get_partial", HyperDexClient::get_partial);
 NODE_SET_PROTOTYPE_METHOD(tpl, "put", HyperDexClient::put);
 NODE_SET_PROTOTYPE_METHOD(tpl, "cond_put", HyperDexClient::cond_put);
+NODE_SET_PROTOTYPE_METHOD(tpl, "cond_put_or_create", HyperDexClient::cond_put_or_create);
 NODE_SET_PROTOTYPE_METHOD(tpl, "group_put", HyperDexClient::group_put);
 NODE_SET_PROTOTYPE_METHOD(tpl, "put_if_not_exist", HyperDexClient::put_if_not_exist);
 NODE_SET_PROTOTYPE_METHOD(tpl, "del", HyperDexClient::del);

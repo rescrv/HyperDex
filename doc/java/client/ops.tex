@@ -37,14 +37,14 @@
 \begin{javacode}
 public Map<String, Object> get(
         String spacename,
-        String key) throws HyperDexClientException
+        Object key) throws HyperDexClientException
 \end{javacode}
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \end{itemize}
 
@@ -61,14 +61,14 @@ public Map<String, Object> get(
 \begin{javacode}
 public Deferred async_get(
         String spacename,
-        String key) throws HyperDexClientException
+        Object key) throws HyperDexClientException
 \end{javacode}
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \end{itemize}
 
@@ -88,7 +88,7 @@ public Deferred async_get(
 \begin{javacode}
 public Map<String, Object> get_partial(
         String spacename,
-        String key,
+        Object key,
         List<String> attributenames) throws HyperDexClientException
 \end{javacode}
 
@@ -96,7 +96,7 @@ public Map<String, Object> get_partial(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{List<String> attributenames}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributenames}
@@ -115,7 +115,7 @@ public Map<String, Object> get_partial(
 \begin{javacode}
 public Deferred async_get_partial(
         String spacename,
-        String key,
+        Object key,
         List<String> attributenames) throws HyperDexClientException
 \end{javacode}
 
@@ -123,7 +123,7 @@ public Deferred async_get_partial(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{List<String> attributenames}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributenames}
@@ -145,7 +145,7 @@ public Deferred async_get_partial(
 \begin{javacode}
 public Boolean put(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -153,7 +153,7 @@ public Boolean put(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -172,7 +172,7 @@ public Boolean put(
 \begin{javacode}
 public Deferred async_put(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -180,7 +180,7 @@ public Deferred async_put(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -224,7 +224,7 @@ public Deferred async_put(
 \begin{javacode}
 public Boolean cond_put(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -233,7 +233,7 @@ public Boolean cond_put(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -254,7 +254,7 @@ public Boolean cond_put(
 \begin{javacode}
 public Deferred async_cond_put(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -263,7 +263,7 @@ public Deferred async_cond_put(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -275,6 +275,69 @@ public Deferred async_cond_put(
 \input{\topdir/java/client/fragments/return_async_asynccall__status}
 
 \paragraph{See also:}  This is the asynchronous form of \code{cond\_put}.
+
+%%%%%%%%%%%%%%%%%%%% cond_put_or_create %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{cond\_put\_or\_create}}
+\label{api:java:cond_put_or_create}
+\index{cond\_put\_or\_create!Java API}
+\input{\topdir/client/fragments/cond_put_or_create}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Boolean cond_put_or_create(
+        String spacename,
+        Object key,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/java/client/fragments/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/java/client/fragments/in_asynccall_key}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/java/client/fragments/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_asynccall__status}
+
+\pagebreak
+\subsubsection{\code{async\_cond\_put\_or\_create}}
+\label{api:java:async_cond_put_or_create}
+\index{async\_cond\_put\_or\_create!Java API}
+\input{\topdir/client/fragments/cond_put_or_create}
+
+\paragraph{Definition:}
+\begin{javacode}
+public Deferred async_cond_put_or_create(
+        String spacename,
+        Object key,
+        Map<String, Object> predicates,
+        Map<String, Object> attributes) throws HyperDexClientException
+\end{javacode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{String spacename}\\
+\input{\topdir/java/client/fragments/in_asynccall_spacename}
+\item \code{Object key}\\
+\input{\topdir/java/client/fragments/in_asynccall_key}
+\item \code{Map<String, Object> predicates}\\
+\input{\topdir/java/client/fragments/in_asynccall_predicates}
+\item \code{Map<String, Object> attributes}\\
+\input{\topdir/java/client/fragments/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/java/client/fragments/return_async_asynccall__status}
+
+\paragraph{See also:}  This is the asynchronous form of \code{cond\_put\_or\_create}.
 
 %%%%%%%%%%%%%%%%%%%% group_put %%%%%%%%%%%%%%%%%%%%
 \pagebreak
@@ -344,7 +407,7 @@ public Deferred async_group_put(
 \begin{javacode}
 public Boolean put_if_not_exist(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -352,7 +415,7 @@ public Boolean put_if_not_exist(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -371,7 +434,7 @@ public Boolean put_if_not_exist(
 \begin{javacode}
 public Deferred async_put_if_not_exist(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -379,7 +442,7 @@ public Deferred async_put_if_not_exist(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -399,14 +462,14 @@ public Deferred async_put_if_not_exist(
 
 \paragraph{Definition:}
 \begin{javacode}
-public Boolean del(String spacename, String key) throws HyperDexClientException
+public Boolean del(String spacename, Object key) throws HyperDexClientException
 \end{javacode}
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \end{itemize}
 
@@ -423,14 +486,14 @@ public Boolean del(String spacename, String key) throws HyperDexClientException
 \begin{javacode}
 public Deferred async_del(
         String spacename,
-        String key) throws HyperDexClientException
+        Object key) throws HyperDexClientException
 \end{javacode}
 
 \paragraph{Parameters:}
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \end{itemize}
 
@@ -450,7 +513,7 @@ public Deferred async_del(
 \begin{javacode}
 public Boolean cond_del(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates) throws HyperDexClientException
 \end{javacode}
 
@@ -458,7 +521,7 @@ public Boolean cond_del(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -477,7 +540,7 @@ public Boolean cond_del(
 \begin{javacode}
 public Deferred async_cond_del(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates) throws HyperDexClientException
 \end{javacode}
 
@@ -485,7 +548,7 @@ public Deferred async_cond_del(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -558,7 +621,7 @@ public Deferred async_group_del(
 \begin{javacode}
 public Boolean atomic_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -566,7 +629,7 @@ public Boolean atomic_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -585,7 +648,7 @@ public Boolean atomic_add(
 \begin{javacode}
 public Deferred async_atomic_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -593,7 +656,7 @@ public Deferred async_atomic_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -637,7 +700,7 @@ public Deferred async_atomic_add(
 \begin{javacode}
 public Boolean cond_atomic_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -646,7 +709,7 @@ public Boolean cond_atomic_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -667,7 +730,7 @@ public Boolean cond_atomic_add(
 \begin{javacode}
 public Deferred async_cond_atomic_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -676,7 +739,7 @@ public Deferred async_cond_atomic_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -757,7 +820,7 @@ public Deferred async_group_atomic_add(
 \begin{javacode}
 public Boolean atomic_sub(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -765,7 +828,7 @@ public Boolean atomic_sub(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -784,7 +847,7 @@ public Boolean atomic_sub(
 \begin{javacode}
 public Deferred async_atomic_sub(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -792,7 +855,7 @@ public Deferred async_atomic_sub(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -836,7 +899,7 @@ public Deferred async_atomic_sub(
 \begin{javacode}
 public Boolean cond_atomic_sub(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -845,7 +908,7 @@ public Boolean cond_atomic_sub(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -866,7 +929,7 @@ public Boolean cond_atomic_sub(
 \begin{javacode}
 public Deferred async_cond_atomic_sub(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -875,7 +938,7 @@ public Deferred async_cond_atomic_sub(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -956,7 +1019,7 @@ public Deferred async_group_atomic_sub(
 \begin{javacode}
 public Boolean atomic_mul(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -964,7 +1027,7 @@ public Boolean atomic_mul(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -983,7 +1046,7 @@ public Boolean atomic_mul(
 \begin{javacode}
 public Deferred async_atomic_mul(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -991,7 +1054,7 @@ public Deferred async_atomic_mul(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -1035,7 +1098,7 @@ public Deferred async_atomic_mul(
 \begin{javacode}
 public Boolean cond_atomic_mul(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -1044,7 +1107,7 @@ public Boolean cond_atomic_mul(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -1065,7 +1128,7 @@ public Boolean cond_atomic_mul(
 \begin{javacode}
 public Deferred async_cond_atomic_mul(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -1074,7 +1137,7 @@ public Deferred async_cond_atomic_mul(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -1155,7 +1218,7 @@ public Deferred async_group_atomic_mul(
 \begin{javacode}
 public Boolean atomic_div(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -1163,7 +1226,7 @@ public Boolean atomic_div(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -1182,7 +1245,7 @@ public Boolean atomic_div(
 \begin{javacode}
 public Deferred async_atomic_div(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -1190,7 +1253,7 @@ public Deferred async_atomic_div(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -1234,7 +1297,7 @@ public Deferred async_atomic_div(
 \begin{javacode}
 public Boolean cond_atomic_div(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -1243,7 +1306,7 @@ public Boolean cond_atomic_div(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -1264,7 +1327,7 @@ public Boolean cond_atomic_div(
 \begin{javacode}
 public Deferred async_cond_atomic_div(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -1273,7 +1336,7 @@ public Deferred async_cond_atomic_div(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -1354,7 +1417,7 @@ public Deferred async_group_atomic_div(
 \begin{javacode}
 public Boolean atomic_mod(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -1362,7 +1425,7 @@ public Boolean atomic_mod(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -1381,7 +1444,7 @@ public Boolean atomic_mod(
 \begin{javacode}
 public Deferred async_atomic_mod(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -1389,7 +1452,7 @@ public Deferred async_atomic_mod(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -1411,7 +1474,7 @@ public Deferred async_atomic_mod(
 \begin{javacode}
 public Boolean cond_atomic_mod(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -1420,7 +1483,7 @@ public Boolean cond_atomic_mod(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -1441,7 +1504,7 @@ public Boolean cond_atomic_mod(
 \begin{javacode}
 public Deferred async_cond_atomic_mod(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -1450,7 +1513,7 @@ public Deferred async_cond_atomic_mod(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -1531,7 +1594,7 @@ public Deferred async_group_atomic_mod(
 \begin{javacode}
 public Boolean atomic_and(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -1539,7 +1602,7 @@ public Boolean atomic_and(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -1558,7 +1621,7 @@ public Boolean atomic_and(
 \begin{javacode}
 public Deferred async_atomic_and(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -1566,7 +1629,7 @@ public Deferred async_atomic_and(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -1610,7 +1673,7 @@ public Deferred async_atomic_and(
 \begin{javacode}
 public Boolean cond_atomic_and(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -1619,7 +1682,7 @@ public Boolean cond_atomic_and(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -1640,7 +1703,7 @@ public Boolean cond_atomic_and(
 \begin{javacode}
 public Deferred async_cond_atomic_and(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -1649,7 +1712,7 @@ public Deferred async_cond_atomic_and(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -1730,7 +1793,7 @@ public Deferred async_group_atomic_and(
 \begin{javacode}
 public Boolean atomic_or(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -1738,7 +1801,7 @@ public Boolean atomic_or(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -1757,7 +1820,7 @@ public Boolean atomic_or(
 \begin{javacode}
 public Deferred async_atomic_or(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -1765,7 +1828,7 @@ public Deferred async_atomic_or(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -1809,7 +1872,7 @@ public Deferred async_atomic_or(
 \begin{javacode}
 public Boolean cond_atomic_or(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -1818,7 +1881,7 @@ public Boolean cond_atomic_or(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -1839,7 +1902,7 @@ public Boolean cond_atomic_or(
 \begin{javacode}
 public Deferred async_cond_atomic_or(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -1848,7 +1911,7 @@ public Deferred async_cond_atomic_or(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -1929,7 +1992,7 @@ public Deferred async_group_atomic_or(
 \begin{javacode}
 public Boolean atomic_xor(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -1937,7 +2000,7 @@ public Boolean atomic_xor(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -1956,7 +2019,7 @@ public Boolean atomic_xor(
 \begin{javacode}
 public Deferred async_atomic_xor(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -1964,7 +2027,7 @@ public Deferred async_atomic_xor(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -1986,7 +2049,7 @@ public Deferred async_atomic_xor(
 \begin{javacode}
 public Boolean cond_atomic_xor(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -1995,7 +2058,7 @@ public Boolean cond_atomic_xor(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -2016,7 +2079,7 @@ public Boolean cond_atomic_xor(
 \begin{javacode}
 public Deferred async_cond_atomic_xor(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -2025,7 +2088,7 @@ public Deferred async_cond_atomic_xor(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -2106,7 +2169,7 @@ public Deferred async_group_atomic_xor(
 \begin{javacode}
 public Boolean atomic_min(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -2114,7 +2177,7 @@ public Boolean atomic_min(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -2133,7 +2196,7 @@ public Boolean atomic_min(
 \begin{javacode}
 public Deferred async_atomic_min(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -2141,7 +2204,7 @@ public Deferred async_atomic_min(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -2163,7 +2226,7 @@ public Deferred async_atomic_min(
 \begin{javacode}
 public Boolean cond_atomic_min(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -2172,7 +2235,7 @@ public Boolean cond_atomic_min(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -2193,7 +2256,7 @@ public Boolean cond_atomic_min(
 \begin{javacode}
 public Deferred async_cond_atomic_min(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -2202,7 +2265,7 @@ public Deferred async_cond_atomic_min(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -2283,7 +2346,7 @@ public Deferred async_group_atomic_min(
 \begin{javacode}
 public Boolean atomic_max(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -2291,7 +2354,7 @@ public Boolean atomic_max(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -2310,7 +2373,7 @@ public Boolean atomic_max(
 \begin{javacode}
 public Deferred async_atomic_max(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -2318,7 +2381,7 @@ public Deferred async_atomic_max(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -2340,7 +2403,7 @@ public Deferred async_atomic_max(
 \begin{javacode}
 public Boolean cond_atomic_max(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -2349,7 +2412,7 @@ public Boolean cond_atomic_max(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -2370,7 +2433,7 @@ public Boolean cond_atomic_max(
 \begin{javacode}
 public Deferred async_cond_atomic_max(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -2379,7 +2442,7 @@ public Deferred async_cond_atomic_max(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -2460,7 +2523,7 @@ public Deferred async_group_atomic_max(
 \begin{javacode}
 public Boolean string_prepend(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -2468,7 +2531,7 @@ public Boolean string_prepend(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -2487,7 +2550,7 @@ public Boolean string_prepend(
 \begin{javacode}
 public Deferred async_string_prepend(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -2495,7 +2558,7 @@ public Deferred async_string_prepend(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -2539,7 +2602,7 @@ public Deferred async_string_prepend(
 \begin{javacode}
 public Boolean cond_string_prepend(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -2548,7 +2611,7 @@ public Boolean cond_string_prepend(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -2569,7 +2632,7 @@ public Boolean cond_string_prepend(
 \begin{javacode}
 public Deferred async_cond_string_prepend(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -2578,7 +2641,7 @@ public Deferred async_cond_string_prepend(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -2659,7 +2722,7 @@ public Deferred async_group_string_prepend(
 \begin{javacode}
 public Boolean string_append(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -2667,7 +2730,7 @@ public Boolean string_append(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -2686,7 +2749,7 @@ public Boolean string_append(
 \begin{javacode}
 public Deferred async_string_append(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -2694,7 +2757,7 @@ public Deferred async_string_append(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -2738,7 +2801,7 @@ public Deferred async_string_append(
 \begin{javacode}
 public Boolean cond_string_append(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -2747,7 +2810,7 @@ public Boolean cond_string_append(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -2768,7 +2831,7 @@ public Boolean cond_string_append(
 \begin{javacode}
 public Deferred async_cond_string_append(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -2777,7 +2840,7 @@ public Deferred async_cond_string_append(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -2858,7 +2921,7 @@ public Deferred async_group_string_append(
 \begin{javacode}
 public Boolean list_lpush(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -2866,7 +2929,7 @@ public Boolean list_lpush(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -2885,7 +2948,7 @@ public Boolean list_lpush(
 \begin{javacode}
 public Deferred async_list_lpush(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -2893,7 +2956,7 @@ public Deferred async_list_lpush(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -2937,7 +3000,7 @@ public Deferred async_list_lpush(
 \begin{javacode}
 public Boolean cond_list_lpush(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -2946,7 +3009,7 @@ public Boolean cond_list_lpush(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -2967,7 +3030,7 @@ public Boolean cond_list_lpush(
 \begin{javacode}
 public Deferred async_cond_list_lpush(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -2976,7 +3039,7 @@ public Deferred async_cond_list_lpush(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -3057,7 +3120,7 @@ public Deferred async_group_list_lpush(
 \begin{javacode}
 public Boolean list_rpush(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3065,7 +3128,7 @@ public Boolean list_rpush(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -3084,7 +3147,7 @@ public Boolean list_rpush(
 \begin{javacode}
 public Deferred async_list_rpush(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3092,7 +3155,7 @@ public Deferred async_list_rpush(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -3136,7 +3199,7 @@ public Deferred async_list_rpush(
 \begin{javacode}
 public Boolean cond_list_rpush(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -3145,7 +3208,7 @@ public Boolean cond_list_rpush(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -3166,7 +3229,7 @@ public Boolean cond_list_rpush(
 \begin{javacode}
 public Deferred async_cond_list_rpush(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -3175,7 +3238,7 @@ public Deferred async_cond_list_rpush(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -3256,7 +3319,7 @@ public Deferred async_group_list_rpush(
 \begin{javacode}
 public Boolean set_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3264,7 +3327,7 @@ public Boolean set_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -3283,7 +3346,7 @@ public Boolean set_add(
 \begin{javacode}
 public Deferred async_set_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3291,7 +3354,7 @@ public Deferred async_set_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -3313,7 +3376,7 @@ public Deferred async_set_add(
 \begin{javacode}
 public Boolean cond_set_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -3322,7 +3385,7 @@ public Boolean cond_set_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -3343,7 +3406,7 @@ public Boolean cond_set_add(
 \begin{javacode}
 public Deferred async_cond_set_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -3352,7 +3415,7 @@ public Deferred async_cond_set_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -3433,7 +3496,7 @@ public Deferred async_group_set_add(
 \begin{javacode}
 public Boolean set_remove(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3441,7 +3504,7 @@ public Boolean set_remove(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -3460,7 +3523,7 @@ public Boolean set_remove(
 \begin{javacode}
 public Deferred async_set_remove(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3468,7 +3531,7 @@ public Deferred async_set_remove(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -3490,7 +3553,7 @@ public Deferred async_set_remove(
 \begin{javacode}
 public Boolean cond_set_remove(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -3499,7 +3562,7 @@ public Boolean cond_set_remove(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -3520,7 +3583,7 @@ public Boolean cond_set_remove(
 \begin{javacode}
 public Deferred async_cond_set_remove(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -3529,7 +3592,7 @@ public Deferred async_cond_set_remove(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -3610,7 +3673,7 @@ public Deferred async_group_set_remove(
 \begin{javacode}
 public Boolean set_intersect(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3618,7 +3681,7 @@ public Boolean set_intersect(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -3637,7 +3700,7 @@ public Boolean set_intersect(
 \begin{javacode}
 public Deferred async_set_intersect(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3645,7 +3708,7 @@ public Deferred async_set_intersect(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -3667,7 +3730,7 @@ public Deferred async_set_intersect(
 \begin{javacode}
 public Boolean cond_set_intersect(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -3676,7 +3739,7 @@ public Boolean cond_set_intersect(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -3697,7 +3760,7 @@ public Boolean cond_set_intersect(
 \begin{javacode}
 public Deferred async_cond_set_intersect(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -3706,7 +3769,7 @@ public Deferred async_cond_set_intersect(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -3787,7 +3850,7 @@ public Deferred async_group_set_intersect(
 \begin{javacode}
 public Boolean set_union(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3795,7 +3858,7 @@ public Boolean set_union(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -3814,7 +3877,7 @@ public Boolean set_union(
 \begin{javacode}
 public Deferred async_set_union(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3822,7 +3885,7 @@ public Deferred async_set_union(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -3844,7 +3907,7 @@ public Deferred async_set_union(
 \begin{javacode}
 public Boolean cond_set_union(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -3853,7 +3916,7 @@ public Boolean cond_set_union(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -3874,7 +3937,7 @@ public Boolean cond_set_union(
 \begin{javacode}
 public Deferred async_cond_set_union(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -3883,7 +3946,7 @@ public Deferred async_cond_set_union(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -3964,7 +4027,7 @@ public Deferred async_group_set_union(
 \begin{javacode}
 public Boolean document_rename(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3972,7 +4035,7 @@ public Boolean document_rename(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -3991,7 +4054,7 @@ public Boolean document_rename(
 \begin{javacode}
 public Deferred async_document_rename(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -3999,7 +4062,7 @@ public Deferred async_document_rename(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -4043,7 +4106,7 @@ public Deferred async_document_rename(
 \begin{javacode}
 public Boolean cond_document_rename(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -4052,7 +4115,7 @@ public Boolean cond_document_rename(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -4073,7 +4136,7 @@ public Boolean cond_document_rename(
 \begin{javacode}
 public Deferred async_cond_document_rename(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -4082,7 +4145,7 @@ public Deferred async_cond_document_rename(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -4163,7 +4226,7 @@ public Deferred async_group_document_rename(
 \begin{javacode}
 public Boolean document_unset(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -4171,7 +4234,7 @@ public Boolean document_unset(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -4190,7 +4253,7 @@ public Boolean document_unset(
 \begin{javacode}
 public Deferred async_document_unset(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -4198,7 +4261,7 @@ public Deferred async_document_unset(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -4242,7 +4305,7 @@ public Deferred async_document_unset(
 \begin{javacode}
 public Boolean cond_document_unset(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -4251,7 +4314,7 @@ public Boolean cond_document_unset(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -4272,7 +4335,7 @@ public Boolean cond_document_unset(
 \begin{javacode}
 public Deferred async_cond_document_unset(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -4281,7 +4344,7 @@ public Deferred async_cond_document_unset(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -4362,7 +4425,7 @@ public Deferred async_group_document_unset(
 \begin{javacode}
 public Boolean map_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -4370,7 +4433,7 @@ public Boolean map_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -4389,7 +4452,7 @@ public Boolean map_add(
 \begin{javacode}
 public Deferred async_map_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -4397,7 +4460,7 @@ public Deferred async_map_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -4419,7 +4482,7 @@ public Deferred async_map_add(
 \begin{javacode}
 public Boolean cond_map_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -4428,7 +4491,7 @@ public Boolean cond_map_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -4449,7 +4512,7 @@ public Boolean cond_map_add(
 \begin{javacode}
 public Deferred async_cond_map_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -4458,7 +4521,7 @@ public Deferred async_cond_map_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -4539,7 +4602,7 @@ public Deferred async_group_map_add(
 \begin{javacode}
 public Boolean map_remove(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -4547,7 +4610,7 @@ public Boolean map_remove(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -4566,7 +4629,7 @@ public Boolean map_remove(
 \begin{javacode}
 public Deferred async_map_remove(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
 
@@ -4574,7 +4637,7 @@ public Deferred async_map_remove(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> attributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_attributes}
@@ -4596,7 +4659,7 @@ public Deferred async_map_remove(
 \begin{javacode}
 public Boolean cond_map_remove(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -4605,7 +4668,7 @@ public Boolean cond_map_remove(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -4626,7 +4689,7 @@ public Boolean cond_map_remove(
 \begin{javacode}
 public Deferred async_cond_map_remove(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Object> attributes) throws HyperDexClientException
 \end{javacode}
@@ -4635,7 +4698,7 @@ public Deferred async_cond_map_remove(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -4716,7 +4779,7 @@ public Deferred async_group_map_remove(
 \begin{javacode}
 public Boolean map_atomic_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -4724,7 +4787,7 @@ public Boolean map_atomic_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -4743,7 +4806,7 @@ public Boolean map_atomic_add(
 \begin{javacode}
 public Deferred async_map_atomic_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -4751,7 +4814,7 @@ public Deferred async_map_atomic_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -4773,7 +4836,7 @@ public Deferred async_map_atomic_add(
 \begin{javacode}
 public Boolean cond_map_atomic_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -4782,7 +4845,7 @@ public Boolean cond_map_atomic_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -4803,7 +4866,7 @@ public Boolean cond_map_atomic_add(
 \begin{javacode}
 public Deferred async_cond_map_atomic_add(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -4812,7 +4875,7 @@ public Deferred async_cond_map_atomic_add(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -4893,7 +4956,7 @@ public Deferred async_group_map_atomic_add(
 \begin{javacode}
 public Boolean map_atomic_sub(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -4901,7 +4964,7 @@ public Boolean map_atomic_sub(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -4920,7 +4983,7 @@ public Boolean map_atomic_sub(
 \begin{javacode}
 public Deferred async_map_atomic_sub(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -4928,7 +4991,7 @@ public Deferred async_map_atomic_sub(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -4950,7 +5013,7 @@ public Deferred async_map_atomic_sub(
 \begin{javacode}
 public Boolean cond_map_atomic_sub(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -4959,7 +5022,7 @@ public Boolean cond_map_atomic_sub(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -4980,7 +5043,7 @@ public Boolean cond_map_atomic_sub(
 \begin{javacode}
 public Deferred async_cond_map_atomic_sub(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -4989,7 +5052,7 @@ public Deferred async_cond_map_atomic_sub(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -5070,7 +5133,7 @@ public Deferred async_group_map_atomic_sub(
 \begin{javacode}
 public Boolean map_atomic_mul(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5078,7 +5141,7 @@ public Boolean map_atomic_mul(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -5097,7 +5160,7 @@ public Boolean map_atomic_mul(
 \begin{javacode}
 public Deferred async_map_atomic_mul(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5105,7 +5168,7 @@ public Deferred async_map_atomic_mul(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -5127,7 +5190,7 @@ public Deferred async_map_atomic_mul(
 \begin{javacode}
 public Boolean cond_map_atomic_mul(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -5136,7 +5199,7 @@ public Boolean cond_map_atomic_mul(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -5157,7 +5220,7 @@ public Boolean cond_map_atomic_mul(
 \begin{javacode}
 public Deferred async_cond_map_atomic_mul(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -5166,7 +5229,7 @@ public Deferred async_cond_map_atomic_mul(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -5247,7 +5310,7 @@ public Deferred async_group_map_atomic_mul(
 \begin{javacode}
 public Boolean map_atomic_div(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5255,7 +5318,7 @@ public Boolean map_atomic_div(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -5274,7 +5337,7 @@ public Boolean map_atomic_div(
 \begin{javacode}
 public Deferred async_map_atomic_div(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5282,7 +5345,7 @@ public Deferred async_map_atomic_div(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -5304,7 +5367,7 @@ public Deferred async_map_atomic_div(
 \begin{javacode}
 public Boolean cond_map_atomic_div(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -5313,7 +5376,7 @@ public Boolean cond_map_atomic_div(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -5334,7 +5397,7 @@ public Boolean cond_map_atomic_div(
 \begin{javacode}
 public Deferred async_cond_map_atomic_div(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -5343,7 +5406,7 @@ public Deferred async_cond_map_atomic_div(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -5424,7 +5487,7 @@ public Deferred async_group_map_atomic_div(
 \begin{javacode}
 public Boolean map_atomic_mod(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5432,7 +5495,7 @@ public Boolean map_atomic_mod(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -5451,7 +5514,7 @@ public Boolean map_atomic_mod(
 \begin{javacode}
 public Deferred async_map_atomic_mod(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5459,7 +5522,7 @@ public Deferred async_map_atomic_mod(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -5481,7 +5544,7 @@ public Deferred async_map_atomic_mod(
 \begin{javacode}
 public Boolean cond_map_atomic_mod(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -5490,7 +5553,7 @@ public Boolean cond_map_atomic_mod(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -5511,7 +5574,7 @@ public Boolean cond_map_atomic_mod(
 \begin{javacode}
 public Deferred async_cond_map_atomic_mod(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -5520,7 +5583,7 @@ public Deferred async_cond_map_atomic_mod(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -5601,7 +5664,7 @@ public Deferred async_group_map_atomic_mod(
 \begin{javacode}
 public Boolean map_atomic_and(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5609,7 +5672,7 @@ public Boolean map_atomic_and(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -5628,7 +5691,7 @@ public Boolean map_atomic_and(
 \begin{javacode}
 public Deferred async_map_atomic_and(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5636,7 +5699,7 @@ public Deferred async_map_atomic_and(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -5658,7 +5721,7 @@ public Deferred async_map_atomic_and(
 \begin{javacode}
 public Boolean cond_map_atomic_and(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -5667,7 +5730,7 @@ public Boolean cond_map_atomic_and(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -5688,7 +5751,7 @@ public Boolean cond_map_atomic_and(
 \begin{javacode}
 public Deferred async_cond_map_atomic_and(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -5697,7 +5760,7 @@ public Deferred async_cond_map_atomic_and(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -5778,7 +5841,7 @@ public Deferred async_group_map_atomic_and(
 \begin{javacode}
 public Boolean map_atomic_or(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5786,7 +5849,7 @@ public Boolean map_atomic_or(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -5805,7 +5868,7 @@ public Boolean map_atomic_or(
 \begin{javacode}
 public Deferred async_map_atomic_or(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5813,7 +5876,7 @@ public Deferred async_map_atomic_or(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -5835,7 +5898,7 @@ public Deferred async_map_atomic_or(
 \begin{javacode}
 public Boolean cond_map_atomic_or(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -5844,7 +5907,7 @@ public Boolean cond_map_atomic_or(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -5865,7 +5928,7 @@ public Boolean cond_map_atomic_or(
 \begin{javacode}
 public Deferred async_cond_map_atomic_or(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -5874,7 +5937,7 @@ public Deferred async_cond_map_atomic_or(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -5955,7 +6018,7 @@ public Deferred async_group_map_atomic_or(
 \begin{javacode}
 public Boolean map_atomic_xor(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5963,7 +6026,7 @@ public Boolean map_atomic_xor(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -5982,7 +6045,7 @@ public Boolean map_atomic_xor(
 \begin{javacode}
 public Deferred async_map_atomic_xor(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -5990,7 +6053,7 @@ public Deferred async_map_atomic_xor(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -6012,7 +6075,7 @@ public Deferred async_map_atomic_xor(
 \begin{javacode}
 public Boolean cond_map_atomic_xor(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -6021,7 +6084,7 @@ public Boolean cond_map_atomic_xor(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -6042,7 +6105,7 @@ public Boolean cond_map_atomic_xor(
 \begin{javacode}
 public Deferred async_cond_map_atomic_xor(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -6051,7 +6114,7 @@ public Deferred async_cond_map_atomic_xor(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -6132,7 +6195,7 @@ public Deferred async_group_map_atomic_xor(
 \begin{javacode}
 public Boolean map_string_prepend(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -6140,7 +6203,7 @@ public Boolean map_string_prepend(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -6159,7 +6222,7 @@ public Boolean map_string_prepend(
 \begin{javacode}
 public Deferred async_map_string_prepend(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -6167,7 +6230,7 @@ public Deferred async_map_string_prepend(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -6189,7 +6252,7 @@ public Deferred async_map_string_prepend(
 \begin{javacode}
 public Boolean cond_map_string_prepend(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -6198,7 +6261,7 @@ public Boolean cond_map_string_prepend(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -6219,7 +6282,7 @@ public Boolean cond_map_string_prepend(
 \begin{javacode}
 public Deferred async_cond_map_string_prepend(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -6228,7 +6291,7 @@ public Deferred async_cond_map_string_prepend(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -6309,7 +6372,7 @@ public Deferred async_group_map_string_prepend(
 \begin{javacode}
 public Boolean map_string_append(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -6317,7 +6380,7 @@ public Boolean map_string_append(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -6336,7 +6399,7 @@ public Boolean map_string_append(
 \begin{javacode}
 public Deferred async_map_string_append(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -6344,7 +6407,7 @@ public Deferred async_map_string_append(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -6366,7 +6429,7 @@ public Deferred async_map_string_append(
 \begin{javacode}
 public Boolean cond_map_string_append(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -6375,7 +6438,7 @@ public Boolean cond_map_string_append(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -6396,7 +6459,7 @@ public Boolean cond_map_string_append(
 \begin{javacode}
 public Deferred async_cond_map_string_append(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -6405,7 +6468,7 @@ public Deferred async_cond_map_string_append(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -6486,7 +6549,7 @@ public Deferred async_group_map_string_append(
 \begin{javacode}
 public Boolean map_atomic_min(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -6494,7 +6557,7 @@ public Boolean map_atomic_min(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -6513,7 +6576,7 @@ public Boolean map_atomic_min(
 \begin{javacode}
 public Deferred async_map_atomic_min(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -6521,7 +6584,7 @@ public Deferred async_map_atomic_min(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -6543,7 +6606,7 @@ public Deferred async_map_atomic_min(
 \begin{javacode}
 public Boolean cond_map_atomic_min(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -6552,7 +6615,7 @@ public Boolean cond_map_atomic_min(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -6573,7 +6636,7 @@ public Boolean cond_map_atomic_min(
 \begin{javacode}
 public Deferred async_cond_map_atomic_min(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -6582,7 +6645,7 @@ public Deferred async_cond_map_atomic_min(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -6663,7 +6726,7 @@ public Deferred async_group_map_atomic_min(
 \begin{javacode}
 public Boolean map_atomic_max(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -6671,7 +6734,7 @@ public Boolean map_atomic_max(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -6690,7 +6753,7 @@ public Boolean map_atomic_max(
 \begin{javacode}
 public Deferred async_map_atomic_max(
         String spacename,
-        String key,
+        Object key,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
 
@@ -6698,7 +6761,7 @@ public Deferred async_map_atomic_max(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Map<Object, Object>> mapattributes}\\
 \input{\topdir/java/client/fragments/in_asynccall_mapattributes}
@@ -6720,7 +6783,7 @@ public Deferred async_map_atomic_max(
 \begin{javacode}
 public Boolean cond_map_atomic_max(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -6729,7 +6792,7 @@ public Boolean cond_map_atomic_max(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
@@ -6750,7 +6813,7 @@ public Boolean cond_map_atomic_max(
 \begin{javacode}
 public Deferred async_cond_map_atomic_max(
         String spacename,
-        String key,
+        Object key,
         Map<String, Object> predicates,
         Map<String, Map<Object, Object>> mapattributes) throws HyperDexClientException
 \end{javacode}
@@ -6759,7 +6822,7 @@ public Deferred async_cond_map_atomic_max(
 \begin{itemize}[noitemsep]
 \item \code{String spacename}\\
 \input{\topdir/java/client/fragments/in_asynccall_spacename}
-\item \code{String key}\\
+\item \code{Object key}\\
 \input{\topdir/java/client/fragments/in_asynccall_key}
 \item \code{Map<String, Object> predicates}\\
 \input{\topdir/java/client/fragments/in_asynccall_predicates}
