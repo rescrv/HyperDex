@@ -968,10 +968,6 @@ if ENABLE_CLIENT
 if ENABLE_PYTHON_BINDINGS
 TESTS += $(doctest_wrappers)
 
-if ENABLE_TIME_CONSUMING_TESTS
-TESTS += $(stress_wrappers)
-endif
-
 TESTS += $(python_wrappers)
 check_PROGRAMS += bindings/python/hyperdex/admin.so
 check_PROGRAMS += bindings/python/hyperdex/client.so
@@ -982,6 +978,10 @@ endif
 
 if ENABLE_RUBY_BINDINGS
 TESTS += $(ruby_wrappers)
+endif
+
+if ENABLE_TIME_CONSUMING_TESTS
+TESTS += $(stress_wrappers)
 endif
 
 endif # ENABLE_PYTHON_BINDINGS

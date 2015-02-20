@@ -1131,18 +1131,17 @@ func (client *Client) AsynccallSpacenameKeyStatusAttributes(stub func(client *C.
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	if c_status == SUCCESS {
 		var er error
@@ -1193,18 +1192,17 @@ func (client *Client) AsynccallSpacenameKeyAttributenamesStatusAttributes(stub f
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	if c_status == SUCCESS {
 		var er error
@@ -1253,18 +1251,17 @@ func (client *Client) AsynccallSpacenameKeyAttributesStatus(stub func(client *C.
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	return
 }
@@ -1312,18 +1309,17 @@ func (client *Client) AsynccallSpacenameKeyPredicatesAttributesStatus(stub func(
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	return
 }
@@ -1365,18 +1361,17 @@ func (client *Client) AsynccallSpacenamePredicatesAttributesStatusCount(stub fun
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	if c_status == SUCCESS {
 		count = uint64(c_count)
@@ -1413,18 +1408,17 @@ func (client *Client) AsynccallSpacenameKeyStatus(stub func(client *C.struct_hyp
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	return
 }
@@ -1465,18 +1459,17 @@ func (client *Client) AsynccallSpacenameKeyPredicatesStatus(stub func(client *C.
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	return
 }
@@ -1511,18 +1504,17 @@ func (client *Client) AsynccallSpacenamePredicatesStatusCount(stub func(client *
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	if c_status == SUCCESS {
 		count = uint64(c_count)
@@ -1566,18 +1558,17 @@ func (client *Client) AsynccallSpacenameKeyMapattributesStatus(stub func(client 
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	return
 }
@@ -1625,18 +1616,17 @@ func (client *Client) AsynccallSpacenameKeyPredicatesMapattributesStatus(stub fu
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	return
 }
@@ -1678,18 +1668,17 @@ func (client *Client) AsynccallSpacenamePredicatesMapattributesStatusCount(stub 
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	if c_status == SUCCESS {
 		count = uint64(c_count)
@@ -1711,7 +1700,7 @@ func (client *Client) IteratorSpacenamePredicatesStatusAttributes(stub func(clie
 	er = client.convertSpacename(arena, spacename, &c_space)
 	if er != nil {
 		err := Error{Status(WRONGTYPE), er.Error(), ""}
-		errs <- err
+		errs<-err
 		close(attrs)
 		close(errs)
 		return
@@ -1719,7 +1708,7 @@ func (client *Client) IteratorSpacenamePredicatesStatusAttributes(stub func(clie
 	er = client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
 	if er != nil {
 		err := Error{Status(WRONGTYPE), er.Error(), ""}
-		errs <- err
+		errs<-err
 		close(attrs)
 		close(errs)
 		return
@@ -1735,12 +1724,12 @@ func (client *Client) IteratorSpacenamePredicatesStatusAttributes(stub func(clie
 		inner.searches[reqid] = &c_iter
 	} else {
 		err = Error{Status(c_iter.status),
-			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
 	inner.mutex.Unlock()
 	if reqid < 0 {
-		errs <- err
+		errs<-err
 		close(attrs)
 		close(errs)
 	}
@@ -1777,18 +1766,17 @@ func (client *Client) AsynccallSpacenamePredicatesStatusDescription(stub func(cl
 		inner.ops[reqid] = done
 	} else {
 		if c_status != SUCCESS {
-			err = &Error{Status(c_status),
-				C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-				C.GoString(C.hyperdex_client_error_location(inner.ptr))}
-		}
+		err = &Error{Status(c_status),
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}}
 	}
 	inner.mutex.Unlock()
 	if reqid >= 0 {
-		rz := <-done
-		if c_status != SUCCESS {
-			err = &rz
-			err.Status = Status(c_status)
-		}
+		 rz := <-done
+		 if c_status != SUCCESS {
+		    err = &rz
+		    err.Status = Status(c_status)
+	}
 	}
 	if c_status == SUCCESS {
 		desc = C.GoString(c_description)
@@ -1813,7 +1801,7 @@ func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttribut
 	er = client.convertSpacename(arena, spacename, &c_space)
 	if er != nil {
 		err := Error{Status(WRONGTYPE), er.Error(), ""}
-		errs <- err
+		errs<-err
 		close(attrs)
 		close(errs)
 		return
@@ -1821,7 +1809,7 @@ func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttribut
 	er = client.convertPredicates(arena, predicates, &c_checks, &c_checks_sz)
 	if er != nil {
 		err := Error{Status(WRONGTYPE), er.Error(), ""}
-		errs <- err
+		errs<-err
 		close(attrs)
 		close(errs)
 		return
@@ -1829,7 +1817,7 @@ func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttribut
 	er = client.convertSortby(arena, sortby, &c_sort_by)
 	if er != nil {
 		err := Error{Status(WRONGTYPE), er.Error(), ""}
-		errs <- err
+		errs<-err
 		close(attrs)
 		close(errs)
 		return
@@ -1837,7 +1825,7 @@ func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttribut
 	er = client.convertLimit(arena, limit, &c_limit)
 	if er != nil {
 		err := Error{Status(WRONGTYPE), er.Error(), ""}
-		errs <- err
+		errs<-err
 		close(attrs)
 		close(errs)
 		return
@@ -1845,7 +1833,7 @@ func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttribut
 	er = client.convertMaxmin(arena, maxmin, &c_maxmin)
 	if er != nil {
 		err := Error{Status(WRONGTYPE), er.Error(), ""}
-		errs <- err
+		errs<-err
 		close(attrs)
 		close(errs)
 		return
@@ -1861,12 +1849,12 @@ func (client *Client) IteratorSpacenamePredicatesSortbyLimitMaxminStatusAttribut
 		inner.searches[reqid] = &c_iter
 	} else {
 		err = Error{Status(c_iter.status),
-			C.GoString(C.hyperdex_client_error_message(inner.ptr)),
-			C.GoString(C.hyperdex_client_error_location(inner.ptr))}
+		            C.GoString(C.hyperdex_client_error_message(inner.ptr)),
+		            C.GoString(C.hyperdex_client_error_location(inner.ptr))}
 	}
 	inner.mutex.Unlock()
 	if reqid < 0 {
-		errs <- err
+		errs<-err
 		close(attrs)
 		close(errs)
 	}
