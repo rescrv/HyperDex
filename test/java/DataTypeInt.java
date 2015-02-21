@@ -14,34 +14,55 @@ import org.hyperdex.client.LengthEquals;
 import org.hyperdex.client.LengthLessEqual;
 import org.hyperdex.client.LengthGreaterEqual;
 
+import org.junit.*;
+import static org.junit.Assert.* ;
+
 public class DataTypeInt
 {
-    public static void main(String[] args) throws HyperDexClientException
-    {
-        Client c = new Client(args[0], Integer.parseInt(args[1]));
-        Map<String, Object> attrs0 = new HashMap<String, Object>();
-        Object obj0 = c.put("kv", "k", attrs0);
-        assert(obj0 != null);
-        Boolean bool0 = (Boolean)obj0;
-        assert(bool0 == true);
-        Map<String, Object> get1 = c.get("kv", "k");
-        assert(get1 != null);
-        Map<String, Object> expected1 = new HashMap<String, Object>();
-        expected1.put("v", 0);
-        get1.entrySet().containsAll(expected1.entrySet());
-        expected1.entrySet().containsAll(get1.entrySet());
-        Map<String, Object> attrs2 = new HashMap<String, Object>();
-        attrs2.put("v", 1);
-        Object obj2 = c.put("kv", "k", attrs2);
-        assert(obj2 != null);
-        Boolean bool2 = (Boolean)obj2;
-        assert(bool2 == true);
-        Map<String, Object> get3 = c.get("kv", "k");
-        assert(get3 != null);
-        Map<String, Object> expected3 = new HashMap<String, Object>();
-        expected3.put("v", 1);
-        get3.entrySet().containsAll(expected3.entrySet());
-        expected3.entrySet().containsAll(get3.entrySet());
+    private Client c;
+    
+    @Before
+    public void setUp() throws Exception {
+        c = new Client(System.getProperty("hyperdex_host"),
+                Integer.parseInt(System.getProperty("hyperdex_port")));
+    }
+    
+    @Test
+    public void testInsertEmpty() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        Object obj = c.put("kv", "k", attrs);
+        assertNotNull(obj);
+        Boolean bool = (Boolean)obj;
+        assertTrue(bool);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        assertNotNull(get);
+        
+        Map<String, Object> expected = new HashMap<String, Object>();
+        expected.put("v", 0);
+        
+        assertEquals(expected, get);
+    }
+    
+    @Test
+    public void testInsertZero() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        attrs.put("v", 1);
+        
+        Boolean res = (Boolean)c.put("kv", "k", attrs);
+        assertTrue(res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        assertNotNull(get);
+        
+        Map<String, Object> expected = new HashMap<String, Object>();
+        expected.put("v", 1);
+        
+        assertEquals(expected, get);
+    }
+        
+    @Test
+    public void testInteger() throws HyperDexClientException {
         Map<String, Object> attrs4 = new HashMap<String, Object>();
         attrs4.put("v", -1);
         Object obj4 = c.put("kv", "k", attrs4);

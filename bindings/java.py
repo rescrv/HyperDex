@@ -70,6 +70,36 @@ def CTYPEOF(x):
     else:
         raise RuntimeError('Unknown type: ' + str(x))
 
+def generate_microtransaction_prototype(x):
+    if x.form is not bindings.MicrotransactionCall:
+        return ''
+    
+    args_list = ', '.join([JTYPEOF(arg) + ' ' + arg.__name__.lower() for arg in x.args_in])
+    if x.form == bindings.AsyncCall:
+        if x.args_out == (bindings.Status, bindings.Attributes):
+            ret = 'Map<String, Object>'
+        elif x.args_out == (bindings.Status, bindings.Description):
+            ret = 'String'
+        elif x.args_out == (bindings.Status, bindings.Count):
+            ret = 'Long'
+        elif x.args_out == (bindings.Status,):
+            ret = 'Boolean'
+        else:
+            print x.args_out
+            assert False
+        proto = '    public native Deferred async_{0}({1}) throws HyperDexClientException;\n'.format(x.name, args_list)
+        proto += '    public {1} {0}('.format(x.name, ret)
+        proto += args_list
+        proto += ') throws HyperDexClientException\n    {\n'
+        args_list = ', '.join([arg.__name__.lower() for arg in x.args_in])
+        proto += '        return ({2}) async_{0}({1}).waitForIt();\n'.format(x.name, args_list, ret)
+        proto += '    }\n'
+        return proto
+    elif (x.form == bindings.MicrotransactionCall or x.form == bindings.Iterator):
+        return '    public native Iterator {0}({1});\n'.format(x.name, args_list)
+    else:
+        assert False
+
 def generate_client_prototype(x):
     if x.form is bindings.MicrotransactionCall:
         return ''
@@ -160,15 +190,9 @@ def generate_microtransaction_definition(x):
     if not (x.form is bindings.MicrotransactionCall):
         return ''
     
-    func = 'JNIEXPORT HYPERDEX_API jobject JNICALL\n'
-    if x.form == bindings.AsyncCall:
-        func += 'Java_org_hyperdex_client_Client_async_1{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
-    elif x.form == bindings.Iterator:
-        func += 'Java_org_hyperdex_client_Client_{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
-    elif x.form == bindings.MicrotransactionCall:
-        func += 'Java_org_hyperdex_client_Client_{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
-    else:
-        assert False
+    func = 'JNIEXPORT HYPERDEX_API jint JNICALL\n'
+    func += 'Java_org_hyperdex_client_Client_{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
+
     for arg in x.args_in:
         func += ', ' + CTYPEOF(arg) + ' ' + arg.__name__.lower()
     func += ')\n{\n'
@@ -187,10 +211,9 @@ def generate_client_definition(x):
         func += 'Java_org_hyperdex_client_Client_async_1{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
     elif x.form == bindings.Iterator:
         func += 'Java_org_hyperdex_client_Client_{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
-    elif x.form == bindings.MicrotransactionCall:
-        func += 'Java_org_hyperdex_client_Client_{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
     else:
-        assert False
+        raise RuntimeError('Unknown function type ' + str(x.form))
+        
     for arg in x.args_in:
         func += ', ' + CTYPEOF(arg) + ' ' + arg.__name__.lower()
     func += ')\n{\n'
@@ -286,10 +309,18 @@ def generate_client_java():
     fout.write('\n'.join([generate_client_prototype(c) for c in bindings.Client]))
     fout.write('}\n')
     fout.flush()
+    fout = open(os.path.join(BASE, 'bindings/java/org/hyperdex/client/Microtransaction.java'), 'w')
+    fout.write(bindings.copyright('*', '2015'))
+    fout.write(bindings.java.MICROTRANSACTION_HEAD)
+    fout.write('\n'.join([generate_microtransaction_prototype(c) for c in bindings.Client]))
+    fout.write('}\n')
+    fout.flush()
     os.system('cd bindings/java && javac -cp . org/hyperdex/client/Client.java')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
+    os.system('cd bindings/java && javac -cp . org/hyperdex/client/Microtransaction.java')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.Microtransaction')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Deferred')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.GreaterEqual')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.GreaterThan')
@@ -307,10 +338,15 @@ def generate_client_java():
     fout.write(bindings.java.DEFINITIONS_HEAD)
     fout.write('\n'.join(generate_workers(bindings.Client)))
     fout.write('\n'.join([generate_client_definition(c) for c in bindings.Client]))
+    fout = open(os.path.join(BASE, 'bindings/java/org_hyperdex_client_Microtransaction.definitions.c'), 'w')
+    fout.write(bindings.copyright('*', '2015'))
+    fout.write(bindings.java.DEFINITIONS_HEAD)
+    fout.write('\n'.join(generate_workers(bindings.Client)))
+    fout.write('\n'.join([generate_microtransaction_definition(c) for c in bindings.Client]))
 
 def generate_client_doc():
     fout = open(os.path.join(BASE, 'doc/java/client/ops.tex'), 'w')
-    fout.write(bindings.copyright('%', '2014'))
+    fout.write(bindings.copyright('%', '2014-2015'))
     fout.write('\n% This LaTeX file is generated by bindings/java.py\n\n')
     fout.write('\n'.join([generate_api_block(c, 'client') for c in bindings.Client
                           if c.name not in (bindings.DoNotDocument, bindings.MicrotransactionCall)]))
@@ -318,6 +354,26 @@ def generate_client_doc():
 if __name__ == '__main__':
     generate_client_java()
     generate_client_doc()
+    
+MICROTRANSACTION_HEAD = '''
+/* This file is generated by bindings/java.py */
+
+package org.hyperdex.client;
+
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
+public class Microtransaction
+{
+    protected Microtransaction(Client client, String space)
+    {
+        this._create(client, space);
+    }
+    
+    private native void _create(Client client, String space);
+    
+'''
 
 JAVA_HEAD = '''
 /* This file is generated by bindings/java.py */
@@ -361,6 +417,11 @@ public class Client
         {
             super.finalize();
         }
+    }
+    
+    public Microtransaction initMicrotransaction(String space)
+    {
+        return new Microtransaction(this, space);
     }
 
     public synchronized void destroy()

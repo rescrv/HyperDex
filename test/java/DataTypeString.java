@@ -14,47 +14,65 @@ import org.hyperdex.client.LengthEquals;
 import org.hyperdex.client.LengthLessEqual;
 import org.hyperdex.client.LengthGreaterEqual;
 
+import org.junit.*;
+import static org.junit.Assert.* ;
+
 public class DataTypeString
 {
-    public static void main(String[] args) throws HyperDexClientException
-    {
-        Client c = new Client(args[0], Integer.parseInt(args[1]));
-        Map<String, Object> attrs0 = new HashMap<String, Object>();
-        Object obj0 = c.put("kv", "k", attrs0);
-        assert(obj0 != null);
-        Boolean bool0 = (Boolean)obj0;
-        assert(bool0 == true);
-        Map<String, Object> get1 = c.get("kv", "k");
-        assert(get1 != null);
-        Map<String, Object> expected1 = new HashMap<String, Object>();
-        expected1.put("v", "");
-        get1.entrySet().containsAll(expected1.entrySet());
-        expected1.entrySet().containsAll(get1.entrySet());
-        Map<String, Object> attrs2 = new HashMap<String, Object>();
-        attrs2.put("v", "xxx");
-        Object obj2 = c.put("kv", "k", attrs2);
-        assert(obj2 != null);
-        Boolean bool2 = (Boolean)obj2;
-        assert(bool2 == true);
-        Map<String, Object> get3 = c.get("kv", "k");
-        assert(get3 != null);
-        Map<String, Object> expected3 = new HashMap<String, Object>();
-        expected3.put("v", "xxx");
-        get3.entrySet().containsAll(expected3.entrySet());
-        expected3.entrySet().containsAll(get3.entrySet());
-        Map<String, Object> attrs4 = new HashMap<String, Object>();
-        byte[] bytes5 = {(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
-        attrs4.put("v", new ByteString(bytes5));
-        Object obj4 = c.put("kv", "k", attrs4);
-        assert(obj4 != null);
-        Boolean bool4 = (Boolean)obj4;
-        assert(bool4 == true);
-        Map<String, Object> get6 = c.get("kv", "k");
-        assert(get6 != null);
-        Map<String, Object> expected6 = new HashMap<String, Object>();
-        byte[] bytes7 = {(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
-        expected6.put("v", new ByteString(bytes7));
-        get6.entrySet().containsAll(expected6.entrySet());
-        expected6.entrySet().containsAll(get6.entrySet());
+    private Client c;
+    
+    @Before
+    public void setUp() throws Exception {
+        c = new Client(System.getProperty("hyperdex_host"),
+                Integer.parseInt(System.getProperty("hyperdex_port")));
+    }
+    
+    @Test
+    public void insertEmptyValue() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        
+        Object obj = c.put("kv", "k", attrs);
+        assertNotNull(obj);
+        Boolean bool = (Boolean)obj;
+        assertTrue(bool);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        assertNotNull(get);
+        
+        Map<String, Object> expected = new HashMap<String, Object>();
+        expected.put("v", "");
+        assertEquals(get, expected);
+    }
+    
+    @Test
+    public void insertString() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        attrs.put("v", "xxx");
+        
+        Boolean res = (Boolean)c.put("kv", "k", attrs);
+        assertTrue(res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        assertNotNull(get);
+        
+        Map<String, Object> expected = new HashMap<String, Object>();
+        expected.put("v", "xxx");
+        assertEquals(get, expected);
+    }
+    
+    @Test
+    public void insertBytes() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        byte[] bytes = {(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
+        attrs.put("v", new ByteString(bytes));
+        Boolean res = (Boolean)c.put("kv", "k", attrs);
+        assertTrue(res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        assertNotNull(get);
+        
+        Map<String, Object> expected = new HashMap<String, Object>();
+        expected.put("v", new ByteString(bytes));
+        assertEquals(get, expected);
     }
 }

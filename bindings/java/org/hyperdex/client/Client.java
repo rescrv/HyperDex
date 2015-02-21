@@ -67,6 +67,11 @@ public class Client
             super.finalize();
         }
     }
+    
+    public Microtransaction initMicrotransaction(String space)
+    {
+        return new Microtransaction(this, space);
+    }
 
     public synchronized void destroy()
     {
