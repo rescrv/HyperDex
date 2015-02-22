@@ -72,4 +72,14 @@ public class DataTypeString
         expected.put("v", new ByteString(bytes));
         assertEquals(get, expected);
     }
+    
+    @Test
+    public void correctByteString() {
+        String original = "42 is the answer";
+        
+        ByteString bstring = new ByteString(bstring.getBytes());
+        String result = bstring.toString();
+        
+        assertEquals(original, result);
+    }
 }

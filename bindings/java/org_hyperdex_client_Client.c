@@ -55,6 +55,7 @@ static jclass _string;
 static jclass _byte_string;
 static jmethodID _byte_string_init;
 static jmethodID _byte_string_get;
+static jmethodID _byte_string_to_string;
 
 static jclass _document;
 static jmethodID _document_init;
@@ -178,6 +179,7 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     REF(_byte_string, (*env)->FindClass(env, "org/hyperdex/client/ByteString"));
     _byte_string_init = (*env)->GetMethodID(env, _byte_string, "<init>", "([B)V");
     _byte_string_get = (*env)->GetMethodID(env, _byte_string, "getBytes", "()[B");
+    _byte_string_to_string = (*env)->GetMethodID(env, _byte_string, "toString", "()Ljava/lang/String;");
     /* cache class Boolean */
     REF(_boolean, (*env)->FindClass(env, "java/lang/Boolean"));
     _boolean_init = (*env)->GetMethodID(env, _boolean, "<init>", "(Z)V");
@@ -279,6 +281,7 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     CHECK_CACHE(_byte_string);
     CHECK_CACHE(_byte_string_init);
     CHECK_CACHE(_byte_string_get);
+    CHECK_CACHE(_byte_string_to_string);
     CHECK_CACHE(_boolean);
     CHECK_CACHE(_boolean_init);
     CHECK_CACHE(_long);
@@ -1483,10 +1486,10 @@ hyperdex_java_client_build_attribute(JNIEnv* env,
             BUILD_FLOAT(tmp, tmp_d);
             return tmp;
         case HYPERDATATYPE_DOCUMENT:
-            BUILD_STRING(tmp2, attr->value, attr->value_sz);
+            BUILD_STRING(tmp, attr->value, attr->value_sz);
             // Build document from string
-            tmp = (*env)->NewObject(env, _document, _document_init, tmp2);
-            return tmp;
+            tmp2 = (*env)->CallObjectMethod(env, tmp, _byte_string_to_string);
+            return (*env)->NewObject(env, _document, _document_init, tmp2);
         case HYPERDATATYPE_LIST_STRING:
             hyperdex_ds_iterator_init(&iter, attr->datatype, attr->value, attr->value_sz);
             ret = (*env)->NewObject(env, _array_list, _array_list_init);

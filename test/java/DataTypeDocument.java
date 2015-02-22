@@ -46,6 +46,32 @@ public class DataTypeDocument
         Map<String, Object> get = c.get("kv", "k");
         Map<String, Object> expected = new HashMap<String, Object>();
         expected.put("v", new Document("{}"));
+        
+        String str1 = expected.get("v").toString();
+        String str2 = get.get("v").toString();
+        
+        assertEquals(str1.length(), str2.length());
+        for(int i = 0; i < str1.length(); ++i)
+        {
+            assertEquals(str1.charAt(i), str2.charAt(i));
+        }
+        
+        assertEquals(expected.get("v"), get.get("v"));
+        assertEquals(expected, get);
+    }
+    
+    @Test
+    public void insertNestedDocument() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        attrs.put("v", new Document("{\"a\" : { \"b\" : \"c\"}}"));
+        
+        Boolean res = c.put("kv", "k", attrs);
+        assertTrue(res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        Map<String, Object> expected = new HashMap<String, Object>();
+        assert(get.get("v") instanceof Document);
+        expected.put("v", new Document("{\"a\":{\"b\":\"c\"}}")); // be careful about formatting...
         assertEquals(expected, get);
     }
 }
