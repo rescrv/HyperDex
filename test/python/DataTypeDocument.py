@@ -10,7 +10,12 @@ c = hyperdex.client.Client(sys.argv[1], int(sys.argv[2]))
 
 def to_objectset(xs):
     return set([frozenset(x.items()) for x in xs])
+    
+# Empty Document
+assertTrue(c.put('kv', 'k', {}))
+assertEquals(c.get('kv', 'k')['v'], Document({}))
 
+# Basic Stuff
 assertTrue(c.put('kv', 'k', {'v': Document({})}))
 assertEquals(c.get('kv', 'k')['v'], Document({}))
 assertTrue(c.put('kv', 'k',  {'v': Document({'a': 'b', 'c': {'d' : 1, 'e': 'f', 'g': -2 }})}))

@@ -1,34 +1,52 @@
 import java.util.*;
 
 import org.hyperdex.client.Client;
-import org.hyperdex.client.ByteString;
+import org.hyperdex.client.Document;
 import org.hyperdex.client.HyperDexClientException;
-import org.hyperdex.client.Iterator;
-import org.hyperdex.client.LessEqual;
-import org.hyperdex.client.GreaterEqual;
-import org.hyperdex.client.LessThan;
-import org.hyperdex.client.GreaterThan;
-import org.hyperdex.client.Range;
-import org.hyperdex.client.Regex;
-import org.hyperdex.client.LengthEquals;
-import org.hyperdex.client.LengthLessEqual;
-import org.hyperdex.client.LengthGreaterEqual;
 
 import org.junit.*;
+import static org.junit.Assert.* ;
 
-public class DataTypeListString
+public class DataTypeDocument
 {
     private Client c;
     
     @Before
-    public void setUp() throws Exception {
-        c = new Client(args[0], Integer.parseInt(args[1]));
+    public void setUpHyperdexClient() throws Exception {
+        c = new Client(System.getProperty("hyperdex_host"),
+                Integer.parseInt(System.getProperty("hyperdex_port")));
+    }
+    
+    @After
+    public void destroyHyperdexClient() {
+        c = null;
     }
     
     @Test
-    public static void insertDocument()
-    {
+    public void insertEmptyValue() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
         
+        Boolean res = c.put("kv", "k", attrs);
+        assertTrue(res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        Map<String, Object> expected = new HashMap<String, Object>();
+        expected.put("v", new Document("{}"));
+        assertEquals(expected, get);
+    }
+    
+    @Test
+    public void insertEmptyDocument() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        attrs.put("v", new Document("{}"));
+        
+        Boolean res = c.put("kv", "k", attrs);
+        assertTrue(res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        Map<String, Object> expected = new HashMap<String, Object>();
+        expected.put("v", new Document("{}"));
+        assertEquals(expected, get);
     }
 }
 

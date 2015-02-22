@@ -22,23 +22,24 @@ public class DataTypeString
     private Client c;
     
     @Before
-    public void setUp() throws Exception {
+    public void setUpHyperdexClient() throws Exception {
         c = new Client(System.getProperty("hyperdex_host"),
                 Integer.parseInt(System.getProperty("hyperdex_port")));
+    }
+    
+    @After
+    public void destroyHyperdexClient() {
+        c = null;
     }
     
     @Test
     public void insertEmptyValue() throws HyperDexClientException {
         Map<String, Object> attrs = new HashMap<String, Object>();
         
-        Object obj = c.put("kv", "k", attrs);
-        assertNotNull(obj);
-        Boolean bool = (Boolean)obj;
-        assertTrue(bool);
+        Boolean res = c.put("kv", "k", attrs);
+        assertTrue(res);
         
         Map<String, Object> get = c.get("kv", "k");
-        assertNotNull(get);
-        
         Map<String, Object> expected = new HashMap<String, Object>();
         expected.put("v", "");
         assertEquals(get, expected);
@@ -49,12 +50,10 @@ public class DataTypeString
         Map<String, Object> attrs = new HashMap<String, Object>();
         attrs.put("v", "xxx");
         
-        Boolean res = (Boolean)c.put("kv", "k", attrs);
+        Boolean res = c.put("kv", "k", attrs);
         assertTrue(res);
         
         Map<String, Object> get = c.get("kv", "k");
-        assertNotNull(get);
-        
         Map<String, Object> expected = new HashMap<String, Object>();
         expected.put("v", "xxx");
         assertEquals(get, expected);
@@ -65,12 +64,10 @@ public class DataTypeString
         Map<String, Object> attrs = new HashMap<String, Object>();
         byte[] bytes = {(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
         attrs.put("v", new ByteString(bytes));
-        Boolean res = (Boolean)c.put("kv", "k", attrs);
+        Boolean res = c.put("kv", "k", attrs);
         assertTrue(res);
         
         Map<String, Object> get = c.get("kv", "k");
-        assertNotNull(get);
-        
         Map<String, Object> expected = new HashMap<String, Object>();
         expected.put("v", new ByteString(bytes));
         assertEquals(get, expected);

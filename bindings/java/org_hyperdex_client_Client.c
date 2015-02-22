@@ -56,6 +56,10 @@ static jclass _byte_string;
 static jmethodID _byte_string_init;
 static jmethodID _byte_string_get;
 
+static jclass _document;
+static jmethodID _document_init;
+static jmethodID _document_to_string;
+
 static jclass _boolean;
 static jmethodID _boolean_init;
 
@@ -166,6 +170,10 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
 
     /* cache class String */
     REF(_string, (*env)->FindClass(env, "java/lang/String"));
+    /* cache class Document */
+    REF(_document, (*env)->FindClass(env, "org/hyperdex/client/Document"));
+    _document_init = (*env)->GetMethodID(env, _document, "<init>", "(Ljava/lang/String;)V");
+    _document_to_string = (*env)->GetMethodID(env, _document, "toString", "()Ljava/lang/String;");
     /* cache class ByteString */
     REF(_byte_string, (*env)->FindClass(env, "org/hyperdex/client/ByteString"));
     _byte_string_init = (*env)->GetMethodID(env, _byte_string, "<init>", "([B)V");
@@ -265,6 +273,9 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     _pred_length_greater_equal_x = (*env)->GetFieldID(env, _pred_length_greater_equal, "x", "Ljava/lang/Object;");
 
     CHECK_CACHE(_string);
+    CHECK_CACHE(_document);
+    CHECK_CACHE(_document_init);
+    CHECK_CACHE(_document_to_string);
     CHECK_CACHE(_byte_string);
     CHECK_CACHE(_byte_string_init);
     CHECK_CACHE(_byte_string_get);
@@ -344,6 +355,7 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
 JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Client_terminate(JNIEnv* env, jclass client)
 {
+    (*env)->DeleteGlobalRef(env, _document);
     (*env)->DeleteGlobalRef(env, _string);
     (*env)->DeleteGlobalRef(env, _byte_string);
     (*env)->DeleteGlobalRef(env, _boolean);
@@ -496,6 +508,7 @@ typedef int (*elem_float_fptr)(void*, double, enum hyperdex_ds_returncode*);
             return -1; \
     }
 
+/* Convert a single elment of a list, map, or set*/
 static int
 hyperdex_java_client_convert_elem(JNIEnv* env,
                                   jobject obj,
@@ -782,6 +795,27 @@ hyperdex_java_client_convert_type(JNIEnv* env,
         *value = "";
         *value_sz = 0;
         *datatype = HYPERDATATYPE_GENERIC;
+        return 0;
+    }
+    else if ((*env)->IsInstanceOf(env, x, _document) == JNI_TRUE)
+    {
+        x = (*env)->CallObjectMethod(env, x, _document_to_string);
+        tmp_str = (*env)->GetStringUTFChars(env, x, 0);
+        ERROR_CHECK(-1);
+        tmp_str_sz = (*env)->GetStringUTFLength(env, x);
+        ERROR_CHECK(-1);
+        success = hyperdex_ds_copy_string(arena, tmp_str, tmp_str_sz,
+                                          &error, value, value_sz);
+        (*env)->ReleaseStringUTFChars(env, x, tmp_str);
+        ERROR_CHECK(-1);
+        *datatype = HYPERDATATYPE_DOCUMENT;
+
+        if (success < 0)
+        {
+            hyperdex_java_out_of_memory(env);
+            return -1;
+        }
+
         return 0;
     }
     else if ((*env)->IsInstanceOf(env, x, _string) == JNI_TRUE)
@@ -1449,8 +1483,10 @@ hyperdex_java_client_build_attribute(JNIEnv* env,
             BUILD_FLOAT(tmp, tmp_d);
             return tmp;
         case HYPERDATATYPE_DOCUMENT:
-            hyperdex_java_client_throw_exception(env, HYPERDEX_CLIENT_WRONGTYPE, "Java bindings do not support JSON objects");
-            return 0;
+            BUILD_STRING(tmp2, attr->value, attr->value_sz);
+            // Build document from string
+            tmp = (*env)->NewObject(env, _document, _document_init, tmp2);
+            return tmp;
         case HYPERDATATYPE_LIST_STRING:
             hyperdex_ds_iterator_init(&iter, attr->datatype, attr->value, attr->value_sz);
             ret = (*env)->NewObject(env, _array_list, _array_list_init);
