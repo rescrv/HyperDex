@@ -1192,9 +1192,6 @@ cdef class Microtransaction:
         self.transaction = hyperdex_client_uxact_init(self.client.client, in_space, &self.deferred.status)
     
     # Begin Automatically Generated UTX Methods
-
-
-
     def put(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1203,13 +1200,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
-
-
-
-
     def atomic_add(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1218,9 +1208,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
     def atomic_sub(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1229,9 +1216,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
     def atomic_mul(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1240,9 +1224,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
     def atomic_div(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1251,12 +1232,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
-
-
-
     def atomic_and(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1265,9 +1240,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
     def atomic_or(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1276,18 +1248,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
-
-
-
-
-
-
-
-
-
     def string_prepend(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1296,9 +1256,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
     def string_append(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1307,9 +1264,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
     def list_lpush(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1318,9 +1272,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
     def list_rpush(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1329,21 +1280,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def document_rename(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1352,9 +1288,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
     def document_unset(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -1363,53 +1296,6 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     # End Automatically Generated UTX Methods
     def async_group_commit(self, dict checks):
         cdef hyperdex_client_attribute_check* chks
@@ -1894,7 +1780,6 @@ cdef class Client:
         if secret is not None: attributes['__secret'] = secret
         return self.async_put(spacename, key, attributes, auth).wait()
 
-
     def async_cond_put(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_put, spacename, key, predicates, attributes, auth)
     def cond_put(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
@@ -1935,7 +1820,6 @@ cdef class Client:
     def atomic_add(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_atomic_add(spacename, key, attributes, auth).wait()
 
-
     def async_cond_atomic_add(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_add, spacename, key, predicates, attributes, auth)
     def cond_atomic_add(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
@@ -1950,7 +1834,6 @@ cdef class Client:
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_sub, spacename, key, attributes, auth)
     def atomic_sub(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_atomic_sub(spacename, key, attributes, auth).wait()
-
 
     def async_cond_atomic_sub(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_sub, spacename, key, predicates, attributes, auth)
@@ -1967,7 +1850,6 @@ cdef class Client:
     def atomic_mul(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_atomic_mul(spacename, key, attributes, auth).wait()
 
-
     def async_cond_atomic_mul(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_mul, spacename, key, predicates, attributes, auth)
     def cond_atomic_mul(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
@@ -1982,7 +1864,6 @@ cdef class Client:
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_div, spacename, key, attributes, auth)
     def atomic_div(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_atomic_div(spacename, key, attributes, auth).wait()
-
 
     def async_cond_atomic_div(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_div, spacename, key, predicates, attributes, auth)
@@ -2014,7 +1895,6 @@ cdef class Client:
     def atomic_and(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_atomic_and(spacename, key, attributes, auth).wait()
 
-
     def async_cond_atomic_and(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_and, spacename, key, predicates, attributes, auth)
     def cond_atomic_and(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
@@ -2029,7 +1909,6 @@ cdef class Client:
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_atomic_or, spacename, key, attributes, auth)
     def atomic_or(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_atomic_or(spacename, key, attributes, auth).wait()
-
 
     def async_cond_atomic_or(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_atomic_or, spacename, key, predicates, attributes, auth)
@@ -2091,7 +1970,6 @@ cdef class Client:
     def string_prepend(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_string_prepend(spacename, key, attributes, auth).wait()
 
-
     def async_cond_string_prepend(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_prepend, spacename, key, predicates, attributes, auth)
     def cond_string_prepend(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
@@ -2106,7 +1984,6 @@ cdef class Client:
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_string_append, spacename, key, attributes, auth)
     def string_append(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_string_append(spacename, key, attributes, auth).wait()
-
 
     def async_cond_string_append(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_append, spacename, key, predicates, attributes, auth)
@@ -2123,7 +2000,6 @@ cdef class Client:
     def list_lpush(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_list_lpush(spacename, key, attributes, auth).wait()
 
-
     def async_cond_list_lpush(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_list_lpush, spacename, key, predicates, attributes, auth)
     def cond_list_lpush(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
@@ -2138,7 +2014,6 @@ cdef class Client:
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_list_rpush, spacename, key, attributes, auth)
     def list_rpush(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_list_rpush(spacename, key, attributes, auth).wait()
-
 
     def async_cond_list_rpush(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_list_rpush, spacename, key, predicates, attributes, auth)
@@ -2215,7 +2090,6 @@ cdef class Client:
     def document_rename(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_document_rename(spacename, key, attributes, auth).wait()
 
-
     def async_cond_document_rename(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_document_rename, spacename, key, predicates, attributes, auth)
     def cond_document_rename(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
@@ -2230,7 +2104,6 @@ cdef class Client:
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_document_unset, spacename, key, attributes, auth)
     def document_unset(self, bytes spacename, key, dict attributes, auth=None):
         return self.async_document_unset(spacename, key, attributes, auth).wait()
-
 
     def async_cond_document_unset(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
         return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_document_unset, spacename, key, predicates, attributes, auth)
