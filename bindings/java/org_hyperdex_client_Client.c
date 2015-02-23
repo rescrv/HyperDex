@@ -48,6 +48,8 @@
 #include "bindings/java/org_hyperdex_client_Range.h"
 #include "bindings/java/org_hyperdex_client_Regex.h"
 
+#include "client-util.h"
+
 /********************************* Cached IDs *********************************/
 
 static jclass _string;
@@ -464,32 +466,6 @@ hyperdex_java_client_throw_exception(JNIEnv* env,
 }
 
 /********************************** Java -> C *********************************/
-
-static const char*
-hyperdex_java_client_convert_cstring(JNIEnv* env,
-                                     struct hyperdex_ds_arena* arena,
-                                     jobject str)
-{
-    const char* tmp = NULL;
-    const char* ret = NULL;
-    size_t ret_sz = 0;
-    enum hyperdex_ds_returncode rc;
-    int success;
-    tmp = (*env)->GetStringUTFChars(env, str, 0);
-    ERROR_CHECK(NULL);
-    success = hyperdex_ds_copy_string(arena, tmp, strlen(tmp) + 1, &rc, &ret, &ret_sz);
-    (*env)->ReleaseStringUTFChars(env, str, tmp);
-    ERROR_CHECK(NULL);
-
-    if (success < 0)
-    {
-        hyperdex_java_out_of_memory(env);
-        return NULL;
-    }
-
-    return ret;
-}
-
 typedef int (*elem_string_fptr)(void*, const char*, size_t, enum hyperdex_ds_returncode*);
 typedef int (*elem_int_fptr)(void*, int64_t, enum hyperdex_ds_returncode*);
 typedef int (*elem_float_fptr)(void*, double, enum hyperdex_ds_returncode*);
@@ -962,75 +938,6 @@ hyperdex_java_client_convert_maxmin(JNIEnv* env, jobject client,
     (void)env;
     (void)client;
     (void)arena;
-    return 0;
-}
-
-static int
-hyperdex_java_client_convert_attributes(JNIEnv* env, jobject client,
-                                        struct hyperdex_ds_arena* arena,
-                                        jobject x,
-                                        const struct hyperdex_client_attribute** _attrs,
-                                        size_t* _attrs_sz)
-{
-    jobject set;
-    jobject it;
-    jobject entry;
-    jobject key;
-    jobject val;
-    struct hyperdex_client_attribute* attrs = NULL;
-    size_t attrs_sz = 0;
-    size_t attrs_idx = 0;
-
-    set = (*env)->CallObjectMethod(env, x, _map_entrySet);
-    ERROR_CHECK(-1);
-    it = (*env)->CallObjectMethod(env, set, _set_iterator);
-    ERROR_CHECK(-1);
-    attrs_sz = (*env)->CallIntMethod(env, x, _map_size);
-    ERROR_CHECK(-1);
-    attrs = hyperdex_ds_allocate_attribute(arena, attrs_sz);
-
-    if (!attrs)
-    {
-        hyperdex_java_out_of_memory(env);
-        return -1;
-    }
-
-    *_attrs = attrs;
-    *_attrs_sz = attrs_sz;
-    attrs_idx = 0;
-
-    while ((*env)->CallBooleanMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
-    {
-        entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
-        ERROR_CHECK(-1);
-        key = (*env)->CallObjectMethod(env, entry, _map_entry_getKey);
-        ERROR_CHECK(-1);
-        val = (*env)->CallObjectMethod(env, entry, _map_entry_getValue);
-        ERROR_CHECK(-1);
-        attrs[attrs_idx].attr = hyperdex_java_client_convert_cstring(env, arena, key);
-
-        if (!attrs[attrs_idx].attr)
-        {
-            return -1;
-        }
-
-        if (hyperdex_java_client_convert_type(env, arena, val,
-                                              &attrs[attrs_idx].value,
-                                              &attrs[attrs_idx].value_sz,
-                                              &attrs[attrs_idx].datatype) < 0)
-        {
-            return -1;
-        }
-
-        (*env)->DeleteLocalRef(env, val);
-        (*env)->DeleteLocalRef(env, key);
-        (*env)->DeleteLocalRef(env, entry);
-        ++attrs_idx;
-    }
-
-    (*env)->DeleteLocalRef(env, it);
-    (*env)->DeleteLocalRef(env, set);
-    (void)client;
     return 0;
 }
 
@@ -2247,6 +2154,101 @@ hyperdex_java_client_iterator_encode_status_attributes(JNIEnv* env, jobject obj,
         hyperdex_java_client_throw_exception(env, it->status, hyperdex_client_error_message(client));
         return 0;
     }
+}
+
+
+const char*
+hyperdex_java_client_convert_cstring(JNIEnv* env,
+                                     struct hyperdex_ds_arena* arena,
+                                     jobject str)
+{
+    const char* tmp = NULL;
+    const char* ret = NULL;
+    size_t ret_sz = 0;
+    enum hyperdex_ds_returncode rc;
+    int success;
+    tmp = (*env)->GetStringUTFChars(env, str, 0);
+    ERROR_CHECK(NULL);
+    success = hyperdex_ds_copy_string(arena, tmp, strlen(tmp) + 1, &rc, &ret, &ret_sz);
+    (*env)->ReleaseStringUTFChars(env, str, tmp);
+    ERROR_CHECK(NULL);
+
+    if (success < 0)
+    {
+        hyperdex_java_out_of_memory(env);
+        return NULL;
+    }
+
+    return ret;
+}
+
+int
+hyperdex_java_client_convert_attributes(JNIEnv* env, jobject client,
+                                        struct hyperdex_ds_arena* arena,
+                                        jobject x,
+                                        const struct hyperdex_client_attribute** _attrs,
+                                        size_t* _attrs_sz)
+{
+    jobject set;
+    jobject it;
+    jobject entry;
+    jobject key;
+    jobject val;
+    struct hyperdex_client_attribute* attrs = NULL;
+    size_t attrs_sz = 0;
+    size_t attrs_idx = 0;
+
+    set = (*env)->CallObjectMethod(env, x, _map_entrySet);
+    ERROR_CHECK(-1);
+    it = (*env)->CallObjectMethod(env, set, _set_iterator);
+    ERROR_CHECK(-1);
+    attrs_sz = (*env)->CallIntMethod(env, x, _map_size);
+    ERROR_CHECK(-1);
+    attrs = hyperdex_ds_allocate_attribute(arena, attrs_sz);
+
+    if (!attrs)
+    {
+        hyperdex_java_out_of_memory(env);
+        return -1;
+    }
+
+    *_attrs = attrs;
+    *_attrs_sz = attrs_sz;
+    attrs_idx = 0;
+
+    while ((*env)->CallBooleanMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
+    {
+        entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
+        ERROR_CHECK(-1);
+        key = (*env)->CallObjectMethod(env, entry, _map_entry_getKey);
+        ERROR_CHECK(-1);
+        val = (*env)->CallObjectMethod(env, entry, _map_entry_getValue);
+        ERROR_CHECK(-1);
+        attrs[attrs_idx].attr = hyperdex_java_client_convert_cstring(env, arena, key);
+
+        if (!attrs[attrs_idx].attr)
+        {
+            return -1;
+        }
+
+        if (hyperdex_java_client_convert_type(env, arena, val,
+                                              &attrs[attrs_idx].value,
+                                              &attrs[attrs_idx].value_sz,
+                                              &attrs[attrs_idx].datatype) < 0)
+        {
+            return -1;
+        }
+
+        (*env)->DeleteLocalRef(env, val);
+        (*env)->DeleteLocalRef(env, key);
+        (*env)->DeleteLocalRef(env, entry);
+        ++attrs_idx;
+    }
+
+    (*env)->DeleteLocalRef(env, it);
+    (*env)->DeleteLocalRef(env, set);
+    (void)client;
+    return 0;
 }
 
 /********************************* Predicates *********************************/

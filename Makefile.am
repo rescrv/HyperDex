@@ -645,6 +645,7 @@ EXTRA_DIST += bindings/java/org/hyperdex/ycsb/HyperDex.java
 EXTRA_DIST += test/java/.exists
 
 # Client
+noinst_HEADERS += bindings/java/client-util.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Client.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Deferred.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_GreaterEqual.h

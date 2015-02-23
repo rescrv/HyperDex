@@ -71,7 +71,7 @@ def CTYPEOF(x):
         raise RuntimeError('Unknown type: ' + str(x))
 
 def generate_microtransaction_prototype(x):
-    return '    public native Integer {0}(Map<String,Object> attrs) throws HyperDexClientException;\n'.format(x.name)
+    return '    public native int {0}(Map<String,Object> attrs) throws HyperDexClientException;\n'.format(x.name.replace("uxact_", ""))
 
 def generate_client_prototype(x):
     args_list = ', '.join([JTYPEOF(arg) + ' ' + arg.__name__.lower() for arg in x.args_in])
@@ -158,15 +158,27 @@ def generate_workers(xs):
         
 def generate_microtransaction_definition(x):
     func = 'JNIEXPORT HYPERDEX_API jint JNICALL\n'
-    func += 'Java_org_hyperdex_client_Microtransaction_{0}(JNIEnv* env '.format(x.name.replace('_', '_1'))
+    func += 'Java_org_hyperdex_client_Microtransaction_{0}(JNIEnv* env '.format(x.name.replace('uxact_', '').replace('_', '_1'))
 
     for arg in x.args_in:
         func += ', ' + CTYPEOF(arg) + ' ' + arg.__name__.lower()
     func += ')\n{\n'
-    func += '    return hyperdex_java_uactx_{0}(env, hyperdex_client_{1}'.format(bindings.call_name(x), x.name)
-    for arg in x.args_in:
-        func += ', ' + arg.__name__.lower()
-    func += ');\n}\n'
+    
+    # Function Body 
+    func += '    jobject client;\n'
+    func += '    struct hyperdex_client* client_ptr;\n'
+    func += '    struct hyperdex_client_microtransaction* uxact;\n'
+    func += '    const struct hyperdex_client_attribute *_attrs;\n'
+    func += '    struct hyperdex_ds_arena *arena;\n'
+    func += '    size_t _attrs_sz;\n\n'
+    func += '    client = hyperdex_uxact_get_client(env, microtransaction);\n'
+    func += '    client_ptr = hyperdex_uxact_get_client_ptr(env, microtransaction);\n'
+    func += '    uxact = hyperdex_uxact_get_uxact_ptr(env, microtransaction);\n'
+    func += '    arena = hyperdex_uxact_get_arena_ptr(env, microtransaction);\n'
+    func += '    hyperdex_java_client_convert_attributes(env, client, arena, attributes, &_attrs, &_attrs_sz);\n'
+    func += '    return (jint)hyperdex_client_{0}(client_ptr, uxact, _attrs, _attrs_sz);\n'.format(x.name)
+
+    func += '}\n'
     return func
 
 def generate_client_definition(x):
@@ -276,7 +288,7 @@ def generate_client_java():
     fout = open(os.path.join(BASE, 'bindings/java/org/hyperdex/client/Microtransaction.java'), 'w')
     fout.write(bindings.copyright('*', '2015'))
     fout.write(bindings.java.MICROTRANSACTION_HEAD)
-    fout.write('\n'.join([generate_microtransaction_prototype(c) for c in bindings.Client]))
+    fout.write('\n'.join([generate_microtransaction_prototype(c) for c in bindings.Client if c.form is bindings.MicrotransactionCall]))
     fout.write('}\n')
     fout.flush()
     os.system('cd bindings/java && javac -cp . org/hyperdex/client/Client.java')
@@ -305,7 +317,6 @@ def generate_client_java():
     fout = open(os.path.join(BASE, 'bindings/java/org_hyperdex_client_Microtransaction.definitions.c'), 'w')
     fout.write(bindings.copyright('*', '2015'))
     fout.write(bindings.java.DEFINITIONS_HEAD)
-    fout.write('\n'.join(generate_workers(bindings.Client)))
     fout.write('\n'.join([generate_microtransaction_definition(c) for c in bindings.Client if c.form is bindings.MicrotransactionCall]))
 
 def generate_client_doc():
@@ -332,11 +343,21 @@ public class Microtransaction
 {
     protected Microtransaction(Client client, String space)
     {
-        this._create(client, space);
+        this.client = client;
+        this._create(space);
     }
     
-    private native void _create(Client client, String space);
+    private Client client;
     
+    private long uxact_ptr;
+    private long status_ptr;
+    
+    private native void _create(String space);
+    private native void _destroy();
+    
+    /* cached IDs */
+    private static native void initialize();
+    private static native void terminate();
 '''
 
 JAVA_HEAD = '''
