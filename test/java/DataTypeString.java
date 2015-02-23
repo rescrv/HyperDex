@@ -28,7 +28,9 @@ public class DataTypeString
     }
     
     @After
-    public void destroyHyperdexClient() {
+    public void destroyHyperdexClient() throws HyperDexClientException {
+        Map<String, Object> match_all = new HashMap<String, Object>();
+        c.group_del("kv", match_all);
         c = null;
     }
     
@@ -77,7 +79,7 @@ public class DataTypeString
     public void correctByteString() {
         String original = "42 is the answer";
         
-        ByteString bstring = new ByteString(bstring.getBytes());
+        ByteString bstring = new ByteString(original.getBytes());
         String result = bstring.toString();
         
         assertEquals(original, result);

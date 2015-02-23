@@ -90,7 +90,8 @@ public class ByteString
     public String toString(String encoding)
         throws UnsupportedEncodingException
     {
-        return decode(encoding);
+        // Terminating NULL character is redundant in string representation
+        return decode(encoding).replace("\0", "");
     }
 
     public static String toString(byte[] bytes, String encoding)

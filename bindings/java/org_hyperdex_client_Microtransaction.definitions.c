@@ -553,196 +553,80 @@ hyperdex_java_client_iterator__spacename_predicates_sortby_limit_maxmin__status_
     ERROR_CHECK(0);
     return op;
 }
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1put(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1put(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_put, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_put, microtransaction, attributes);
 }
 
-
-
-
-
-
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1atomic_1add(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1add(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_add, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_atomic_add, microtransaction, attributes);
 }
 
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1atomic_1sub(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1sub(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_sub, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_atomic_sub, microtransaction, attributes);
 }
 
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1atomic_1mul(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1mul(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_mul, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_atomic_mul, microtransaction, attributes);
 }
 
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1atomic_1div(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1div(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_div, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_atomic_div, microtransaction, attributes);
 }
 
-
-
-
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1atomic_1and(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1and(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_and, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_atomic_and, microtransaction, attributes);
 }
 
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1atomic_1or(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1or(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_atomic_or, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_atomic_or, microtransaction, attributes);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1string_1prepend(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1string_1prepend(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_string_prepend, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_string_prepend, microtransaction, attributes);
 }
 
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1string_1append(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1string_1append(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_string_append, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_string_append, microtransaction, attributes);
 }
 
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1list_1lpush(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1list_1lpush(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_list_lpush, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_list_lpush, microtransaction, attributes);
 }
 
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1list_1rpush(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1list_1rpush(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_list_rpush, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_list_rpush, microtransaction, attributes);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1document_1rename(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1document_1rename(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_document_rename, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_document_rename, microtransaction, attributes);
 }
 
-
-
-
 JNIEXPORT HYPERDEX_API jint JNICALL
-Java_org_hyperdex_client_Client_uxact_1document_1unset(JNIEnv* env, jobject obj, jobject microtransaction, jobject attributes)
+Java_org_hyperdex_client_Microtransaction_uxact_1document_1unset(JNIEnv* env , jobject microtransaction, jobject attributes)
 {
-    return hyperdex_java_client_microtransactioncall__microtransaction_attributes__(env, obj, hyperdex_client_uxact_document_unset, microtransaction, attributes);
+    return hyperdex_java_uactx_microtransactioncall__microtransaction_attributes__(env, hyperdex_client_uxact_document_unset, microtransaction, attributes);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

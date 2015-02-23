@@ -28,7 +28,9 @@ public class DataTypeInt
     }
     
     @After
-    public void destroyHyperdexClient() {
+    public void destroyHyperdexClient() throws HyperDexClientException  {
+        Map<String, Object> match_all = new HashMap<String, Object>();
+        c.group_del("kv", match_all);
         c = null;
     }
     

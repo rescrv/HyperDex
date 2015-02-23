@@ -636,6 +636,7 @@ EXTRA_DIST += bindings/java/org/hyperdex/client/LengthLessEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LessEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LessThan.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Microtransaction.java
+EXTRA_DIST += bindings/java/org_hyperdex_client_Microtransaction.definitions.c
 EXTRA_DIST += bindings/java/org/hyperdex/client/Operation.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Predicate.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Range.java
@@ -658,6 +659,7 @@ noinst_HEADERS += bindings/java/org_hyperdex_client_Range.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Regex.h
 
 libhyperdex_client_java_la_SOURCES =
+libhyperdex_client_java_la_SOURCES += bindings/java/org_hyperdex_client_Microtransaction.c
 libhyperdex_client_java_la_SOURCES += bindings/java/org_hyperdex_client_Client.c
 libhyperdex_client_java_la_CPPFLAGS = $(JNI_CPPFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)
 libhyperdex_client_java_la_CFLAGS = $(AM_CFLAGS) $(CFLAGS) -Wmissing-prototypes

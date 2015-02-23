@@ -42,145 +42,261 @@ public class Microtransaction
     
     private native void _create(Client client, String space);
     
+    public native Integer get(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer get_partial(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer put(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_put(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_put(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_put(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_put_or_create(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_put(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer put_if_not_exist(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer del(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_del(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_del(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer atomic_add(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_atomic_add(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_atomic_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_atomic_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_atomic_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer atomic_sub(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_atomic_sub(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_atomic_sub(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_atomic_sub(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_atomic_sub(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer atomic_mul(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_atomic_mul(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_atomic_mul(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_atomic_mul(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_atomic_mul(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer atomic_div(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_atomic_div(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_atomic_div(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_atomic_div(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_atomic_div(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer atomic_mod(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_atomic_mod(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_atomic_mod(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer atomic_and(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_atomic_and(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_atomic_and(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_atomic_and(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_atomic_and(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer atomic_or(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_atomic_or(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_atomic_or(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_atomic_or(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_atomic_or(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer atomic_xor(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_atomic_xor(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_atomic_xor(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer atomic_min(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_atomic_min(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_atomic_min(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer atomic_max(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_atomic_max(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_atomic_max(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer string_prepend(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_string_prepend(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_string_prepend(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_string_prepend(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_string_prepend(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer string_append(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_string_append(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_string_append(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_string_append(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_string_append(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer list_lpush(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_list_lpush(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_list_lpush(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_list_lpush(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_list_lpush(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer list_rpush(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_list_rpush(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_list_rpush(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_list_rpush(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_list_rpush(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer set_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_set_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_set_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer set_remove(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_set_remove(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_set_remove(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer set_intersect(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_set_intersect(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_set_intersect(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer set_union(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_set_union(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_set_union(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer document_rename(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_document_rename(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_document_rename(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_document_rename(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_document_rename(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer document_unset(Map<String,Object> attrs) throws HyperDexClientException;
 
-    public native Iterator uxact_document_unset(Microtransaction microtransaction, Map<String, Object> attributes);
+    public native Integer uxact_document_unset(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_document_unset(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_document_unset(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_remove(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_remove(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_remove(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_atomic_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_atomic_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_atomic_add(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_atomic_sub(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_atomic_sub(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_atomic_sub(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_atomic_mul(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_atomic_mul(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_atomic_mul(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_atomic_div(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_atomic_div(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_atomic_div(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_atomic_mod(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_atomic_mod(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_atomic_mod(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_atomic_and(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_atomic_and(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_atomic_and(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_atomic_or(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_atomic_or(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_atomic_or(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_atomic_xor(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_atomic_xor(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_atomic_xor(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_string_prepend(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_string_prepend(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_string_prepend(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_string_append(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_string_append(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_string_append(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_atomic_min(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_atomic_min(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_atomic_min(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer map_atomic_max(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer cond_map_atomic_max(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer group_map_atomic_max(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer search(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer search_describe(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer sorted_search(Map<String,Object> attrs) throws HyperDexClientException;
 
+    public native Integer count(Map<String,Object> attrs) throws HyperDexClientException;
 }

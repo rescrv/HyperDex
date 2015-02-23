@@ -18,7 +18,9 @@ public class DataTypeDocument
     }
     
     @After
-    public void destroyHyperdexClient() {
+    public void destroyHyperdexClient() throws HyperDexClientException {
+        Map<String, Object> match_all = new HashMap<String, Object>();
+        c.group_del("kv", match_all);
         c = null;
     }
     
@@ -47,16 +49,6 @@ public class DataTypeDocument
         Map<String, Object> expected = new HashMap<String, Object>();
         expected.put("v", new Document("{}"));
         
-        String str1 = expected.get("v").toString();
-        String str2 = get.get("v").toString();
-        
-        assertEquals(str1.length(), str2.length());
-        for(int i = 0; i < str1.length(); ++i)
-        {
-            assertEquals(str1.charAt(i), str2.charAt(i));
-        }
-        
-        assertEquals(expected.get("v"), get.get("v"));
         assertEquals(expected, get);
     }
     

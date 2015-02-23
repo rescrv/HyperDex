@@ -17,107 +17,1035 @@ JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Microtransaction__1
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
+ * Method:    get
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_get
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    get_partial
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_get_1partial
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    put
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_put
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_put
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1put
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_put
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1put
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_put_or_create
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1put_1or_1create
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_put
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1put
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    put_if_not_exist
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_put_1if_1not_1exist
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    del
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_del
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_del
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1del
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_del
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1del
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1add
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_atomic_add
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1add
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_atomic_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1atomic_1add
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_atomic_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1atomic_1add
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_sub
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1sub
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_atomic_sub
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1sub
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_atomic_sub
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1atomic_1sub
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_atomic_sub
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1atomic_1sub
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_mul
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1mul
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_atomic_mul
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1mul
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_atomic_mul
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1atomic_1mul
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_atomic_mul
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1atomic_1mul
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_div
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1div
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_atomic_div
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1div
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_atomic_div
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1atomic_1div
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_atomic_div
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1atomic_1div
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_mod
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1mod
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_atomic_mod
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1atomic_1mod
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_atomic_mod
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1atomic_1mod
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_and
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1and
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_atomic_and
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1and
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_atomic_and
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1atomic_1and
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_atomic_and
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1atomic_1and
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_or
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1or
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_atomic_or
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1atomic_1or
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_atomic_or
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1atomic_1or
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_atomic_or
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1atomic_1or
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_xor
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1xor
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_atomic_xor
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1atomic_1xor
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_atomic_xor
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1atomic_1xor
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_min
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1min
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_atomic_min
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1atomic_1min
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_atomic_min
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1atomic_1min
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_max
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1max
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_atomic_max
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1atomic_1max
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_atomic_max
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1atomic_1max
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    string_prepend
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_string_1prepend
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_string_prepend
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1string_1prepend
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_string_prepend
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1string_1prepend
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_string_prepend
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1string_1prepend
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    string_append
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_string_1append
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_string_append
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1string_1append
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_string_append
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1string_1append
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_string_append
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1string_1append
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    list_lpush
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_list_1lpush
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_list_lpush
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1list_1lpush
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_list_lpush
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1list_1lpush
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_list_lpush
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1list_1lpush
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    list_rpush
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_list_1rpush
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_list_rpush
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1list_1rpush
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_list_rpush
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1list_1rpush
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_list_rpush
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1list_1rpush
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    set_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_set_1add
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_set_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1set_1add
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_set_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1set_1add
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    set_remove
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_set_1remove
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_set_remove
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1set_1remove
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_set_remove
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1set_1remove
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    set_intersect
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_set_1intersect
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_set_intersect
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1set_1intersect
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_set_intersect
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1set_1intersect
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    set_union
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_set_1union
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_set_union
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1set_1union
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_set_union
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1set_1union
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    document_rename
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_document_1rename
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_document_rename
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1document_1rename
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_document_rename
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1document_1rename
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_document_rename
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1document_1rename
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    document_unset
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_document_1unset
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
  * Method:    uxact_document_unset
- * Signature: (Lorg/hyperdex/client/Microtransaction;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
  */
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_uxact_1document_1unset
-  (JNIEnv *, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_document_unset
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1document_1unset
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_document_unset
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1document_1unset
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1add
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1add
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1add
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_remove
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1remove
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_remove
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1remove
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_remove
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1remove
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_atomic_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1atomic_1add
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_atomic_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1atomic_1add
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_atomic_add
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1atomic_1add
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_atomic_sub
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1atomic_1sub
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_atomic_sub
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1atomic_1sub
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_atomic_sub
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1atomic_1sub
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_atomic_mul
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1atomic_1mul
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_atomic_mul
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1atomic_1mul
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_atomic_mul
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1atomic_1mul
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_atomic_div
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1atomic_1div
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_atomic_div
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1atomic_1div
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_atomic_div
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1atomic_1div
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_atomic_mod
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1atomic_1mod
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_atomic_mod
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1atomic_1mod
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_atomic_mod
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1atomic_1mod
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_atomic_and
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1atomic_1and
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_atomic_and
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1atomic_1and
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_atomic_and
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1atomic_1and
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_atomic_or
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1atomic_1or
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_atomic_or
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1atomic_1or
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_atomic_or
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1atomic_1or
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_atomic_xor
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1atomic_1xor
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_atomic_xor
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1atomic_1xor
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_atomic_xor
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1atomic_1xor
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_string_prepend
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1string_1prepend
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_string_prepend
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1string_1prepend
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_string_prepend
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1string_1prepend
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_string_append
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1string_1append
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_string_append
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1string_1append
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_string_append
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1string_1append
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_atomic_min
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1atomic_1min
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_atomic_min
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1atomic_1min
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_atomic_min
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1atomic_1min
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    map_atomic_max
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_map_1atomic_1max
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    cond_map_atomic_max
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_cond_1map_1atomic_1max
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    group_map_atomic_max
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_group_1map_1atomic_1max
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    search
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_search
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    search_describe
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_search_1describe
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    sorted_search
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_sorted_1search
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    count
+ * Signature: (Ljava/util/Map;)Ljava/lang/Integer;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_count
+  (JNIEnv *, jobject, jobject);
 
 #ifdef __cplusplus
 }

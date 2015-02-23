@@ -38,48 +38,14 @@
 #include "bindings/java/org_hyperdex_client_Microtransaction.h"
 
 JNIEXPORT HYPERDEX_API void JNICALL
-Java_org_hyperdex_client_Microtransaction__1create(JNIEnv* env, jobject client, jstring _host, jint port)
+Java_org_hyperdex_client_Microtransaction__1create(JNIEnv* env, jobject uxact, jobject client, jstring _host)
 {
-    jlong lptr;
-    const char* host;
-    struct hyperdex_client* ptr;
-
-    lptr = (*env)->GetLongField(env, client, _client_ptr);
     ERROR_CHECK_VOID();
-    host = (*env)->GetStringUTFChars(env, _host, NULL);
-    ERROR_CHECK_VOID();
-    ptr = hyperdex_client_create(host, port);
-    (*env)->ReleaseStringUTFChars(env, _host, host);
-
-    if (!ptr)
-    {
-        hyperdex_java_out_of_memory(env);
-        return;
-    }
-
-    ERROR_CHECK_VOID();
-    lptr = (long) ptr;
-    (*env)->SetLongField(env, client, _client_ptr, lptr);
-    ERROR_CHECK_VOID();
-    assert(sizeof(long) >= sizeof(struct hyperdex_client*));
 }
 
 JNIEXPORT HYPERDEX_API void JNICALL
-Java_org_hyperdex_client_Microtransactoin__1destroy(JNIEnv* env, jobject client)
+Java_org_hyperdex_client_Microtransactoin__1destroy(JNIEnv* env)
 {
-    jlong lptr;
-    struct hyperdex_client* ptr;
-
-    lptr = (*env)->GetLongField(env, client, _client_ptr);
-    ERROR_CHECK_VOID();
-    ptr = (struct hyperdex_client*)lptr;
-
-    if (ptr)
-    {
-        hyperdex_client_destroy(ptr);
-    }
-
-    (*env)->SetLongField(env, client, _client_ptr, 0);
     ERROR_CHECK_VOID();
 }
 

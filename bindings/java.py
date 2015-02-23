@@ -71,41 +71,11 @@ def CTYPEOF(x):
         raise RuntimeError('Unknown type: ' + str(x))
 
 def generate_microtransaction_prototype(x):
-    if x.form is not bindings.MicrotransactionCall:
-        return ''
-    
-    args_list = ', '.join([JTYPEOF(arg) + ' ' + arg.__name__.lower() for arg in x.args_in])
-    if x.form == bindings.AsyncCall:
-        if x.args_out == (bindings.Status, bindings.Attributes):
-            ret = 'Map<String, Object>'
-        elif x.args_out == (bindings.Status, bindings.Description):
-            ret = 'String'
-        elif x.args_out == (bindings.Status, bindings.Count):
-            ret = 'Long'
-        elif x.args_out == (bindings.Status,):
-            ret = 'Boolean'
-        else:
-            print x.args_out
-            assert False
-        proto = '    public native Deferred async_{0}({1}) throws HyperDexClientException;\n'.format(x.name, args_list)
-        proto += '    public {1} {0}('.format(x.name, ret)
-        proto += args_list
-        proto += ') throws HyperDexClientException\n    {\n'
-        args_list = ', '.join([arg.__name__.lower() for arg in x.args_in])
-        proto += '        return ({2}) async_{0}({1}).waitForIt();\n'.format(x.name, args_list, ret)
-        proto += '    }\n'
-        return proto
-    elif (x.form == bindings.MicrotransactionCall or x.form == bindings.Iterator):
-        return '    public native Iterator {0}({1});\n'.format(x.name, args_list)
-    else:
-        assert False
+    return '    public native Integer {0}(Map<String,Object> attrs) throws HyperDexClientException;\n'.format(x.name)
 
 def generate_client_prototype(x):
-    if x.form is bindings.MicrotransactionCall:
-        return ''
-    
     args_list = ', '.join([JTYPEOF(arg) + ' ' + arg.__name__.lower() for arg in x.args_in])
-    if x.form == bindings.AsyncCall:
+    if x.form is bindings.AsyncCall:
         if x.args_out == (bindings.Status, bindings.Attributes):
             ret = 'Map<String, Object>'
         elif x.args_out == (bindings.Status, bindings.Description):
@@ -115,8 +85,8 @@ def generate_client_prototype(x):
         elif x.args_out == (bindings.Status,):
             ret = 'Boolean'
         else:
-            print x.args_out
-            assert False
+            raise RuntimeError('Cannot handle args: ' + str(x.args_out))
+            
         proto = '    public native Deferred async_{0}({1}) throws HyperDexClientException;\n'.format(x.name, args_list)
         proto += '    public {1} {0}('.format(x.name, ret)
         proto += args_list
@@ -125,10 +95,10 @@ def generate_client_prototype(x):
         proto += '        return ({2}) async_{0}({1}).waitForIt();\n'.format(x.name, args_list, ret)
         proto += '    }\n'
         return proto
-    elif (x.form == bindings.MicrotransactionCall or x.form == bindings.Iterator):
+    elif x.form is bindings.Iterator:
         return '    public native Iterator {0}({1});\n'.format(x.name, args_list)
     else:
-        assert False
+        raise RuntimeError('Unknown function type: ' + str(x.form))
 
 def generate_worker(call, x):
     if x.form == bindings.AsyncCall:
@@ -136,7 +106,7 @@ def generate_worker(call, x):
     elif x.form == bindings.Iterator:
         cls = 'iterator'
     else:
-        assert False
+        raise RuntimeError('Unknown function type: ' + str(x.form))
         
     fptr = bindings.c.generate_func_ptr(x, 'client')
     func = 'JNIEXPORT HYPERDEX_API jobject JNICALL\n'
@@ -187,25 +157,19 @@ def generate_workers(xs):
         calls.add(call)
         
 def generate_microtransaction_definition(x):
-    if not (x.form is bindings.MicrotransactionCall):
-        return ''
-    
     func = 'JNIEXPORT HYPERDEX_API jint JNICALL\n'
-    func += 'Java_org_hyperdex_client_Client_{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
+    func += 'Java_org_hyperdex_client_Microtransaction_{0}(JNIEnv* env '.format(x.name.replace('_', '_1'))
 
     for arg in x.args_in:
         func += ', ' + CTYPEOF(arg) + ' ' + arg.__name__.lower()
     func += ')\n{\n'
-    func += '    return hyperdex_java_client_{0}(env, obj, hyperdex_client_{1}'.format(bindings.call_name(x), x.name)
+    func += '    return hyperdex_java_uactx_{0}(env, hyperdex_client_{1}'.format(bindings.call_name(x), x.name)
     for arg in x.args_in:
         func += ', ' + arg.__name__.lower()
     func += ');\n}\n'
     return func
 
 def generate_client_definition(x):
-    if x.form is bindings.MicrotransactionCall:
-        return ''
-    
     func = 'JNIEXPORT HYPERDEX_API jobject JNICALL\n'
     if x.form == bindings.AsyncCall:
         func += 'Java_org_hyperdex_client_Client_async_1{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
@@ -306,7 +270,7 @@ def generate_client_java():
     fout = open(os.path.join(BASE, 'bindings/java/org/hyperdex/client/Client.java'), 'w')
     fout.write(bindings.copyright('*', '2013-2015'))
     fout.write(bindings.java.JAVA_HEAD)
-    fout.write('\n'.join([generate_client_prototype(c) for c in bindings.Client]))
+    fout.write('\n'.join([generate_client_prototype(c) for c in bindings.Client if c.form is not bindings.MicrotransactionCall]))
     fout.write('}\n')
     fout.flush()
     fout = open(os.path.join(BASE, 'bindings/java/org/hyperdex/client/Microtransaction.java'), 'w')
@@ -337,19 +301,19 @@ def generate_client_java():
     fout.write(bindings.copyright('*', '2013-2015'))
     fout.write(bindings.java.DEFINITIONS_HEAD)
     fout.write('\n'.join(generate_workers(bindings.Client)))
-    fout.write('\n'.join([generate_client_definition(c) for c in bindings.Client]))
+    fout.write('\n'.join([generate_client_definition(c) for c in bindings.Client if c.form is not bindings.MicrotransactionCall]))
     fout = open(os.path.join(BASE, 'bindings/java/org_hyperdex_client_Microtransaction.definitions.c'), 'w')
     fout.write(bindings.copyright('*', '2015'))
     fout.write(bindings.java.DEFINITIONS_HEAD)
     fout.write('\n'.join(generate_workers(bindings.Client)))
-    fout.write('\n'.join([generate_microtransaction_definition(c) for c in bindings.Client]))
+    fout.write('\n'.join([generate_microtransaction_definition(c) for c in bindings.Client if c.form is bindings.MicrotransactionCall]))
 
 def generate_client_doc():
     fout = open(os.path.join(BASE, 'doc/java/client/ops.tex'), 'w')
     fout.write(bindings.copyright('%', '2014-2015'))
     fout.write('\n% This LaTeX file is generated by bindings/java.py\n\n')
     fout.write('\n'.join([generate_api_block(c, 'client') for c in bindings.Client
-                          if c.name not in (bindings.DoNotDocument, bindings.MicrotransactionCall)]))
+                          if c.form not in (bindings.DoNotDocument, bindings.MicrotransactionCall)]))
 
 if __name__ == '__main__':
     generate_client_java()

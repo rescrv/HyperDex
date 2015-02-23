@@ -2,6 +2,7 @@ import java.util.*;
 
 import org.hyperdex.client.Client;
 import org.hyperdex.client.Document;
+import org.hyperdex.client.Microtransaction;
 import org.hyperdex.client.HyperDexClientException;
 
 import org.junit.*;
@@ -24,7 +25,7 @@ public class Microtransactions
     
     @Test
     public void singleOperation() throws HyperDexClientException {
-        Microtransaction utx = c.initMicrotransaction();
+        Microtransaction utx = c.initMicrotransaction("kv");
     }
 }
 
