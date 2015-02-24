@@ -25,32 +25,39 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_attribute_h_
-#define hyperdex_common_attribute_h_
+#ifndef hyperdex_daemon_wan_manager_pending_h_
+#define hyperdex_daemon_wan_manager_pending_h_
 
 // HyperDex
-#include "namespace.h"
-#include "hyperdex.h"
+#include "daemon/datalayer.h"
+#include "daemon/wan_manager.h"
 
-BEGIN_HYPERDEX_NAMESPACE
-
-class attribute
+class hyperdex::wan_manager::pending
 {
     public:
-        attribute();
-        attribute(const char* name, hyperdatatype type);
-        attribute(const attribute& other);
+        pending();
+        ~pending() throw ();
 
     public:
-        attribute& operator = (const attribute& rhs);
-        bool operator == (const attribute rhs) const;
-        bool operator != (const attribute rhs) const;
+        uint64_t seq_no;
+        bool has_value;
+        uint64_t version;
+        e::slice key;
+        std::vector<e::slice> value;
+        bool acked;
+        std::auto_ptr<e::buffer> msg;
+        std::string kref;
+        datalayer::reference vref;
 
-    public:
-        const char* name;
-        hyperdatatype type;
+    private:
+        friend class e::intrusive_ptr<pending>;
+
+    private:
+        void inc() { ++m_ref; }
+        void dec() { --m_ref; if (m_ref == 0) delete this; }
+
+    private:
+        size_t m_ref;
 };
 
-END_HYPERDEX_NAMESPACE
-
-#endif // hyperdex_common_attribute_h_
+#endif /* end of include guard: hyperdex_daemon_wan_manager_pending_h_ */

@@ -61,6 +61,7 @@ using po6::threads::make_thread_wrapper;
 using hyperdex::daemon;
 
 int s_interrupts = 0;
+int s_kick = 1;
 bool s_debug = false;
 
 static void
@@ -81,6 +82,12 @@ exit_after_timeout(int /*signum*/)
 {
     __sync_fetch_and_add(&s_interrupts, 1);
     RAW_LOG(ERROR, "took too long to shutdown; just exiting");
+}
+
+static void
+kick_after_timeout(int /*signum*/)
+{
+    __sync_fetch_and_add(&s_kick, 1);
 }
 
 static void
@@ -337,10 +344,8 @@ daemon :: run(bool daemonize,
 
     m_bind_to = bind_to;
     m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
-    if (set_failover) {
-        LOG(INFO) << "This cluster is a backup cluster, contacting coordinator of primary cluster.";
-        m_wan.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
-    }
+    m_wan.set_coordinator_address(failover_coordinator.address.c_str(), failover_coordinator.port);
+    m_wan.set_is_backup(set_failover);
 
     if (!saved)
     {
@@ -387,6 +392,7 @@ daemon :: run(bool daemonize,
     m_repl.setup();
     m_stm.setup();
     m_sm.setup();
+    m_wan.setup();
 
     for (size_t i = 0; i < threads; ++i)
     {
@@ -414,6 +420,18 @@ daemon :: run(bool daemonize,
             m_stm.debug_dump();
             // XXX m_sm.debug_dump();
             LOG(INFO) << "end debug dump";
+        }
+
+        if (set_failover) {
+            if (s_kick > 0 && !requested_exit) {
+                if (!install_signal_handler(SIGALRM, kick_after_timeout)) {
+                    __sync_fetch_and_add(&s_interrupts, 2);
+                    break;
+                }
+                m_wan.kick();
+                alarm(3);
+                s_kick = 0;
+            }
         }
 
         if (s_interrupts > 0 && !requested_exit)
@@ -455,17 +473,6 @@ daemon :: run(bool daemonize,
 
         m_gc.quiescent_state(&m_gc_ts);
         m_gc.offline(&m_gc_ts);
-
-        if (set_failover) {
-            if (!m_wan.maintain_link()) {
-                LOG(INFO) << "WAN MANAGER COULD NOT MAINTAIN LINK";
-            }
-
-            configuration new_prmry_config;
-            m_wan.copy_config(&new_prmry_config);
-            LOG(INFO) << "WAN Manager: config from primary coordinator acquired, dumping config";
-            LOG(INFO) << new_prmry_config.dump();
-        }
 
         if (!m_coord.maintain_link())
         {
@@ -541,6 +548,7 @@ daemon :: run(bool daemonize,
         m_threads[i]->join();
     }
 
+    m_wan.teardown();
     m_sm.teardown();
     m_stm.teardown();
     m_repl.teardown();
@@ -567,6 +575,7 @@ daemon :: pause()
     m_repl.pause();
     m_data.pause();
     m_comm.pause();
+    m_wan.pause();
 }
 
 void
@@ -578,6 +587,7 @@ daemon :: unpause()
     m_repl.unpause();
     m_stm.unpause();
     m_sm.unpause();
+    m_wan.unpause();
     assert(m_paused);
     m_paused = false;
     m_can_pause.signal();
@@ -720,6 +730,22 @@ daemon :: loop(size_t thread)
             case PERF_COUNTERS:
                 process_perf_counters(from, vfrom, vto, msg, up);
                 m_perf_perf_counters.tap();
+                break;
+            case WAN_HS:
+                // XXX process_wan_handshake
+                m_wan.handle_handshake(from, vfrom, vto, msg, up);
+                break;
+            case WAN_XFER:
+                // XXX process wan xfer
+                m_wan.recv_data(from, vfrom, vto, msg, up);
+                break;
+            case WAN_MORE:
+                // XXX process_wan_more
+                m_wan.send_more_data(from, vfrom, vto, msg, up);
+                break;
+            case WAN_ACK:
+                m_wan.handle_ack(from, vfrom, vto, msg, up);
+                // XXX process_wan_ack
                 break;
             case RESP_GET:
             case RESP_GET_PARTIAL:

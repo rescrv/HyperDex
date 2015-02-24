@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// C
+#include <string.h>
+
 // HyperDex
 #include "common/attribute.h"
 
@@ -54,4 +57,16 @@ attribute :: operator = (const attribute& rhs)
     name = rhs.name;
     type = rhs.type;
     return *this;
+}
+
+bool
+attribute :: operator == (const attribute rhs) const
+{
+    return ((strcmp(name, rhs.name) == 0) && type == rhs.type);
+}
+
+bool
+attribute :: operator != (const attribute rhs) const
+{
+    return ((strcmp(name, rhs.name) != 0) || type != rhs.type);
 }

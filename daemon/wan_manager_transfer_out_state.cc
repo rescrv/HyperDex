@@ -25,32 +25,40 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_attribute_h_
-#define hyperdex_common_attribute_h_
+#define __STDC_LIMIT_MACROS
+
+// Google Log
+#include <glog/logging.h>
 
 // HyperDex
-#include "namespace.h"
-#include "hyperdex.h"
+#include "daemon/datalayer_iterator.h"
+#include "daemon/wan_manager_pending.h"
+#include "daemon/wan_manager_transfer_out_state.h"
 
-BEGIN_HYPERDEX_NAMESPACE
+using hyperdex::wan_manager;
 
-class attribute
+wan_manager :: transfer_out_state :: transfer_out_state(const transfer& _xfer)
+    : xfer(_xfer)
+    , mtx()
+    , next_seq_no(1)
+    , window()
+    , window_sz(1)
+    , iter()
+    , wipe(false)
+    , m_ref(0)
 {
-    public:
-        attribute();
-        attribute(const char* name, hyperdatatype type);
-        attribute(const attribute& other);
+}
 
-    public:
-        attribute& operator = (const attribute& rhs);
-        bool operator == (const attribute rhs) const;
-        bool operator != (const attribute rhs) const;
+wan_manager :: transfer_out_state :: ~transfer_out_state() throw ()
+{
+}
 
-    public:
-        const char* name;
-        hyperdatatype type;
-};
-
-END_HYPERDEX_NAMESPACE
-
-#endif // hyperdex_common_attribute_h_
+void
+wan_manager :: transfer_out_state :: debug_dump()
+{
+    po6::threads::mutex::hold hold(&mtx);
+    LOG(INFO) << "  transfer=" << xfer;
+    LOG(INFO) << "    next_seq_no=" << next_seq_no;
+    LOG(INFO) << "    window_sz=" << window_sz;
+    LOG(INFO) << "    wipe=" << wipe;
+}

@@ -91,6 +91,10 @@ class communication
                          const server_id& to,
                          network_msgtype msg_type,
                          std::auto_ptr<e::buffer> msg);
+        bool send_wan(const virtual_server_id& from,
+                         const server_id& to,
+                         network_msgtype msg_type,
+                         std::auto_ptr<e::buffer> msg);
         bool send(const virtual_server_id& from,
                   const server_id& to,
                   network_msgtype msg_type,

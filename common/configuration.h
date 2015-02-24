@@ -78,6 +78,7 @@ class configuration
         const schema* get_schema(const region_id& ri) const;
         const subspace* get_subspace(const region_id& ri) const;
         virtual_server_id get_virtual(const region_id& ri, const server_id& si) const;
+        virtual_server_id get_virtual(const server_id& si) const;
         subspace_id subspace_of(const region_id& ri) const;
         subspace_id subspace_prev(const subspace_id& ss) const;
         subspace_id subspace_next(const subspace_id& ss) const;
@@ -88,6 +89,7 @@ class configuration
         void key_regions(const server_id& s, std::vector<region_id>* servers) const;
         bool is_point_leader(const virtual_server_id& e) const;
         virtual_server_id point_leader(const char* space, const e::slice& key) const;
+        std::vector<space> get_spaces();
         // point leader for this key in the same space as ri
         virtual_server_id point_leader(const region_id& ri, const e::slice& key) const;
         // lhs and rhs are in adjacent subspaces such that lhs sends CHAIN_PUT

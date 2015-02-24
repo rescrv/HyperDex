@@ -61,7 +61,8 @@ main(int argc, const char* argv[])
     bool log_immediate = false;
     // WAN test state
     bool is_backup = false;
-    long failover_coordinator_port = 1982; // hard-coded port A, B is different
+    long primary_port = 1982; // hard-coded port A
+    long backup_port = 1984; // hard-coded port B
 
     e::argparser ap;
     ap.autohelp();
@@ -203,30 +204,16 @@ main(int argc, const char* argv[])
             return EXIT_FAILURE;
         }
 
-        if (is_backup) {
-            return d.run(daemonize,
-                         po6::pathname(data),
-                         po6::pathname(log ? log : data),
-                         po6::pathname(pidfile), has_pidfile,
-                         listen, bind_to,
-                         coordinator,
-                         po6::net::hostname(coordinator_host, coordinator_port),
-                         is_backup,
-                         po6::net::hostname(coordinator_host, failover_coordinator_port),
-                         threads);
-        } else {
-            return d.run(daemonize,
-                         po6::pathname(data),
-                         po6::pathname(log ? log : data),
-                         po6::pathname(pidfile), has_pidfile,
-                         listen, bind_to,
-                         coordinator,
-                         po6::net::hostname(coordinator_host, coordinator_port),
-                         is_backup,
-                         po6::net::hostname(coordinator_host, failover_coordinator_port),
-                         threads);
-        }
-
+        return d.run(daemonize,
+                     po6::pathname(data),
+                     po6::pathname(log ? log : data),
+                     po6::pathname(pidfile), has_pidfile,
+                     listen, bind_to,
+                     coordinator,
+                     po6::net::hostname(coordinator_host, coordinator_port),
+                     is_backup,
+                     po6::net::hostname(coordinator_host, primary_port),
+                     threads);
     }
     catch (std::exception& e)
     {

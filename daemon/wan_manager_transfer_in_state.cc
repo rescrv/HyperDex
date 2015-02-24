@@ -25,32 +25,41 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_attribute_h_
-#define hyperdex_common_attribute_h_
+#define __STDC_LIMIT_MACROS
+
+// Google Log
+#include <glog/logging.h>
 
 // HyperDex
-#include "namespace.h"
-#include "hyperdex.h"
+#include "daemon/datalayer.h"
+#include "daemon/datalayer_iterator.h"
+#include "daemon/wan_manager_pending.h"
+#include "daemon/wan_manager_transfer_in_state.h"
 
-BEGIN_HYPERDEX_NAMESPACE
+using hyperdex::wan_manager;
 
-class attribute
+wan_manager :: transfer_in_state :: transfer_in_state(const transfer& _xfer)
+    : xfer(_xfer)
+    , mtx()
+    , upper_bound_acked(1)
+    , queued()
+    , handshake_complete(false)
+    , wipe(false)
+    , wiped(false)
+    , m_ref(0)
 {
-    public:
-        attribute();
-        attribute(const char* name, hyperdatatype type);
-        attribute(const attribute& other);
+}
 
-    public:
-        attribute& operator = (const attribute& rhs);
-        bool operator == (const attribute rhs) const;
-        bool operator != (const attribute rhs) const;
+wan_manager :: transfer_in_state :: ~transfer_in_state() throw ()
+{
+}
 
-    public:
-        const char* name;
-        hyperdatatype type;
-};
-
-END_HYPERDEX_NAMESPACE
-
-#endif // hyperdex_common_attribute_h_
+void
+wan_manager :: transfer_in_state :: debug_dump()
+{
+    po6::threads::mutex::hold hold(&mtx);
+    LOG(INFO) << "  transfer=" << xfer;
+    LOG(INFO) << "    upper_bound_acked=" << upper_bound_acked;
+    LOG(INFO) << "    wipe=" << wipe;
+    LOG(INFO) << "    wiped=" << wiped;
+}

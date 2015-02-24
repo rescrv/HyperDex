@@ -61,6 +61,7 @@ class space
 
     public:
         space& operator = (const space&);
+        bool operator== (const space&);
 
     public:
         space_id id;

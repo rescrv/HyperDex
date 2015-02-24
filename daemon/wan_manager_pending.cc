@@ -25,32 +25,27 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_attribute_h_
-#define hyperdex_common_attribute_h_
+#define __STDC_LIMIT_MACROS
 
 // HyperDex
-#include "namespace.h"
-#include "hyperdex.h"
+#include "daemon/wan_manager_pending.h"
 
-BEGIN_HYPERDEX_NAMESPACE
+using hyperdex::wan_manager;
 
-class attribute
+wan_manager :: wan_manager :: pending :: pending()
+    : seq_no(0)
+    , has_value(false)
+    , version(0)
+    , key()
+    , value()
+    , acked(false)
+    , msg()
+    , kref()
+    , vref()
+    , m_ref(0)
 {
-    public:
-        attribute();
-        attribute(const char* name, hyperdatatype type);
-        attribute(const attribute& other);
+}
 
-    public:
-        attribute& operator = (const attribute& rhs);
-        bool operator == (const attribute rhs) const;
-        bool operator != (const attribute rhs) const;
-
-    public:
-        const char* name;
-        hyperdatatype type;
-};
-
-END_HYPERDEX_NAMESPACE
-
-#endif // hyperdex_common_attribute_h_
+wan_manager :: wan_manager :: pending :: ~pending() throw ()
+{
+}

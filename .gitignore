@@ -94,3 +94,8 @@
 /test/search-stress-test
 /test/simple-consistency-stress-test
 /ylwrap
+MENG_TODO.txt
+ac/*
+ad/*
+bc/*
+bd/*

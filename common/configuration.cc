@@ -201,6 +201,20 @@ configuration :: get_server_id(const virtual_server_id& id) const
     return server_id();
 }
 
+virtual_server_id
+configuration :: get_virtual(const server_id& si) const
+{
+    for (std::vector<pair_uint64_t>::const_iterator it = m_server_ids_by_virtual.begin();
+            it != m_server_ids_by_virtual.end();
+            ++it) {
+        if (it->second == si.get()) {
+            return virtual_server_id(it->first);
+        }
+    }
+
+    return virtual_server_id();
+}
+
 const schema*
 configuration :: get_schema(const char* sname) const
 {
@@ -393,6 +407,12 @@ configuration :: point_leaders(const server_id& si, std::vector<region_id>* serv
             }
         }
     }
+}
+
+std::vector<hyperdex::space>
+configuration :: get_spaces()
+{
+    return m_spaces;
 }
 
 void

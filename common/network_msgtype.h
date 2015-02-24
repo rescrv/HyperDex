@@ -79,6 +79,11 @@ enum network_msgtype
     XFER_HA  = 84, // handshake ack
     XFER_HW  = 85, // wiped
 
+    WAN_HS = 101,
+    WAN_XFER = 102,
+    WAN_MORE = 103,
+    WAN_ACK = 104,
+
     BACKUP = 126,
     PERF_COUNTERS = 127,
 

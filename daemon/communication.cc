@@ -183,6 +183,59 @@ communication :: send_client(const virtual_server_id& from,
 }
 
 bool
+communication :: send_wan(const virtual_server_id& from,
+                             const server_id& to,
+                             network_msgtype msg_type,
+                             std::auto_ptr<e::buffer> msg)
+{
+    assert(msg->size() >= HYPERDEX_HEADER_SIZE_SV);
+
+    if (m_daemon->m_us != m_daemon->m_config.get_server_id(from) &&
+        from != virtual_server_id(UINT64_MAX))
+    {
+        return false;
+    }
+
+    uint8_t mt = static_cast<uint8_t>(msg_type);
+    uint8_t flags = 0;
+    virtual_server_id vto = virtual_server_id(UINT64_MAX);
+    msg->pack_at(BUSYBEE_HEADER_SIZE) << mt << flags << m_daemon->m_config.version() << vto.get();
+
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
+#endif
+
+    if (to == m_daemon->m_us)
+    {
+        m_busybee->deliver(to.get(), msg);
+    }
+    else
+    {
+        busybee_returncode rc = m_busybee->send(to.get(), msg);
+
+        switch (rc)
+        {
+            case BUSYBEE_SUCCESS:
+                break;
+            case BUSYBEE_DISRUPTED:
+                handle_disruption(to.get());
+                return false;
+            case BUSYBEE_SHUTDOWN:
+            case BUSYBEE_POLLFAILED:
+            case BUSYBEE_ADDFDFAIL:
+            case BUSYBEE_TIMEOUT:
+            case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
+            default:
+                LOG(ERROR) << "BusyBee unexpectedly returned " << rc;
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool
 communication :: send(const virtual_server_id& from,
                       const server_id& to,
                       network_msgtype msg_type,

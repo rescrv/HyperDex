@@ -147,6 +147,27 @@ space :: operator = (const space& rhs)
     return *this;
 }
 
+bool
+space :: operator== (const space& rhs)
+{
+    int i;
+    bool verify_name = (strcmp(name, rhs.name) == 0);
+    if (verify_name) {
+        if (sc.attrs_sz != rhs.sc.attrs_sz) {
+            return false;
+        }
+        for (i = 0; i < sc.attrs_sz; i++) {
+            if (sc.attrs[i] != rhs.sc.attrs[i]) {
+                return false;
+            }
+        }
+        return true;
+    } else {
+        return false;
+    }
+
+}
+
 void
 space :: reestablish_backing()
 {

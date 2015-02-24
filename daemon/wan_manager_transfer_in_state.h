@@ -25,32 +25,42 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_attribute_h_
-#define hyperdex_common_attribute_h_
+#ifndef hyperdex_daemon_wan_manager_transfer_in_state_h_
+#define hyperdex_daemon_wan_manager_transfer_in_state_h_
+
+// e
+#include <e/intrusive_ptr.h>
 
 // HyperDex
-#include "namespace.h"
-#include "hyperdex.h"
+#include "daemon/wan_manager.h"
 
-BEGIN_HYPERDEX_NAMESPACE
-
-class attribute
+class hyperdex::wan_manager::transfer_in_state
 {
     public:
-        attribute();
-        attribute(const char* name, hyperdatatype type);
-        attribute(const attribute& other);
+        transfer_in_state(const transfer& xfer);
+        ~transfer_in_state() throw ();
 
     public:
-        attribute& operator = (const attribute& rhs);
-        bool operator == (const attribute rhs) const;
-        bool operator != (const attribute rhs) const;
+        void debug_dump();
 
     public:
-        const char* name;
-        hyperdatatype type;
+        transfer xfer;
+        po6::threads::mutex mtx;
+        uint64_t upper_bound_acked;
+        std::list<e::intrusive_ptr<pending> > queued;
+        bool handshake_complete;
+        bool wipe;
+        bool wiped;
+
+    private:
+        friend class e::intrusive_ptr<transfer_in_state>;
+
+    private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+    private:
+        size_t m_ref;
 };
 
-END_HYPERDEX_NAMESPACE
-
-#endif // hyperdex_common_attribute_h_
+#endif /* end of include guard: hyperdex_daemon_wan_manager_transfer_in_state_h_ */
