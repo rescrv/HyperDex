@@ -66,5 +66,23 @@ public class DataTypeDocument
         expected.put("v", new Document("{\"a\":{\"b\":\"c\"}}")); // be careful about formatting...
         assertEquals(expected, get);
     }
+    
+    @Test
+    public void setField() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        attrs.put("v", new Document("{}"));
+        c.put("kv", "k", attrs);
+        
+        Map<String, Object> attrs2 = new HashMap<String, Object>();
+        attrs2.put("v.a", "xyz");
+        Boolean res = c.put("kv", "k", attrs2);
+        assertTrue(res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        Map<String, Object> expected = new HashMap<String, Object>();
+        assert(get.get("v") instanceof Document);
+        expected.put("v", new Document("{\"a\":\"xyz\"}"));
+        assertEquals(expected, get);
+    }
 }
 

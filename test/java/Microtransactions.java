@@ -19,13 +19,49 @@ public class Microtransactions
     }
     
     @After
-    public void destroyHyperdexClient() {
+    public void destroyHyperdexClient() throws HyperDexClientException {
+        Map<String, Object> match_all = new HashMap<String, Object>();
+        c.group_del("kv", match_all);
         c = null;
     }
     
     @Test
     public void singleOperation() throws HyperDexClientException {
-        Microtransaction utx = c.initMicrotransaction("kv");
+        Microtransaction xact = c.initMicrotransaction("kv");
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        attrs.put("v", new Document("{}"));
+        xact.put(attrs);
+        
+        Boolean res = xact.commit("k");
+        assertTrue(res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        Map<String, Object> expected = new HashMap<String, Object>();
+        expected.put("v", new Document("{}"));
+        
+        assertEquals(expected, get);
+    }
+    
+        @Test
+    public void setTwoFields() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        attrs.put("v", new Document("{}"));
+        c.put("kv", "k", attrs);
+        
+        Microtransaction xact = c.initMicrotransaction("kv");
+        Map<String, Object> attrs2 = new HashMap<String, Object>();
+        attrs2.put("v.a", "c");
+        attrs2.put("v.b", new Document("{\"x\":\"y\"}"));
+        xact.put(attrs2);
+        
+        Boolean res = xact.commit("k");
+        assertTrue(res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        Map<String, Object> expected = new HashMap<String, Object>();
+        expected.put("v", new Document("{\"a\":\"c\",\"b\":{\"x\":\"y\"}}"));
+        
+        assertEquals(expected, get);
     }
 }
 

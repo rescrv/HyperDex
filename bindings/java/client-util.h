@@ -47,4 +47,11 @@ hyperdex_java_client_convert_attributes(JNIEnv* env, jobject client,
                                         const struct hyperdex_client_attribute** _attrs,
                                         size_t* _attrs_sz);
 
+int
+hyperdex_java_client_convert_key(JNIEnv* env, jobject client,
+                                 struct hyperdex_ds_arena* arena,
+                                 jobject x,
+                                 const char** key,
+                                 size_t* key_sz);
+
 #endif

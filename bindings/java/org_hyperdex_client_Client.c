@@ -903,7 +903,7 @@ hyperdex_java_client_convert_type(JNIEnv* env,
     }
 }
 
-static int
+int
 hyperdex_java_client_convert_key(JNIEnv* env, jobject client,
                                  struct hyperdex_ds_arena* arena,
                                  jobject x,
@@ -1737,7 +1737,6 @@ hyperdex_java_client_build_attributes(JNIEnv* env,
 }
 
 /******************************* Deferred Class *******************************/
-
 struct hyperdex_java_client_deferred
 {
     struct hyperdex_ds_arena* arena;

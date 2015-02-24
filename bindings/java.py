@@ -341,6 +341,11 @@ import java.util.HashMap;
 
 public class Microtransaction
 {
+    static
+    {
+        initialize();
+    }
+
     protected Microtransaction(Client client, String space)
     {
         this.client = client;
@@ -350,6 +355,7 @@ public class Microtransaction
     private Client client;
     
     private long uxact_ptr;
+    private long arena_ptr;
     private long status_ptr;
     
     private native void _create(String space);
@@ -358,6 +364,12 @@ public class Microtransaction
     /* cached IDs */
     private static native void initialize();
     private static native void terminate();
+    
+    public Boolean commit(String key) throws HyperDexClientException {
+        return (Boolean) async_commit(key).waitForIt();
+    }
+    
+    public native Deferred async_commit(String key) throws HyperDexClientException;
 '''
 
 JAVA_HEAD = '''
