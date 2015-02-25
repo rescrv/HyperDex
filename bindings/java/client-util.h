@@ -54,4 +54,22 @@ hyperdex_java_client_convert_key(JNIEnv* env, jobject client,
                                  const char** key,
                                  size_t* key_sz);
 
+int
+hyperdex_java_client_throw_exception(JNIEnv* env,
+                                     enum hyperdex_client_returncode _rc,
+                                     const char* message);
+
+struct hyperdex_java_client_deferred
+{
+    struct hyperdex_ds_arena* arena;
+    int64_t reqid;
+    enum hyperdex_client_returncode status;
+    const struct hyperdex_client_attribute* attrs;
+    size_t attrs_sz;
+    const char* description;
+    uint64_t count;
+    int finished;
+    jobject (*encode_return)(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d);
+};
+
 #endif

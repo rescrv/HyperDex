@@ -454,7 +454,7 @@ hyperdex_java_client_create_exception(JNIEnv* env,
     return err;
 }
 
-static int
+int
 hyperdex_java_client_throw_exception(JNIEnv* env,
                                      enum hyperdex_client_returncode _rc,
                                      const char* message)
@@ -1737,19 +1737,6 @@ hyperdex_java_client_build_attributes(JNIEnv* env,
 }
 
 /******************************* Deferred Class *******************************/
-struct hyperdex_java_client_deferred
-{
-    struct hyperdex_ds_arena* arena;
-    int64_t reqid;
-    enum hyperdex_client_returncode status;
-    const struct hyperdex_client_attribute* attrs;
-    size_t attrs_sz;
-    const char* description;
-    uint64_t count;
-    int finished;
-    jobject (*encode_return)(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d);
-};
-
 JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Deferred__1create(JNIEnv* env, jobject deferred)
 {

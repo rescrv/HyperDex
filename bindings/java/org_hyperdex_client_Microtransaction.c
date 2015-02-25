@@ -51,9 +51,8 @@
 
 static jclass _uxact;
 static jfieldID _uxact_client;
-static jfieldID _uxact_arena_ptr;
+static jfieldID _uxact_deferred_ptr;
 static jfieldID _uxact_uxact_ptr;
-static jfieldID _uxact_status_ptr;
 
 static jclass _deferred;
 static jmethodID _deferred_init;
@@ -77,8 +76,7 @@ Java_org_hyperdex_client_Microtransaction_initialize(JNIEnv* env, jclass client)
     REF(_uxact, (*env)->FindClass(env, "org/hyperdex/client/Microtransaction"));
     _uxact_client = (*env)->GetFieldID(env, _uxact, "client", "Lorg/hyperdex/client/Client;");
     _uxact_uxact_ptr = (*env)->GetFieldID(env, _uxact, "uxact_ptr", "J");
-    _uxact_arena_ptr = (*env)->GetFieldID(env, _uxact, "arena_ptr", "J");
-    _uxact_status_ptr = (*env)->GetFieldID(env, _uxact, "status_ptr", "J");
+    _uxact_deferred_ptr = (*env)->GetFieldID(env, _uxact, "deferred_ptr", "J");
     REF(_client, (*env)->FindClass(env, "org/hyperdex/client/Client"));
     _client_ptr = (*env)->GetFieldID(env, _client, "ptr", "J");
     _client_add_op = (*env)->GetMethodID(env, _client, "add_op", "(JLorg/hyperdex/client/Operation;)V");
@@ -93,14 +91,17 @@ Java_org_hyperdex_client_Microtransaction_initialize(JNIEnv* env, jclass client)
     CHECK_CACHE(_uxact);
     CHECK_CACHE(_uxact_client);
     CHECK_CACHE(_uxact_uxact_ptr);
-    CHECK_CACHE(_uxact_arena_ptr);
-    CHECK_CACHE(_uxact_status_ptr);
+    CHECK_CACHE(_uxact_deferred_ptr);
     CHECK_CACHE(_client);
     CHECK_CACHE(_client_ptr);
     CHECK_CACHE(_client_add_op);
     CHECK_CACHE(_client_remove_op);
     CHECK_CACHE(_boolean);
     CHECK_CACHE(_boolean_init);
+    CHECK_CACHE(_deferred);
+    CHECK_CACHE(_deferred_init);
+    CHECK_CACHE(_deferred_c);
+    CHECK_CACHE(_deferred_ptr);
 
     ERROR_CHECK_VOID();
 }
@@ -125,40 +126,40 @@ hyperdex_uxact_get_client_ptr(JNIEnv* env, jobject obj)
     return x;
 }
 
-static enum hyperdex_client_returncode*
-hyperdex_uxact_get_status_ptr(JNIEnv* env, jobject obj)
+static struct hyperdex_client*
+hyperdex_client_get_client_ptr(JNIEnv* env, jobject obj)
 {
-    enum hyperdex_client_returncode* x;
-    x = (enum hyperdex_client_returncode*) (*env)->GetLongField(env, obj, _uxact_status_ptr);
+    struct hyperdex_client* x;
+    x = (struct hyperdex_client*) (*env)->GetLongField(env, obj, _client_ptr);
     assert(x);
     return x;
 }
 
-static struct hyperdex_java_uxact_deferred*
+static struct hyperdex_java_client_deferred*
+hyperdex_uxact_get_deferred_ptr(JNIEnv* env, jobject obj)
+{
+    struct hyperdex_java_client_deferred* x;
+    x = (struct hyperdex_java_client_deferred*) (*env)->GetLongField(env, obj, _uxact_deferred_ptr);
+    assert(x);
+    return x;
+}
+
+static struct hyperdex_java_client_deferred*
 hyperdex_get_deferred_ptr(JNIEnv* env, jobject obj)
 {
-    struct hyperdex_java_uxact_deferred* x;
-    x = (struct hyperdex_java_uxact_deferred*) (*env)->GetLongField(env, obj, _deferred_ptr);
+    struct hyperdex_java_client_deferred* x;
+    x = (struct hyperdex_java_client_deferred*) (*env)->GetLongField(env, obj, _deferred_ptr);
     assert(x);
     return x;
 }
-
-struct hyperdex_java_uxact_deferred
-{
-    struct hyperdex_ds_arena* arena;
-    int64_t reqid;
-    enum hyperdex_client_returncode status;
-    int finished;
-    jobject (*encode_return)(JNIEnv* env, jobject obj, struct hyperdex_java_uxact_deferred* d);
-};
 
 static struct hyperdex_ds_arena*
 hyperdex_uxact_get_arena_ptr(JNIEnv* env, jobject obj)
 {
-    struct hyperdex_ds_arena* x;
-    x = (struct hyperdex_ds_arena*) (*env)->GetLongField(env, obj, _uxact_arena_ptr);
+    struct hyperdex_java_client_deferred* x;
+    x = (struct hyperdex_java_client_deferred*) (*env)->GetLongField(env, obj, _uxact_deferred_ptr);
     assert(x);
-    return x;
+    return x->arena;
 }
 
 static struct hyperdex_client_microtransaction*
@@ -175,27 +176,24 @@ Java_org_hyperdex_client_Microtransaction__1create(JNIEnv* env, jobject uxact, j
 {
     struct hyperdex_client *client;
     struct hyperdex_client_microtransaction *uxact_ptr;
-    enum hyperdex_client_returncode *status;
     const char *space;
-    struct hyperdex_ds_arena *arena;
+    struct hyperdex_java_client_deferred *deferred;
 
-    arena = hyperdex_ds_arena_create();
-
-    status = (enum hyperdex_client_returncode*)malloc(sizeof(enum hyperdex_client_returncode));
-    *status = HYPERDEX_CLIENT_SUCCESS;
+    deferred = (struct hyperdex_java_client_deferred*)malloc(sizeof(struct hyperdex_java_client_deferred));
+    deferred->arena = hyperdex_ds_arena_create();
+    deferred->status = HYPERDEX_CLIENT_SUCCESS;
 
     space = (*env)->GetStringUTFChars(env, _space, NULL);
 
     client = hyperdex_uxact_get_client_ptr(env, uxact);
-    uxact_ptr = hyperdex_client_uxact_init(client, space, status);
+    uxact_ptr = hyperdex_client_uxact_init(client, space, &deferred->status);
 
     (*env)->SetLongField(env, uxact, _uxact_uxact_ptr, (long)uxact_ptr);
-    (*env)->SetLongField(env, uxact, _uxact_arena_ptr, (long)arena);
-    (*env)->SetLongField(env, uxact, _uxact_status_ptr, (long)status);
+    (*env)->SetLongField(env, uxact, _uxact_deferred_ptr, (long)deferred);
 }
 
 static jobject
-hyperdex_java_uxact_deferred_encode_status(JNIEnv* env, jobject obj, struct hyperdex_java_uxact_deferred* d)
+hyperdex_java_uxact_deferred_encode_status(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d)
 {
     jobject ret;
     jobject client_obj;
@@ -221,66 +219,43 @@ hyperdex_java_uxact_deferred_encode_status(JNIEnv* env, jobject obj, struct hype
     {
         client_obj = (*env)->GetObjectField(env, obj, _deferred_c);
         ERROR_CHECK(0);
-        client = hyperdex_uxact_get_client_ptr(env, client_obj);
+        client = hyperdex_client_get_client_ptr(env, client_obj);
         hyperdex_java_client_throw_exception(env, d->status, hyperdex_client_error_message(client));
-        return 0;
+        return NULL;
     }
-}
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-Java_org_hyperdex_client_Microtransaction_asynccall__spacename_key_attributenames__status_attributes(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, struct hyperdex_client_microtransaction *uaxct, const char* key, size_t key_sz), jobject key);
-
-JNIEXPORT HYPERDEX_API jobject JNICALL
-Java_org_hyperdex_client_Microtransaction_asynccall__spacename_key_attributenames__status_attributes(JNIEnv* env, jobject obj, int64_t (*f)(struct hyperdex_client* client, struct hyperdex_client_microtransaction *uaxct, const char* key, size_t key_sz), jobject key)
-{
-    const char* in_key;
-    size_t in_key_sz;
-    struct hyperdex_client* client = hyperdex_uxact_get_client_ptr(env, obj);
-    struct hyperdex_client_microtransaction *uxact = hyperdex_uxact_get_uxact_ptr(env, obj);
-    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, obj);
-    struct hyperdex_java_uxact_deferred* o = NULL;
-    ERROR_CHECK(0);
-    o = hyperdex_get_deferred_ptr(env, op);
-    ERROR_CHECK(0);
-    o->reqid = f(client, uxact, in_key, in_key_sz);
-
-    if (o->reqid < 0)
-    {
-        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client));
-        return 0;
-    }
-
-    o->encode_return = hyperdex_java_uxact_deferred_encode_status;
-    (*env)->CallObjectMethod(env, obj, _client_add_op, o->reqid, op);
-    ERROR_CHECK(0);
-    return op;
 }
 
 JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Microtransaction_async_1commit(JNIEnv* env, jobject uxact, jstring key)
 {
-    jobject client;
-    struct hyperdex_client *client_ptr;
-    struct hyperdex_ds_arena *arena;
+    const char* in_key;
+    size_t in_key_sz;
+    struct hyperdex_client* client_ptr = hyperdex_uxact_get_client_ptr(env, uxact);
+    struct hyperdex_client_microtransaction *uxact_ptr = hyperdex_uxact_get_uxact_ptr(env, uxact);
+    jobject client = hyperdex_uxact_get_client(env, uxact);
+    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, client);
+    struct hyperdex_java_client_deferred* o = hyperdex_uxact_get_deferred_ptr(env, uxact);
+    ERROR_CHECK(0);
 
-    client = hyperdex_uxact_get_client(env, uxact);
-    client_ptr = hyperdex_uxact_get_client_ptr(env, uxact);
-    arena = hyperdex_uxact_get_arena_ptr(env, uxact);
+    hyperdex_java_client_convert_key(env, client, o->arena, key, &in_key, &in_key_sz);
+    o->encode_return = hyperdex_java_uxact_deferred_encode_status;
+    o->reqid = hyperdex_client_uxact_commit(client_ptr, uxact_ptr, in_key, in_key_sz);
 
-    return Java_org_hyperdex_client_Microtransaction_asynccall__spacename_key_attributenames__status_attributes(env, uxact, hyperdex_client_uxact_commit, key);
+    (*env)->SetLongField(env, op, _deferred_ptr, (long)o);
+
+    if (o->reqid < 0)
+    {
+        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client_ptr));
+        return NULL;
+    }
+    (*env)->CallObjectMethod(env, client, _client_add_op, o->reqid, op);
+    ERROR_CHECK(0);
+    return op;
 }
 
 JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Microtransaction__1destroy(JNIEnv* env, jclass uxact)
 {
-    enum hyperdex_client_returncode *status;
-    struct hyperdex_ds_arena *arena;
-
-    status = hyperdex_uxact_get_status_ptr(env, uxact);
-    arena = hyperdex_uxact_get_arena_ptr(env, uxact);
-
-    free(status);
-    hyperdex_ds_arena_destroy(arena);
     ERROR_CHECK_VOID();
 }
 

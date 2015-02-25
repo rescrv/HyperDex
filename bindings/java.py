@@ -355,8 +355,7 @@ public class Microtransaction
     private Client client;
     
     private long uxact_ptr;
-    private long arena_ptr;
-    private long status_ptr;
+    private long deferred_ptr;
     
     private native void _create(String space);
     private native void _destroy();
