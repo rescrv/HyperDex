@@ -1181,7 +1181,7 @@ hyperdex_java_client_convert_predicate(JNIEnv* env,
     }
 }
 
-static int
+int
 hyperdex_java_client_convert_predicates(JNIEnv* env, jobject client,
                                         struct hyperdex_ds_arena* arena,
                                         jobject x,
@@ -1909,7 +1909,7 @@ hyperdex_java_client_deferred_encode_status_attributes(JNIEnv* env, jobject obj,
     }
 }
 
-static jobject
+jobject
 hyperdex_java_client_deferred_encode_status_count(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d)
 {
     jobject ret;

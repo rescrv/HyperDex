@@ -19,34 +19,34 @@ public class DataTypeDocument
     
     @After
     public void destroyHyperdexClient() throws HyperDexClientException {
-        Map<String, Object> match_all = new HashMap<String, Object>();
+        Map<String, Object> match_all = new HashMap<>();
         c.group_del("kv", match_all);
         c = null;
     }
     
     @Test
     public void insertEmptyValue() throws HyperDexClientException {
-        Map<String, Object> attrs = new HashMap<String, Object>();
+        Map<String, Object> attrs = new HashMap<>();
         
         Boolean res = c.put("kv", "k", attrs);
         assertTrue(res);
         
         Map<String, Object> get = c.get("kv", "k");
-        Map<String, Object> expected = new HashMap<String, Object>();
+        Map<String, Object> expected = new HashMap<>();
         expected.put("v", new Document("{}"));
         assertEquals(expected, get);
     }
     
     @Test
     public void insertEmptyDocument() throws HyperDexClientException {
-        Map<String, Object> attrs = new HashMap<String, Object>();
+        Map<String, Object> attrs = new HashMap<>();
         attrs.put("v", new Document("{}"));
         
         Boolean res = c.put("kv", "k", attrs);
         assertTrue(res);
         
         Map<String, Object> get = c.get("kv", "k");
-        Map<String, Object> expected = new HashMap<String, Object>();
+        Map<String, Object> expected = new HashMap<>();
         expected.put("v", new Document("{}"));
         
         assertEquals(expected, get);
@@ -69,17 +69,17 @@ public class DataTypeDocument
     
     @Test
     public void setField() throws HyperDexClientException {
-        Map<String, Object> attrs = new HashMap<String, Object>();
+        Map<String, Object> attrs = new HashMap<>();
         attrs.put("v", new Document("{}"));
         c.put("kv", "k", attrs);
         
-        Map<String, Object> attrs2 = new HashMap<String, Object>();
+        Map<String, Object> attrs2 = new HashMap<>();
         attrs2.put("v.a", "xyz");
         Boolean res = c.put("kv", "k", attrs2);
         assertTrue(res);
         
         Map<String, Object> get = c.get("kv", "k");
-        Map<String, Object> expected = new HashMap<String, Object>();
+        Map<String, Object> expected = new HashMap<>();
         assert(get.get("v") instanceof Document);
         expected.put("v", new Document("{\"a\":\"xyz\"}"));
         assertEquals(expected, get);

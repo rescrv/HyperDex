@@ -55,6 +55,13 @@ hyperdex_java_client_convert_key(JNIEnv* env, jobject client,
                                  size_t* key_sz);
 
 int
+hyperdex_java_client_convert_predicates(JNIEnv* env, jobject client,
+                                        struct hyperdex_ds_arena* arena,
+                                        jobject x,
+                                        const struct hyperdex_client_attribute_check** _checks,
+                                        size_t* _checks_sz);
+
+int
 hyperdex_java_client_throw_exception(JNIEnv* env,
                                      enum hyperdex_client_returncode _rc,
                                      const char* message);
@@ -71,5 +78,9 @@ struct hyperdex_java_client_deferred
     int finished;
     jobject (*encode_return)(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d);
 };
+
+jobject
+hyperdex_java_client_deferred_encode_status_count(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d);
+
 
 #endif

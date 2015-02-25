@@ -225,6 +225,35 @@ hyperdex_java_uxact_deferred_encode_status(JNIEnv* env, jobject obj, struct hype
     }
 }
 
+
+JNIEXPORT HYPERDEX_API jobject JNICALL
+Java_org_hyperdex_client_Microtransaction_async_1group_1commit(JNIEnv* env, jobject uxact, jstring checks)
+{
+    const struct hyperdex_client_attribute_check *chks;
+    size_t chks_sz;
+    struct hyperdex_client* client_ptr = hyperdex_uxact_get_client_ptr(env, uxact);
+    struct hyperdex_client_microtransaction *uxact_ptr = hyperdex_uxact_get_uxact_ptr(env, uxact);
+    jobject client = hyperdex_uxact_get_client(env, uxact);
+    jobject op = (*env)->NewObject(env, _deferred, _deferred_init, client);
+    struct hyperdex_java_client_deferred* o = hyperdex_uxact_get_deferred_ptr(env, uxact);
+    ERROR_CHECK(0);
+
+    hyperdex_java_client_convert_predicates(env, client, o->arena, checks, &chks, &chks_sz);
+    o->encode_return = hyperdex_java_client_deferred_encode_status_count;
+    o->reqid = hyperdex_client_uxact_group_commit(client_ptr, uxact_ptr, chks, chks_sz, &o->count);
+
+    (*env)->SetLongField(env, op, _deferred_ptr, (long)o);
+
+    if (o->reqid < 0)
+    {
+        hyperdex_java_client_throw_exception(env, o->status, hyperdex_client_error_message(client_ptr));
+        return NULL;
+    }
+    (*env)->CallObjectMethod(env, client, _client_add_op, o->reqid, op);
+    ERROR_CHECK(0);
+    return op;
+}
+
 JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Microtransaction_async_1commit(JNIEnv* env, jobject uxact, jstring key)
 {

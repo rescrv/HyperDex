@@ -58,6 +58,12 @@ public class Microtransaction
     private static native void initialize();
     private static native void terminate();
     
+    public Long group_commit(Map<String,Object> checks) throws HyperDexClientException {
+        return (Long) async_group_commit(checks).waitForIt();
+    }
+    
+    public native Deferred async_group_commit(Map<String,Object> checks) throws HyperDexClientException;
+    
     public Boolean commit(String key) throws HyperDexClientException {
         return (Boolean) async_commit(key).waitForIt();
     }
