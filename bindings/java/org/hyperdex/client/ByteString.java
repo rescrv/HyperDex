@@ -47,6 +47,16 @@ public class ByteString
     {
         this.bytes = str.getBytes(encoding);
     }
+    
+    public ByteString(String str)
+    {
+        try {
+            this.bytes = str.getBytes(defaultEncoding);
+        } catch(UnsupportedEncodingException e) {
+            // This should never happen. 
+            throw new RuntimeException(e.getMessage()); 
+        }
+    }
 
     public static ByteString wrap(byte[] bytes)
     {
@@ -91,7 +101,7 @@ public class ByteString
         throws UnsupportedEncodingException
     {
         // Terminating NULL character is redundant in string representation
-        return decode(encoding).replace("\0", "");
+        return decode(encoding);//.replace("\0", "");
     }
 
     public static String toString(byte[] bytes, String encoding)
@@ -155,25 +165,8 @@ public class ByteString
         return compare(bytes,((ByteString)o).getBytes());
     }
 
-    public boolean equals(String s)
-    {
-        try
-        {
-            return Arrays.equals(bytes, (new ByteString(s, defaultEncoding)).bytes);
-        }
-        catch(UnsupportedEncodingException e)
-        {
-            return false;
-        }
-    }
-
     public boolean equals(Object o)
     {
-        if (o instanceof String)
-        {
-            return this.equals((String) o);
-        }
-
         return Arrays.equals(bytes, ((ByteString)o).getBytes());
     }
 

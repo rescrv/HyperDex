@@ -89,6 +89,7 @@ public class DataTypeString
         ByteString bstring = new ByteString(original.getBytes());
         String result = bstring.toString();
         
+        assertEquals(original, bstring);
         assertEquals(original, result);
     }
 }

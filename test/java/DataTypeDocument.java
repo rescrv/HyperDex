@@ -25,6 +25,15 @@ public class DataTypeDocument
     }
     
     @Test
+    public void testToString() {
+        String str = "{\"a\":123,\"b\":\"x\"}";
+        
+        Document doc = new Document(str);
+        
+        assertEquals(str, doc.toString());
+    }
+    
+    @Test
     public void insertEmptyValue() throws HyperDexClientException {
         Map<String, Object> attrs = new HashMap<>();
         

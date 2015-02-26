@@ -94,7 +94,7 @@ public class DataTypeInt
         args.put("v", 0L);
         
         Boolean res = c.atomic_div("kv", "k", args);
-        assertFalse(args);
+        assertFalse(res);
     }
         
     @Test

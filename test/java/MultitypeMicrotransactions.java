@@ -2,6 +2,7 @@ import java.util.*;
 
 import org.hyperdex.client.Client;
 import org.hyperdex.client.Document;
+import org.hyperdex.client.ByteString;
 import org.hyperdex.client.Microtransaction;
 import org.hyperdex.client.HyperDexClientException;
 
@@ -26,11 +27,48 @@ public class MultitypeMicrotransactions
     }
     
     @Test
+    public void insertEmptyValue() throws HyperDexClientException {
+        Microtransaction xact = c.initMicrotransaction("kv");
+        Map<String, Object> attrs = new HashMap<>();
+        xact.put(attrs);
+        
+        Boolean res = xact.commit("k");
+        assertTrue(res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("i", new Long(0));
+        expected.put("s", new ByteString(""));
+        expected.put("f", new Double(0));
+        
+        assertEquals(expected, get);
+    }
+    
+    @Test
+    public void singleField() throws HyperDexClientException {
+        Microtransaction xact = c.initMicrotransaction("kv");
+        Map<String, Object> attrs = new HashMap<>();
+        attrs.put("s", "fourty-two");
+        xact.put(attrs);
+        
+        Boolean res = xact.commit("k");
+        assertTrue(res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("i", new Long(0));
+        expected.put("s", "fourty-two");
+        expected.put("f", new Double(0));
+        
+        assertEquals(expected, get);
+    }
+    
+    @Test
     public void singleOperation() throws HyperDexClientException {
         Microtransaction xact = c.initMicrotransaction("kv");
         Map<String, Object> attrs = new HashMap<>();
         attrs.put("i", new Long(42));
-      //  attrs.put("s", "fourty-two");
+        attrs.put("s", "fourty-two");
         attrs.put("f", new Double(4.2));
         xact.put(attrs);
         
@@ -40,7 +78,7 @@ public class MultitypeMicrotransactions
         Map<String, Object> get = c.get("kv", "k");
         Map<String, Object> expected = new HashMap<>();
         expected.put("i", new Long(42));
-     //   expected.put("s", "fourty-two");
+        expected.put("s", new ByteString("fourty-two"));
         expected.put("f", new Double(4.2));
         
         assertEquals(expected, get);
@@ -52,9 +90,9 @@ public class MultitypeMicrotransactions
         Map<String, Object> attrs1 = new HashMap<>();
         attrs1.put("i", new Long(42));
         xact.put(attrs1);
-      //  Map<String, Object> attrs2 = new HashMap<>();
-      //  attrs2.put("s", "fourty-two");
-      //  xact.put(attrs2);
+        Map<String, Object> attrs2 = new HashMap<>();
+        attrs2.put("s", "fourty-two");
+        xact.put(attrs2);
         Map<String, Object> attrs3 = new HashMap<>();
         attrs3.put("f", new Double(4.2));
         xact.put(attrs3);
@@ -65,7 +103,7 @@ public class MultitypeMicrotransactions
         Map<String, Object> get = c.get("kv", "k");
         Map<String, Object> expected = new HashMap<>();
         expected.put("i", new Long(42));
-      //  expected.put("s", "fourty-two");
+        expected.put("s", new ByteString("fourty-two"));
         expected.put("f", new Double(4.2));
         
         assertEquals(expected, get);

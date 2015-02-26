@@ -175,7 +175,7 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     REF(_string, (*env)->FindClass(env, "java/lang/String"));
     /* cache class Document */
     REF(_document, (*env)->FindClass(env, "org/hyperdex/client/Document"));
-    _document_init = (*env)->GetMethodID(env, _document, "<init>", "(Ljava/lang/String;)V");
+    _document_init = (*env)->GetMethodID(env, _document, "<init>", "(Lorg/hyperdex/client/ByteString;)V");
     _document_to_string = (*env)->GetMethodID(env, _document, "toString", "()Ljava/lang/String;");
     /* cache class ByteString */
     REF(_byte_string, (*env)->FindClass(env, "org/hyperdex/client/ByteString"));
@@ -1395,8 +1395,7 @@ hyperdex_java_client_build_attribute(JNIEnv* env,
         case HYPERDATATYPE_DOCUMENT:
             BUILD_STRING(tmp, attr->value, attr->value_sz);
             // Build document from string
-            tmp2 = (*env)->CallObjectMethod(env, tmp, _byte_string_to_string);
-            return (*env)->NewObject(env, _document, _document_init, tmp2);
+            return (*env)->NewObject(env, _document, _document_init, tmp);
         case HYPERDATATYPE_LIST_STRING:
             hyperdex_ds_iterator_init(&iter, attr->datatype, attr->value, attr->value_sz);
             ret = (*env)->NewObject(env, _array_list, _array_list_init);

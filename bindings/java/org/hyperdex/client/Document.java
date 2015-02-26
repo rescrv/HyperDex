@@ -31,6 +31,10 @@ package org.hyperdex.client;
 public class Document {
     private String json;
     
+    public Document(ByteString json) {
+        this.json = json.toString();
+    } 
+    
     public Document(String json) {
         this.json = json;
     } 
