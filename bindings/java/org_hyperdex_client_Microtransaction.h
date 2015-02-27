@@ -167,6 +167,22 @@ JNIEXPORT HYPERDEX_API jint JNICALL Java_org_hyperdex_client_Microtransaction_do
 JNIEXPORT HYPERDEX_API jint JNICALL Java_org_hyperdex_client_Microtransaction_document_1unset
   (JNIEnv *, jobject, jobject);
 
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_min
+ * Signature: (Ljava/util/Map;)I
+ */
+JNIEXPORT HYPERDEX_API jint JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1min
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
+ * Method:    atomic_max
+ * Signature: (Ljava/util/Map;)I
+ */
+JNIEXPORT HYPERDEX_API jint JNICALL Java_org_hyperdex_client_Microtransaction_atomic_1max
+  (JNIEnv *, jobject, jobject);
+
 #ifdef __cplusplus
 }
 #endif

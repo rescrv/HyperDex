@@ -262,3 +262,39 @@ Java_org_hyperdex_client_Microtransaction_document_1unset(JNIEnv* env , jobject 
     hyperdex_java_client_convert_attributes(env, client, arena, attributes, &_attrs, &_attrs_sz);
     return (jint)hyperdex_client_uxact_document_unset(client_ptr, uxact, _attrs, _attrs_sz);
 }
+
+JNIEXPORT HYPERDEX_API jint JNICALL
+Java_org_hyperdex_client_Microtransaction_atomic_1min(JNIEnv* env , jobject microtransaction, jobject attributes)
+{
+    jobject client;
+    struct hyperdex_client* client_ptr;
+    struct hyperdex_client_microtransaction* uxact;
+    const struct hyperdex_client_attribute *_attrs;
+    struct hyperdex_ds_arena *arena;
+    size_t _attrs_sz;
+
+    client = hyperdex_uxact_get_client(env, microtransaction);
+    client_ptr = hyperdex_uxact_get_client_ptr(env, microtransaction);
+    uxact = hyperdex_uxact_get_uxact_ptr(env, microtransaction);
+    arena = hyperdex_uxact_get_arena_ptr(env, microtransaction);
+    hyperdex_java_client_convert_attributes(env, client, arena, attributes, &_attrs, &_attrs_sz);
+    return (jint)hyperdex_client_uxact_atomic_min(client_ptr, uxact, _attrs, _attrs_sz);
+}
+
+JNIEXPORT HYPERDEX_API jint JNICALL
+Java_org_hyperdex_client_Microtransaction_atomic_1max(JNIEnv* env , jobject microtransaction, jobject attributes)
+{
+    jobject client;
+    struct hyperdex_client* client_ptr;
+    struct hyperdex_client_microtransaction* uxact;
+    const struct hyperdex_client_attribute *_attrs;
+    struct hyperdex_ds_arena *arena;
+    size_t _attrs_sz;
+
+    client = hyperdex_uxact_get_client(env, microtransaction);
+    client_ptr = hyperdex_uxact_get_client_ptr(env, microtransaction);
+    uxact = hyperdex_uxact_get_uxact_ptr(env, microtransaction);
+    arena = hyperdex_uxact_get_arena_ptr(env, microtransaction);
+    hyperdex_java_client_convert_attributes(env, client, arena, attributes, &_attrs, &_attrs_sz);
+    return (jint)hyperdex_client_uxact_atomic_max(client_ptr, uxact, _attrs, _attrs_sz);
+}

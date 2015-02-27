@@ -1042,6 +1042,11 @@ hyperdex_client_group_map_atomic_min(struct hyperdex_client* client,
                                      uint64_t* count);
 
 int64_t
+hyperdex_client_uxact_atomic_min(struct hyperdex_client* client,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
+
+int64_t
 hyperdex_client_map_atomic_max(struct hyperdex_client* client,
                                const char* space,
                                const char* key, size_t key_sz,
@@ -1063,6 +1068,11 @@ hyperdex_client_group_map_atomic_max(struct hyperdex_client* client,
                                      const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                      enum hyperdex_client_returncode* status,
                                      uint64_t* count);
+
+int64_t
+hyperdex_client_uxact_atomic_max(struct hyperdex_client* client,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 
 int64_t
 hyperdex_client_search(struct hyperdex_client* client,

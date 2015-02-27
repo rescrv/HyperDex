@@ -100,4 +100,8 @@ public class Microtransaction
     public native int document_rename(Map<String,Object> attrs) throws HyperDexClientException;
 
     public native int document_unset(Map<String,Object> attrs) throws HyperDexClientException;
+
+    public native int atomic_min(Map<String,Object> attrs) throws HyperDexClientException;
+
+    public native int atomic_max(Map<String,Object> attrs) throws HyperDexClientException;
 }
