@@ -58,17 +58,23 @@ public class Microtransaction
     private static native void initialize();
     private static native void terminate();
     
+    public Boolean commit(String key) throws HyperDexClientException {
+        return (Boolean) async_commit(key).waitForIt();
+    }
+    
+    public native Deferred async_commit(String key) throws HyperDexClientException;
+    
     public Long group_commit(Map<String,Object> checks) throws HyperDexClientException {
         return (Long) async_group_commit(checks).waitForIt();
     }
     
     public native Deferred async_group_commit(Map<String,Object> checks) throws HyperDexClientException;
     
-    public Boolean commit(String key) throws HyperDexClientException {
-        return (Boolean) async_commit(key).waitForIt();
+    public Boolean cond_commit(String key, Map<String,Object> checks) throws HyperDexClientException {
+        return (Boolean) async_cond_commit(key, checks).waitForIt();
     }
     
-    public native Deferred async_commit(String key) throws HyperDexClientException;
+    public native Deferred async_cond_commit(String key, Map<String,Object> checks) throws HyperDexClientException;
     public native int put(Map<String,Object> attrs) throws HyperDexClientException;
 
     public native int atomic_add(Map<String,Object> attrs) throws HyperDexClientException;

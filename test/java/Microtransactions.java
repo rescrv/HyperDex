@@ -127,13 +127,71 @@ public class Microtransactions
         assertEquals(new Long(2), res);
         
         Map<String, Object> expected = new HashMap<>();
-        expected.put("v", new Document("{\"a\":\"c\",\"x\":\"y\"}}"));
+        expected.put("v", new Document("{\"x\":\"y\",\"a\":\"c\"}"));
         
         Map<String, Object> get1 = c.get("kv", "k1");
         Map<String, Object> get2 = c.get("kv", "k2");
         
         assertEquals(expected, get1);
         assertEquals(expected, get2);
+    }
+    
+    @Test
+    public void condCommitWithMatch() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        attrs.put("v", new Document("{\"x\":\"y\"}"));
+        c.put("kv", "k1", attrs);
+        c.put("kv", "k2", attrs);
+        
+        Microtransaction xact = c.initMicrotransaction("kv");
+        Map<String, Object> attrs2 = new HashMap<>();
+        attrs2.put("v.a", "c");
+        xact.put(attrs2);
+        
+        Map<String, Object> checks = new HashMap<>();
+        checks.put("v.x", "y"); 
+        Boolean res = xact.cond_commit("k1", checks);
+        assertEquals(true, res);
+        
+        Map<String, Object> get1 = c.get("kv", "k1");
+        Map<String, Object> expected1 = new HashMap<>();
+        expected1.put("v", new Document("{\"x\":\"y\",\"a\":\"c\"}"));
+        
+        Map<String, Object> get2 = c.get("kv", "k2");
+        Map<String, Object> expected2 = new HashMap<>();
+        expected2.put("v", new Document("{\"x\":\"y\"}"));
+        
+        assertEquals(expected1, get1);
+        assertEquals(expected2, get2);
+    }
+    
+    @Test
+    public void condCommitWithoutMatch() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<String, Object>();
+        attrs.put("v", new Document("{\"x\":\"y\"}"));
+        c.put("kv", "k1", attrs);
+        c.put("kv", "k2", attrs);
+        
+        Microtransaction xact = c.initMicrotransaction("kv");
+        Map<String, Object> attrs2 = new HashMap<>();
+        attrs2.put("v.a", "c");
+        xact.put(attrs2);
+        
+        Map<String, Object> checks = new HashMap<>();
+        checks.put("v.x", "z"); 
+        Boolean res = xact.cond_commit("k1", checks);
+        assertEquals(false, res);
+        
+        Map<String, Object> get1 = c.get("kv", "k1");
+        Map<String, Object> expected1 = new HashMap<>();
+        expected1.put("v", new Document("{\"x\":\"y\"}"));
+        
+        Map<String, Object> get2 = c.get("kv", "k2");
+        Map<String, Object> expected2 = new HashMap<>();
+        expected2.put("v", new Document("{\"x\":\"y\"}"));
+        
+        assertEquals(expected1, get1);
+        assertEquals(expected2, get2);
     }
     
     @Test
@@ -188,7 +246,38 @@ public class Microtransactions
         
         Map<String, Object> get2 = c.get("kv", "k2");
         Map<String, Object> expected2 = new HashMap<>();
-        expected2.put("v", new Document("{\"x\":\"a\"}"));
+        expected2.put("v", new Document("{\"x\":\"b\"}"));
+        
+        assertEquals(expected1, get1);
+        assertEquals(expected2, get2);
+    }
+    
+    @Test
+    public void groupCommitWithOneNumericMatch() throws HyperDexClientException {
+        Map<String, Object> attrs1 = new HashMap<>();
+        attrs1.put("v", new Document("{\"x\":1}"));
+        c.put("kv", "k1", attrs1);
+        Map<String, Object> attrs2 = new HashMap<>();
+        attrs2.put("v", new Document("{\"x\":2}"));
+        c.put("kv", "k2", attrs2);
+        
+        Microtransaction xact = c.initMicrotransaction("kv");
+        Map<String, Object> attrs3 = new HashMap<>();
+        attrs3.put("v.a", "c");
+        xact.put(attrs3);
+        
+        Map<String, Object> checks = new HashMap<>();
+        checks.put("v.x", new Long(1)); 
+        Long res = xact.group_commit(checks);
+        assertEquals(new Long(1), res);
+        
+        Map<String, Object> get1 = c.get("kv", "k1");
+        Map<String, Object> expected1 = new HashMap<>();
+        expected1.put("v", new Document("{\"x\":1,\"a\":\"c\"}"));
+        
+        Map<String, Object> get2 = c.get("kv", "k2");
+        Map<String, Object> expected2 = new HashMap<>();
+        expected2.put("v", new Document("{\"x\":2}"));
         
         assertEquals(expected1, get1);
         assertEquals(expected2, get2);

@@ -82,5 +82,7 @@ struct hyperdex_java_client_deferred
 jobject
 hyperdex_java_client_deferred_encode_status_count(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d);
 
+jobject
+hyperdex_java_client_deferred_encode_status(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d);
 
 #endif

@@ -15,6 +15,13 @@ tx.put({'v.c' : 3})
 tx.commit('k1')
 assertEquals(c.get('kv', 'k1')['v'], Document({'a' : 1, 'b' : 2, 'c' : 3}))
 
+assertTrue(c.put('kv', 'k1', {'v' : Document({})}))
+tx = c.microtransaction_init('kv')
+tx.put({'v.b' : 2})
+tx.put({'v.c' : Document({'x' : 'y'})})
+tx.commit('k1')
+assertEquals(c.get('kv', 'k1')['v'], Document({'b' : 2, 'c' : {'x' : 'y'}}))
+
 assertTrue(c.put('kv', 'k2', {'v' : Document({'a' : 1})}))
 tx = c.microtransaction_init('kv')
 tx.atomic_add({'v.a' : 2})

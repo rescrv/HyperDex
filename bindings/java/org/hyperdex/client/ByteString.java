@@ -100,8 +100,8 @@ public class ByteString
     public String toString(String encoding)
         throws UnsupportedEncodingException
     {
-        // Terminating NULL character is redundant in string representation
-        return decode(encoding);//.replace("\0", "");
+        // Remove trailing NULL character
+        return decode(encoding).replace("\0", "");
     }
 
     public static String toString(byte[] bytes, String encoding)
@@ -167,7 +167,11 @@ public class ByteString
 
     public boolean equals(Object o)
     {
-        return Arrays.equals(bytes, ((ByteString)o).getBytes());
+        if(o instanceof ByteString) {
+            return Arrays.equals(bytes, ((ByteString)o).getBytes());
+        } else {
+            return false;
+        }
     }
 
     public int hashCode()

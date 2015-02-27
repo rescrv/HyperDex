@@ -1739,10 +1739,8 @@ hyperdex_java_client_build_attributes(JNIEnv* env,
 JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Deferred__1create(JNIEnv* env, jobject deferred)
 {
-    jlong lptr;
     struct hyperdex_java_client_deferred* ptr;
 
-    lptr = (*env)->GetLongField(env, deferred, _deferred_ptr);
     ERROR_CHECK_VOID();
     ptr = malloc(sizeof(struct hyperdex_java_client_deferred));
 
@@ -1753,8 +1751,7 @@ Java_org_hyperdex_client_Deferred__1create(JNIEnv* env, jobject deferred)
     }
 
     memset(ptr, 0, sizeof(struct hyperdex_java_client_deferred));
-    lptr = (long) ptr;
-    (*env)->SetLongField(env, deferred, _deferred_ptr, lptr);
+    (*env)->SetLongField(env, deferred, _deferred_ptr, (long)ptr);
     ERROR_CHECK_VOID();
 
     ptr->arena = hyperdex_ds_arena_create();
@@ -1843,7 +1840,7 @@ Java_org_hyperdex_client_Deferred_callback(JNIEnv* env, jobject obj)
     ERROR_CHECK_VOID();
 }
 
-static jobject
+jobject
 hyperdex_java_client_deferred_encode_status(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d)
 {
     jobject ret;

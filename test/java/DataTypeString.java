@@ -43,7 +43,7 @@ public class DataTypeString
         
         Map<String, Object> get = c.get("kv", "k");
         Map<String, Object> expected = new HashMap<String, Object>();
-        expected.put("v", "");
+        expected.put("v", new ByteString(""));
         assertEquals(get, expected);
     }
     
@@ -64,7 +64,47 @@ public class DataTypeString
         
         Map<String, Object> get = c.get("kv", "k");
         Map<String, Object> expected = new HashMap<>();
-        expected.put("v", "xxx");
+        expected.put("v", new ByteString("xxx"));
+        assertEquals(get, expected);
+    }
+    
+    @Test
+    public void groupUpdateWithMatch() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<>();
+        attrs.put("v", "xxx");
+        c.put("kv", "k", attrs);
+        
+        Map<String, Object> checks = new HashMap<>();
+        checks.put("v", "xxx");
+        Map<String, Object> mod = new HashMap<>();
+        mod.put("v", "yy");
+        
+        Long res = c.group_string_append("kv", checks, mod);
+        assertEquals(new Long(1), res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("v", new ByteString("xxxyy"));
+        assertEquals(get, expected);
+    }
+    
+    @Test
+    public void groupUpdateWithoutMatch() throws HyperDexClientException {
+        Map<String, Object> attrs = new HashMap<>();
+        attrs.put("v", "xxx");
+        c.put("kv", "k", attrs);
+        
+        Map<String, Object> checks = new HashMap<>();
+        checks.put("v", "xx");
+        Map<String, Object> mod = new HashMap<>();
+        mod.put("v", "yy");
+        
+        Long res = c.group_string_append("kv", checks, mod);
+        assertEquals(new Long(0), res);
+        
+        Map<String, Object> get = c.get("kv", "k");
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("v", new ByteString("xxx"));
         assertEquals(get, expected);
     }
     
@@ -89,7 +129,10 @@ public class DataTypeString
         ByteString bstring = new ByteString(original.getBytes());
         String result = bstring.toString();
         
-        assertEquals(original, bstring);
+        // Only change equals behaviour if it works in both directions
+        assertNotEquals(original, bstring);
+        assertNotEquals(bstring, original);
+        
         assertEquals(original, result);
     }
 }

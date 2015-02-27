@@ -41,6 +41,14 @@ JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Microtransaction_te
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
+ * Method:    async_commit
+ * Signature: (Ljava/lang/String;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_async_1commit
+  (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     org_hyperdex_client_Microtransaction
  * Method:    async_group_commit
  * Signature: (Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
@@ -49,11 +57,11 @@ JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
- * Method:    async_commit
- * Signature: (Ljava/lang/String;)Lorg/hyperdex/client/Deferred;
+ * Method:    async_cond_commit
+ * Signature: (Ljava/lang/String;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_async_1commit
-  (JNIEnv *, jobject, jstring);
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Microtransaction_async_1cond_1commit
+  (JNIEnv *, jobject, jstring, jobject);
 
 /*
  * Class:     org_hyperdex_client_Microtransaction
