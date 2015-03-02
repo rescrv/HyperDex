@@ -151,56 +151,56 @@ fn main() {
     let args = os::args();
     let mut client = Client::new(FromStr::from_str(format!("{}:{}", args[1], args[2]).as_slice()).unwrap()).unwrap();
 
-                match client.put("kv", "A", HyperObject::new()) {
+                match client.put(r"kv", r"A", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "AB", HyperObject::new()) {
+                match client.put(r"kv", r"AB", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "ABC", HyperObject::new()) {
+                match client.put(r"kv", r"ABC", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "ABCD", HyperObject::new()) {
+                match client.put(r"kv", r"ABCD", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "ABCDE", HyperObject::new()) {
+                match client.put(r"kv", r"ABCDE", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-            let res = client.search("kv", vec!(HyperPredicate::new("k", LENGTH_EQUALS, 1 as i64)));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"k", LENGTH_EQUALS, 1 as i64)));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "A",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"A",)).len());
         
-            let res = client.search("kv", vec!(HyperPredicate::new("k", LENGTH_EQUALS, 2 as i64)));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"k", LENGTH_EQUALS, 2 as i64)));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "AB",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"AB",)).len());
         
-            let res = client.search("kv", vec!(HyperPredicate::new("k", LENGTH_EQUALS, 3 as i64)));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"k", LENGTH_EQUALS, 3 as i64)));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "ABC",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"ABC",)).len());
         
-            let res = client.search("kv", vec!(HyperPredicate::new("k", LENGTH_EQUALS, 4 as i64)));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"k", LENGTH_EQUALS, 4 as i64)));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "ABCD",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"ABCD",)).len());
         
-            let res = client.search("kv", vec!(HyperPredicate::new("k", LENGTH_EQUALS, 5 as i64)));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"k", LENGTH_EQUALS, 5 as i64)));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "ABCDE",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"ABCDE",)).len());
         
-            let res = client.search("kv", vec!(HyperPredicate::new("k", LENGTH_LESS_EQUAL, 3 as i64)));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"k", LENGTH_LESS_EQUAL, 3 as i64)));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "A",), NewHyperObject!("k", "AB",), NewHyperObject!("k", "ABC",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"A",), NewHyperObject!(r"k", r"AB",), NewHyperObject!(r"k", r"ABC",)).len());
         
-            let res = client.search("kv", vec!(HyperPredicate::new("k", LENGTH_GREATER_EQUAL, 3 as i64)));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"k", LENGTH_GREATER_EQUAL, 3 as i64)));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "ABC",), NewHyperObject!("k", "ABCD",), NewHyperObject!("k", "ABCDE",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"ABC",), NewHyperObject!(r"k", r"ABCD",), NewHyperObject!(r"k", r"ABCDE",)).len());
         }

@@ -151,25 +151,25 @@ fn main() {
     let args = os::args();
     let mut client = Client::new(FromStr::from_str(format!("{}:{}", args[1], args[2]).as_slice()).unwrap()).unwrap();
 
-            let res = client.search("kv", vec!(HyperPredicate::new("v", EQUALS, "v1")));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"v", EQUALS, r"v1")));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == BTreeSet::<Vec<u8>>::new().len());
+            assert_eq!(elems.len(), BTreeSet::<Vec<u8>>::new().len());
         
-                match client.put("kv", "k1", NewHyperObject!("v", "v1",)) {
+                match client.put(r"kv", r"k1", NewHyperObject!(r"v", r"v1",)) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-            let res = client.search("kv", vec!(HyperPredicate::new("v", EQUALS, "v1")));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"v", EQUALS, r"v1")));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "k1", "v", "v1",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"k1", r"v", r"v1",)).len());
         
-                match client.put("kv", "k2", NewHyperObject!("v", "v1",)) {
+                match client.put(r"kv", r"k2", NewHyperObject!(r"v", r"v1",)) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-            let res = client.search("kv", vec!(HyperPredicate::new("v", EQUALS, "v1")));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"v", EQUALS, r"v1")));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "k1", "v", "v1",), NewHyperObject!("k", "k2", "v", "v1",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"k1", r"v", r"v1",), NewHyperObject!(r"k", r"k2", r"v", r"v1",)).len());
         }

@@ -773,7 +773,7 @@ class RustGenerator(BindingGenerator):
         assert self.f is None
         self.count = 0
         self.path = 'test/rust/{0}.rs'.format(name)
-        precmd = 'rustc -L {1} -o "${{HYPERDEX_BUILDDIR}}"/test/rust/{0} "${{HYPERDEX_SRCDIR}}"/test/rust/{0}.rs'.format(name, self.lib_dir + '/target')
+        precmd = 'rustc -g -L {1} -o "${{HYPERDEX_BUILDDIR}}"/test/rust/{0} "${{HYPERDEX_SRCDIR}}"/test/rust/{0}.rs'.format(name, self.lib_dir + '/target')
         cmd = '"${{HYPERDEX_BUILDDIR}}"/test/rust/{0}'.format(name)
         gen_shell('rust', name, cmd, space, precmd=precmd)
         self.f = open(self.path, 'w')
@@ -1027,7 +1027,7 @@ fn main() {
         self.f.write('''
             let res = client.search({0}, {1});
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == {2}.len());
+            assert_eq!(elems.len(), {2}.len());
         '''.format(self.to_rust(space), self.to_preds(pred), self.to_rust(expected)))
 
     def to_preds(self, preds):
@@ -1073,7 +1073,7 @@ fn main() {
         elif x is None:
             return 'None'
         elif isinstance(x, str):
-            return double_quote(x)
+            return 'r'+double_quote(x)
         elif isinstance(x, long) or isinstance(x, int):
             return '%s as i64' % str(x)
         elif isinstance(x, float):
@@ -1094,7 +1094,7 @@ fn main() {
                 s = '{\n'
                 s += 'let mut s = BTreeSet::new();\n'
                 for v in x:
-                    s += 's.insert({0});\n'.format(self.to_rust(v))
+                    s += 's.insert({0});\n'.format(self.to_rust(v, inner=True))
                 s += 's\n}\n'
                 return s
             else:

@@ -151,12 +151,12 @@ fn main() {
     let args = os::args();
     let mut client = Client::new(FromStr::from_str(format!("{}:{}", args[1], args[2]).as_slice()).unwrap()).unwrap();
 
-                match client.put("kv", "k", HyperObject::new()) {
+                match client.put(r"kv", r"k", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
-            let expected = NewHyperObject!("v", HashMap::<Vec<u8>, Vec<u8>>::new(),);
-                match client.get("kv", "k") {
+            let expected = NewHyperObject!(r"v", HashMap::<Vec<u8>, Vec<u8>>::new(),);
+                match client.get(r"kv", r"k") {
                     Ok(obj) => {
                         if !sloppyCompareHyper(&obj, &expected) {
                          panic!("expected: {:?}
@@ -166,7 +166,7 @@ actual: {:?}", expected, obj);
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "k", NewHyperObject!("v", {
+                match client.put(r"kv", r"k", NewHyperObject!(r"v", {
 let mut m = HashMap::new();
 m.insert(F64(0.25 as f64), 2.0 as f64);
 m.insert(F64(1.0 as f64), 3.0 as f64);
@@ -177,7 +177,7 @@ m
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
-            let expected = NewHyperObject!("v", {
+            let expected = NewHyperObject!(r"v", {
 let mut m = HashMap::new();
 m.insert(F64(0.25 as f64), 2.0 as f64);
 m.insert(F64(1.0 as f64), 3.0 as f64);
@@ -185,7 +185,7 @@ m.insert(F64(3.14 as f64), 1.0 as f64);
 m
 }
 ,);
-                match client.get("kv", "k") {
+                match client.get(r"kv", r"k") {
                     Ok(obj) => {
                         if !sloppyCompareHyper(&obj, &expected) {
                          panic!("expected: {:?}
@@ -195,12 +195,12 @@ actual: {:?}", expected, obj);
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "k", NewHyperObject!("v", HashMap::<Vec<u8>, Vec<u8>>::new(),)) {
+                match client.put(r"kv", r"k", NewHyperObject!(r"v", HashMap::<Vec<u8>, Vec<u8>>::new(),)) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
-            let expected = NewHyperObject!("v", HashMap::<Vec<u8>, Vec<u8>>::new(),);
-                match client.get("kv", "k") {
+            let expected = NewHyperObject!(r"v", HashMap::<Vec<u8>, Vec<u8>>::new(),);
+                match client.get(r"kv", r"k") {
                     Ok(obj) => {
                         if !sloppyCompareHyper(&obj, &expected) {
                          panic!("expected: {:?}

@@ -151,150 +151,150 @@ fn main() {
     let args = os::args();
     let mut client = Client::new(FromStr::from_str(format!("{}:{}", args[1], args[2]).as_slice()).unwrap()).unwrap();
 
-                match client.put("kv", "foo/foo/foo", HyperObject::new()) {
+                match client.put(r"kv", r"foo/foo/foo", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "foo/foo/bar", HyperObject::new()) {
+                match client.put(r"kv", r"foo/foo/bar", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "foo/foo/baz", HyperObject::new()) {
+                match client.put(r"kv", r"foo/foo/baz", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "foo/bar/foo", HyperObject::new()) {
+                match client.put(r"kv", r"foo/bar/foo", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "foo/bar/bar", HyperObject::new()) {
+                match client.put(r"kv", r"foo/bar/bar", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "foo/bar/baz", HyperObject::new()) {
+                match client.put(r"kv", r"foo/bar/baz", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "foo/baz/foo", HyperObject::new()) {
+                match client.put(r"kv", r"foo/baz/foo", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "foo/baz/bar", HyperObject::new()) {
+                match client.put(r"kv", r"foo/baz/bar", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "foo/baz/baz", HyperObject::new()) {
+                match client.put(r"kv", r"foo/baz/baz", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "bar/foo/foo", HyperObject::new()) {
+                match client.put(r"kv", r"bar/foo/foo", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "bar/foo/bar", HyperObject::new()) {
+                match client.put(r"kv", r"bar/foo/bar", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "bar/foo/baz", HyperObject::new()) {
+                match client.put(r"kv", r"bar/foo/baz", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "bar/bar/foo", HyperObject::new()) {
+                match client.put(r"kv", r"bar/bar/foo", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "bar/bar/bar", HyperObject::new()) {
+                match client.put(r"kv", r"bar/bar/bar", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "bar/bar/baz", HyperObject::new()) {
+                match client.put(r"kv", r"bar/bar/baz", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "bar/baz/foo", HyperObject::new()) {
+                match client.put(r"kv", r"bar/baz/foo", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "bar/baz/bar", HyperObject::new()) {
+                match client.put(r"kv", r"bar/baz/bar", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "bar/baz/baz", HyperObject::new()) {
+                match client.put(r"kv", r"bar/baz/baz", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "baz/foo/foo", HyperObject::new()) {
+                match client.put(r"kv", r"baz/foo/foo", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "baz/foo/bar", HyperObject::new()) {
+                match client.put(r"kv", r"baz/foo/bar", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "baz/foo/baz", HyperObject::new()) {
+                match client.put(r"kv", r"baz/foo/baz", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "baz/bar/foo", HyperObject::new()) {
+                match client.put(r"kv", r"baz/bar/foo", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "baz/bar/bar", HyperObject::new()) {
+                match client.put(r"kv", r"baz/bar/bar", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "baz/bar/baz", HyperObject::new()) {
+                match client.put(r"kv", r"baz/bar/baz", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "baz/baz/foo", HyperObject::new()) {
+                match client.put(r"kv", r"baz/baz/foo", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "baz/baz/bar", HyperObject::new()) {
+                match client.put(r"kv", r"baz/baz/bar", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "baz/baz/baz", HyperObject::new()) {
+                match client.put(r"kv", r"baz/baz/baz", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
             
-            let res = client.search("kv", vec!(HyperPredicate::new("k", REGEX, "^foo")));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"k", REGEX, r"^foo")));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "foo/foo/foo",), NewHyperObject!("k", "foo/foo/bar",), NewHyperObject!("k", "foo/foo/baz",), NewHyperObject!("k", "foo/bar/foo",), NewHyperObject!("k", "foo/bar/bar",), NewHyperObject!("k", "foo/bar/baz",), NewHyperObject!("k", "foo/baz/foo",), NewHyperObject!("k", "foo/baz/bar",), NewHyperObject!("k", "foo/baz/baz",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"foo/foo/foo",), NewHyperObject!(r"k", r"foo/foo/bar",), NewHyperObject!(r"k", r"foo/foo/baz",), NewHyperObject!(r"k", r"foo/bar/foo",), NewHyperObject!(r"k", r"foo/bar/bar",), NewHyperObject!(r"k", r"foo/bar/baz",), NewHyperObject!(r"k", r"foo/baz/foo",), NewHyperObject!(r"k", r"foo/baz/bar",), NewHyperObject!(r"k", r"foo/baz/baz",)).len());
         
-            let res = client.search("kv", vec!(HyperPredicate::new("k", REGEX, "foo$")));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"k", REGEX, r"foo$")));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "foo/foo/foo",), NewHyperObject!("k", "foo/bar/foo",), NewHyperObject!("k", "foo/baz/foo",), NewHyperObject!("k", "bar/foo/foo",), NewHyperObject!("k", "bar/bar/foo",), NewHyperObject!("k", "bar/baz/foo",), NewHyperObject!("k", "baz/foo/foo",), NewHyperObject!("k", "baz/bar/foo",), NewHyperObject!("k", "baz/baz/foo",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"foo/foo/foo",), NewHyperObject!(r"k", r"foo/bar/foo",), NewHyperObject!(r"k", r"foo/baz/foo",), NewHyperObject!(r"k", r"bar/foo/foo",), NewHyperObject!(r"k", r"bar/bar/foo",), NewHyperObject!(r"k", r"bar/baz/foo",), NewHyperObject!(r"k", r"baz/foo/foo",), NewHyperObject!(r"k", r"baz/bar/foo",), NewHyperObject!(r"k", r"baz/baz/foo",)).len());
         
-            let res = client.search("kv", vec!(HyperPredicate::new("k", REGEX, "^b.*/foo/.*$")));
+            let res = client.search(r"kv", vec!(HyperPredicate::new(r"k", REGEX, r"^b.*/foo/.*$")));
             let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
-            assert!(elems.len() == vec!(NewHyperObject!("k", "bar/foo/foo",), NewHyperObject!("k", "bar/foo/bar",), NewHyperObject!("k", "bar/foo/baz",), NewHyperObject!("k", "baz/foo/foo",), NewHyperObject!("k", "baz/foo/bar",), NewHyperObject!("k", "baz/foo/baz",)).len());
+            assert_eq!(elems.len(), vec!(NewHyperObject!(r"k", r"bar/foo/foo",), NewHyperObject!(r"k", r"bar/foo/bar",), NewHyperObject!(r"k", r"bar/foo/baz",), NewHyperObject!(r"k", r"baz/foo/foo",), NewHyperObject!(r"k", r"baz/foo/bar",), NewHyperObject!(r"k", r"baz/foo/baz",)).len());
         }

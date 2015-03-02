@@ -151,12 +151,12 @@ fn main() {
     let args = os::args();
     let mut client = Client::new(FromStr::from_str(format!("{}:{}", args[1], args[2]).as_slice()).unwrap()).unwrap();
 
-                match client.put("kv", "k", HyperObject::new()) {
+                match client.put(r"kv", r"k", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
-            let expected = NewHyperObject!("v", Vec::<i64>::new(),);
-                match client.get("kv", "k") {
+            let expected = NewHyperObject!(r"v", Vec::<i64>::new(),);
+                match client.get(r"kv", r"k") {
                     Ok(obj) => {
                         if !sloppyCompareHyper(&obj, &expected) {
                          panic!("expected: {:?}
@@ -166,12 +166,12 @@ actual: {:?}", expected, obj);
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "k", NewHyperObject!("v", vec!("A", "B", "C"),)) {
+                match client.put(r"kv", r"k", NewHyperObject!(r"v", vec!(r"A", r"B", r"C"),)) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
-            let expected = NewHyperObject!("v", vec!("A", "B", "C"),);
-                match client.get("kv", "k") {
+            let expected = NewHyperObject!(r"v", vec!(r"A", r"B", r"C"),);
+                match client.get(r"kv", r"k") {
                     Ok(obj) => {
                         if !sloppyCompareHyper(&obj, &expected) {
                          panic!("expected: {:?}
@@ -181,12 +181,12 @@ actual: {:?}", expected, obj);
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "k", NewHyperObject!("v", Vec::<i64>::new(),)) {
+                match client.put(r"kv", r"k", NewHyperObject!(r"v", Vec::<i64>::new(),)) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
-            let expected = NewHyperObject!("v", Vec::<i64>::new(),);
-                match client.get("kv", "k") {
+            let expected = NewHyperObject!(r"v", Vec::<i64>::new(),);
+                match client.get(r"kv", r"k") {
                     Ok(obj) => {
                         if !sloppyCompareHyper(&obj, &expected) {
                          panic!("expected: {:?}

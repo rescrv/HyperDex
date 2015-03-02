@@ -151,12 +151,12 @@ fn main() {
     let args = os::args();
     let mut client = Client::new(FromStr::from_str(format!("{}:{}", args[1], args[2]).as_slice()).unwrap()).unwrap();
 
-                match client.put("kv", "k", HyperObject::new()) {
+                match client.put(r"kv", r"k", HyperObject::new()) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
-            let expected = NewHyperObject!("v", BTreeSet::<Vec<u8>>::new(),);
-                match client.get("kv", "k") {
+            let expected = NewHyperObject!(r"v", BTreeSet::<Vec<u8>>::new(),);
+                match client.get(r"kv", r"k") {
                     Ok(obj) => {
                         if !sloppyCompareHyper(&obj, &expected) {
                          panic!("expected: {:?}
@@ -166,26 +166,26 @@ actual: {:?}", expected, obj);
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "k", NewHyperObject!("v", {
+                match client.put(r"kv", r"k", NewHyperObject!(r"v", {
 let mut s = BTreeSet::new();
-s.insert("A");
-s.insert("C");
-s.insert("B");
+s.insert(r"A");
+s.insert(r"C");
+s.insert(r"B");
 s
 }
 ,)) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
-            let expected = NewHyperObject!("v", {
+            let expected = NewHyperObject!(r"v", {
 let mut s = BTreeSet::new();
-s.insert("A");
-s.insert("C");
-s.insert("B");
+s.insert(r"A");
+s.insert(r"C");
+s.insert(r"B");
 s
 }
 ,);
-                match client.get("kv", "k") {
+                match client.get(r"kv", r"k") {
                     Ok(obj) => {
                         if !sloppyCompareHyper(&obj, &expected) {
                          panic!("expected: {:?}
@@ -195,12 +195,12 @@ actual: {:?}", expected, obj);
                     Err(err) => panic!(err),
                 }
             
-                match client.put("kv", "k", NewHyperObject!("v", BTreeSet::<Vec<u8>>::new(),)) {
+                match client.put(r"kv", r"k", NewHyperObject!(r"v", BTreeSet::<Vec<u8>>::new(),)) {
                     Ok(()) => (),
                     Err(err) => panic!(err),
                 }
-            let expected = NewHyperObject!("v", BTreeSet::<Vec<u8>>::new(),);
-                match client.get("kv", "k") {
+            let expected = NewHyperObject!(r"v", BTreeSet::<Vec<u8>>::new(),);
+                match client.get(r"kv", r"k") {
                     Ok(obj) => {
                         if !sloppyCompareHyper(&obj, &expected) {
                          panic!("expected: {:?}
