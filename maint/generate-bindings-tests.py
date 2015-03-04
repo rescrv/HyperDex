@@ -29,6 +29,7 @@ import abc
 import collections
 import os
 import sys
+import subprocess
 
 def double_quote(x):
     y = repr(x)
@@ -758,6 +759,368 @@ func sloppyEqualAttributes(lhs client.Attributes, rhs client.Attributes) bool {
             return s
         else:
             raise RuntimeError("Cannot convert {0!r} to go".format(x))
+
+
+class RustGenerator(BindingGenerator):
+
+    def __init__(self):
+        self.f = None
+        self.lib_dir = 'rust_hyperdex'
+        subprocess.call(['git', 'clone', 'https://github.com/derekchiang/rust-hyperdex.git', self.lib_dir])
+        subprocess.call(['cargo', 'build'], cwd=self.lib_dir)
+
+    def test(self, name, space):
+        assert self.f is None
+        self.count = 0
+        self.path = 'test/rust/{0}.rs'.format(name)
+        precmd = 'rustc -g -L {1} -o "${{HYPERDEX_BUILDDIR}}"/test/rust/{0} "${{HYPERDEX_SRCDIR}}"/test/rust/{0}.rs'.format(name, self.lib_dir + '/target')
+        cmd = '"${{HYPERDEX_BUILDDIR}}"/test/rust/{0}'.format(name)
+        gen_shell('rust', name, cmd, space, precmd=precmd)
+        self.f = open(self.path, 'w')
+        self.f.write('''
+#[macro_use] extern crate hyperdex;
+
+use std::os;
+use std::str::FromStr;
+use std::collections::BTreeSet;
+use std::collections::HashMap;
+use std::iter::FromIterator;
+use std::mem::transmute;
+use std::any::Any;
+
+use hyperdex::*;
+use hyperdex::HyperValue::*;
+use hyperdex::HyperPredicateType::*;
+
+macro_rules! sloppyCompare {
+    ($a: ident, $b: ident) => (
+        if $a.len() == 0 && $b.len() == 0 {
+            true
+        } else {
+            if $a.get_type_id() != $b.get_type_id() {
+                false
+            } else {
+                unsafe {
+                    transmute($a) == $b
+                }
+            }
+        }
+    );
+}
+
+fn sloppyCompareHyper(a: &HyperObject, b: &HyperObject) -> bool {
+    for (ak, av) in a.map.iter() {
+        let bv = match b.map.get(ak) {
+            None => return false,
+            Some(x) => x,
+        };
+
+        let av = av.clone();
+        let bv = bv.clone();
+
+        // this is dumb but I do not see a better way... fortunately the following lines are generated
+        // by a python script
+        match (av, bv) {
+            (HyperListString(x), HyperListString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperListString(x), HyperListInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperListString(x), HyperListFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperListInt(x), HyperListString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperListInt(x), HyperListInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperListInt(x), HyperListFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperListFloat(x), HyperListString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperListFloat(x), HyperListInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperListFloat(x), HyperListFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperSetString(x), HyperSetString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperSetString(x), HyperSetInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperSetString(x), HyperSetFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperSetInt(x), HyperSetString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperSetInt(x), HyperSetInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperSetInt(x), HyperSetFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperSetFloat(x), HyperSetString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperSetFloat(x), HyperSetInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperSetFloat(x), HyperSetFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringString(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringString(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringString(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringString(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringString(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringString(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringString(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringString(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringString(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringInt(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringInt(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringInt(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringInt(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringInt(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringInt(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringInt(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringInt(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringInt(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringFloat(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringFloat(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringFloat(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringFloat(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringFloat(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringFloat(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringFloat(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringFloat(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapStringFloat(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntString(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntString(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntString(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntString(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntString(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntString(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntString(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntString(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntString(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntInt(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntInt(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntInt(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntInt(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntInt(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntInt(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntInt(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntInt(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntInt(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntFloat(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntFloat(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntFloat(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntFloat(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntFloat(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntFloat(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntFloat(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntFloat(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapIntFloat(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatString(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatString(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatString(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatString(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatString(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatString(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatString(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatString(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatString(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatInt(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatInt(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatInt(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatInt(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatInt(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatInt(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatInt(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatInt(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatInt(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatFloat(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatFloat(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatFloat(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatFloat(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatFloat(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatFloat(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatFloat(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatFloat(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
+            (HyperMapFloatFloat(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
+            (x, y) => if x != y { return false; },
+        }
+    }
+    return true;
+}
+
+fn main() {
+    let args = os::args();
+    let mut client = Client::new(FromStr::from_str(format!("{}:{}", args[1], args[2]).as_slice()).unwrap()).unwrap();
+''')
+
+    def finish(self):
+        self.f.write('}\n')
+        self.f.flush()
+        self.f.close()
+        self.f = None
+
+    def get(self, space, key, expected):
+        if expected is None:
+            self.f.write('''
+                match client.get({0}, {1}) {{
+                    Ok(obj) => {{
+                         panic!("this object should not be found!");
+                    }},
+                    Err(err) => (),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key)))
+        else:
+            self.f.write('let expected = {0};'.format(self.to_rust(expected)))
+            self.f.write('''
+                match client.get({0}, {1}) {{
+                    Ok(obj) => {{
+                        if !sloppyCompareHyper(&obj, &expected) {{
+                         panic!("expected: {{:?}}\nactual: {{:?}}", expected, obj);
+                        }}
+                    }},
+                    Err(err) => panic!(err),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key)))
+
+    def get_partial(self, space, key, attrs, expected):
+        if expected is None:
+            self.f.write('''
+                match client.get_partial({0}, {1}, {2}) {{
+                    Ok(obj) => {{
+                         panic!("this object should not be found!");
+                    }},
+                    Err(err) => (),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(attrs)))
+        else:
+            self.f.write('let expected = {0};'.format(self.to_rust(expected)))
+            self.f.write('''
+                match client.get_partial({0}, {1}, {2}) {{
+                    Ok(obj) => {{
+                        if !sloppyCompareHyper(&obj, &expected) {{
+                         panic!("expected: {{:?}}\nactual: {{:?}}", expected, obj);
+                        }}
+                    }},
+                    Err(err) => panic!(err),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(attrs)))
+
+    def put(self, space, key, value, expected):
+        if expected:
+            self.f.write('''
+                match client.put({0}, {1}, {2}) {{
+                    Ok(()) => (),
+                    Err(err) => panic!(err),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(value)))
+        else:
+            self.f.write('''
+                match client.put({0}, {1}, {2}) {{
+                    Ok(()) => panic!("this PUT operation should have failed"),
+                    Err(err) => (),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_rust(value)))
+
+    def cond_put(self, space, key, pred, value, expected):
+        if expected:
+            self.f.write('''
+                match client.cond_put({0}, {1}, {2}, {3}) {{
+                    Ok(()) => (),
+                    Err(err) => panic!(err),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_preds(pred), self.to_rust(value)))
+        else:
+            self.f.write('''
+                match client.cond_put({0}, {1}, {2}, {3}) {{
+                    Ok(()) => panic!("this CONDPUT operation should have failed"),
+                    Err(err) => (),
+                }}
+            '''.format(self.to_rust(space), self.to_rust(key), self.to_preds(pred), self.to_rust(value)))
+
+    def delete(self, space, key, expected):
+        self.f.write('''
+            match client.del({0}, {1}) {{
+                Ok(()) => (),
+                Err(err) => panic!(err),
+            }}
+        '''.format(self.to_rust(space), self.to_rust(key)))
+
+    def search(self, space, pred, expected):
+        self.f.write('''
+            let res = client.search({0}, {1});
+            let elems: Vec<Result<HyperObject, HyperError>> = res.iter().collect();
+            assert_eq!(elems.len(), {2}.len());
+        '''.format(self.to_rust(space), self.to_preds(pred), self.to_rust(expected)))
+
+    def to_preds(self, preds):
+        preds_as_strs = []
+        for name, val in preds.iteritems():
+            pred = 'EQUALS'
+            if isinstance(val, Range):
+                preds_as_strs.append('HyperPredicate::new({0}, {1}, {2})'.format(self.to_rust(name), 'GREATER_EQUAL', self.to_rust(val.x)))
+                preds_as_strs.append('HyperPredicate::new({0}, {1}, {2})'.format(self.to_rust(name), 'LESS_EQUAL', self.to_rust(val.y)))
+                continue
+            elif isinstance(val, LessEqual):
+                val = val.x
+                pred = 'LESS_EQUAL'
+            elif isinstance(val, GreaterEqual):
+                val = val.x
+                pred = 'GREATER_EQUAL'
+            elif isinstance(val, LessThan):
+                val = val.x
+                pred = 'LESS_THAN'
+            elif isinstance(val, GreaterThan):
+                val = val.x
+                pred = 'GREATER_THAN'
+            elif isinstance(val, Regex):
+                val = val.x
+                pred = 'REGEX'
+            elif isinstance(val, LengthEquals):
+                val = val.x
+                pred = 'LENGTH_EQUALS'
+            elif isinstance(val, LengthLessEqual):
+                val = val.x
+                pred = 'LENGTH_LESS_EQUAL'
+            elif isinstance(val, LengthGreaterEqual):
+                val = val.x
+                pred = 'LENGTH_GREATER_EQUAL'
+            preds_as_strs.append('HyperPredicate::new({0}, {1}, {2})'.format(self.to_rust(name), pred, self.to_rust(val)))
+        return 'vec!(' + ', '.join(preds_as_strs) + ')'
+
+    def to_rust(self, x, inner=False):
+        if x is True:
+            return 'true'
+        elif x is False:
+            return 'false'
+        elif x is None:
+            return 'None'
+        elif isinstance(x, str):
+            return 'r'+double_quote(x)
+        elif isinstance(x, long) or isinstance(x, int):
+            return '%s as i64' % str(x)
+        elif isinstance(x, float):
+            if inner:
+                return 'F64(%s as f64)' % str(x)
+            else:
+                return '%s as f64' % str(x)
+        elif isinstance(x, list):
+            if len(x):
+                s = 'vec!('
+                s += ', '.join(['{0}'.format(self.to_rust(v)) for v in x])
+                s += ')'
+                return s
+            else:
+                return 'Vec::<i64>::new()'
+        elif isinstance(x, set):
+            if len(x):
+                s = '{\n'
+                s += 'let mut s = BTreeSet::new();\n'
+                for v in x:
+                    s += 's.insert({0});\n'.format(self.to_rust(v, inner=True))
+                s += 's\n}\n'
+                return s
+            else:
+                return 'BTreeSet::<Vec<u8>>::new()'
+        elif isinstance(x, dict):
+            if inner:
+                if len(x):
+                    s = '{\n'
+                    s += 'let mut m = HashMap::new();\n'
+                    for k, v in x.items():
+                        s += 'm.insert({}, {});\n'.format(self.to_rust(k, inner=True), self.to_rust(v))
+                    s += 'm\n}\n'
+                else:
+                    s = 'HashMap::<Vec<u8>, Vec<u8>>::new()'
+                return s
+            elif len(x):
+                s = 'NewHyperObject!('
+                s += ', '.join(['{0}, {1}'.format(self.to_rust(k), self.to_rust(v, inner=isinstance(v, dict)))
+                                for k, v in sorted(x.items())])
+                s += ',)'
+                return s
+            else:
+                return "HyperObject::new()"
+        else:
+            raise RuntimeError("Cannot convert {0!r} to rust".format(x))
+
 
 class TestGenerator(object):
 

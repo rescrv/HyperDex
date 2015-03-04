@@ -210,6 +210,13 @@ if test x"${ruby_bindings}" = xyes; then
     AX_RUBY_EXT
 fi
 
+AC_ARG_ENABLE([rust_bindings], [AS_HELP_STRING([--enable-rust-bindings],
+              [build Rust bindings @<:@default: no@:>@])],
+              [rust_bindings=${enableval}], [rust_bindings=no])
+if test x"${rust_bindings}" = xyes; then
+    AX_RUST_EXT
+fi
+
 AC_ARG_ENABLE([log-all-messages], [AS_HELP_STRING([--enable-log-all-messages],
               [enable code to log all messages @<:@default: no@:>@])],
               [enable_logall=${enableval}], [enable_logall=no])
@@ -220,6 +227,7 @@ fi
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_RUBY_BINDINGS], [test x"${ruby_bindings}" = xyes])
+AM_CONDITIONAL([ENABLE_RUST_BINDINGS], [test x"${rust_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])
 
 # Optional components
