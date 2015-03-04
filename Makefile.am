@@ -298,12 +298,12 @@ hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_in_state.cc
 hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_out_state.cc
 hyperdex_daemon_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
 hyperdex_daemon_LDADD =
+hyperdex_daemon_LDADD += $(TREADSTONE_LIBS)
 hyperdex_daemon_LDADD += $(MACAROONS_LIBS)
 hyperdex_daemon_LDADD += $(REPLICANT_LIBS)
 hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(E_LIBS)
-hyperdex_daemon_LDADD += $(TREADSTONE_LIBS)
 hyperdex_daemon_LDADD += -lpopt -lglog $(LRT_LDFLAGS) -lpthread
 man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc | hyperdex-daemon$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-daemon$(EXEEXT)
@@ -453,11 +453,11 @@ libhyperdex_client_la_SOURCES += client/pending_search_describe.cc
 libhyperdex_client_la_SOURCES += client/pending_sorted_search.cc
 libhyperdex_client_la_SOURCES += client/util.cc
 libhyperdex_client_la_LIBADD =
+libhyperdex_client_la_LIBADD += $(TREADSTONE_LIBS)
 libhyperdex_client_la_LIBADD += $(MACAROONS_LIBS)
 libhyperdex_client_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(E_LIBS)
-libhyperdex_client_la_LIBADD += $(TREADSTONE_LIBS)
 
 client/keyop_info.cc: client/keyop_info.gperf client/keyop_info.h
 	$(gperf_verbose)gperf -m 100 $(abs_top_srcdir)/client/keyop_info.gperf --output-file=$(abs_top_builddir)/client/keyop_info.cc
@@ -549,11 +549,11 @@ libhyperdex_admin_la_SOURCES += admin/pending_string.cc
 libhyperdex_admin_la_SOURCES += admin/raw_backup.cc
 libhyperdex_admin_la_SOURCES += admin/yieldable.cc
 libhyperdex_admin_la_LIBADD =
+libhyperdex_admin_la_LIBADD += $(TREADSTONE_LIBS)
 libhyperdex_admin_la_LIBADD += $(MACAROONS_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
-libhyperdex_admin_la_LIBADD += $(TREADSTONE_LIBS)
 
 ################################################################################
 ################################### Bindings ###################################
@@ -844,11 +844,11 @@ stress_wrappers += test/sh/search.combination.keytype=string,daemons=4.fault-tol
 shell_wrappers += $(stress_wrappers)
 
 python_wrappers =
-#python_wrappers += test/sh/bindings.python.Admin.sh
+python_wrappers += test/sh/bindings.python.Admin.sh
 python_wrappers += test/sh/bindings.python.BasicSearch.sh
 python_wrappers += test/sh/bindings.python.Basic.sh
 python_wrappers += test/sh/bindings.python.CondPut.sh
-#python_wrappers += test/sh/bindings.python.DataTypeDocument.sh
+python_wrappers += test/sh/bindings.python.DataTypeDocument.sh
 python_wrappers += test/sh/bindings.python.DataTypeFloat.sh
 python_wrappers += test/sh/bindings.python.DataTypeInt.sh
 python_wrappers += test/sh/bindings.python.DataTypeListFloat.sh
@@ -1421,23 +1421,21 @@ EXTRA_DIST += $(wildcard doc/*/*/*/*.tex)
 EXTRA_DIST += $(wildcard doc/*/*/*/*/*.tex)
 EXTRA_DIST += doc/Makefile
 EXTRA_DIST += doc/latex.py
-EXTRA_DIST += doc/api/c/hello-world.c
-EXTRA_DIST += doc/api/c/iterate.c
-EXTRA_DIST += doc/api/java/HelloWorldAsyncLoop.java
-EXTRA_DIST += doc/api/java/HelloWorldAsyncWait.java
-EXTRA_DIST += doc/api/java/HelloWorld.java
-EXTRA_DIST += doc/api/node.js/hello-world.js
-EXTRA_DIST += doc/api/node.js/window-pattern.js
-EXTRA_DIST += doc/api/ruby/hello-world-async-loop.rb
-EXTRA_DIST += doc/api/ruby/hello-world-async-wait.rb
-EXTRA_DIST += doc/api/ruby/hello-world.rb
-EXTRA_DIST += doc/install/centos-packages.sh
-EXTRA_DIST += doc/install/debian7-packages.sh
-EXTRA_DIST += doc/install/fedora-packages.sh
-EXTRA_DIST += doc/install/linux-amd64.sh
-EXTRA_DIST += doc/install/ubuntu12.04-packages.sh
-EXTRA_DIST += doc/install/ubuntu14.04-packages.sh
-EXTRA_DIST += doc/install/ubuntu14.10-packages.sh
+EXTRA_DIST += doc/c/client/hello-world.c
+EXTRA_DIST += doc/c/client/iterate.c
+EXTRA_DIST += doc/go/client/hello-world.go
+EXTRA_DIST += doc/java/client/HelloWorldAsyncLoop.java
+EXTRA_DIST += doc/java/client/HelloWorldAsyncWait.java
+EXTRA_DIST += doc/java/client/HelloWorld.java
+EXTRA_DIST += doc/node.js/client/hello-world.js
+EXTRA_DIST += doc/node.js/client/window-pattern.js
+EXTRA_DIST += doc/python/client/hello-world-async-loop.py
+EXTRA_DIST += doc/python/client/hello-world-async-wait.py
+EXTRA_DIST += doc/python/client/hello-world.py
+EXTRA_DIST += doc/ruby/client/hello-world-async-loop.rb
+EXTRA_DIST += doc/ruby/client/hello-world-async-wait.rb
+EXTRA_DIST += doc/ruby/client/hello-world.rb
+EXTRA_DIST += $(wildcard doc/install/*)
 
 ################################################################################
 ################################## Maintenance #################################
@@ -1453,13 +1451,13 @@ EXTRA_DIST += maint/generate-doc-shell-stubs.py
 EXTRA_DIST += maint/generate-replication-shell-stubs.py
 EXTRA_DIST += maint/generate-search-shell-stubs.py
 EXTRA_DIST += maint/generate-test-packages.py
-EXTRA_DIST += doc/maint/generate-api-descriptions.py
 
 maint_lib_check_SOURCES = maint/lib-check.c
 maint_lib_check_LDADD = -ldl
 
 maintainer-generate:
 	python2 bindings/c.py
+	python2 bindings/go.py
 	python2 bindings/java.py
 	python2 bindings/nodejs.py
 	python2 bindings/python.py
@@ -1474,3 +1472,4 @@ maintainer-generate:
 	python2 test/doc-extract.py python doc/atomic-ops.tex test/doc.atomic-ops.py
 	python2 test/doc-extract.py python doc/documents.tex test/doc.documents.py
 	python2 test/doc-extract.py python doc/authorization.tex test/doc.authorization.py
+	python2 test/doc-extract.py python doc/mongo.tex test/doc.mongo.py
