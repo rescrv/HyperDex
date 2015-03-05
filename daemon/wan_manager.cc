@@ -45,11 +45,12 @@
 #include <e/endian.h>
 
 // HyperDex
+#include "client/constants.h"
 #include "common/coordinator_returncode.h"
 #include "common/serialization.h"
+#include <common/hyperspace.h>
 #include "daemon/daemon.h"
 #include "daemon/datalayer_iterator.h"
-#include <common/hyperspace.h>
 #include "daemon/wan_manager.h"
 #include "daemon/wan_manager_pending.h"
 #include "daemon/wan_manager_transfer_in_state.h"
@@ -265,7 +266,7 @@ wan_manager :: send_handshake_syn(const transfer& xfer)
               + sizeof(uint64_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     msg->pack_at(HYPERDEX_HEADER_SIZE_SV) << xfer.id.get() << timestamp;
-    LOG(INFO) << "xfer id = " << xfer.id.get() << " timestamp = " << timestamp;
+    // LOG(INFO) << "xfer id = " << xfer.id.get() << " timestamp = " << timestamp;
     send(xfer.vdst, WAN_HS, msg);
 }
 
@@ -276,7 +277,7 @@ wan_manager :: send_ask_for_more(const transfer& xfer)
               + sizeof(uint64_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     msg->pack_at(HYPERDEX_HEADER_SIZE_SV) << xfer.id.get();
-    LOG(INFO) << "xfer id = " << xfer.id.get();
+    // LOG(INFO) << "xfer id = " << xfer.id.get();
     send(xfer.vdst, WAN_MORE, msg);
 }
 
@@ -285,17 +286,18 @@ wan_manager :: send_object(const transfer& xfer,
                                       pending* op)
 {
     uint8_t flags = (op->has_value ? 1 : 0);
-    LOG(INFO) << "op has value = " << op->has_value;
-    LOG(INFO) << "flags= " << flags << " xfer id= " << xfer.id.get() << " seq_no= " << op->seq_no << " version= " << op->version;
+    // LOG(INFO) << "op has value = " << op->has_value;
+    // LOG(INFO) << "flags= " << flags << " xfer id= " << xfer.id.get() << " seq_no= " << op->seq_no << " version= " << op->version;
     size_t sz = HYPERDEX_HEADER_SIZE_SV
               + sizeof(uint8_t)
+              + sizeof(uint64_t)
               + sizeof(uint64_t)
               + sizeof(uint64_t)
               + sizeof(uint64_t)
               + sizeof(uint32_t) + op->key.size()
               + pack_size(op->value);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_HEADER_SIZE_SV) << flags << xfer.id.get() << op->seq_no
+    msg->pack_at(HYPERDEX_HEADER_SIZE_SV) << flags << xfer.id.get() << xfer.rid.get() << op->seq_no
                                           << op->version << op->key << op->value;
     m_daemon->m_comm.send_wan(xfer.vsrc, xfer.dst, WAN_XFER, msg);
 }
@@ -592,7 +594,7 @@ wan_manager :: handle_handshake(const server_id& from,
         return;
     }
 
-    LOG(INFO) << "xfer id = " << xid << " timestamp = " << timestamp;
+    // LOG(INFO) << "xfer id = " << xid << " timestamp = " << timestamp;
     // XXX make wan_xfer, smaller # fields
     transfer xfer;
     xfer.id = transfer_id(xid);
@@ -603,6 +605,8 @@ wan_manager :: handle_handshake(const server_id& from,
     po6::threads::mutex::hold hold(&tos->mtx);
     bool wipe = false;
     region_id curr_rid = m_daemon->m_config.get_region_id(vto);
+    tos->xfer.rid = curr_rid;
+
     std::auto_ptr<datalayer::replay_iterator> iter;
     iter.reset(m_daemon->m_data.replay_region_from_checkpoint(curr_rid, timestamp, &wipe));
     tos->wipe = wipe;
@@ -627,7 +631,7 @@ wan_manager :: transfer_more_state(transfer_out_state* tos)
 
         if (tos->iter->has_value())
         {
-            LOG(INFO) << "iter has value in transfer more state";
+            // LOG(INFO) << "iter has value in transfer more state";
             op->has_value = true;
 
             if (tos->iter->unpack_value(&op->value, &op->version, &op->vref) != datalayer::SUCCESS)
@@ -638,14 +642,13 @@ wan_manager :: transfer_more_state(transfer_out_state* tos)
         }
         else
         {
-            LOG(INFO) << "iter does not have value in transfer more state";
             op->has_value = false;
             op->version = 0;
         }
 
         tos->window.push_back(op);
         send_object(tos->xfer, op.get());
-        LOG(INFO) << "sent a bunch of objects";
+        LOG(INFO) << "transferring objects to backup";
         tos->iter->next();
     }
 
@@ -662,31 +665,32 @@ wan_manager :: recv_data(const server_id& from,
 {
     uint8_t flags;
     uint64_t xid;
+    uint64_t rid;
     uint64_t seq_no;
     uint64_t version;
     e::slice key;
     std::vector<e::slice> value;
 
-    if ((up >> flags >> xid >> seq_no >> version >> key >> value).error())
+    if ((up >> flags >> xid >> rid >> seq_no >> version >> key >> value).error())
     {
         LOG(WARNING) << "unpack of WAN_XFER failed; here's some hex:  " << msg->hex();
         return;
     }
 
     bool has_value = flags & 1;
-    LOG(INFO) << "flags = " << flags << " xid= " << xid << " seq_no= " << seq_no << " version= " << version;
-    wan_xfer(vfrom, transfer_id(xid), seq_no, has_value, version, msg, key, value);
+    // LOG(INFO) << "flags = " << flags << " xid= " << xid << " rid= " << rid << " seq_no= " << seq_no << " version= " << version;
+    wan_xfer(transfer_id(xid), seq_no, has_value, version, msg, key, value, region_id(rid));
 }
 
 void
-wan_manager :: wan_xfer(const virtual_server_id&,
-                        const transfer_id& xid,
+wan_manager :: wan_xfer(const transfer_id& xid,
                         uint64_t seq_no,
                         bool has_value,
                         uint64_t version,
                         std::auto_ptr<e::buffer> msg,
                         const e::slice& key,
-                        const std::vector<e::slice>& value)
+                        const std::vector<e::slice>& value,
+                        const region_id rid)
 {
     transfer_in_state* tis = get_tis(xid);
 
@@ -697,6 +701,8 @@ wan_manager :: wan_xfer(const virtual_server_id&,
     }
 
     po6::threads::mutex::hold hold(&tis->mtx);
+
+    tis->xfer.rid = rid;
 
     // if (tis->xfer.vsrc != from || tis->xfer.id != xid)
     // {
@@ -718,7 +724,7 @@ wan_manager :: wan_xfer(const virtual_server_id&,
         if ((*where_to_put_it)->seq_no == seq_no)
         {
             // silently drop it
-            LOG(INFO) << "we have received whole window";
+            LOG(INFO) << "we have received op already";
             return;
         }
 
@@ -737,8 +743,70 @@ wan_manager :: wan_xfer(const virtual_server_id&,
     op->value = value;
     op->msg = msg;
     tis->queued.insert(where_to_put_it, op);
-    LOG(INFO) << "where to put iterators queued up";
-    // put_to_disk_and_send_acks(tis);
+    LOG(INFO) << "iterators queued up for pending op";
+
+    make_keychanges(tis);
+    give_me_more_state(tis);
+}
+
+void
+wan_manager :: make_keychanges(transfer_in_state* tis)
+{
+    for (std::list<e::intrusive_ptr<pending> >::iterator it = tis->queued.begin();
+            it != tis->queued.end();
+            ++it) {
+
+        std::auto_ptr<e::buffer> msg;
+        e::intrusive_ptr<pending> op = *it;
+        size_t header_sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+                         + pack_size(op->key);
+
+        std::vector<attribute_check> checks; // don't do anything with these
+        std::vector<funcall> funcs;
+        const schema& sc(*m_config.get_schema(tis->xfer.rid));
+
+        for (size_t i = 0; i < op->value.size(); i++) {
+            attribute attr = sc.attrs[i+1];  // recall that key is first attr in schema
+
+            funcall o;
+            o.attr = sc.lookup_attr(attr.name);
+            o.name = FUNC_SET;
+            o.arg1 = op->value[i];
+            o.arg1_datatype = attr.type;
+            funcs.push_back(o);
+        }
+
+        std::stable_sort(funcs.begin(), funcs.end());
+        size_t sz = header_sz
+            + sizeof(uint8_t)
+            + pack_size(checks)
+            + pack_size(funcs);
+        msg.reset(e::buffer::create(sz));
+        uint8_t flags = 0 | 0 | 128 | 0; // XXX magic
+        msg->pack_at(header_sz) << flags << checks << funcs;
+        msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << op->key;
+
+        std::auto_ptr<key_change> kc(new key_change());
+        kc->key = op->key;
+        kc->erase = false;
+        kc->fail_if_not_found = false;
+        kc->fail_if_found = false;
+        kc->checks = checks;
+        kc->funcs = funcs;
+        uint64_t nonce = tis->xfer.id.get(); // XXX real nonce
+
+        std::vector<region_id> pt_leaders;
+        m_daemon->m_config.point_leaders(m_daemon->m_us, &pt_leaders);
+
+        for (int i = 0; i < pt_leaders.size(); ++i) {
+            region_id ri = pt_leaders[i];
+            virtual_server_id pt_lead = m_daemon->m_config.point_leader(ri, kc->key);
+            if (pt_lead != virtual_server_id()) {
+                m_daemon->m_repl.client_atomic(m_daemon->m_us, pt_lead, nonce, kc, msg);
+                break;
+            }
+        }
+    }
 }
 
 void
@@ -749,8 +817,6 @@ wan_manager :: send_more_data(const server_id& from,
                               e::unpacker up)
 {
     uint64_t xid;
-    // uint64_t junk;
-    // // XXX what is this junk? I think it's the extra forwarding step.
 
     if((up >> xid).error()) {
         LOG(WARNING) << "unpack of WAN_MORE failed; here's some hex:  " << msg->hex();
@@ -827,7 +893,6 @@ wan_manager :: recv(server_id* from,
         switch (rc)
         {
             case BUSYBEE_SUCCESS:
-                LOG(INFO) << "msg successfully received...";
                 break;
             case BUSYBEE_SHUTDOWN:
                 LOG(INFO) << "busybee shutdown, exiting...";

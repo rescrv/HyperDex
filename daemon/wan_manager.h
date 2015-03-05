@@ -146,14 +146,15 @@ class wan_manager
         void setup_transfer_state(std::vector<space> overlap);
         // msg loop and handling fns
         void loop();
-        void wan_xfer(const virtual_server_id& from,
-                     const transfer_id& xid,
+        void wan_xfer(const transfer_id& xid,
                      uint64_t seq_no,
                      bool has_value,
                      uint64_t version,
                      std::auto_ptr<e::buffer> msg,
                      const e::slice& key,
-                     const std::vector<e::slice>& value);
+                     const std::vector<e::slice>& value,
+                     const region_id rid);
+        void make_keychanges(transfer_in_state* tis);
         bool recv(server_id* from,
                   virtual_server_id* vfrom,
                   virtual_server_id* vto,
@@ -184,7 +185,6 @@ class wan_manager
 
     private:
         daemon* m_daemon;
-        int* m_interrupts;
         po6::threads::thread m_poller;
         std::auto_ptr<coordinator_link> m_coord;
         po6::threads::mutex m_mtx;
