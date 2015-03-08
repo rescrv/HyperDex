@@ -107,7 +107,7 @@ class client
                                       uint64_t* update_count);
         // looping/polling
         int64_t loop(int timeout, hyperdex_client_returncode* status);
-        int poll();
+        int poll_fd();
         int block(int timeout);
         // error handling
         const char* error_message();

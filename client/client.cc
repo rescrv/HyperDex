@@ -658,7 +658,7 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
 }
 
 int
-client :: poll()
+client :: poll_fd()
 {
     return m_busybee.poll_fd();
 }

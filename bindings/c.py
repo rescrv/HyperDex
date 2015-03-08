@@ -393,7 +393,7 @@ hyperdex_client_loop(struct hyperdex_client* client, int timeout,
                      enum hyperdex_client_returncode* status);
 
 int
-hyperdex_client_poll(struct hyperdex_client* client);
+hyperdex_client_poll_fd(struct hyperdex_client* client);
 
 int
 hyperdex_client_block(struct hyperdex_client* client, int timeout);
@@ -687,11 +687,11 @@ hyperdex_client_loop(hyperdex_client* _cl, int timeout,
 }
 
 HYPERDEX_API int
-hyperdex_client_poll(hyperdex_client* _cl)
+hyperdex_client_poll_fd(hyperdex_client* _cl)
 {
     FAKE_STATUS;
     C_WRAP_EXCEPT(
-    return cl->poll();
+    return cl->poll_fd();
     );
 }
 

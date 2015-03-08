@@ -426,7 +426,7 @@ HyperDexClient :: HyperDexClient(const char* host, uint16_t port)
     if (m_cl)
     {
         m_poll = new uv_poll_t;
-        uv_poll_init_socket(uv_default_loop(), m_poll, hyperdex_client_poll(m_cl));
+        uv_poll_init_socket(uv_default_loop(), m_poll, hyperdex_client_poll_fd(m_cl));
         m_poll->data = this;
     }
 

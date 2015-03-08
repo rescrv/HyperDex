@@ -1012,7 +1012,7 @@ hyperdex_client_loop(struct hyperdex_client* client, int timeout,
                      enum hyperdex_client_returncode* status);
 
 int
-hyperdex_client_poll(struct hyperdex_client* client);
+hyperdex_client_poll_fd(struct hyperdex_client* client);
 
 int
 hyperdex_client_block(struct hyperdex_client* client, int timeout);
