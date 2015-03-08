@@ -119,6 +119,8 @@ datatype_int64 :: check_args(const funcall& func) const
     return ((func.arg1_datatype == HYPERDATATYPE_INT64 && validate(func.arg1)) ||
             (func.arg1_datatype == HYPERDATATYPE_FLOAT && datatype_float::static_validate(func.arg1))) &&
            (func.name == FUNC_SET ||
+            func.name == FUNC_NUM_MAX ||
+            func.name == FUNC_NUM_MIN ||
             func.name == FUNC_NUM_ADD ||
             func.name == FUNC_NUM_SUB ||
             func.name == FUNC_NUM_MUL ||

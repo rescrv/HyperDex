@@ -120,7 +120,9 @@ datatype_float :: check_args(const funcall& func) const
             func.name == FUNC_NUM_ADD ||
             func.name == FUNC_NUM_SUB ||
             func.name == FUNC_NUM_MUL ||
-            func.name == FUNC_NUM_DIV);
+            func.name == FUNC_NUM_DIV ||
+            func.name == FUNC_NUM_MAX ||
+            func.name == FUNC_NUM_MIN);
 }
 
 bool
