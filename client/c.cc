@@ -151,6 +151,13 @@ hyperdex_client_destroy(hyperdex_client* client)
     delete reinterpret_cast<hyperdex::client*>(client);
 }
 
+HYPERDEX_API void
+hyperdex_client_set_type_conversion(hyperdex_client* _cl, bool enabled)
+{
+    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
+    cl->set_type_conversion(enabled);
+}
+
 HYPERDEX_API const char*
 hyperdex_client_error_message(hyperdex_client* _cl)
 {
@@ -158,13 +165,6 @@ hyperdex_client_error_message(hyperdex_client* _cl)
     SIGNAL_PROTECT_ERR(NULL);
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
     return cl->error_message();
-}
-
-HYPERDEX_API void
-hyperdex_client_set_type_conversion(hyperdex_client* _cl, bool enabled)
-{
-    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
-    cl->set_type_conversion(enabled);
 }
 
 HYPERDEX_API const char*
