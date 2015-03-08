@@ -624,9 +624,8 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
     }
 
     uint64_t sid_num;
-    std::auto_ptr<e::buffer> msg;
     m_busybee.set_timeout(timeout);
-    busybee_returncode rc = m_busybee.recv(&sid_num, &msg);
+    busybee_returncode rc = m_busybee.recv_no_msg(&sid_num);
 
     switch (rc)
     {
