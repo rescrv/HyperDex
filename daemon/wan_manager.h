@@ -140,7 +140,7 @@ class wan_manager
         class background_thread;
 
     private:
-        void handle_disruption(uint64_t id);
+        void handle_disruption();
         void run();
         std::vector<space> config_space_overlap(configuration primary, configuration backup);
         void setup_transfer_state(std::vector<space> overlap);
@@ -216,6 +216,7 @@ class wan_manager
         po6::threads::mutex m_protect_pause;
         po6::threads::cond m_can_pause;
         bool m_has_config;
+        bool m_busybee_running;
 
 };
 

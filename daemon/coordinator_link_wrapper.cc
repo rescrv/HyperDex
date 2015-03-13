@@ -470,6 +470,16 @@ coordinator_link_wrapper :: request_shutdown()
     make_rpc("server_shutdown", buf, sizeof(uint64_t), rpc);
 }
 
+void
+coordinator_link_wrapper :: add_space(hyperdex::space space)
+{
+    std::auto_ptr<e::buffer> msg(e::buffer::create(pack_size(space)));
+    msg->pack_at(0) << space;
+    e::intrusive_ptr<coord_rpc> rpc = new coord_rpc();
+    rpc->msg << "add space";
+    make_rpc("space_add", reinterpret_cast<const char*>(msg->data()), msg->size(), rpc);
+}
+
 uint64_t
 coordinator_link_wrapper :: checkpoint()
 {

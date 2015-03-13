@@ -548,6 +548,7 @@ daemon :: run(bool daemonize,
         m_threads[i]->join();
     }
 
+    LOG(INFO) << "trying to tear wan down";
     m_wan.teardown();
     m_sm.teardown();
     m_stm.teardown();

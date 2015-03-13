@@ -61,8 +61,8 @@ main(int argc, const char* argv[])
     bool log_immediate = false;
     // WAN test state
     bool is_backup = false;
-    long primary_port = 1982; // hard-coded port A
-    long backup_port = 1984; // hard-coded port B
+    const char* backup_host = "127.0.0.1";
+    long backup_port = 1982;
 
     e::argparser ap;
     ap.autohelp();
@@ -99,9 +99,12 @@ main(int argc, const char* argv[])
     ap.arg().long_name("log-immediate")
             .description("immediately flush all log output")
             .set_true(&log_immediate).hidden();
-    ap.arg().name('b', "backup")
-            .description("run daemon as backup")
-            .set_true(&is_backup);
+    ap.arg().name('k', "backup-coordinator")
+            .description("boot daemon as backup to coordinator at IP address or hostname")
+            .metavar("IP").as_string(&backup_host).set_true(&is_backup);
+    ap.arg().name('r', "backup-coordinator-port")
+            .description("boot daemon as backup and connect to alternate port on host (default: 1984)")
+            .metavar("port").as_long(&backup_port).set_true(&is_backup);
 
 
     if (!ap.parse(argc, argv))
@@ -212,7 +215,8 @@ main(int argc, const char* argv[])
                      coordinator,
                      po6::net::hostname(coordinator_host, coordinator_port),
                      is_backup,
-                     po6::net::hostname(coordinator_host, primary_port),
+                     po6::net::hostname(is_backup ? backup_host : coordinator_host,
+                         is_backup ? backup_port : coordinator_port),
                      threads);
     }
     catch (std::exception& e)

@@ -70,6 +70,7 @@ class coordinator_link_wrapper
         void copy_config(configuration* config);
         uint64_t config_version();
         void request_shutdown();
+        void add_space(hyperdex::space space);
         uint64_t checkpoint();
         uint64_t checkpoint_stable();
         uint64_t checkpoint_gc();

@@ -117,6 +117,7 @@ wan_manager :: wan_manager(daemon* d)
     , m_protect_pause()
     , m_can_pause(&m_protect_pause)
     , m_has_config(false)
+    , m_busybee_running(false)
 {
 }
 
@@ -143,7 +144,7 @@ wan_manager :: setup()
         m_busybee.reset(new busybee_mta(&m_daemon->m_gc, &m_busybee_mapper, bind_to,
                     m_daemon->m_us.get(), 1));
     }
-    // m_busybee->set_ignore_signals();
+    m_busybee_running = true;
     m_link_thread.start();
     m_background_thread->start();
     m_msg_thread.start();
@@ -156,11 +157,11 @@ wan_manager :: teardown()
     enter_critical_section();
     m_teardown = true;
     exit_critical_section();
+    m_msg_thread.join();
+    m_busybee->shutdown();
+    m_background_thread->shutdown();
     m_transfers_in.clear();
     m_transfers_out.clear();
-    m_busybee->shutdown();
-    m_msg_thread.join();
-    m_background_thread->shutdown();
     m_link_thread.join();
     if (m_poller_started)
     {
@@ -190,16 +191,27 @@ wan_manager :: set_is_backup(bool isbackup)
 void
 wan_manager :: pause()
 {
+    if (m_teardown) {
+        LOG(INFO) << "should teardown, not pausing...";
+        return;
+    }
+
     po6::threads::mutex::hold hold(&m_protect_pause);
 
     while (m_paused) {
+        if (m_teardown) {
+            LOG(INFO) << "should teardown, not pausing...";
+            return;
+        }
         m_can_pause.wait();
     }
 
     m_paused = true;
     m_background_thread->initiate_pause();
     m_background_thread->wait_until_paused();
-    m_busybee->pause();
+    if (m_busybee_running) {
+        m_busybee->pause();
+    }
 }
 
 void
@@ -207,7 +219,6 @@ wan_manager :: unpause()
 {
     po6::threads::mutex::hold hold(&m_protect_pause);
 
-    // m_background_thread->kick();
     m_background_thread->unpause();
     m_busybee->unpause();
 
@@ -227,6 +238,19 @@ wan_manager :: reconfigure(configuration *config)
 {
     // XXX busybee deliver early messages
     m_config = *config;
+    std::vector<space> their_spaces = m_config.get_spaces();
+    std::vector<space> our_spaces = m_daemon->m_config.get_spaces();
+    std::vector<space>::iterator their;
+    std::vector<space>::iterator our;
+
+    for (their = their_spaces.begin(); their != their_spaces.end(); ++their) {
+        for (our = our_spaces.begin(); our != our_spaces.end(); ++our) {
+            if (*our == *their) {
+                continue;
+            }
+        }
+        m_daemon->m_coord.add_space(*their);
+    }
 }
 
 wan_manager::transfer_in_state*
@@ -347,16 +371,18 @@ wan_manager :: background_thread :: copy_work()
 void
 wan_manager :: background_thread :: do_work()
 {
-    if (m_wm->m_has_config && m_wm->m_daemon->m_config.version() > 0) {
-        std::vector<hyperdex::space> overlap = m_wm->config_space_overlap(m_wm->m_config,
-                m_wm->m_daemon->m_config);
-        m_wm->setup_transfer_state(overlap);
-        size_t i;
-        for (i = 0; i < m_wm->m_transfers_in.size(); ++i) {
-            po6::threads::mutex::hold hold2(&m_wm->m_transfers_in[i]->mtx);
-            m_wm->give_me_more_state(m_wm->m_transfers_in[i].get());
+    if (m_wm->m_is_backup) {
+        if (m_wm->m_has_config && m_wm->m_daemon->m_config.version() > 0) {
+            std::vector<hyperdex::space> overlap = m_wm->config_space_overlap(m_wm->m_config,
+                    m_wm->m_daemon->m_config);
+            m_wm->setup_transfer_state(overlap);
+            size_t i;
+            for (i = 0; i < m_wm->m_transfers_in.size(); ++i) {
+                po6::threads::mutex::hold hold2(&m_wm->m_transfers_in[i]->mtx);
+                m_wm->give_me_more_state(m_wm->m_transfers_in[i].get());
+            }
+            m_wm->wake_one();
         }
-        m_wm->wake_one();
     }
 }
 
@@ -431,6 +457,8 @@ wan_manager :: maintain_link()
             exit_status = false;
             break;
         }
+
+        reset_sleep();
 
         if (id == INT64_MAX) {
             exit_status = m_coord->config()->exists(m_daemon->m_us);
@@ -574,7 +602,6 @@ wan_manager :: give_me_more_state(transfer_in_state* tis)
         send_handshake_syn(tis->xfer);
         tis->handshake_complete = true;
     } else {
-        // send_handshake_syn(tis->xfer);
         send_ask_for_more(tis->xfer);
     }
 }
@@ -648,12 +675,9 @@ wan_manager :: transfer_more_state(transfer_out_state* tos)
 
         tos->window.push_back(op);
         send_object(tos->xfer, op.get());
-        LOG(INFO) << "transferring objects to backup";
+        // LOG(INFO) << "transferring objects to backup";
         tos->iter->next();
     }
-
-    // XXX: config transfer live?
-
 }
 
 void
@@ -743,7 +767,7 @@ wan_manager :: wan_xfer(const transfer_id& xid,
     op->value = value;
     op->msg = msg;
     tis->queued.insert(where_to_put_it, op);
-    LOG(INFO) << "iterators queued up for pending op";
+    // LOG(INFO) << "iterators queued up for pending op";
 
     make_keychanges(tis);
     give_me_more_state(tis);
@@ -866,15 +890,9 @@ wan_manager :: run()
 }
 
 void
-wan_manager :: handle_disruption(uint64_t id)
+wan_manager :: handle_disruption()
 {
-    if (m_config.get_address(server_id(id)) != po6::net::location())
-    {
-        m_daemon->m_coord.report_tcp_disconnect(server_id(id));
-        // XXX If the above line changes, then we need to sometimes tell
-        // the transfer manager to resend all that is unacked  Right now, it
-        // will cause a deadlock.
-    }
+    m_busybee_running = false;
 }
 
 bool
@@ -887,6 +905,7 @@ wan_manager :: recv(server_id* from,
 {
     while (true)
     {
+        LOG(INFO) << "in recv";
         uint64_t id;
         busybee_returncode rc = m_busybee->recv(&id, msg);
 
@@ -896,14 +915,16 @@ wan_manager :: recv(server_id* from,
                 break;
             case BUSYBEE_SHUTDOWN:
                 LOG(INFO) << "busybee shutdown, exiting...";
+                handle_disruption();
                 return false;
             case BUSYBEE_DISRUPTED:
                 LOG(INFO) << "busybee distrupted, exiting...";
-                handle_disruption(id);
+                handle_disruption();
                 return false;
                 break;
             case BUSYBEE_INTERRUPTED:
                 LOG(INFO) << "busybee interrupted, exiting...";
+                handle_disruption();
                 return false;
                 break;
             case BUSYBEE_POLLFAILED:
@@ -1033,7 +1054,7 @@ wan_manager :: send(const virtual_server_id& from,
             case BUSYBEE_SUCCESS:
                 break;
             case BUSYBEE_DISRUPTED:
-                handle_disruption(to.get());
+                handle_disruption();
                 return false;
             case BUSYBEE_SHUTDOWN:
             case BUSYBEE_POLLFAILED:
@@ -1084,7 +1105,7 @@ wan_manager :: send(const virtual_server_id& vto,
             case BUSYBEE_SUCCESS:
                 break;
             case BUSYBEE_DISRUPTED:
-                handle_disruption(to.get());
+                handle_disruption();
                 return false;
             case BUSYBEE_SHUTDOWN:
             case BUSYBEE_POLLFAILED:
