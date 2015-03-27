@@ -51,8 +51,6 @@ key_operation :: key_operation(uint64_t old_version,
     , m_recv()
     , m_sent_config_version()
     , m_sent()
-    , m_client()
-    , m_nonce()
     , m_value(_value)
     , m_memory(memory)
     , m_type(UNKNOWN)
@@ -75,10 +73,10 @@ key_operation :: set_continuous()
 }
 
 void
-key_operation :: set_continuous(const region_id& pr,
-                                const region_id& tor,
-                                const region_id& tnr,
-                                const region_id& nr)
+key_operation :: set_continuous_hashes(const region_id& pr,
+                                       const region_id& tor,
+                                       const region_id& tnr,
+                                       const region_id& nr)
 {
     assert(m_type == CONTINUOUS);
     assert(m_prev_region == region_id());
@@ -114,14 +112,14 @@ key_operation :: set_discontinuous(const region_id& pr,
 void
 key_operation :: debug_dump()
 {
-    LOG(INFO) << "  unique op id: prev=" << m_prev_version << " this=" << m_this_version;
-    LOG(INFO) << "  has value: " << (m_has_value ? "yes" : "no");
-    LOG(INFO) << "  recv: version=" << m_recv_config_version << " from=" << m_recv;
-    LOG(INFO) << "  sent: version=" << m_sent_config_version << " to=" << m_sent;
-    LOG(INFO) << "  fresh: " << (m_fresh ? "yes" : "no");
-    LOG(INFO) << "  acked: " << (m_acked ? "yes" : "no");
-    LOG(INFO) << "  prev: " << m_prev_region;
-    LOG(INFO) << "  this_old: " << m_this_old_region;
-    LOG(INFO) << "  this_new: " << m_this_new_region;
-    LOG(INFO) << "  next: " << m_next_region;
+    LOG(INFO) << "    unique op id: prev=" << m_prev_version << " this=" << m_this_version;
+    LOG(INFO) << "    has value: " << (m_has_value ? "yes" : "no");
+    LOG(INFO) << "    recv: version=" << m_recv_config_version << " from=" << m_recv;
+    LOG(INFO) << "    sent: version=" << m_sent_config_version << " to=" << m_sent;
+    LOG(INFO) << "    fresh: " << (m_fresh ? "yes" : "no");
+    LOG(INFO) << "    acked: " << (m_acked ? "yes" : "no");
+    LOG(INFO) << "    prev: " << m_prev_region;
+    LOG(INFO) << "    this_old: " << m_this_old_region;
+    LOG(INFO) << "    this_new: " << m_this_new_region;
+    LOG(INFO) << "    next: " << m_next_region;
 }

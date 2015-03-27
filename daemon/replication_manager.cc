@@ -145,13 +145,13 @@ replication_manager :: reconfigure(const configuration&,
     for (key_map_t::iterator it(&m_key_states); it.valid(); ++it)
     {
         key_state* ks = *it;
-        ks->reconfigure();
+        ks->reconfigure(&m_daemon->m_gc);
         region_id ri = ks->state_key().region;
 
         if (std::binary_search(transfers_in_regions.begin(),
                                transfers_in_regions.end(), ri))
         {
-            ks->reset();
+            ks->reset(&m_daemon->m_gc);
         }
 
         if (std::binary_search(key_regions.begin(),
@@ -266,16 +266,7 @@ replication_manager :: client_atomic(const server_id& from,
 
     key_map_t::state_reference ksr;
     key_state* ks = get_or_create_key_state(ri, kc->key, &ksr);
-    uint64_t version = m_idgen.generate_id(ri); // must be under lock
-
-    if (version % datalayer::REGION_PERIODIC == 0)
-    {
-        m_daemon->m_data.bump_version(ri, version);
-    }
-
-    // we hava a valid keychange. put it into the workloop
-    ks->enqueue_key_change(from, nonce, version, kc, backing);
-    ks->work_state_machine(this, to, sc);
+    ks->enqueue_client_atomic(this, to, sc, from, nonce, kc, backing);
 }
 
 void
@@ -312,25 +303,7 @@ replication_manager :: chain_op(const virtual_server_id& from,
 
     key_map_t::state_reference ksr;
     key_state* ks = get_or_create_key_state(ri, key, &ksr);
-    e::intrusive_ptr<key_operation> op = ks->get(new_version);
-    std::auto_ptr<e::arena> memory(new e::arena());
-    memory->takeover(backing.release());
-
-    if (!op)
-    {
-        op = ks->enqueue_continuous_key_op(old_version, new_version, fresh,
-                                           has_value, value, memory);
-    }
-
-    assert(op);
-    op->set_recv(m_daemon->m_config.version(), from);
-
-    if (op->ackable())
-    {
-        send_ack(to, key, op);
-    }
-
-    ks->work_state_machine(this, to, sc);
+    ks->enqueue_chain_op(this, to, sc, from, old_version, new_version, fresh, has_value, value, backing);
 }
 
 void
@@ -364,27 +337,8 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
 
     key_map_t::state_reference ksr;
     key_state* ks = get_or_create_key_state(ri, key, &ksr);
-    e::intrusive_ptr<key_operation> op = ks->get(new_version);
-    std::auto_ptr<e::arena> memory(new e::arena());
-    memory->takeover(backing.release());
-
-    if (!op)
-    {
-        op = ks->enqueue_discontinuous_key_op(old_version, new_version,
-                                              value, memory,
-                                              prev_region, this_old_region,
-                                              this_new_region, next_region);
-    }
-
-    assert(op);
-    op->set_recv(m_daemon->m_config.version(), from);
-
-    if (op->ackable())
-    {
-        send_ack(to, key, op);
-    }
-
-    ks->work_state_machine(this, to, sc);
+    ks->enqueue_chain_subspace(this, to, sc, from, old_version, new_version, value, backing,
+                               prev_region, this_old_region, this_new_region, next_region);
 }
 
 void
@@ -406,27 +360,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
         return;
     }
 
-    e::intrusive_ptr<key_operation> op = ks->get(version);
-
-    if (!op)
-    {
-        LOG(ERROR) << "dropping CHAIN_ACK for update we haven't seen";
-        LOG(ERROR) << "troubleshoot info: from=" << from << " to=" << to
-                   << " version=" << version << " key=" << key.hex();
-        return;
-    }
-
-    if (!op->sent_to(m_daemon->m_config.version(), from))
-    {
-        return;
-    }
-
-    op->mark_acked();
-    ks->update_datalayer(this, version);
-    ks->work_state_machine(this, to, sc);
-    send_ack(to, key, op);
-    respond_to_client(to, op, NET_SUCCESS);
-    collect(ri, op);
+    ks->enqueue_chain_ack(this, to, sc, from, version);
 }
 
 void
@@ -501,7 +435,8 @@ replication_manager :: get_key_state(const region_id& ri,
                                      key_map_t::state_reference* ksr)
 {
     key_region kr(ri, key);
-    return m_key_states.get_state(kr, ksr);
+    key_state* ks = m_key_states.get_state(kr, ksr);
+    return post_get_key_state_init(ri, ks);
 }
 
 key_state*
@@ -511,13 +446,20 @@ replication_manager :: get_or_create_key_state(const region_id& ri,
 {
     key_region kr(ri, key);
     key_state* ks = m_key_states.get_or_create_state(kr, ksr);
+    return post_get_key_state_init(ri, ks);
+}
 
+key_state*
+replication_manager :: post_get_key_state_init(region_id ri, key_state* ks)
+{
     if (!ks || ks->initialized())
     {
         return ks;
     }
 
-    switch (ks->initialize(&m_daemon->m_data, ri))
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+
+    switch (ks->initialize(&m_daemon->m_data, sc, ri))
     {
         case datalayer::SUCCESS:
         case datalayer::NOT_FOUND:
@@ -529,17 +471,6 @@ replication_manager :: get_or_create_key_state(const region_id& ri,
         default:
             LOG(ERROR) << "Data layer returned unexpected result when reading old value.";
             return NULL;
-    }
-}
-
-void
-replication_manager :: respond_to_client(const virtual_server_id& us,
-                                         e::intrusive_ptr<key_operation> op,
-                                         network_returncode ret)
-{
-    if (op->client_id() != server_id())
-    {
-        respond_to_client(us, op->client_id(), op->client_nonce(), ret);
     }
 }
 
@@ -740,7 +671,7 @@ replication_manager :: retransmit(const std::vector<region_id>& point_leaders,
 
         if (us == virtual_server_id() || ks->finished())
         {
-            ks->reset();
+            ks->reset(&m_daemon->m_gc);
             continue;
         }
 
@@ -757,11 +688,17 @@ replication_manager :: collect(const region_id& ri, e::intrusive_ptr<key_operati
 {
     if (op->prev_region() == region_id())
     {
-        m_idcol.collect(ri, op->this_version());
-        check_stable(ri);
+        collect(ri, op->this_version());
     }
 
     check_stable();
+}
+
+void
+replication_manager :: collect(const region_id& ri, uint64_t version)
+{
+    m_idcol.collect(ri, version);
+    check_stable(ri);
 }
 
 void

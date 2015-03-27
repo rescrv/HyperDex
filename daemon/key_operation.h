@@ -73,22 +73,16 @@ class key_operation
         bool sent_to(uint64_t version, const virtual_server_id& vsi) const
         { return m_sent_config_version == version && m_sent == vsi; }
 
-        // the client
-        void set_client(const server_id& id, uint64_t nonce)
-        { m_client = id; m_nonce = nonce; }
-        server_id client_id() const { return m_client; }
-        uint64_t client_nonce() const { return m_nonce; }
-
         // the path of the op through the value-dependent chain
         bool is_continuous() { return m_type == CONTINUOUS; }
         bool is_discontinuous() { return m_type == DISCONTINUOUS; }
         // call before hashing
         void set_continuous();
         // call after hashing; must call above first
-        void set_continuous(const region_id& prev_region,
-                            const region_id& this_old_region,
-                            const region_id& this_new_region,
-                            const region_id& next_region);
+        void set_continuous_hashes(const region_id& prev_region,
+                                   const region_id& this_old_region,
+                                   const region_id& this_new_region,
+                                   const region_id& next_region);
         void set_discontinuous(const region_id& prev_region,
                                const region_id& this_old_region,
                                const region_id& this_new_region,
@@ -122,8 +116,6 @@ class key_operation
         virtual_server_id m_recv; // we recv from here
         uint64_t m_sent_config_version;
         virtual_server_id m_sent; // we sent to here
-        server_id m_client;
-        uint64_t m_nonce;
 
         const std::vector<e::slice> m_value;
         const std::auto_ptr<e::arena> m_memory;
@@ -133,6 +125,10 @@ class key_operation
         region_id m_this_new_region;
         region_id m_prev_region;
         region_id m_next_region;
+
+    private:
+        key_operation(const key_operation&);
+        key_operation& operator = (const key_operation&);
 };
 
 END_HYPERDEX_NAMESPACE

@@ -136,9 +136,7 @@ class replication_manager
         key_state* get_or_create_key_state(const region_id& ri,
                                            const e::slice& key,
                                            key_map_t::state_reference* ksr);
-        void respond_to_client(const virtual_server_id& us,
-                               e::intrusive_ptr<key_operation> op,
-                               network_returncode ret);
+        key_state* post_get_key_state_init(region_id ri, key_state* ks);
         void respond_to_client(const virtual_server_id& us,
                                const server_id& client,
                                uint64_t nonce,
@@ -152,6 +150,7 @@ class replication_manager
         void retransmit(const std::vector<region_id>& point_leaders,
                         std::vector<std::pair<region_id, uint64_t> >* versions);
         void collect(const region_id& ri, e::intrusive_ptr<key_operation> op);
+        void collect(const region_id& ri, uint64_t version);
         void close_gaps(const std::vector<region_id>& point_leaders,
                         const identifier_generator& peek_ids,
                         std::vector<std::pair<region_id, uint64_t> >* versions);
