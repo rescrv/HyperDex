@@ -110,6 +110,7 @@ datalayer :: initialize(const po6::pathname& path,
     opts.create_if_missing = true;
     opts.filter_policy = leveldb::NewBloomFilterPolicy(10);
     opts.manual_garbage_collection = true;
+    opts.max_open_files = std::max(sysconf(_SC_OPEN_MAX) >> 1, 1024L);
     std::string name(path.get());
     leveldb::DB* tmp_db;
     leveldb::Status st = leveldb::DB::Open(opts, name, &tmp_db);
