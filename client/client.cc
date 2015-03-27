@@ -624,7 +624,7 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
     }
 
     uint64_t sid_num;
-    m_busybee.set_timeout(timeout);
+    m_busybee.set_timeout(0);
     busybee_returncode rc = m_busybee.recv_no_msg(&sid_num);
 
     switch (rc)
