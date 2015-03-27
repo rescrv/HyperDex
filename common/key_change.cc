@@ -54,8 +54,12 @@ key_change :: key_change(const key_change& other)
     , fail_if_found(other.fail_if_found)
     , checks(other.checks)
     , funcs(other.funcs)
-    , auth(new auth_wallet(*other.auth))
+    , auth()
 {
+    if (other.auth.get())
+    {
+        auth.reset(new auth_wallet(*other.auth));
+    }
 }
 
 key_change :: ~key_change() throw ()
@@ -109,6 +113,11 @@ key_change :: operator = (const key_change& rhs)
         fail_if_found     = rhs.fail_if_found;
         checks            = rhs.checks;
         funcs             = rhs.funcs;
+
+        if (rhs.auth.get())
+        {
+            auth.reset(new auth_wallet(*rhs.auth));
+        }
     }
 
     return *this;
