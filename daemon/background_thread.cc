@@ -57,6 +57,7 @@ background_thread :: background_thread(daemon* d)
 {
     po6::threads::mutex::hold hold(&m_protect);
     m_gc->register_thread(&m_gc_ts);
+    m_gc->offline(&m_gc_ts);
 }
 
 background_thread :: ~background_thread() throw ()
@@ -152,6 +153,7 @@ background_thread :: run()
 {
     LOG(INFO) << this->thread_name() << " thread started";
     block_signals();
+    m_gc->online(&m_gc_ts);
 
     while (true)
     {
@@ -185,6 +187,7 @@ background_thread :: run()
         this->do_work();
     }
 
+    m_gc->offline(&m_gc_ts);
     LOG(INFO) << this->thread_name() << " thread stopped";
 }
 
