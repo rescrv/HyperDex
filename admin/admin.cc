@@ -61,10 +61,8 @@ using hyperdex::admin;
 
 admin :: admin(const char* coordinator, uint16_t port)
     : m_coord(coordinator, port)
-    , m_gc()
-    , m_gc_ts()
     , m_busybee_mapper(m_coord.config())
-    , m_busybee(&m_gc, &m_busybee_mapper, 0)
+    , m_busybee(&m_busybee_mapper, 0)
     , m_next_admin_id(1)
     , m_next_server_nonce(1)
     , m_handle_coord_ops(false)
@@ -78,12 +76,10 @@ admin :: admin(const char* coordinator, uint16_t port)
     , m_pcs()
     , m_last_error()
 {
-    m_gc.register_thread(&m_gc_ts);
 }
 
 admin :: ~admin() throw ()
 {
-    m_gc.deregister_thread(&m_gc_ts);
 }
 
 int64_t
@@ -715,8 +711,6 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
            !m_coord_ops.empty() ||
            !m_server_ops.empty())
     {
-        m_gc.quiescent_state(&m_gc_ts);
-
         if (m_yielding)
         {
             if (!m_yielding->can_yield())

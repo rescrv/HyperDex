@@ -82,10 +82,8 @@ using hyperdex::client;
 
 client :: client(const char* coordinator, uint16_t port)
     : m_coord(coordinator, port)
-    , m_gc()
-    , m_gc_ts()
     , m_busybee_mapper(m_coord.config())
-    , m_busybee(&m_gc, &m_busybee_mapper, 0)
+    , m_busybee(&m_busybee_mapper, 0)
     , m_next_client_id(1)
     , m_next_server_nonce(1)
     , m_pending_ops()
@@ -98,15 +96,12 @@ client :: client(const char* coordinator, uint16_t port)
     , m_macaroons_sz(0)
     , m_convert_types(true)
 {
-    m_gc.register_thread(&m_gc_ts);
 }
 
 client :: client(const char* conn_str)
     : m_coord(conn_str)
-    , m_gc()
-    , m_gc_ts()
     , m_busybee_mapper(m_coord.config())
-    , m_busybee(&m_gc, &m_busybee_mapper, 0)
+    , m_busybee(&m_busybee_mapper, 0)
     , m_next_client_id(1)
     , m_next_server_nonce(1)
     , m_pending_ops()
@@ -119,12 +114,10 @@ client :: client(const char* conn_str)
     , m_macaroons_sz(0)
     , m_convert_types(true)
 {
-    m_gc.register_thread(&m_gc_ts);
 }
 
 client :: ~client() throw ()
 {
-    m_gc.deregister_thread(&m_gc_ts);
 }
 
 int64_t
@@ -487,8 +480,6 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
            !m_yieldable.empty() ||
            !m_pending_ops.empty())
     {
-        m_gc.quiescent_state(&m_gc_ts);
-
         if (m_yielding)
         {
             if (!m_yielding->can_yield())

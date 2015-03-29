@@ -149,8 +149,6 @@ class admin
 
     private:
         coordinator_link m_coord;
-        e::garbage_collector m_gc;
-        e::garbage_collector::thread_state m_gc_ts;
         mapper m_busybee_mapper;
         busybee_st m_busybee;
         int64_t m_next_admin_id;
