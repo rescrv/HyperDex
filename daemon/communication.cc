@@ -405,7 +405,8 @@ communication :: send_exact(const virtual_server_id& from,
 }
 
 bool
-communication :: recv(server_id* from,
+communication :: recv(e::garbage_collector::thread_state* ts,
+                      server_id* from,
                       virtual_server_id* vfrom,
                       virtual_server_id* vto,
                       network_msgtype* msg_type,
@@ -421,7 +422,7 @@ communication :: recv(server_id* from,
     while (true)
     {
         uint64_t id;
-        busybee_returncode rc = m_busybee->recv(&id, msg);
+        busybee_returncode rc = m_busybee->recv(ts, &id, msg);
 
         switch (rc)
         {

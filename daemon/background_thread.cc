@@ -46,7 +46,6 @@ using hyperdex::background_thread;
 background_thread :: background_thread(daemon* d)
     : m_thread(make_thread_wrapper(&background_thread::run, this))
     , m_gc(&d->m_gc)
-    , m_gc_ts()
     , m_protect()
     , m_wakeup_thread(&m_protect)
     , m_wakeup_pauser(&m_protect)
@@ -56,14 +55,11 @@ background_thread :: background_thread(daemon* d)
     , m_offline(false)
 {
     po6::threads::mutex::hold hold(&m_protect);
-    m_gc->register_thread(&m_gc_ts);
-    m_gc->offline(&m_gc_ts);
 }
 
 background_thread :: ~background_thread() throw ()
 {
     shutdown();
-    m_gc->deregister_thread(&m_gc_ts);
 }
 
 void
@@ -153,12 +149,13 @@ background_thread :: run()
 {
     LOG(INFO) << this->thread_name() << " thread started";
     block_signals();
-    m_gc->online(&m_gc_ts);
+    e::garbage_collector::thread_state ts;
+    m_gc->register_thread(&ts);
 
     while (true)
     {
         {
-            m_gc->quiescent_state(&m_gc_ts);
+            m_gc->quiescent_state(&ts);
             po6::threads::mutex::hold hold(&m_protect);
 
             while ((!this->have_work() && !m_shutdown) || m_pause_count > 0)
@@ -170,9 +167,9 @@ background_thread :: run()
                     m_wakeup_pauser.signal();
                 }
 
-                m_gc->offline(&m_gc_ts);
+                m_gc->offline(&ts);
                 m_wakeup_thread.wait();
-                m_gc->online(&m_gc_ts);
+                m_gc->online(&ts);
                 m_paused = false;
             }
 
@@ -187,7 +184,7 @@ background_thread :: run()
         this->do_work();
     }
 
-    m_gc->offline(&m_gc_ts);
+    m_gc->deregister_thread(&ts);
     LOG(INFO) << this->thread_name() << " thread stopped";
 }
 

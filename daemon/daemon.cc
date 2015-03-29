@@ -613,7 +613,7 @@ daemon :: loop(size_t thread)
     std::auto_ptr<e::buffer> msg;
     e::unpacker up;
 
-    while (m_comm.recv(&from, &vfrom, &vto, &type, &msg, &up))
+    while (m_comm.recv(&ts, &from, &vfrom, &vto, &type, &msg, &up))
     {
         assert(from != server_id());
         assert(vto != virtual_server_id());

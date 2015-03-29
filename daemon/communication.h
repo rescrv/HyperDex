@@ -106,7 +106,8 @@ class communication
                         const virtual_server_id& to,
                         network_msgtype msg_type,
                         std::auto_ptr<e::buffer> msg);
-        bool recv(server_id* from,
+        bool recv(e::garbage_collector::thread_state* ts,
+                  server_id* from,
                   virtual_server_id* vfrom,
                   virtual_server_id* vto,
                   network_msgtype* msg_type,

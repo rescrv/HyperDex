@@ -83,7 +83,6 @@ class background_thread
     private:
         po6::threads::thread m_thread;
         e::garbage_collector* m_gc;
-        e::garbage_collector::thread_state m_gc_ts;
         po6::threads::mutex m_protect;
         po6::threads::cond m_wakeup_thread;
         po6::threads::cond m_wakeup_pauser;
