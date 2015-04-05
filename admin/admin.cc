@@ -149,6 +149,97 @@ admin :: read_only(int ro, hyperdex_admin_returncode* status)
 }
 
 int64_t
+admin :: set_primary_cluster(int prim, hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status)) {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "set primary-cluster");
+
+    char buf[sizeof(uint8_t)];
+    buf[0] = prim ? 1 : 0;
+
+    int64_t cid = m_coord.rpc("set_primary_cluster", buf, sizeof(uint8_t),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
+admin :: set_backup_affinity(const char* host, int64_t port, hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status)) {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "set backup-affinity");
+    int64_t host_sz = strlen(host);
+
+    std::vector<char> buf(host_sz + sizeof(uint64_t));
+    memcpy(&buf[0], host, host_sz);
+    e::pack64be(port, &buf[0] + host_sz);
+
+    int64_t cid = m_coord.rpc("set_backup_affinity", &buf[0], host_sz + sizeof(uint64_t),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
+admin :: set_backup_cluster(const char* host, int64_t port, hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status)) {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "set backup-cluster");
+    int64_t host_sz = strlen(host);
+
+    std::vector<char> buf(host_sz + sizeof(uint64_t));
+    memcpy(&buf[0], host, host_sz);
+    e::pack64be(port, &buf[0] + host_sz);
+
+    int64_t cid = m_coord.rpc("set_backup_cluster", &buf[0], host_sz + sizeof(uint64_t),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
 admin :: wait_until_stable(enum hyperdex_admin_returncode* status)
 {
     replicant_returncode rc;

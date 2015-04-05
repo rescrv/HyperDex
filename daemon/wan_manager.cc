@@ -95,6 +95,7 @@ wan_manager :: wan_manager(daemon* d)
     , m_is_backup(false)
     , m_poller_started(false)
     , m_teardown(false)
+    , m_manual_teardown(false)
     , m_deferred()
     , m_locked(false)
     , m_kill(false)
@@ -123,27 +124,29 @@ wan_manager :: wan_manager(daemon* d)
 
 wan_manager :: ~wan_manager() throw ()
 {
-    {
-        po6::threads::mutex::hold hold(&m_mtx);
-
+    if (m_manual_teardown) {
         m_teardown = true;
+        m_busybee->shutdown();
+        m_busybee_running = false;
+        m_msg_thread.join();
+        m_background_thread->shutdown();
+        m_transfers_in.clear();
+        m_transfers_out.clear();
+        m_link_thread.join();
+        if (m_poller_started)
+        {
+            m_poller.join();
+        }
     }
 }
 
 bool
-wan_manager :: setup()
+wan_manager :: setup(const char* host, int64_t port)
 {
-    // XXX un-hard-code this
-    po6::net::ipaddr listen_ip("127.0.0.1");
-    if (m_is_backup) {
-        po6::net::location bind_to(listen_ip, 1988);
-        m_busybee.reset(new busybee_mta(&m_daemon->m_gc, &m_busybee_mapper, bind_to,
-                    m_daemon->m_us.get(), 1));
-    } else {
-        po6::net::location bind_to(listen_ip, 1989);
-        m_busybee.reset(new busybee_mta(&m_daemon->m_gc, &m_busybee_mapper, bind_to,
-                    m_daemon->m_us.get(), 1));
-    }
+    // XXX please fix this, this is really hacky
+    po6::net::location bind_to(host, port);
+    m_busybee.reset(new busybee_mta(&m_daemon->m_gc, &m_busybee_mapper, bind_to,
+                m_daemon->m_us.get(), 1));
     m_busybee_running = true;
     m_link_thread.start();
     m_background_thread->start();
@@ -157,8 +160,9 @@ wan_manager :: teardown()
     enter_critical_section();
     m_teardown = true;
     exit_critical_section();
-    m_msg_thread.join();
     m_busybee->shutdown();
+    m_busybee_running = false;
+    m_msg_thread.join();
     m_background_thread->shutdown();
     m_transfers_in.clear();
     m_transfers_out.clear();
@@ -206,11 +210,13 @@ wan_manager :: pause()
         m_can_pause.wait();
     }
 
-    m_paused = true;
-    m_background_thread->initiate_pause();
-    m_background_thread->wait_until_paused();
-    if (m_busybee_running) {
-        m_busybee->pause();
+    if (!m_teardown) {
+        m_paused = true;
+        m_background_thread->initiate_pause();
+        m_background_thread->wait_until_paused();
+        if (m_busybee_running) {
+            m_busybee->pause();
+        }
     }
 }
 
@@ -225,6 +231,15 @@ wan_manager :: unpause()
     assert(m_paused);
     m_paused = false;
     m_can_pause.signal();
+}
+
+void
+wan_manager :: set_teardown()
+{
+    enter_critical_section();
+    m_teardown = true;
+    m_manual_teardown = true;
+    exit_critical_section();
 }
 
 void
@@ -250,6 +265,17 @@ wan_manager :: reconfigure(configuration *config)
             }
         }
         m_daemon->m_coord.add_space(*their);
+    }
+}
+
+void
+wan_manager :: rm_all_spaces()
+{
+    std::vector<space> spaces = m_daemon->m_config.get_spaces();
+    std::vector<space>::iterator it;
+
+    for (it = spaces.begin(); it != spaces.end(); ++it) {
+        m_daemon->m_coord.rm_space(*it);
     }
 }
 
@@ -411,7 +437,7 @@ wan_manager :: maintain_link()
         m_poller_started = true;
     }
 
-    while (true) {
+    while (!m_teardown) {
         int64_t id = -1;
         replicant_returncode status = REPLICANT_GARBAGE;
 
@@ -870,21 +896,28 @@ wan_manager :: handle_ack(const server_id& from,
 void
 wan_manager :: run()
 {
-    while (!m_daemon->m_coord.should_exit() && !m_teardown) {
-        if (!maintain_link()) {
-            // LOG(INFO) << "WAN MANAGER COULD NOT MAINTAIN LINK";
-        }
+    if (m_is_backup) {
+        while (!m_daemon->m_coord.should_exit() && !m_teardown) {
+            if (!maintain_link()) {
+                LOG(INFO) << "WAN MANAGER COULD NOT MAINTAIN LINK";
+                if (m_teardown) {
+                    break;
+                }
+            }
 
-        const configuration& old_pconfig(m_config);
-        configuration new_pconfig;
-        copy_config(&new_pconfig);
-        if (old_pconfig.version() < new_pconfig.version()) {
-            LOG(INFO) << "moving to cross configuration version=" << new_pconfig.version()
-                << " on this cluster.";
-            pause();
-            reconfigure(&new_pconfig);
-            m_has_config = true;
-            unpause();
+            const configuration& old_pconfig(m_config);
+            configuration new_pconfig;
+            copy_config(&new_pconfig);
+            if (old_pconfig.version() < new_pconfig.version()) {
+                LOG(INFO) << "moving to cross configuration version=" << new_pconfig.version()
+                    << " on this cluster.";
+                pause();
+                reconfigure(&new_pconfig);
+                m_has_config = true;
+                if (!m_manual_teardown) {
+                    unpause();
+                }
+            }
         }
     }
 }
@@ -905,7 +938,6 @@ wan_manager :: recv(server_id* from,
 {
     while (true)
     {
-        LOG(INFO) << "in recv";
         uint64_t id;
         busybee_returncode rc = m_busybee->recv(&id, msg);
 
@@ -1156,7 +1188,7 @@ wan_manager :: background_maintenance()
             m_deferred.push(std::make_pair(id, status));
         }
 
-        exit_critical_section_killable();
+        exit_critical_section();
     }
 }
 

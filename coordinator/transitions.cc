@@ -179,6 +179,52 @@ hyperdex_coordinator_read_only(struct replicant_state_machine_context* ctx,
 }
 
 void
+hyperdex_coordinator_set_backup_affinity(struct replicant_state_machine_context* ctx,
+                               void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    char* host;
+    int64_t port;
+    const char* port_ptr = data + data_sz - sizeof(int64_t);
+    e::unpacker up(port_ptr, sizeof(int64_t));
+    up = up >> port;
+    CHECK_UNPACK(set_backup_affinity);
+    c->set_backup_affinity(ctx, data, port);
+}
+
+void
+hyperdex_coordinator_set_backup_cluster(struct replicant_state_machine_context* ctx,
+                               void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    char* host;
+    int64_t port;
+    const char* port_ptr = data + data_sz - sizeof(int64_t);
+    e::unpacker up(port_ptr, sizeof(int64_t));
+    up = up >> port;
+    CHECK_UNPACK(set_backup_cluster);
+    c->set_backup_cluster(ctx, data, port);
+}
+
+void
+hyperdex_coordinator_set_primary_cluster(struct replicant_state_machine_context* ctx,
+                                     void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    uint8_t set;
+    e::unpacker up(data, data_sz);
+    up = up >> set;
+    CHECK_UNPACK(set_primary_cluster);
+    c->set_primary_cluster(ctx, set != 0);
+}
+
+void
 hyperdex_coordinator_fault_tolerance(struct replicant_state_machine_context* ctx,
                                      void* obj, const char* data, size_t data_sz)
 {

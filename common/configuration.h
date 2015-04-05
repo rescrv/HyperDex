@@ -62,6 +62,8 @@ class configuration
         uint64_t cluster() const;
         uint64_t version() const;
         bool read_only() const;
+        bool is_backup_cluster() const;
+        po6::net::location get_primary_location();
 
     // membership metadata
     public:
@@ -172,6 +174,7 @@ class configuration
         std::vector<uint64_t> m_point_leaders_by_virtual;
         std::vector<space> m_spaces;
         std::vector<transfer> m_transfers;
+        po6::net::location m_primary_coord;
 };
 
 e::buffer::packer

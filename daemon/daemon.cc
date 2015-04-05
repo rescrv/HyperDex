@@ -108,7 +108,7 @@ daemon :: daemon()
     , m_gc()
     , m_gc_ts()
     , m_coord(this)
-    , m_wan(this)
+    , m_wan((new wan_manager(this)))
     , m_data_dir()
     , m_data(this)
     , m_comm(this)
@@ -119,6 +119,7 @@ daemon :: daemon()
     , m_protect_pause()
     , m_can_pause(&m_protect_pause)
     , m_paused(false)
+    , m_wan_reconfigured(false)
     , m_perf_req_get()
     , m_perf_req_get_partial()
     , m_perf_req_atomic()
@@ -192,8 +193,6 @@ daemon :: run(bool daemonize,
               po6::net::location bind_to,
               bool set_coordinator,
               po6::net::hostname coordinator,
-              bool set_failover,
-              po6::net::hostname failover_coordinator,
               unsigned threads)
 {
     if (!install_signal_handler(SIGHUP, exit_on_signal))
@@ -344,8 +343,8 @@ daemon :: run(bool daemonize,
 
     m_bind_to = bind_to;
     m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
-    m_wan.set_coordinator_address(failover_coordinator.address.c_str(), failover_coordinator.port);
-    m_wan.set_is_backup(set_failover);
+    m_wan->set_coordinator_address(coordinator.address.c_str(), coordinator.port);
+    m_wan->set_is_backup(false);
 
     if (!saved)
     {
@@ -392,7 +391,7 @@ daemon :: run(bool daemonize,
     m_repl.setup();
     m_stm.setup();
     m_sm.setup();
-    m_wan.setup();
+    m_wan->setup(coordinator.address.c_str(), coordinator.port + 71);
 
     for (size_t i = 0; i < threads; ++i)
     {
@@ -422,13 +421,13 @@ daemon :: run(bool daemonize,
             LOG(INFO) << "end debug dump";
         }
 
-        if (set_failover) {
+        if (m_config.is_backup_cluster()) {
             if (s_kick > 0 && !requested_exit) {
                 if (!install_signal_handler(SIGALRM, kick_after_timeout)) {
                     __sync_fetch_and_add(&s_interrupts, 2);
                     break;
                 }
-                m_wan.kick();
+                m_wan->kick();
                 alarm(3);
                 s_kick = 0;
             }
@@ -507,6 +506,9 @@ daemon :: run(bool daemonize,
         LOG(INFO) << "moving to configuration version=" << new_config.version()
                   << "; pausing all activity while we reconfigure";
         this->pause();
+        LOG(INFO) << "coordinator tells us that the host we are supposed to backup is " << new_config.get_primary_location();
+        LOG(INFO) << "coordinator tells us that backup_cluster =  " << new_config.is_backup_cluster();
+        reconfigure_wan(old_config, new_config);
         m_comm.reconfigure(old_config, new_config, m_us);
         m_data.reconfigure(old_config, new_config, m_us);
         m_repl.reconfigure(old_config, new_config, m_us);
@@ -548,8 +550,7 @@ daemon :: run(bool daemonize,
         m_threads[i]->join();
     }
 
-    LOG(INFO) << "trying to tear wan down";
-    m_wan.teardown();
+    m_wan->teardown();
     m_sm.teardown();
     m_stm.teardown();
     m_repl.teardown();
@@ -576,7 +577,7 @@ daemon :: pause()
     m_repl.pause();
     m_data.pause();
     m_comm.pause();
-    m_wan.pause();
+    m_wan->pause();
 }
 
 void
@@ -588,7 +589,11 @@ daemon :: unpause()
     m_repl.unpause();
     m_stm.unpause();
     m_sm.unpause();
-    m_wan.unpause();
+    if (!m_wan_reconfigured) {
+        m_wan->unpause();
+    } else {
+        m_wan_reconfigured = false;
+    }
     assert(m_paused);
     m_paused = false;
     m_can_pause.signal();
@@ -734,18 +739,18 @@ daemon :: loop(size_t thread)
                 break;
             case WAN_HS:
                 // XXX process_wan_handshake
-                m_wan.handle_handshake(from, vfrom, vto, msg, up);
+                m_wan->handle_handshake(from, vfrom, vto, msg, up);
                 break;
             case WAN_XFER:
                 // XXX process wan xfer
-                m_wan.recv_data(from, vfrom, vto, msg, up);
+                m_wan->recv_data(from, vfrom, vto, msg, up);
                 break;
             case WAN_MORE:
                 // XXX process_wan_more
-                m_wan.send_more_data(from, vfrom, vto, msg, up);
+                m_wan->send_more_data(from, vfrom, vto, msg, up);
                 break;
             case WAN_ACK:
-                m_wan.handle_ack(from, vfrom, vto, msg, up);
+                m_wan->handle_ack(from, vfrom, vto, msg, up);
                 // XXX process_wan_ack
                 break;
             case RESP_GET:
@@ -1713,5 +1718,60 @@ daemon :: collect_stats_io(std::ostringstream* ret)
         *ret << " io.in_flight=" << in_flight;
         *ret << " io.io_ticks=" << io_ticks;
         *ret << " io.time_in_queue=" << time_in_queue;
+    }
+}
+
+void
+daemon :: reconfigure_wan(configuration old_config, configuration new_config)
+{
+    bool new_flags = new_config.is_backup_cluster();
+    bool old_flags = old_config.is_backup_cluster();
+    po6::net::location new_loc = new_config.get_primary_location();
+    po6::net::location old_loc = old_config.get_primary_location();
+    std::stringstream ss;
+
+    if (new_flags != old_flags) {
+        wan_manager* tmp = m_wan;
+        if (new_flags) { // moving to backup
+            tmp->rm_all_spaces();
+            tmp->set_teardown();
+            tmp->unpause();
+            delete(tmp);
+            m_wan = new wan_manager(this);
+
+            LOG(INFO) << "moving cluster to backup " << new_loc;
+            ss << new_loc.address;
+            LOG(INFO) << "setting coordinator to host = " << ss.str() << ", port = " << new_loc.port;
+            m_wan->set_coordinator_address(ss.str().c_str(), new_loc.port);
+        } else { // moving to primary
+            tmp->set_teardown();
+            tmp->unpause();
+            delete(tmp);
+
+            m_wan = new wan_manager(this);
+            LOG(INFO) << "moving cluster to primary";
+            ss << m_bind_to.address;
+            LOG(INFO) << "setting coordinator to host = " << ss.str() << ", port = " << m_bind_to.port;
+            m_wan->set_coordinator_address(ss.str().c_str(), m_bind_to.port);
+        }
+        m_wan->set_is_backup(new_flags);
+        m_wan->setup(ss.str().c_str(), m_bind_to.port + 71);
+        m_wan_reconfigured = true;
+    } else if (new_loc != old_loc && new_flags == old_flags
+                                  && new_loc != po6::net::location()
+                                  && new_flags) { // in backup, changing coordinators
+        LOG(INFO) << "changing backup affiliation";
+        wan_manager* tmp = m_wan;
+        tmp->rm_all_spaces();
+        tmp->set_teardown();
+        tmp->unpause();
+        delete(tmp);
+        m_wan = new wan_manager(this);
+        ss << new_loc.address;
+        LOG(INFO) << "setting coordinator to host = " << ss.str() << ", port = " << new_loc.port;
+        m_wan->set_coordinator_address(ss.str().c_str(), new_loc.port);
+        m_wan->set_is_backup(new_flags);
+        m_wan->setup(ss.str().c_str(), new_loc.port + 711);
+        m_wan_reconfigured = true;
     }
 }

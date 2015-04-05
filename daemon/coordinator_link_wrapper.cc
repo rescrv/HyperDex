@@ -480,6 +480,15 @@ coordinator_link_wrapper :: add_space(hyperdex::space space)
     make_rpc("space_add", reinterpret_cast<const char*>(msg->data()), msg->size(), rpc);
 }
 
+void coordinator_link_wrapper :: rm_space(hyperdex::space space)
+{
+    const char* sp = space.name;
+    uint64_t sz = strlen(sp);
+    e::intrusive_ptr<coord_rpc> rpc = new coord_rpc();
+    rpc->msg << "rm space";
+    make_rpc("space_rm", sp, sz, rpc);
+}
+
 uint64_t
 coordinator_link_wrapper :: checkpoint()
 {

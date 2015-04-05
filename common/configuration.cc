@@ -67,6 +67,7 @@ configuration :: configuration()
     , m_point_leaders_by_virtual()
     , m_spaces()
     , m_transfers()
+    , m_primary_coord()
 {
     refill_cache();
 }
@@ -89,6 +90,7 @@ configuration :: configuration(const configuration& other)
     , m_point_leaders_by_virtual(other.m_point_leaders_by_virtual)
     , m_spaces(other.m_spaces)
     , m_transfers(other.m_transfers)
+    , m_primary_coord(other.m_primary_coord)
 {
     refill_cache();
 }
@@ -113,6 +115,18 @@ bool
 configuration :: read_only() const
 {
     return m_flags & HYPERDEX_CONFIG_READ_ONLY;
+}
+
+bool
+configuration :: is_backup_cluster() const
+{
+    return (m_flags & HYPERDEX_BACKUP_CLUSTER) >> 1;
+}
+
+po6::net::location
+configuration :: get_primary_location()
+{
+    return m_primary_coord;
 }
 
 void
@@ -1084,6 +1098,7 @@ configuration :: operator = (const configuration& rhs)
     m_cluster = rhs.m_cluster;
     m_version = rhs.m_version;
     m_flags = rhs.m_flags;
+    m_primary_coord = rhs.m_primary_coord;
     m_servers = rhs.m_servers;
     m_region_ids_by_virtual = rhs.m_region_ids_by_virtual;
     m_server_ids_by_virtual = rhs.m_server_ids_by_virtual;
@@ -1203,7 +1218,7 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
     uint64_t num_servers;
     uint64_t num_spaces;
     uint64_t num_transfers;
-    up = up >> c.m_cluster >> c.m_version >> c.m_flags
+    up = up >> c.m_cluster >> c.m_version >> c.m_flags >> c.m_primary_coord
             >> num_servers >> num_spaces
             >> num_transfers;
     c.m_servers.clear();

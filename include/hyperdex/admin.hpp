@@ -59,6 +59,12 @@ class Admin
             { return hyperdex_admin_dump_config(m_adm, status, config); }
         int64_t read_only(int ro, enum hyperdex_admin_returncode* status)
             { return hyperdex_admin_read_only(m_adm, ro, status); }
+        int64_t set_primary_cluster(int prim, enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_set_primary_cluster(m_adm, prim, status); }
+        int64_t set_backup_cluster(const char* host, const int64_t port, enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_set_backup_cluster(m_adm, host, port, status); }
+        int64_t set_backup_affinity(const char* host, const int64_t port, enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_set_backup_affinity(m_adm, host, port, status); }
         int64_t wait_until_stable(enum hyperdex_admin_returncode* status)
             { return hyperdex_admin_wait_until_stable(m_adm, status); }
         int64_t fault_tolerance(const char* space, uint64_t ft,

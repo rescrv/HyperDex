@@ -67,6 +67,9 @@ class coordinator
     // cluster management
     public:
         void read_only(replicant_state_machine_context* ctx, bool ro);
+        void set_backup_cluster(replicant_state_machine_context* ctx, const char* host, const int64_t port);
+        void set_backup_affinity(replicant_state_machine_context* ctx, const char* host, const int64_t port);
+        void set_primary_cluster(replicant_state_machine_context* ctx, bool prim);
         void fault_tolerance(replicant_state_machine_context* ctx,
                              const char* space, uint64_t consistency);
 
@@ -227,6 +230,8 @@ class coordinator
         // cached config
         std::auto_ptr<e::buffer> m_latest_config;
         std::auto_ptr<e::buffer> m_response;
+        // backup cluster
+        po6::net::location m_primary_coord;
 
     private:
         coordinator(const coordinator&);

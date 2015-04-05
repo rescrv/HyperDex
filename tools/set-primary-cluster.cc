@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Cornell University
+// Copyright (c) 2015, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,10 +25,68 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_configuration_flags_h_
-#define hyperdex_common_configuration_flags_h_
+// C
+#include <cstdlib>
 
-#define HYPERDEX_CONFIG_READ_ONLY 1
-#define HYPERDEX_BACKUP_CLUSTER 2
+// HyperDex
+#include <hyperdex/admin.hpp>
+#include "tools/common.h"
 
-#endif // hyperdex_common_configuration_flags_h_
+int
+main(int argc, const char* argv[])
+{
+    hyperdex::connect_opts conn;
+    e::argparser ap;
+    ap.autohelp();
+    ap.option_string("[OPTIONS] <server-id>");
+    ap.add("Connect to a cluster:", conn.parser());
+
+    if (!ap.parse(argc, argv))
+    {
+        return EXIT_FAILURE;
+    }
+
+    if (!conn.validate())
+    {
+        std::cerr << "invalid host:port specification\n" << std::endl;
+        ap.usage();
+        return EXIT_FAILURE;
+    }
+
+    try
+    {
+        hyperdex::Admin h(conn.host(), conn.port());
+        hyperdex_admin_returncode rrc;
+        int64_t rid = h.set_primary_cluster(true, &rrc);
+
+        if (rid < 0)
+        {
+            std::cerr << "could not make cluster primary cluster: " << rrc << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        hyperdex_admin_returncode lrc;
+        int64_t lid = h.loop(-1, &lrc);
+
+        if (lid < 0)
+        {
+            std::cerr << "could not make cluster primary cluster: " << lrc << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        assert(rid == lid);
+
+        if (rrc != HYPERDEX_ADMIN_SUCCESS)
+        {
+            std::cerr << "could not make cluster primary cluster: " << rrc << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        return EXIT_SUCCESS;
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << "error: " << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+}

@@ -1151,6 +1151,9 @@ hyperdexexec_PROGRAMS += hyperdex-wait-until-stable
 hyperdexexec_PROGRAMS += hyperdex-backup
 hyperdexexec_PROGRAMS += hyperdex-backup-manager
 hyperdexexec_PROGRAMS += hyperdex-raw-backup
+hyperdexexec_PROGRAMS += hyperdex-set-backup-cluster
+hyperdexexec_PROGRAMS += hyperdex-set-primary-cluster
+hyperdexexec_PROGRAMS += hyperdex-set-backup-affinity
 hyperdexexec_SCRIPTS += hyperdex-noc
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
@@ -1307,6 +1310,30 @@ hyperdex_set_read_only_SOURCES = tools/set-read-only.cc
 hyperdex_set_read_only_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-set-read-only.1: man/hyperdex-set-read-only.1.h2m tools/set-read-only.cc | hyperdex-set-read-only$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-read-only$(EXEEXT)
+
+# hyperdex-set-primary-cluster
+EXTRA_DIST += man/hyperdex-set-primary-cluster.1.md
+EXTRA_DIST += man/hyperdex-set-primary-cluster.1.h2m
+hyperdex_set_primary_cluster_SOURCES = tools/set-primary-cluster.cc
+hyperdex_set_primary_cluster_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-set-primary-cluster.1: man/hyperdex-set-primary-cluster.1.h2m tools/set-primary-cluster.cc | hyperdex-set-primary-cluster$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-primary-cluster$(EXEEXT)
+
+# hyperdex-set-backup-affinity
+EXTRA_DIST += man/hyperdex-set-backup-affinity.1.md
+EXTRA_DIST += man/hyperdex-set-backup-affinity.1.h2m
+hyperdex_set_backup_affinity_SOURCES = tools/set-backup-affinity.cc
+hyperdex_set_backup_affinity_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-set-backup-affinity.1: man/hyperdex-set-backup-affinity.1.h2m tools/set-backup-affinity.cc | hyperdex-set-backup-affinity$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-backup-affinity$(EXEEXT)
+
+# hyperdex-set-backup-cluster
+EXTRA_DIST += man/hyperdex-set-backup-cluster.1.md
+EXTRA_DIST += man/hyperdex-set-backup-cluster.1.h2m
+hyperdex_set_backup_cluster_SOURCES = tools/set-backup-cluster.cc
+hyperdex_set_backup_cluster_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-set-backup-cluster.1: man/hyperdex-set-backup-cluster.1.h2m tools/set-backup-cluster.cc | hyperdex-set-backup-cluster$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-backup-cluster$(EXEEXT)
 
 # hyperdex-set-read-write
 EXTRA_DIST += man/hyperdex-set-read-write.1.md

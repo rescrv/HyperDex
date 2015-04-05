@@ -126,6 +126,7 @@ hyperdex_admin_dump_config(struct hyperdex_admin* _adm,
     return adm->dump_config(status, config);
     );
 }
+
 HYPERDEX_API int64_t
 hyperdex_admin_read_only(struct hyperdex_admin* _adm,
                          int ro,
@@ -134,6 +135,39 @@ hyperdex_admin_read_only(struct hyperdex_admin* _adm,
     C_WRAP_EXCEPT(
     hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
     return adm->read_only(ro, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_set_primary_cluster(struct hyperdex_admin* _adm,
+                         int prim,
+                         enum hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->set_primary_cluster(prim, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_set_backup_affinity(struct hyperdex_admin* _adm,
+                         const char* host, const int64_t port,
+                         enum hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->set_backup_affinity(host, port, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_set_backup_cluster(struct hyperdex_admin* _adm,
+                         const char* host, const int64_t port,
+                         enum hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->set_backup_cluster(host, port, status);
     );
 }
 

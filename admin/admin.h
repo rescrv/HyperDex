@@ -62,6 +62,12 @@ class admin
         // cluster
         int64_t read_only(int ro,
                           enum hyperdex_admin_returncode* status);
+        int64_t set_primary_cluster(int prim,
+                                    enum hyperdex_admin_returncode* status);
+        int64_t set_backup_cluster(const char* host, const int64_t port,
+                                   enum hyperdex_admin_returncode* status);
+        int64_t set_backup_affinity(const char* host, const int64_t port,
+                                       enum hyperdex_admin_returncode* status);
         int64_t wait_until_stable(enum hyperdex_admin_returncode* status);
         int64_t fault_tolerance(const char* space, uint64_t ft,
                                 enum hyperdex_admin_returncode* status);

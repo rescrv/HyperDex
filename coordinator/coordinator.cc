@@ -159,6 +159,7 @@ coordinator :: coordinator()
     , m_checkpoint_stable_barrier()
     , m_latest_config()
     , m_response()
+    , m_primary_coord()
 {
     assert(m_config_ack_through == m_config_ack_barrier.min_version());
     assert(m_config_stable_through == m_config_stable_barrier.min_version());
@@ -222,6 +223,83 @@ coordinator :: read_only(replicant_state_machine_context* ctx, bool ro)
         uint64_t mask = HYPERDEX_CONFIG_READ_ONLY;
         mask = ~mask;
         m_flags &= mask;
+    }
+
+    if (old_flags != m_flags)
+    {
+        generate_next_configuration(ctx);
+    }
+
+    return generate_response(ctx, COORD_SUCCESS);
+}
+
+
+void
+coordinator :: set_primary_cluster(replicant_state_machine_context* ctx, bool prim)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    uint64_t old_flags = m_flags;
+
+    if (!prim) {
+        fprintf(log, "error in set_primary_cluster call\n");
+    }
+
+    if (!(m_flags & HYPERDEX_BACKUP_CLUSTER) >> 1) {
+        fprintf(log, "cluster already primary cluster\n");
+    } else {
+        fprintf(log, "putting cluster into primary mode\n");
+        uint64_t mask = HYPERDEX_BACKUP_CLUSTER;
+        mask = ~mask;
+        m_flags &= mask;
+        m_primary_coord = po6::net::location(); // clear coordinator
+        fprintf(log, "trying to put cluster into primary mode");
+        // XXX robustness
+    }
+
+    if (old_flags != m_flags)
+    {
+        generate_next_configuration(ctx);
+    }
+
+    return generate_response(ctx, COORD_SUCCESS);
+}
+
+void
+coordinator :: set_backup_affinity(replicant_state_machine_context* ctx,
+                               const char* host, const int64_t port)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    uint64_t old_flags = m_flags;
+
+    if ((m_flags & HYPERDEX_BACKUP_CLUSTER) >> 1) {
+        fprintf(log, "changing backup cluster affinity\n");
+        m_primary_coord = po6::net::location(host, port);
+        assert(m_primary_coord != po6::net::location());
+        fprintf(log, "trying to change backup cluster affinity to host %s and port %ld\n", host, port);
+        generate_next_configuration(ctx);
+        return generate_response(ctx, COORD_SUCCESS);
+    } else {
+        fprintf(log, "cluster not in backup mode\n");
+        return;
+    }
+}
+
+void
+coordinator :: set_backup_cluster(replicant_state_machine_context* ctx,
+                               const char* host, const int64_t port)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    uint64_t old_flags = m_flags;
+
+    if ((m_flags & HYPERDEX_BACKUP_CLUSTER) >> 1) {
+        fprintf(log, "cluster already backing up another coordinator\n");
+    } else {
+        fprintf(log, "putting cluster into backup mode\n");
+        m_flags |= HYPERDEX_BACKUP_CLUSTER;
+        m_primary_coord = po6::net::location(host, port);
+        assert(m_primary_coord != po6::net::location());
+        fprintf(log, "trying to put up backup cluster for host %s and port %ld\n", host, port);
+        // XXX robustness
     }
 
     if (old_flags != m_flags)
@@ -1095,7 +1173,7 @@ coordinator :: recreate(replicant_state_machine_context* ctx,
             >> c->m_config_ack_through >> c->m_config_ack_barrier
             >> c->m_config_stable_through >> c->m_config_stable_barrier
             >> c->m_checkpoint >> c->m_checkpoint_stable_through
-            >> c->m_checkpoint_gc_through >> c->m_checkpoint_stable_barrier;
+            >> c->m_checkpoint_gc_through >> c->m_checkpoint_stable_barrier >> c->m_primary_coord;
 
     while (!up.error() && up.remain())
     {
@@ -1187,7 +1265,8 @@ coordinator :: snapshot(replicant_state_machine_context* /*ctx*/,
               + sizeof(m_checkpoint)
               + sizeof(m_checkpoint_stable_through)
               + sizeof(m_checkpoint_gc_through)
-              + pack_size(m_checkpoint_stable_barrier);
+              + pack_size(m_checkpoint_stable_barrier)
+              + pack_size(m_primary_coord);
 
     for (space_map_t::iterator it = m_spaces.begin();
             it != m_spaces.end(); ++it)
@@ -1204,7 +1283,7 @@ coordinator :: snapshot(replicant_state_machine_context* /*ctx*/,
             << m_config_ack_through << m_config_ack_barrier
             << m_config_stable_through << m_config_stable_barrier
             << m_checkpoint << m_checkpoint_stable_through
-            << m_checkpoint_gc_through << m_checkpoint_stable_barrier;
+            << m_checkpoint_gc_through << m_checkpoint_stable_barrier << m_primary_coord;
 
     for (space_map_t::iterator it = m_spaces.begin();
             it != m_spaces.end(); ++it)
@@ -1925,7 +2004,7 @@ void
 coordinator :: generate_cached_configuration(replicant_state_machine_context*)
 {
     m_latest_config.reset();
-    size_t sz = 7 * sizeof(uint64_t);
+    size_t sz = 7 * sizeof(uint64_t) + pack_size(m_primary_coord);
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
@@ -1948,7 +2027,7 @@ coordinator :: generate_cached_configuration(replicant_state_machine_context*)
 
     std::auto_ptr<e::buffer> new_config(e::buffer::create(sz));
     e::buffer::packer pa = new_config->pack_at(0);
-    pa = pa << m_cluster << m_version << m_flags
+    pa = pa << m_cluster << m_version << m_flags << m_primary_coord
             << uint64_t(m_servers.size())
             << uint64_t(m_spaces.size())
             << uint64_t(transfers_subset.size());

@@ -71,8 +71,6 @@ class daemon
                 po6::net::location bind_to,
                 bool set_coordinator,
                 po6::net::hostname coordinator,
-                bool set_failover,
-                po6::net::hostname failover_coordinator,
                 unsigned threads);
 
     private:
@@ -104,6 +102,7 @@ class daemon
         void process_xfer_ack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_backup(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_perf_counters(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void reconfigure_wan(configuration old_config, configuration new_config);
 
     private:
         void collect_stats();
@@ -130,7 +129,7 @@ class daemon
         e::garbage_collector m_gc;
         e::garbage_collector::thread_state m_gc_ts;
         coordinator_link_wrapper m_coord;
-        wan_manager m_wan;
+        wan_manager* m_wan;
         std::string m_data_dir;
         datalayer m_data;
         communication m_comm;
@@ -142,6 +141,7 @@ class daemon
         po6::threads::mutex m_protect_pause;
         po6::threads::cond m_can_pause;
         bool m_paused;
+        bool m_wan_reconfigured;
         // counters
         performance_counter m_perf_req_get;
         performance_counter m_perf_req_get_partial;

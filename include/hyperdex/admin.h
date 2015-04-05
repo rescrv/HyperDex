@@ -91,6 +91,23 @@ hyperdex_admin_read_only(struct hyperdex_admin* admin,
                          enum hyperdex_admin_returncode* status);
 
 int64_t
+hyperdex_admin_set_primary_cluster(struct hyperdex_admin* admin,
+                                   int prim,
+                                   enum hyperdex_admin_returncode* status);
+
+int64_t
+hyperdex_admin_set_backup_cluster(struct hyperdex_admin* admin,
+                                  const char* host,
+                                  const int64_t port,
+                                  enum hyperdex_admin_returncode* status);
+
+int64_t
+hyperdex_admin_set_backup_affinity(struct hyperdex_admin* admin,
+                                      const char* host,
+                                      const int64_t port,
+                                      enum hyperdex_admin_returncode* status);
+
+int64_t
 hyperdex_admin_wait_until_stable(struct hyperdex_admin* admin,
                                  enum hyperdex_admin_returncode* status);
 

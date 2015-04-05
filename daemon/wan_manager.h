@@ -108,11 +108,13 @@ class wan_manager
     public:
         void kick();
         void wake_one();
-        bool setup();
+        bool setup(const char* host, int64_t port);
         void teardown();
+        void set_teardown();
         void pause();
         void unpause();
         void reconfigure(configuration *config);
+        void rm_all_spaces();
         void handle_handshake(const server_id& from,
                               const virtual_server_id& vfrom,
                               const virtual_server_id& vto,
@@ -192,6 +194,7 @@ class wan_manager
         bool m_is_backup;
         bool m_poller_started;
         bool m_teardown;
+        bool m_manual_teardown;
         std::queue<std::pair<int64_t, replicant_returncode> > m_deferred;
         bool m_locked;
         bool m_kill;

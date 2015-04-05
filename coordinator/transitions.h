@@ -58,6 +58,9 @@ hyperdex_coordinator_snapshot(struct replicant_state_machine_context* ctx,
 TRANSITION(init);
 
 TRANSITION(read_only);
+TRANSITION(set_backup_cluster);
+TRANSITION(set_backup_affinity);
+TRANSITION(set_primary_cluster);
 TRANSITION(fault_tolerance);
 
 TRANSITION(config_get);
