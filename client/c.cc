@@ -151,13 +151,6 @@ hyperdex_client_destroy(hyperdex_client* client)
     delete reinterpret_cast<hyperdex::client*>(client);
 }
 
-HYPERDEX_API void
-hyperdex_client_set_type_conversion(hyperdex_client* _cl, bool enabled)
-{
-    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
-    cl->set_type_conversion(enabled);
-}
-
 HYPERDEX_API const char*
 hyperdex_client_error_message(hyperdex_client* _cl)
 {
@@ -274,6 +267,60 @@ hyperdex_client_set_auth_context(struct hyperdex_client* _cl,
     cl->set_auth_context(macaroons, macaroons_sz);
 }
 
+HYPERDEX_API struct hyperdex_client_microtransaction*
+hyperdex_client_uxact_init(struct hyperdex_client* _cl,
+                      const char* space,
+                      enum hyperdex_client_returncode *status)
+{
+
+    SIGNAL_PROTECT_ERR(NULL);
+    hyperdex::client *cl = reinterpret_cast<hyperdex::client*>(_cl);
+    hyperdex::microtransaction *tx = cl->uxact_init(space, status);
+
+    return reinterpret_cast<struct hyperdex_client_microtransaction*>(tx);
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
+    hyperdex_client_returncode *status = tx->status;
+
+    C_WRAP_EXCEPT(
+    return cl->uxact_commit(tx, key, key_sz);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_group_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const hyperdex_client_attribute_check *chks, size_t chks_sz,
+                                uint64_t *count)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
+    hyperdex_client_returncode *status = tx->status;
+
+    C_WRAP_EXCEPT(
+    return cl->uxact_group_commit(tx, chks, chks_sz, count);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_cond_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz,
+                                const hyperdex_client_attribute_check *chks, size_t chks_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
+    hyperdex_client_returncode *status = tx->status;
+
+    C_WRAP_EXCEPT(
+    return cl->uxact_cond_commit(tx, key, key_sz, chks, chks_sz);
+    );
+}
+
 HYPERDEX_API int64_t
 hyperdex_client_get(struct hyperdex_client* _cl,
                     const char* space,
@@ -310,6 +357,20 @@ hyperdex_client_put(struct hyperdex_client* _cl,
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(put), strlen(XSTR(put)));
     return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_put(struct hyperdex_client* _cl,
+                          struct hyperdex_client_microtransaction* microtransaction,
+                          const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(put), strlen(XSTR(put)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
     );
 }
 
@@ -428,6 +489,20 @@ hyperdex_client_atomic_add(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_uxact_atomic_add(struct hyperdex_client* _cl,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_add), strlen(XSTR(atomic_add)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_cond_atomic_add(struct hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -468,6 +543,20 @@ hyperdex_client_atomic_sub(struct hyperdex_client* _cl,
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_sub), strlen(XSTR(atomic_sub)));
     return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_atomic_sub(struct hyperdex_client* _cl,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_sub), strlen(XSTR(atomic_sub)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
     );
 }
 
@@ -516,6 +605,20 @@ hyperdex_client_atomic_mul(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_uxact_atomic_mul(struct hyperdex_client* _cl,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_mul), strlen(XSTR(atomic_mul)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_cond_atomic_mul(struct hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -556,6 +659,20 @@ hyperdex_client_atomic_div(struct hyperdex_client* _cl,
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_div), strlen(XSTR(atomic_div)));
     return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_atomic_div(struct hyperdex_client* _cl,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_div), strlen(XSTR(atomic_div)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
     );
 }
 
@@ -648,6 +765,20 @@ hyperdex_client_atomic_and(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_uxact_atomic_and(struct hyperdex_client* _cl,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_and), strlen(XSTR(atomic_and)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_cond_atomic_and(struct hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -688,6 +819,20 @@ hyperdex_client_atomic_or(struct hyperdex_client* _cl,
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_or), strlen(XSTR(atomic_or)));
     return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_atomic_or(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction* microtransaction,
+                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_or), strlen(XSTR(atomic_or)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
     );
 }
 
@@ -868,6 +1013,20 @@ hyperdex_client_string_prepend(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_uxact_string_prepend(struct hyperdex_client* _cl,
+                                     struct hyperdex_client_microtransaction* microtransaction,
+                                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_prepend), strlen(XSTR(string_prepend)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_cond_string_prepend(struct hyperdex_client* _cl,
                                     const char* space,
                                     const char* key, size_t key_sz,
@@ -908,6 +1067,20 @@ hyperdex_client_string_append(struct hyperdex_client* _cl,
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_append), strlen(XSTR(string_append)));
     return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_string_append(struct hyperdex_client* _cl,
+                                    struct hyperdex_client_microtransaction* microtransaction,
+                                    const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_append), strlen(XSTR(string_append)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
     );
 }
 
@@ -956,6 +1129,20 @@ hyperdex_client_list_lpush(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_uxact_list_lpush(struct hyperdex_client* _cl,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(list_lpush), strlen(XSTR(list_lpush)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_cond_list_lpush(struct hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -996,6 +1183,20 @@ hyperdex_client_list_rpush(struct hyperdex_client* _cl,
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(list_rpush), strlen(XSTR(list_rpush)));
     return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_list_rpush(struct hyperdex_client* _cl,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(list_rpush), strlen(XSTR(list_rpush)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
     );
 }
 
@@ -1220,6 +1421,20 @@ hyperdex_client_document_rename(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_uxact_document_rename(struct hyperdex_client* _cl,
+                                      struct hyperdex_client_microtransaction* microtransaction,
+                                      const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_rename), strlen(XSTR(document_rename)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_cond_document_rename(struct hyperdex_client* _cl,
                                      const char* space,
                                      const char* key, size_t key_sz,
@@ -1260,6 +1475,20 @@ hyperdex_client_document_unset(struct hyperdex_client* _cl,
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_unset), strlen(XSTR(document_unset)));
     return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_document_unset(struct hyperdex_client* _cl,
+                                     struct hyperdex_client_microtransaction* microtransaction,
+                                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_unset), strlen(XSTR(document_unset)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
     );
 }
 
@@ -1866,6 +2095,20 @@ hyperdex_client_group_map_atomic_min(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
+hyperdex_client_uxact_atomic_min(struct hyperdex_client* _cl,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_min), strlen(XSTR(atomic_min)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_client_map_atomic_max(struct hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
@@ -1906,6 +2149,20 @@ hyperdex_client_group_map_atomic_max(struct hyperdex_client* _cl,
     const hyperdex_client_keyop_info* opinfo;
     opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_max), strlen(XSTR(group_map_atomic_max)));
     return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_atomic_max(struct hyperdex_client* _cl,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
+    hyperdex_client_returncode *status = tx->status;
+    C_WRAP_EXCEPT(
+    const hyperdex_client_keyop_info* opinfo;
+    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_max), strlen(XSTR(atomic_max)));
+    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
     );
 }
 
@@ -1985,6 +2242,13 @@ hyperdex_client_block(hyperdex_client* _cl, int timeout)
     C_WRAP_EXCEPT(
     return cl->block(timeout);
     );
+}
+
+HYPERDEX_API void
+hyperdex_client_set_type_conversion(hyperdex_client* _cl, bool enabled)
+{
+    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
+    cl->set_type_conversion(enabled);
 }
 
 #ifdef __cplusplus

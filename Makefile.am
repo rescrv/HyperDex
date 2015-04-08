@@ -624,6 +624,7 @@ EXTRA_DIST += bindings/java.py
 EXTRA_DIST += bindings/java/org/hyperdex/client/ByteString.java
 EXTRA_DIST += bindings/java/org_hyperdex_client_Client.definitions.c
 EXTRA_DIST += bindings/java/org/hyperdex/client/Client.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/Document.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Deferred.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/GreaterEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/GreaterThan.java
@@ -634,6 +635,8 @@ EXTRA_DIST += bindings/java/org/hyperdex/client/LengthGreaterEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LengthLessEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LessEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LessThan.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/Microtransaction.java
+EXTRA_DIST += bindings/java/org_hyperdex_client_Microtransaction.definitions.c
 EXTRA_DIST += bindings/java/org/hyperdex/client/Operation.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Predicate.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Range.java
@@ -642,6 +645,7 @@ EXTRA_DIST += bindings/java/org/hyperdex/ycsb/HyperDex.java
 EXTRA_DIST += test/java/.exists
 
 # Client
+noinst_HEADERS += bindings/java/client-util.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Client.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Deferred.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_GreaterEqual.h
@@ -656,6 +660,7 @@ noinst_HEADERS += bindings/java/org_hyperdex_client_Range.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Regex.h
 
 libhyperdex_client_java_la_SOURCES =
+libhyperdex_client_java_la_SOURCES += bindings/java/org_hyperdex_client_Microtransaction.c
 libhyperdex_client_java_la_SOURCES += bindings/java/org_hyperdex_client_Client.c
 libhyperdex_client_java_la_CPPFLAGS = $(JNI_CPPFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)
 libhyperdex_client_java_la_CFLAGS = $(AM_CFLAGS) $(CFLAGS) -Wmissing-prototypes
@@ -870,6 +875,7 @@ python_wrappers += test/sh/bindings.python.DataTypeString.sh
 python_wrappers += test/sh/bindings.python.GroupAtomic.sh
 python_wrappers += test/sh/bindings.python.HyperMongo.sh
 python_wrappers += test/sh/bindings.python.LengthString.sh
+python_wrappers += test/sh/bindings.python.Microtransactions.sh
 python_wrappers += test/sh/bindings.python.MultiAttribute.sh
 python_wrappers += test/sh/bindings.python.RangeSearchInt.sh
 python_wrappers += test/sh/bindings.python.RangeSearchString.sh
@@ -880,6 +886,7 @@ java_wrappers =
 java_wrappers += test/sh/bindings.java.BasicSearch.sh
 java_wrappers += test/sh/bindings.java.Basic.sh
 java_wrappers += test/sh/bindings.java.CondPut.sh
+java_wrappers += test/sh/bindings.java.DataTypeDocument.sh
 java_wrappers += test/sh/bindings.java.DataTypeFloat.sh
 java_wrappers += test/sh/bindings.java.DataTypeInt.sh
 java_wrappers += test/sh/bindings.java.DataTypeListFloat.sh
@@ -899,6 +906,8 @@ java_wrappers += test/sh/bindings.java.DataTypeSetInt.sh
 java_wrappers += test/sh/bindings.java.DataTypeSetString.sh
 java_wrappers += test/sh/bindings.java.DataTypeString.sh
 java_wrappers += test/sh/bindings.java.LengthString.sh
+java_wrappers += test/sh/bindings.java.Microtransactions.sh
+java_wrappers += test/sh/bindings.java.MultitypeMicrotransactions.sh
 java_wrappers += test/sh/bindings.java.MultiAttribute.sh
 java_wrappers += test/sh/bindings.java.RangeSearchInt.sh
 java_wrappers += test/sh/bindings.java.RangeSearchString.sh
@@ -968,10 +977,6 @@ if ENABLE_CLIENT
 if ENABLE_PYTHON_BINDINGS
 TESTS += $(doctest_wrappers)
 
-if ENABLE_TIME_CONSUMING_TESTS
-TESTS += $(stress_wrappers)
-endif
-
 TESTS += $(python_wrappers)
 check_PROGRAMS += bindings/python/hyperdex/admin.so
 check_PROGRAMS += bindings/python/hyperdex/client.so
@@ -982,6 +987,10 @@ endif
 
 if ENABLE_RUBY_BINDINGS
 TESTS += $(ruby_wrappers)
+endif
+
+if ENABLE_TIME_CONSUMING_TESTS
+TESTS += $(stress_wrappers)
 endif
 
 endif # ENABLE_PYTHON_BINDINGS
@@ -1025,6 +1034,7 @@ EXTRA_DIST += test/python/GroupAtomic.py
 EXTRA_DIST += test/python/HyperMongo.py
 EXTRA_DIST += test/python/LengthString.py
 EXTRA_DIST += test/python/MultiAttribute.py
+EXTRA_DIST += test/python/Microtransactions.py
 EXTRA_DIST += test/python/RangeSearchInt.py
 EXTRA_DIST += test/python/RangeSearchString.py
 EXTRA_DIST += test/python/RegexSearch.py
@@ -1032,6 +1042,7 @@ EXTRA_DIST += test/python/testlib.py
 EXTRA_DIST += test/java/Basic.java
 EXTRA_DIST += test/java/BasicSearch.java
 EXTRA_DIST += test/java/CondPut.java
+EXTRA_DIST += test/java/DataTypeDocument.java
 EXTRA_DIST += test/java/DataTypeFloat.java
 EXTRA_DIST += test/java/DataTypeInt.java
 EXTRA_DIST += test/java/DataTypeListFloat.java
@@ -1051,6 +1062,8 @@ EXTRA_DIST += test/java/DataTypeSetInt.java
 EXTRA_DIST += test/java/DataTypeSetString.java
 EXTRA_DIST += test/java/DataTypeString.java
 EXTRA_DIST += test/java/LengthString.java
+EXTRA_DIST += test/java/Microtransactions.java
+EXTRA_DIST += test/java/MultitypeMicrotransactions.java
 EXTRA_DIST += test/java/MultiAttribute.java
 EXTRA_DIST += test/java/RangeSearchInt.java
 EXTRA_DIST += test/java/RangeSearchString.java

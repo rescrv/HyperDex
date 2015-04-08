@@ -1,5 +1,5 @@
 /* Copyright (c) 2011-2013, Nick Tolomiczenko
- * Copyright (c) 2013, Cornell University
+ * Copyright (c) 2013-2015, Cornell University
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,16 @@ public class ByteString
     {
         this.bytes = str.getBytes(encoding);
     }
+    
+    public ByteString(String str)
+    {
+        try {
+            this.bytes = str.getBytes(defaultEncoding);
+        } catch(UnsupportedEncodingException e) {
+            // This should never happen. 
+            throw new RuntimeException(e.getMessage()); 
+        }
+    }
 
     public static ByteString wrap(byte[] bytes)
     {
@@ -90,7 +100,8 @@ public class ByteString
     public String toString(String encoding)
         throws UnsupportedEncodingException
     {
-        return decode(encoding);
+        // Remove trailing NULL character
+        return decode(encoding).replace("\0", "");
     }
 
     public static String toString(byte[] bytes, String encoding)
@@ -154,26 +165,13 @@ public class ByteString
         return compare(bytes,((ByteString)o).getBytes());
     }
 
-    public boolean equals(String s)
-    {
-        try
-        {
-            return Arrays.equals(bytes, (new ByteString(s, defaultEncoding)).bytes);
-        }
-        catch(UnsupportedEncodingException e)
-        {
-            return false;
-        }
-    }
-
     public boolean equals(Object o)
     {
-        if (o instanceof String)
-        {
-            return this.equals((String) o);
+        if(o instanceof ByteString) {
+            return Arrays.equals(bytes, ((ByteString)o).getBytes());
+        } else {
+            return false;
         }
-
-        return Arrays.equals(bytes, ((ByteString)o).getBytes());
     }
 
     public int hashCode()

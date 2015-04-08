@@ -24,6 +24,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+class MicrotransactionCall : pass
 class AsyncCall: pass
 class SyncCall: pass
 class NoFailCall: pass
@@ -33,6 +34,8 @@ class StructClient(object):
     args = (('struct hyperdex_client*', 'client'),)
 class StructAdmin(object):
     args = (('struct hyperdex_admin*', 'admin'),)
+class Microtransaction(object):
+    args = (('struct hyperdex_client_microtransaction*', 'microtransaction'),)
 class SpaceName(object):
     args = (('const char*', 'space'),)
 class SpaceNameSource(object):
@@ -108,6 +111,7 @@ Client = [
     Method('get', AsyncCall, (SpaceName, Key), (Status, Attributes)),
     Method('get_partial', AsyncCall, (SpaceName, Key, AttributeNames), (Status, Attributes)),
     Method('put', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_put', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_put', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('cond_put_or_create', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_put', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
@@ -116,24 +120,30 @@ Client = [
     Method('cond_del', AsyncCall, (SpaceName, Key, Predicates), (Status,)),
     Method('group_del', AsyncCall, (SpaceName, Predicates), (Status, Count)),
     Method('atomic_add', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_atomic_add', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_atomic_add', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_atomic_add', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('atomic_sub', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_atomic_sub', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_atomic_sub', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_atomic_sub', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('atomic_mul', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_atomic_mul', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_atomic_mul', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_atomic_mul', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('atomic_div', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_atomic_div', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_atomic_div', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_atomic_div', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('atomic_mod', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
     Method('cond_atomic_mod', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_atomic_mod', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('atomic_and', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_atomic_and', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_atomic_and', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_atomic_and', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('atomic_or', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_atomic_or', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_atomic_or', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_atomic_or', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('atomic_xor', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
@@ -146,15 +156,19 @@ Client = [
     Method('cond_atomic_max', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_atomic_max', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('string_prepend', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_string_prepend', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_string_prepend', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_string_prepend', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('string_append', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_string_append', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_string_append', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_string_append', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('list_lpush', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_list_lpush', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_list_lpush', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_list_lpush', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('list_rpush', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_list_rpush', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_list_rpush', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_list_rpush', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('set_add', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
@@ -170,9 +184,11 @@ Client = [
     Method('cond_set_union', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_set_union', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('document_rename', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_document_rename', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_document_rename', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_document_rename', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('document_unset', AsyncCall, (SpaceName, Key, Attributes), (Status,)),
+    Method('uxact_document_unset', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('cond_document_unset', AsyncCall, (SpaceName, Key, Predicates, Attributes), (Status,)),
     Method('group_document_unset', AsyncCall, (SpaceName, Predicates, Attributes), (Status, Count)),
     Method('map_add', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
@@ -214,9 +230,11 @@ Client = [
     Method('map_atomic_min', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_min', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
     Method('group_map_atomic_min', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
+    Method('uxact_atomic_min', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('map_atomic_max', AsyncCall, (SpaceName, Key, MapAttributes), (Status,)),
     Method('cond_map_atomic_max', AsyncCall, (SpaceName, Key, Predicates, MapAttributes), (Status,)),
     Method('group_map_atomic_max', AsyncCall, (SpaceName, Predicates, MapAttributes), (Status, Count)),
+    Method('uxact_atomic_max', MicrotransactionCall, (Microtransaction, Attributes), ()),
     Method('search', Iterator, (SpaceName, Predicates), (Status, Attributes)),
     Method('search_describe', AsyncCall, (SpaceName, Predicates), (Status, Description)),
     Method('sorted_search', Iterator, (SpaceName, Predicates, SortBy, Limit, MaxMin), (Status, Attributes)),

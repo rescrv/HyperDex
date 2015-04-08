@@ -41,6 +41,7 @@ extern "C"
 #endif /* __cplusplus */
 
 struct hyperdex_client;
+struct hyperdex_client_microtransaction;
 
 struct hyperdex_client_attribute
 {
@@ -121,6 +122,28 @@ void
 hyperdex_client_set_auth_context(struct hyperdex_client* client,
                                  const char** macaroons, size_t macaroons_sz);
 
+struct hyperdex_client_microtransaction*
+hyperdex_client_uxact_init(struct hyperdex_client* _cl,
+                      const char* space,
+                      enum hyperdex_client_returncode *status);
+
+int64_t
+hyperdex_client_uxact_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz);
+                                
+int64_t
+hyperdex_client_uxact_group_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const struct hyperdex_client_attribute_check *chks, size_t chks_sz,
+                                uint64_t *count);
+                                
+int64_t
+hyperdex_client_uxact_cond_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz,
+                                const struct hyperdex_client_attribute_check *chks, size_t chks_sz);
+
 int64_t
 hyperdex_client_get(struct hyperdex_client* client,
                     const char* space,
@@ -142,6 +165,11 @@ hyperdex_client_put(struct hyperdex_client* client,
                     const char* key, size_t key_sz,
                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
                     enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_uxact_put(struct hyperdex_client* client,
+                          struct hyperdex_client_microtransaction* microtransaction,
+                          const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 
 int64_t
 hyperdex_client_cond_put(struct hyperdex_client* client,
@@ -202,6 +230,11 @@ hyperdex_client_atomic_add(struct hyperdex_client* client,
                            enum hyperdex_client_returncode* status);
 
 int64_t
+hyperdex_client_uxact_atomic_add(struct hyperdex_client* client,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
+
+int64_t
 hyperdex_client_cond_atomic_add(struct hyperdex_client* client,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -223,6 +256,11 @@ hyperdex_client_atomic_sub(struct hyperdex_client* client,
                            const char* key, size_t key_sz,
                            const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
                            enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_uxact_atomic_sub(struct hyperdex_client* client,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 
 int64_t
 hyperdex_client_cond_atomic_sub(struct hyperdex_client* client,
@@ -248,6 +286,11 @@ hyperdex_client_atomic_mul(struct hyperdex_client* client,
                            enum hyperdex_client_returncode* status);
 
 int64_t
+hyperdex_client_uxact_atomic_mul(struct hyperdex_client* client,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
+
+int64_t
 hyperdex_client_cond_atomic_mul(struct hyperdex_client* client,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -269,6 +312,11 @@ hyperdex_client_atomic_div(struct hyperdex_client* client,
                            const char* key, size_t key_sz,
                            const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
                            enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_uxact_atomic_div(struct hyperdex_client* client,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 
 int64_t
 hyperdex_client_cond_atomic_div(struct hyperdex_client* client,
@@ -317,6 +365,11 @@ hyperdex_client_atomic_and(struct hyperdex_client* client,
                            enum hyperdex_client_returncode* status);
 
 int64_t
+hyperdex_client_uxact_atomic_and(struct hyperdex_client* client,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
+
+int64_t
 hyperdex_client_cond_atomic_and(struct hyperdex_client* client,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -338,6 +391,11 @@ hyperdex_client_atomic_or(struct hyperdex_client* client,
                           const char* key, size_t key_sz,
                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
                           enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_uxact_atomic_or(struct hyperdex_client* client,
+                                struct hyperdex_client_microtransaction* microtransaction,
+                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 
 int64_t
 hyperdex_client_cond_atomic_or(struct hyperdex_client* client,
@@ -432,6 +490,11 @@ hyperdex_client_string_prepend(struct hyperdex_client* client,
                                enum hyperdex_client_returncode* status);
 
 int64_t
+hyperdex_client_uxact_string_prepend(struct hyperdex_client* client,
+                                     struct hyperdex_client_microtransaction* microtransaction,
+                                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
+
+int64_t
 hyperdex_client_cond_string_prepend(struct hyperdex_client* client,
                                     const char* space,
                                     const char* key, size_t key_sz,
@@ -453,6 +516,11 @@ hyperdex_client_string_append(struct hyperdex_client* client,
                               const char* key, size_t key_sz,
                               const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
                               enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_uxact_string_append(struct hyperdex_client* client,
+                                    struct hyperdex_client_microtransaction* microtransaction,
+                                    const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 
 int64_t
 hyperdex_client_cond_string_append(struct hyperdex_client* client,
@@ -478,6 +546,11 @@ hyperdex_client_list_lpush(struct hyperdex_client* client,
                            enum hyperdex_client_returncode* status);
 
 int64_t
+hyperdex_client_uxact_list_lpush(struct hyperdex_client* client,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
+
+int64_t
 hyperdex_client_cond_list_lpush(struct hyperdex_client* client,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -499,6 +572,11 @@ hyperdex_client_list_rpush(struct hyperdex_client* client,
                            const char* key, size_t key_sz,
                            const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
                            enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_uxact_list_rpush(struct hyperdex_client* client,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 
 int64_t
 hyperdex_client_cond_list_rpush(struct hyperdex_client* client,
@@ -616,6 +694,11 @@ hyperdex_client_document_rename(struct hyperdex_client* client,
                                 enum hyperdex_client_returncode* status);
 
 int64_t
+hyperdex_client_uxact_document_rename(struct hyperdex_client* client,
+                                      struct hyperdex_client_microtransaction* microtransaction,
+                                      const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
+
+int64_t
 hyperdex_client_cond_document_rename(struct hyperdex_client* client,
                                      const char* space,
                                      const char* key, size_t key_sz,
@@ -637,6 +720,11 @@ hyperdex_client_document_unset(struct hyperdex_client* client,
                                const char* key, size_t key_sz,
                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
                                enum hyperdex_client_returncode* status);
+
+int64_t
+hyperdex_client_uxact_document_unset(struct hyperdex_client* client,
+                                     struct hyperdex_client_microtransaction* microtransaction,
+                                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 
 int64_t
 hyperdex_client_cond_document_unset(struct hyperdex_client* client,
@@ -954,6 +1042,11 @@ hyperdex_client_group_map_atomic_min(struct hyperdex_client* client,
                                      uint64_t* count);
 
 int64_t
+hyperdex_client_uxact_atomic_min(struct hyperdex_client* client,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
+
+int64_t
 hyperdex_client_map_atomic_max(struct hyperdex_client* client,
                                const char* space,
                                const char* key, size_t key_sz,
@@ -975,6 +1068,11 @@ hyperdex_client_group_map_atomic_max(struct hyperdex_client* client,
                                      const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                      enum hyperdex_client_returncode* status,
                                      uint64_t* count);
+
+int64_t
+hyperdex_client_uxact_atomic_max(struct hyperdex_client* client,
+                                 struct hyperdex_client_microtransaction* microtransaction,
+                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz);
 
 int64_t
 hyperdex_client_search(struct hyperdex_client* client,

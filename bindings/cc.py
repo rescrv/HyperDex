@@ -79,7 +79,8 @@ def generate_client_header():
     fout = open(os.path.join(BASE, 'include/hyperdex/client.hpp'), 'w')
     fout.write(bindings.copyright('/', '2013-2015'))
     fout.write(bindings.cc.CLIENT_HEADER_HEAD)
-    fout.write('\n'.join([generate_func(c, 'client') for c in bindings.Client]))
+    fout.write('\n'.join([generate_func(c, 'client') for c in bindings.Client
+        if not c.form is bindings.MicrotransactionCall]))
     fout.write(bindings.cc.CLIENT_HEADER_FOOT)
 
 if __name__ == '__main__':

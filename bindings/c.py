@@ -103,7 +103,7 @@ def generate_enum(prefix, E):
 ################################ Code Generation ###############################
 
 def generate_func(x, lib, struct=None, sep='\n', namesep='_', padd=None):
-    assert x.form in (bindings.AsyncCall, bindings.SyncCall,
+    assert x.form in (bindings.AsyncCall, bindings.SyncCall, bindings.MicrotransactionCall,
                       bindings.NoFailCall, bindings.Iterator)
     struct = struct or lib
     return_type = 'int64_t'
@@ -133,7 +133,7 @@ def generate_func_ptr(x, lib):
     return fptr
 
 def generate_client_c_wrapper(x):
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
+    assert x.form in (bindings.AsyncCall, bindings.Iterator, bindings.MicrotransactionCall)
     func = 'HYPERDEX_API int64_t\nhyperdex_client_%s(struct hyperdex_client* _cl' % x.name
     padd = ' ' * (len('hyperdex_client_') + len(x.name) + 1)
     for arg in x.args_in:
@@ -143,25 +143,12 @@ def generate_client_c_wrapper(x):
         func += ',\n' + padd
         func += ', '.join([p + '* ' + n for p, n in arg.args])
     func += ')\n{\n'
-    func += '    C_WRAP_EXCEPT(\n'
-    if x.name == 'get':
-        func += '    return cl->get(space, key, key_sz, status, attrs, attrs_sz);\n'
-    elif x.name == 'get_partial':
-        func += '    return cl->get_partial(space, key, key_sz, attrnames, attrnames_sz, status, attrs, attrs_sz);\n'
-    elif x.name == 'search':
-        func += '    return cl->search(space, checks, checks_sz, status, attrs, attrs_sz);\n'
-    elif x.name == 'search_describe':
-        func += '    return cl->search_describe(space, checks, checks_sz, status, description);\n'
-    elif x.name == 'sorted_search':
-        func += '    return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maxmin, status, attrs, attrs_sz);\n'
-    elif x.name == 'count':
-        func += '    return cl->count(space, checks, checks_sz, status, count);\n'
-    elif x.name.startswith('group_'):
-        args = ('opinfo', 'space', )
-        if bindings.Predicates in x.args_in:
-            args += ('checks', 'checks_sz')
-        else:
-            args += ('NULL', '0')
+    
+    if x.name.startswith('uxact_'):
+        func += '    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);\n'
+        func += '    hyperdex_client_returncode *status = tx->status;\n'
+        func += '    C_WRAP_EXCEPT(\n'
+        args = ('tx',  'opinfo')
         if bindings.Attributes in x.args_in:
             args += ('attrs', 'attrs_sz')
         else:
@@ -170,33 +157,67 @@ def generate_client_c_wrapper(x):
             args += ('mapattrs', 'mapattrs_sz')
         else:
             args += ('NULL', '0')
-        args += ('status', 'count')
         func += '    const hyperdex_client_keyop_info* opinfo;\n'
-        func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
-        func += '    return cl->perform_group_funcall('
+        func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name.replace('uxact_', ''))
+        func += '    return cl->uxact_add_funcall('
         func += ', '.join([a for a in args])
         func += ');\n'
+        func += '    );\n'
     else:
-        args = ('opinfo', 'space', 'key', 'key_sz')
-        if bindings.Predicates in x.args_in:
-            args += ('checks', 'checks_sz')
+        func += '    C_WRAP_EXCEPT(\n'
+        if x.name == 'get':
+            func += '    return cl->get(space, key, key_sz, status, attrs, attrs_sz);\n'
+        elif x.name == 'get_partial':
+            func += '    return cl->get_partial(space, key, key_sz, attrnames, attrnames_sz, status, attrs, attrs_sz);\n'
+        elif x.name == 'search':
+            func += '    return cl->search(space, checks, checks_sz, status, attrs, attrs_sz);\n'
+        elif x.name == 'search_describe':
+            func += '    return cl->search_describe(space, checks, checks_sz, status, description);\n'
+        elif x.name == 'sorted_search':
+            func += '    return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maxmin, status, attrs, attrs_sz);\n'
+        elif x.name == 'count':
+            func += '    return cl->count(space, checks, checks_sz, status, count);\n'
+        elif x.name.startswith('group_'):
+            args = ('opinfo', 'space', )
+            if bindings.Predicates in x.args_in:
+                args += ('checks', 'checks_sz')
+            else:
+                args += ('NULL', '0')
+            if bindings.Attributes in x.args_in:
+                args += ('attrs', 'attrs_sz')
+            else:
+                args += ('NULL', '0')
+            if bindings.MapAttributes in x.args_in:
+                args += ('mapattrs', 'mapattrs_sz')
+            else:
+                args += ('NULL', '0')
+            args += ('status', 'count')
+            func += '    const hyperdex_client_keyop_info* opinfo;\n'
+            func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
+            func += '    return cl->perform_group_funcall('
+            func += ', '.join([a for a in args])
+            func += ');\n'
         else:
-            args += ('NULL', '0')
-        if bindings.Attributes in x.args_in:
-            args += ('attrs', 'attrs_sz')
-        else:
-            args += ('NULL', '0')
-        if bindings.MapAttributes in x.args_in:
-            args += ('mapattrs', 'mapattrs_sz')
-        else:
-            args += ('NULL', '0')
-        args += ('status',)
-        func += '    const hyperdex_client_keyop_info* opinfo;\n'
-        func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
-        func += '    return cl->perform_funcall('
-        func += ', '.join([a for a in args])
-        func += ');\n'
-    func += '    );\n'
+            args = ('opinfo', 'space', 'key', 'key_sz')
+            if bindings.Predicates in x.args_in:
+                args += ('checks', 'checks_sz')
+            else:
+                args += ('NULL', '0')
+            if bindings.Attributes in x.args_in:
+                args += ('attrs', 'attrs_sz')
+            else:
+                args += ('NULL', '0')
+            if bindings.MapAttributes in x.args_in:
+                args += ('mapattrs', 'mapattrs_sz')
+            else:
+                args += ('NULL', '0')
+            args += ('status',)
+            func += '    const hyperdex_client_keyop_info* opinfo;\n'
+            func += '    opinfo = hyperdex_client_keyop_info_lookup(XSTR({0}), strlen(XSTR({0})));\n'.format(x.name)
+            func += '    return cl->perform_funcall('
+            func += ', '.join([a for a in args])
+            func += ');\n'
+        func += '    );\n'
     func += '}\n'
     return func
 
@@ -333,6 +354,7 @@ extern "C"
 #endif /* __cplusplus */
 
 struct hyperdex_client;
+struct hyperdex_client_microtransaction;
 
 struct hyperdex_client_attribute
 {
@@ -384,6 +406,28 @@ hyperdex_client_clear_auth_context(struct hyperdex_client* client);
 void
 hyperdex_client_set_auth_context(struct hyperdex_client* client,
                                  const char** macaroons, size_t macaroons_sz);
+
+struct hyperdex_client_microtransaction*
+hyperdex_client_uxact_init(struct hyperdex_client* _cl,
+                      const char* space,
+                      enum hyperdex_client_returncode *status);
+
+int64_t
+hyperdex_client_uxact_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz);
+                                
+int64_t
+hyperdex_client_uxact_group_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const struct hyperdex_client_attribute_check *chks, size_t chks_sz,
+                                uint64_t *count);
+                                
+int64_t
+hyperdex_client_uxact_cond_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz,
+                                const struct hyperdex_client_attribute_check *chks, size_t chks_sz);
 
 '''
 
@@ -674,6 +718,60 @@ hyperdex_client_set_auth_context(struct hyperdex_client* _cl,
     cl->set_auth_context(macaroons, macaroons_sz);
 }
 
+HYPERDEX_API struct hyperdex_client_microtransaction*
+hyperdex_client_uxact_init(struct hyperdex_client* _cl,
+                      const char* space,
+                      enum hyperdex_client_returncode *status)
+{
+
+    SIGNAL_PROTECT_ERR(NULL);
+    hyperdex::client *cl = reinterpret_cast<hyperdex::client*>(_cl);
+    hyperdex::microtransaction *tx = cl->uxact_init(space, status);
+
+    return reinterpret_cast<struct hyperdex_client_microtransaction*>(tx);
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
+    hyperdex_client_returncode *status = tx->status;
+
+    C_WRAP_EXCEPT(
+    return cl->uxact_commit(tx, key, key_sz);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_group_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const hyperdex_client_attribute_check *chks, size_t chks_sz,
+                                uint64_t *count)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
+    hyperdex_client_returncode *status = tx->status;
+
+    C_WRAP_EXCEPT(
+    return cl->uxact_group_commit(tx, chks, chks_sz, count);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_uxact_cond_commit(struct hyperdex_client* _cl,
+                                struct hyperdex_client_microtransaction *transaction,
+                                const char* key, size_t key_sz,
+                                const hyperdex_client_attribute_check *chks, size_t chks_sz)
+{
+    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
+    hyperdex_client_returncode *status = tx->status;
+
+    C_WRAP_EXCEPT(
+    return cl->uxact_cond_commit(tx, key, key_sz, chks, chks_sz);
+    );
+}
+
 '''
 
 CLIENT_WRAPPER_FOOT = '''
@@ -702,6 +800,13 @@ hyperdex_client_block(hyperdex_client* _cl, int timeout)
     C_WRAP_EXCEPT(
     return cl->block(timeout);
     );
+}
+
+HYPERDEX_API void
+hyperdex_client_set_type_conversion(hyperdex_client* _cl, bool enabled)
+{
+    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
+    cl->set_type_conversion(enabled);
 }
 
 #ifdef __cplusplus

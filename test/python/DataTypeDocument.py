@@ -10,7 +10,12 @@ c = hyperdex.client.Client(sys.argv[1], int(sys.argv[2]))
 
 def to_objectset(xs):
     return set([frozenset(x.items()) for x in xs])
+    
+# Empty Document
+assertTrue(c.put('kv', 'k', {}))
+assertEquals(c.get('kv', 'k')['v'], Document({}))
 
+# Basic Stuff
 assertTrue(c.put('kv', 'k', {'v': Document({})}))
 assertEquals(c.get('kv', 'k')['v'], Document({}))
 assertTrue(c.put('kv', 'k',  {'v': Document({'a': 'b', 'c': {'d' : 1, 'e': 'f', 'g': -2 }})}))
@@ -77,6 +82,8 @@ assertTrue(c.string_prepend('kv', 'k6',  {'v.i.j.k' : 'xyz'}))
 assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 , 'c' : {'b' :1}, 'i' : {'j' : {'k' : 'xyz'}}}))
 assertFalse(c.string_prepend('kv', 'k6',  {'v.i.j' : 'xyz'}))
 assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 , 'c' : {'b' :1}, 'i' : {'j' : {'k' : 'xyz'}}}))
+assertTrue(c.put('kv', 'k6', {'v.d' : Document({'q' : 1})}))
+assertEquals(c.get('kv', 'k6')['v'], Document({ 'a': 100 , 'c' : {'b' :1}, 'i' : {'j' : {'k' : 'xyz'}}, 'd' : {'q' : 1}}))
 
 # Remove a property
 assertTrue(c.put('kv', 'k7', {'v' : Document({'a' : {'b' : 3}})}))
@@ -138,5 +145,4 @@ assertEquals(res2.next(), {'k' : 'k9', 'v' : Document({'x' : {'b' : 'c'}})})
 assertFalse(res2.hasNext())
 assertEquals(res3.next(), {'k' : 'k9', 'v' : Document({'x' : {'b' : 'c'}})})
 assertFalse(res3.hasNext())
-
 
