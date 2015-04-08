@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2014, Cornell University
+# Copyright (c) 2013-2015, Cornell University
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -44,33 +44,38 @@ def JTYPEOF(x):
         return 'List<String>'
     elif x == bindings.Predicates:
         return 'Map<String, Object>'
-    elif x == bindings.SpaceName:
+    elif x in (bindings.SpaceName, bindings.SortBy):
         return 'String'
-    elif x == bindings.SortBy:
-        return 'String'
-    elif x == bindings.Limit:
+    elif x in (bindings.Limit, bindings.Count):
         return 'int'
     elif x == bindings.MaxMin:
         return 'boolean'
-    else:
+    elif x == bindings.Microtransaction:
+        return 'Microtransaction'
+    elif x in (bindings.Status, bindings.Key, bindings.Description):
         return 'Object'
+    else:
+        raise RuntimeError('Unknown type: ' + str(x))
 
 def CTYPEOF(x):
-    if x == bindings.SpaceName:
-        return 'jstring'
-    elif x == bindings.SortBy:
+    if x in (bindings.SpaceName, bindings.SortBy):
         return 'jstring'
     elif x == bindings.Limit:
         return 'jint'
-    elif x== bindings.MaxMin:
+    elif x == bindings.MaxMin:
         return 'jboolean'
-    else:
+    elif x in (bindings.AttributeNames,  bindings.Key, bindings.Attributes, bindings.MapAttributes,
+               bindings.Predicates, bindings.Status, bindings.Description, bindings.Microtransaction):
         return 'jobject'
+    else:
+        raise RuntimeError('Unknown type: ' + str(x))
 
-def generate_prototype(x):
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
+def generate_microtransaction_prototype(x):
+    return '    public native int {0}(Map<String,Object> attrs) throws HyperDexClientException;\n'.format(x.name.replace("uxact_", ""))
+
+def generate_client_prototype(x):
     args_list = ', '.join([JTYPEOF(arg) + ' ' + arg.__name__.lower() for arg in x.args_in])
-    if x.form == bindings.AsyncCall:
+    if x.form is bindings.AsyncCall:
         if x.args_out == (bindings.Status, bindings.Attributes):
             ret = 'Map<String, Object>'
         elif x.args_out == (bindings.Status, bindings.Description):
@@ -80,8 +85,8 @@ def generate_prototype(x):
         elif x.args_out == (bindings.Status,):
             ret = 'Boolean'
         else:
-            print x.args_out
-            assert False
+            raise RuntimeError('Cannot handle args: ' + str(x.args_out))
+            
         proto = '    public native Deferred async_{0}({1}) throws HyperDexClientException;\n'.format(x.name, args_list)
         proto += '    public {1} {0}('.format(x.name, ret)
         proto += args_list
@@ -90,15 +95,19 @@ def generate_prototype(x):
         proto += '        return ({2}) async_{0}({1}).waitForIt();\n'.format(x.name, args_list, ret)
         proto += '    }\n'
         return proto
-    if x.form == bindings.Iterator:
+    elif x.form is bindings.Iterator:
         return '    public native Iterator {0}({1});\n'.format(x.name, args_list)
+    else:
+        raise RuntimeError('Unknown function type: ' + str(x.form))
 
 def generate_worker(call, x):
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
     if x.form == bindings.AsyncCall:
         cls = 'deferred'
-    if x.form == bindings.Iterator:
+    elif x.form == bindings.Iterator:
         cls = 'iterator'
+    else:
+        raise RuntimeError('Unknown function type: ' + str(x.form))
+        
     fptr = bindings.c.generate_func_ptr(x, 'client')
     func = 'JNIEXPORT HYPERDEX_API jobject JNICALL\n'
     func += 'hyperdex_java_client_{0}(JNIEnv* env, jobject obj, {1}'.format(call, fptr)
@@ -133,6 +142,7 @@ def generate_worker(call, x):
     func += '    ERROR_CHECK(0);\n'
     func += '    return op;\n'
     func += '}\n'
+    
     return func
 
 def generate_workers(xs):
@@ -141,16 +151,45 @@ def generate_workers(xs):
         call = bindings.call_name(x)
         if call in calls:
             continue
+        if x.form is bindings.MicrotransactionCall:
+            continue
         yield generate_worker(call, x)
         calls.add(call)
+        
+def generate_microtransaction_definition(x):
+    func = 'JNIEXPORT HYPERDEX_API jint JNICALL\n'
+    func += 'Java_org_hyperdex_client_Microtransaction_{0}(JNIEnv* env '.format(x.name.replace('uxact_', '').replace('_', '_1'))
 
-def generate_definition(x):
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
+    for arg in x.args_in:
+        func += ', ' + CTYPEOF(arg) + ' ' + arg.__name__.lower()
+    func += ')\n{\n'
+    
+    # Function Body 
+    func += '    jobject client;\n'
+    func += '    struct hyperdex_client* client_ptr;\n'
+    func += '    struct hyperdex_client_microtransaction* uxact;\n'
+    func += '    const struct hyperdex_client_attribute *_attrs;\n'
+    func += '    struct hyperdex_ds_arena *arena;\n'
+    func += '    size_t _attrs_sz;\n\n'
+    func += '    client = hyperdex_uxact_get_client(env, microtransaction);\n'
+    func += '    client_ptr = hyperdex_uxact_get_client_ptr(env, microtransaction);\n'
+    func += '    uxact = hyperdex_uxact_get_uxact_ptr(env, microtransaction);\n'
+    func += '    arena = hyperdex_uxact_get_arena_ptr(env, microtransaction);\n'
+    func += '    hyperdex_java_client_convert_attributes(env, client, arena, attributes, &_attrs, &_attrs_sz);\n'
+    func += '    return (jint)hyperdex_client_{0}(client_ptr, uxact, _attrs, _attrs_sz);\n'.format(x.name)
+
+    func += '}\n'
+    return func
+
+def generate_client_definition(x):
     func = 'JNIEXPORT HYPERDEX_API jobject JNICALL\n'
     if x.form == bindings.AsyncCall:
         func += 'Java_org_hyperdex_client_Client_async_1{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
-    if x.form == bindings.Iterator:
+    elif x.form == bindings.Iterator:
         func += 'Java_org_hyperdex_client_Client_{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
+    else:
+        raise RuntimeError('Unknown function type ' + str(x.form))
+        
     for arg in x.args_in:
         func += ', ' + CTYPEOF(arg) + ' ' + arg.__name__.lower()
     func += ')\n{\n'
@@ -177,7 +216,10 @@ def generate_api_func_cleanup(func):
     return func + '\n'
 
 def generate_api_norm_func(func):
-    xs = generate_prototype(func)
+    xs = generate_client_prototype(func)
+    if xs is '':
+        return ''
+    
     xs = [x.strip() for x in xs.split('\n')]
     xs = [x for x in xs if x.startswith('public')]
     xs = [x for x in xs if 'async_' not in x]
@@ -186,7 +228,7 @@ def generate_api_norm_func(func):
     return generate_api_func_cleanup(xs)
 
 def generate_api_async_func(func):
-    xs = generate_prototype(func)
+    xs = generate_client_prototype(func)
     xs = [x.strip() for x in xs.split('\n')]
     xs = [x for x in xs if x.startswith('public')]
     xs = [x for x in xs if 'async_' in x]
@@ -238,15 +280,23 @@ def generate_api_block(x, lib):
 
 def generate_client_java():
     fout = open(os.path.join(BASE, 'bindings/java/org/hyperdex/client/Client.java'), 'w')
-    fout.write(bindings.copyright('*', '2013-2014'))
+    fout.write(bindings.copyright('*', '2013-2015'))
     fout.write(bindings.java.JAVA_HEAD)
-    fout.write('\n'.join([generate_prototype(c) for c in bindings.Client]))
+    fout.write('\n'.join([generate_client_prototype(c) for c in bindings.Client if c.form is not bindings.MicrotransactionCall]))
+    fout.write('}\n')
+    fout.flush()
+    fout = open(os.path.join(BASE, 'bindings/java/org/hyperdex/client/Microtransaction.java'), 'w')
+    fout.write(bindings.copyright('*', '2015'))
+    fout.write(bindings.java.MICROTRANSACTION_HEAD)
+    fout.write('\n'.join([generate_microtransaction_prototype(c) for c in bindings.Client if c.form is bindings.MicrotransactionCall]))
     fout.write('}\n')
     fout.flush()
     os.system('cd bindings/java && javac -cp . org/hyperdex/client/Client.java')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
+    os.system('cd bindings/java && javac -cp . org/hyperdex/client/Microtransaction.java')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.Microtransaction')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Deferred')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.GreaterEqual')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.GreaterThan')
@@ -260,21 +310,78 @@ def generate_client_java():
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Regex')
     os.system('cd bindings/java && sed -i -e "s/JNIEXPORT/JNIEXPORT HYPERDEX_API/" *.h')
     fout = open(os.path.join(BASE, 'bindings/java/org_hyperdex_client_Client.definitions.c'), 'w')
-    fout.write(bindings.copyright('*', '2013-2014'))
+    fout.write(bindings.copyright('*', '2013-2015'))
     fout.write(bindings.java.DEFINITIONS_HEAD)
     fout.write('\n'.join(generate_workers(bindings.Client)))
-    fout.write('\n'.join([generate_definition(c) for c in bindings.Client]))
+    fout.write('\n'.join([generate_client_definition(c) for c in bindings.Client if c.form is not bindings.MicrotransactionCall]))
+    fout = open(os.path.join(BASE, 'bindings/java/org_hyperdex_client_Microtransaction.definitions.c'), 'w')
+    fout.write(bindings.copyright('*', '2015'))
+    fout.write(bindings.java.DEFINITIONS_HEAD)
+    fout.write('\n'.join([generate_microtransaction_definition(c) for c in bindings.Client if c.form is bindings.MicrotransactionCall]))
 
 def generate_client_doc():
     fout = open(os.path.join(BASE, 'doc/java/client/ops.tex'), 'w')
-    fout.write(bindings.copyright('%', '2014'))
+    fout.write(bindings.copyright('%', '2014-2015'))
     fout.write('\n% This LaTeX file is generated by bindings/java.py\n\n')
     fout.write('\n'.join([generate_api_block(c, 'client') for c in bindings.Client
-                          if c.name not in bindings.DoNotDocument]))
+                          if c.form not in (bindings.DoNotDocument, bindings.MicrotransactionCall)]))
 
 if __name__ == '__main__':
     generate_client_java()
     generate_client_doc()
+    
+MICROTRANSACTION_HEAD = '''
+/* This file is generated by bindings/java.py */
+
+package org.hyperdex.client;
+
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
+public class Microtransaction
+{
+    static
+    {
+        initialize();
+    }
+
+    protected Microtransaction(Client client, String space)
+    {
+        this.client = client;
+        this._create(space);
+    }
+    
+    private Client client;
+    
+    private long uxact_ptr;
+    private long deferred_ptr;
+    
+    private native void _create(String space);
+    private native void _destroy();
+    
+    /* cached IDs */
+    private static native void initialize();
+    private static native void terminate();
+    
+    public Boolean commit(String key) throws HyperDexClientException {
+        return (Boolean) async_commit(key).waitForIt();
+    }
+    
+    public native Deferred async_commit(String key) throws HyperDexClientException;
+    
+    public Long group_commit(Map<String,Object> checks) throws HyperDexClientException {
+        return (Long) async_group_commit(checks).waitForIt();
+    }
+    
+    public native Deferred async_group_commit(Map<String,Object> checks) throws HyperDexClientException;
+    
+    public Boolean cond_commit(String key, Map<String,Object> checks) throws HyperDexClientException {
+        return (Boolean) async_cond_commit(key, checks).waitForIt();
+    }
+    
+    public native Deferred async_cond_commit(String key, Map<String,Object> checks) throws HyperDexClientException;
+'''
 
 JAVA_HEAD = '''
 /* This file is generated by bindings/java.py */
@@ -318,6 +425,11 @@ public class Client
         {
             super.finalize();
         }
+    }
+    
+    public Microtransaction initMicrotransaction(String space)
+    {
+        return new Microtransaction(this, space);
     }
 
     public synchronized void destroy()

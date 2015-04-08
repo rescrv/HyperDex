@@ -44,7 +44,6 @@ cdef extern from "stdint.h":
     ctypedef unsigned long int uint64_t
     ctypedef long unsigned int size_t
 
-
 cdef extern from "stdlib.h":
 
     void* malloc(size_t size)
@@ -113,6 +112,8 @@ cdef extern from "hyperdex/client.h":
 
     cdef struct hyperdex_client
 
+    cdef struct hyperdex_client_microtransaction
+
     cdef struct hyperdex_client_attribute:
         const char* attr
         const char* value
@@ -161,6 +162,10 @@ cdef extern from "hyperdex/client.h":
         HYPERDEX_CLIENT_GARBAGE      = 8575
 
     hyperdex_client* hyperdex_client_create(char* coordinator, uint16_t port)
+    hyperdex_client_microtransaction* hyperdex_client_uxact_init(hyperdex_client* _cl, const char* space, hyperdex_client_returncode *status)
+    int64_t hyperdex_client_uxact_commit(hyperdex_client* _cl, hyperdex_client_microtransaction *utx, const char* key, size_t key_sz)
+    int64_t hyperdex_client_uxact_cond_commit(hyperdex_client* _cl, hyperdex_client_microtransaction *utx, const char* key, size_t key_sz, const hyperdex_client_attribute_check *chks, size_t chks_sz)
+    int64_t hyperdex_client_uxact_group_commit(hyperdex_client* _cl, hyperdex_client_microtransaction *utx, const hyperdex_client_attribute_check *chks, size_t chks_sz, uint64_t* count)
     void hyperdex_client_destroy(hyperdex_client* client)
     int64_t hyperdex_client_loop(hyperdex_client* client, int timeout, hyperdex_client_returncode* status)
     void hyperdex_client_destroy_attrs(hyperdex_client_attribute* attrs, size_t attrs_sz)
@@ -173,6 +178,7 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_get(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_get_partial(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_put(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_put(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_put(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_put_or_create(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_put(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
@@ -181,24 +187,30 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_cond_del(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_del(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_atomic_add(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_atomic_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_atomic_add(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_atomic_sub(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_atomic_sub(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_atomic_sub(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_atomic_mul(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_atomic_mul(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_atomic_mul(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_atomic_div(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_atomic_div(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_atomic_div(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_mod(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_atomic_mod(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_atomic_mod(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_and(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_atomic_and(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_atomic_and(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_atomic_and(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_or(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_atomic_or(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_atomic_or(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_atomic_or(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_atomic_xor(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
@@ -211,15 +223,19 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_cond_atomic_max(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_atomic_max(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_string_prepend(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_string_prepend(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_string_prepend(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_string_append(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_string_append(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_list_lpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_list_lpush(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_list_lpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_list_lpush(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_list_rpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_list_rpush(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_list_rpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_list_rpush(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_set_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
@@ -235,9 +251,11 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_cond_set_union(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_set_union(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_document_rename(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_document_rename(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_document_rename(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_document_rename(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_document_unset(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_document_unset(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_document_unset(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_document_unset(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_map_add(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
@@ -279,9 +297,11 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_map_atomic_min(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_min(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_map_atomic_min(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
+    int64_t hyperdex_client_uxact_atomic_min(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_map_atomic_max(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_max(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_map_atomic_max(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
+    int64_t hyperdex_client_uxact_atomic_max(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_search(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_search_describe(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const char** description)
     int64_t hyperdex_client_sorted_search(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const char* sort_by, uint64_t limit, int maxmin, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
@@ -365,6 +385,7 @@ ctypedef object (*encret_iterator_fptr)(Iterator it)
 ctypedef int64_t asynccall__spacename_key__status_attributes_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 ctypedef int64_t asynccall__spacename_key_attributenames__status_attributes_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const char** attrnames, size_t attrnames_sz, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 ctypedef int64_t asynccall__spacename_key_attributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+ctypedef int64_t microtransactioncall__microtransaction_attributes___fptr(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
 ctypedef int64_t asynccall__spacename_key_predicates_attributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_predicates_attributes__status_count_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
 ctypedef int64_t asynccall__spacename_key__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status)
@@ -1163,6 +1184,200 @@ cdef class Iterator:
                     self.attrs_sz = 0
 
 
+
+cdef class Microtransaction:
+    def __cinit__(self, Client c, bytes spacename):
+        cdef const char* in_space
+        self.client = c
+        self.deferred = Deferred(self.client)
+        self.client.convert_spacename(self.deferred.arena, spacename, &in_space);
+        self.transaction = hyperdex_client_uxact_init(self.client.client, in_space, &self.deferred.status)
+    
+    # Begin Automatically Generated UTX Methods
+    def put(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_put(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def atomic_add(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_atomic_add(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def atomic_sub(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_atomic_sub(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def atomic_mul(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_atomic_mul(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def atomic_div(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_atomic_div(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def atomic_and(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_atomic_and(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def atomic_or(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_atomic_or(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def string_prepend(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_string_prepend(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def string_append(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_string_append(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def list_lpush(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_list_lpush(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def list_rpush(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_list_rpush(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def document_rename(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_document_rename(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def document_unset(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_document_unset(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def atomic_min(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_atomic_min(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def atomic_max(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_atomic_max(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    # End Automatically Generated UTX Methods
+    def async_group_commit(self, dict checks):
+        cdef hyperdex_client_attribute_check* chks
+        cdef size_t chks_sz
+        self.client.convert_predicates(self.deferred.arena, checks, &chks, &chks_sz)
+
+        self.deferred.reqid = hyperdex_client_uxact_group_commit(self.client.client, self.transaction, chks, chks_sz, &self.deferred.count)
+
+        self.client.clear_auth_context()
+        if self.deferred.reqid < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        self.deferred.encode_return = hyperdex_python_client_deferred_encode_status
+
+        self.client.ops[self.deferred.reqid] = self.deferred
+        self.deferred.encode_return = hyperdex_python_client_deferred_encode_status_count
+        return self.deferred
+
+    def group_commit(self, dict checks):
+        return self.async_group_commit(checks).wait()
+    
+    def async_commit(self, bytes key):
+        cdef const char* in_key
+        cdef size_t in_key_sz
+        self.client.convert_key(self.deferred.arena, key, &in_key, &in_key_sz)
+
+        self.deferred.reqid = hyperdex_client_uxact_commit(self.client.client, self.transaction, in_key, in_key_sz)
+
+        self.client.clear_auth_context()
+        if self.deferred.reqid < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        self.deferred.encode_return = hyperdex_python_client_deferred_encode_status
+
+        self.client.ops[self.deferred.reqid] = self.deferred
+        return self.deferred
+
+    def commit(self, bytes key):
+        return self.async_commit(key).wait()
+        
+    def async_cond_commit(self, bytes key, dict checks):
+        cdef const char* in_key
+        cdef size_t in_key_sz
+        self.client.convert_key(self.deferred.arena, key, &in_key, &in_key_sz)
+        
+        cdef hyperdex_client_attribute_check* chks
+        cdef size_t chks_sz
+        self.client.convert_predicates(self.deferred.arena, checks, &chks, &chks_sz)
+
+        self.deferred.reqid = hyperdex_client_uxact_cond_commit(self.client.client, self.transaction, in_key, in_key_sz, chks, chks_sz)
+
+        self.client.clear_auth_context()
+        if self.deferred.reqid < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        self.deferred.encode_return = hyperdex_python_client_deferred_encode_status
+
+        self.client.ops[self.deferred.reqid] = self.deferred
+        return self.deferred
+
+    def cond_commit(self, bytes key, dict checks):
+        return self.async_cond_commit(key, checks).wait()
+
+    cdef Deferred deferred
+    cdef Client client
+    cdef hyperdex_client_microtransaction* transaction
+
 cdef class Client:
     cdef hyperdex_client* client
     cdef dict ops
@@ -1305,6 +1520,9 @@ cdef class Client:
             # _callback() may remove ret from self.ops.
             op._callback()
             return op
+            
+    def microtransaction_init(self, bytes spacename):
+        return Microtransaction(self, spacename)
 
     # Begin Automatically Generated Methods
     cdef asynccall__spacename_key__status_attributes(self, asynccall__spacename_key__status_attributes_fptr f, bytes spacename, key, auth=None):

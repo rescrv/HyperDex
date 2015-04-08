@@ -56,6 +56,8 @@ def GOTYPEOF(x):
         return 'uint32'
     elif x == bindings.MaxMin:
         return 'string'
+    elif x == bindings.Microtransaction:
+        return 'Microtransaction'
     print x
     assert False
 
@@ -244,7 +246,7 @@ def generate_workers(xs):
         call = bindings.call_name(x)
         if call in calls:
             continue
-        assert x.form in (bindings.AsyncCall, bindings.Iterator)
+        assert x.form in (bindings.AsyncCall, bindings.Iterator, bindings.MicrotransactionCall)
         if x.form == bindings.AsyncCall:
             yield generate_worker_asynccall(call, x)
         if x.form == bindings.Iterator:
@@ -252,7 +254,7 @@ def generate_workers(xs):
         calls.add(call)
 
 def generate_method(x, lib):
-    assert x.form in (bindings.AsyncCall, bindings.Iterator)
+    assert x.form in (bindings.AsyncCall, bindings.Iterator, bindings.MicrotransactionCall)
     typed_args_in = ', '.join([(arg_name(arg) + ' ' + GOTYPEOF(arg)).strip()
                                for arg in x.args_in])
     if x.form == bindings.AsyncCall:
@@ -264,7 +266,10 @@ def generate_method(x, lib):
     meth  = 'func stub_{0}(client *C.struct_hyperdex_client, {1}) int64 {{\n'.format(x.name, stub_args)
     meth += '\treturn int64(C.hyperdex_client_{0}(client, {1}))\n'.format(x.name, stub_args_list)
     meth += '}\n'
-    meth += 'func (client *Client) {0}({1}) ({2}) {{\n'.format(GoIfy(x.name), typed_args_in, typed_args_out)
+    if x.form != bindings.MicrotransactionCall:
+        meth += 'func (client *Client) {0}({1}) ({2}) {{\n'.format(GoIfy(x.name), typed_args_in, typed_args_out)
+    else:
+        meth += 'func (client *Client) {0}({1}) {{\n'.format(GoIfy(x.name), typed_args_in)
     meth += '\treturn client.{0}(stub_{1}, {2})\n'.format(GoIfy(bindings.call_name(x)), x.name, arg_list)
     meth += '}\n'
     return meth
@@ -285,7 +290,10 @@ def generate_api_block(x, lib):
         typed_args_out = return_type_async(x.args_out)
     if x.form == bindings.Iterator:
         typed_args_out = return_type_iter(x.args_out)
-    block += 'func (client *Client) {0}({1}) ({2})\n'.format(GoIfy(x.name), typed_args_in, typed_args_out)
+    if x.form != bindings.MicrotransactionCall:
+        block += 'func (client *Client) {0}({1}) ({2})\n'.format(GoIfy(x.name), typed_args_in, typed_args_out)
+    else:
+        block += 'func (client *Client) {0}({1})\n'.format(GoIfy(x.name), typed_args_in)
     block += '\\end{gocode}\n\n'
     block += '\\paragraph{Parameters:}\n'
     block += bindings.doc_parameter_list(x.form, x.args_in, 'go/' + lib + '/fragments/in',

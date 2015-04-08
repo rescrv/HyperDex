@@ -265,7 +265,7 @@ datatype_document :: apply(const e::slice& old_value,
                     type = HYPERDATATYPE_FLOAT;
                 }
 
-                // Both types are numberal (integer or float)
+                // Both types are numerals (integer or float)
                 const bool numeral = is_numeral(type) && is_numeral(func.arg1_datatype);
 
                 if (func.name != FUNC_SET &&

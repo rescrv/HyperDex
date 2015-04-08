@@ -79,6 +79,7 @@
     return false;
 
 using hyperdex::client;
+using hyperdex::microtransaction;
 
 client :: client(const char* coordinator, uint16_t port)
     : m_coord(coordinator, port)
@@ -1231,6 +1232,194 @@ client :: handle_disruption(const server_id& si)
     m_busybee.drop(si.get());
 }
 
+microtransaction* client::uxact_init(const char* space, hyperdex_client_returncode *status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return NULL;
+    }
+
+    const schema* sc = m_coord.config()->get_schema(space);
+
+    if (!sc)
+    {
+        ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist";
+        return NULL;
+    }
+
+    return new microtransaction(space, *sc, status);
+}
+
+int64_t client::uxact_add_funcall(microtransaction *transaction,
+                                  const hyperdex_client_keyop_info* opinfo,
+                                  const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                  const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz)
+{
+    size_t idx = 0;
+
+    // Prepare the attrs
+    idx = prepare_funcs(transaction->space, transaction->sc, opinfo, attrs, attrs_sz, &transaction->memory, transaction->status, &transaction->funcalls);
+
+    if (idx < attrs_sz)
+    {
+        return -2 - idx;
+    }
+
+    // Prepare the mapattrs
+    idx = prepare_funcs(transaction->space, transaction->sc, opinfo, mapattrs, mapattrs_sz, &transaction->memory, transaction->status, &transaction->funcalls);
+
+    if (idx < mapattrs_sz)
+    {
+        return -2 - attrs_sz - idx;
+    }
+
+    return 0;
+}
+
+int64_t client::uxact_commit(microtransaction *transaction,
+                                const char* _key, size_t _key_sz)
+{
+    hyperdex_client_returncode *status = transaction->status;
+
+    datatype_info* di = datatype_info::lookup(transaction->sc.attrs[0].type);
+    assert(di);
+    e::slice key(_key, _key_sz);
+
+    if (!di->validate(key))
+    {
+        ERROR(WRONGTYPE) << "key must be type " << transaction->sc.attrs[0].type;
+        return -1;
+    }
+
+    e::intrusive_ptr<pending> op;
+    op = new pending_atomic(m_next_client_id++, status);
+    std::auto_ptr<e::buffer> msg;
+    auth_wallet aw(m_macaroons, m_macaroons_sz);
+    size_t header_sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+                     + pack_size(key);
+    size_t footer_sz = 0;
+
+    if (m_macaroons_sz)
+    {
+        footer_sz += pack_size(aw);
+    }
+
+    const std::vector<hyperdex::attribute_check> checks;
+    int ret = transaction->generate_message(header_sz, footer_sz, checks, &msg);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << key;
+
+    if (m_macaroons_sz)
+    {
+        msg->pack_at(msg->capacity() - footer_sz) << aw;
+    }
+
+    int64_t result = send_keyop(transaction->space, key, REQ_ATOMIC, msg, op, status);
+    delete transaction;
+    return result;
+}
+
+int64_t
+client :: uxact_cond_commit(microtransaction *transaction,
+                          const char* _key, size_t _key_sz,
+                          const hyperdex_client_attribute_check* chks, size_t chks_sz)
+{
+    hyperdex_client_returncode *status = transaction->status;
+
+    datatype_info* di = datatype_info::lookup(transaction->sc.attrs[0].type);
+    assert(di);
+    e::slice key(_key, _key_sz);
+
+    if (!di->validate(key))
+    {
+        ERROR(WRONGTYPE) << "key must be type " << transaction->sc.attrs[0].type;
+        return -2;
+    }
+
+    e::intrusive_ptr<pending> op;
+    op = new pending_atomic(m_next_client_id++, status);
+    std::auto_ptr<e::buffer> msg;
+    auth_wallet aw(m_macaroons, m_macaroons_sz);
+    size_t header_sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+                     + pack_size(key);
+    size_t footer_sz = 0;
+
+    if (m_macaroons_sz)
+    {
+        footer_sz += pack_size(aw);
+    }
+
+    // Prepare the checks
+    std::vector<hyperdex::attribute_check> checks;
+    uint64_t idx = prepare_checks(transaction->space, transaction->sc, chks, chks_sz, &transaction->memory, status, &checks);
+
+    if (idx < chks_sz)
+    {
+        return -2 - idx;
+    }
+
+    int ret = transaction->generate_message(header_sz, footer_sz, checks, &msg);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << key;
+
+    if (m_macaroons_sz)
+    {
+        msg->pack_at(msg->capacity() - footer_sz) << aw;
+    }
+
+    int64_t result = send_keyop(transaction->space, key, REQ_ATOMIC, msg, op, status);
+    delete transaction;
+    return result;
+}
+
+int64_t
+client :: uxact_group_commit(microtransaction *transaction,
+                           const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                           uint64_t *update_count)
+{
+    hyperdex_client_returncode *status = transaction->status;
+    const char *space = transaction->space;
+
+    SEARCH_BOILERPLATE
+
+    int64_t client_id = m_next_client_id++;
+    e::intrusive_ptr<pending_aggregation> op;
+    op = new pending_group_atomic(client_id, status, update_count);
+
+    std::auto_ptr<e::buffer> inner_msg;
+    const std::vector<hyperdex::attribute_check> checks_;
+    ret = transaction->generate_message(0, 0, checks_, &inner_msg);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+              + sizeof(uint64_t)
+              + pack_size(checks)
+              + inner_msg->size();
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
+    pa = pa << checks;
+    pa.copy(inner_msg->as_slice());
+
+    int64_t result = perform_aggregation(servers, op, REQ_GROUP_ATOMIC, msg, status);
+    delete transaction;
+    return result;
+}
+
+
 HYPERDEX_API std::ostream&
 operator << (std::ostream& lhs, hyperdex_client_returncode rhs)
 {
@@ -1274,4 +1463,26 @@ void
 client :: set_type_conversion(bool enabled)
 {
     m_convert_types = enabled;
+}
+
+int64_t
+microtransaction::generate_message(size_t header_sz, size_t footer_sz,
+                                   const std::vector<attribute_check>& checks,
+                                   std::auto_ptr<e::buffer>* msg)
+{
+    const bool fail_if_not_found = false;
+    const bool fail_if_found = false;
+    const bool erase = false;
+
+    std::stable_sort(funcalls.begin(), funcalls.end());
+    size_t sz = header_sz + footer_sz
+              + sizeof(uint8_t)
+              + pack_size(checks)
+              + pack_size(funcalls);
+    msg->reset(e::buffer::create(sz));
+    uint8_t flags = (fail_if_not_found ? 1 : 0)
+            | (fail_if_found ? 2 : 0)
+            | (erase ? 0 : 128);
+    (*msg)->pack_at(header_sz) << flags << checks << funcalls;
+    return 0;
 }

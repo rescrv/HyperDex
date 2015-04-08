@@ -49,6 +49,26 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
+struct microtransaction
+{
+    microtransaction(const char* space_, const schema& sc_,
+                              hyperdex_client_returncode *status_)
+        : space(space_), sc(sc_), status(status_), funcalls(), memory()
+    {}
+
+    PO6_NONCOPYABLE(microtransaction);
+
+    int64_t generate_message(size_t header_sz, size_t footer_sz,
+                             const std::vector<attribute_check>& checks,
+                             std::auto_ptr<e::buffer>* msg);
+
+    const char* space;
+    const schema& sc;
+    hyperdex_client_returncode* status;
+    std::vector<funcall> funcalls;
+    e::arena memory;
+};
+
 class client
 {
     public:
@@ -90,14 +110,18 @@ class client
         int64_t count(const char* space,
                       const hyperdex_client_attribute_check* checks, size_t checks_sz,
                       hyperdex_client_returncode* status, uint64_t* result);
-        // general keyop call
+
+        // General keyop call
+        // This will be called by the bindings from c.cc
         int64_t perform_funcall(const hyperdex_client_keyop_info* opinfo,
                                 const char* space, const char* key, size_t key_sz,
                                 const hyperdex_client_attribute_check* checks, size_t checks_sz,
                                 const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                 hyperdex_client_returncode* status);
-        // general grouped keyop call
+
+        // General keyop call for group operations
+        // This will be called by the bindings from c.cc
         int64_t perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
                                       const char* space,
                                       const hyperdex_client_attribute_check* checks, size_t checks_sz,
@@ -105,9 +129,37 @@ class client
                                       const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                       hyperdex_client_returncode* status,
                                       uint64_t* update_count);
+
+        // Initiate a microtransaction
+        // Status and transaction object must remain valid until the operation has completed
+        microtransaction *uxact_init(const char* space,
+                                   hyperdex_client_returncode *status);
+
+        // Add a new funcall to the microstransaction
+        int64_t uxact_add_funcall(microtransaction *transaction,
+                                          const hyperdex_client_keyop_info* opinfo,
+                                          const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                          const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz);
+
+        // Issue a microtransaction to a specific key
+        int64_t uxact_commit(microtransaction *transaction,
+                             const char* key, size_t key_sz);
+
+        // Issue a microtransaction to a specific key only if checks passs
+        int64_t uxact_cond_commit(microtransaction *transaction,
+                                  const char* key, size_t key_sz,
+                                  const hyperdex_client_attribute_check* checks, size_t checks_sz);
+
+        // Issue a mircotransaction to a all entries matching the checks
+        int64_t uxact_group_commit(microtransaction *transaction,
+                                   const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                   uint64_t *update_count);
+
         // looping/polling
         int64_t loop(int timeout, hyperdex_client_returncode* status);
+        // Return the fildescriptor that hyperdex uses for networking
         int poll_fd();
+        // Block unitl there is incoming data or the timeout is reached
         int block(int timeout);
         // error handling
         const char* error_message();
