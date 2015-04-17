@@ -213,8 +213,8 @@ class wan_manager
         configuration m_config;
         mapper m_busybee_mapper;
         std::auto_ptr<busybee_mta> m_busybee;
-        po6::threads::thread m_msg_thread;
         po6::threads::thread m_link_thread;
+        std::vector<e::compat::shared_ptr<po6::threads::thread> > m_threads;
         bool m_paused;
         po6::threads::mutex m_protect_pause;
         po6::threads::cond m_can_pause;

@@ -91,6 +91,12 @@ class replication_manager
                            uint64_t nonce,
                            std::auto_ptr<key_change> kc,
                            std::auto_ptr<e::buffer> backing);
+        void wan_atomic(const server_id& from,
+                           const virtual_server_id& to,
+                           uint64_t nonce,
+                           uint64_t version,
+                           std::auto_ptr<key_change> kc,
+                           std::auto_ptr<e::buffer> backing);
         // These are called in response to messages from other hosts.
         void chain_op(const virtual_server_id& from,
                       const virtual_server_id& to,

@@ -105,15 +105,15 @@ wan_manager :: wan_manager(daemon* d)
     , m_online_id(-1)
     , m_shutdown_requested(false)
     , m_transfer_vids()
-    , m_xid(66)
+    , m_xid(0)
     , m_transfers_in()
     , m_transfers_out()
     , m_background_thread(new background_thread(this))
     , m_config()
     , m_busybee_mapper(&m_config)
     , m_busybee()
-    , m_msg_thread(make_thread_wrapper(&wan_manager::loop, this))
     , m_link_thread(make_thread_wrapper(&wan_manager::run, this))
+    , m_threads()
     , m_paused(false)
     , m_protect_pause()
     , m_can_pause(&m_protect_pause)
@@ -128,7 +128,9 @@ wan_manager :: ~wan_manager() throw ()
         m_teardown = true;
         m_busybee->shutdown();
         m_busybee_running = false;
-        m_msg_thread.join();
+        for (size_t i = 0; i < m_threads.size(); ++i) {
+            m_threads[i]->join();
+        }
         m_background_thread->shutdown();
         m_transfers_in.clear();
         m_transfers_out.clear();
@@ -146,11 +148,16 @@ wan_manager :: setup(const char* host, int64_t port)
     // XXX please fix this, this is really hacky
     po6::net::location bind_to(host, port);
     m_busybee.reset(new busybee_mta(&m_daemon->m_gc, &m_busybee_mapper, bind_to,
-                m_daemon->m_us.get(), 1));
+                m_daemon->m_us.get(), 4));
     m_busybee_running = true;
     m_link_thread.start();
     m_background_thread->start();
-    m_msg_thread.start();
+    for (size_t i = 0; i < 4; ++i) {
+        using namespace po6::threads;
+        e::compat::shared_ptr<thread> t(new thread(make_thread_wrapper(&wan_manager::loop, this)));
+        m_threads.push_back(t);
+        t->start();
+    }
     return true;
 }
 
@@ -162,7 +169,9 @@ wan_manager :: teardown()
     exit_critical_section();
     m_busybee->shutdown();
     m_busybee_running = false;
-    m_msg_thread.join();
+    for (size_t i = 0; i < m_threads.size(); ++i) {
+        m_threads[i]->join();
+    }
     m_background_thread->shutdown();
     m_transfers_in.clear();
     m_transfers_out.clear();
@@ -402,8 +411,7 @@ wan_manager :: background_thread :: do_work()
             std::vector<hyperdex::space> overlap = m_wm->config_space_overlap(m_wm->m_config,
                     m_wm->m_daemon->m_config);
             m_wm->setup_transfer_state(overlap);
-            size_t i;
-            for (i = 0; i < m_wm->m_transfers_in.size(); ++i) {
+            for (size_t i = 0; i < m_wm->m_transfers_in.size(); ++i) {
                 po6::threads::mutex::hold hold2(&m_wm->m_transfers_in[i]->mtx);
                 m_wm->give_me_more_state(m_wm->m_transfers_in[i].get());
             }
@@ -624,7 +632,6 @@ void
 wan_manager :: give_me_more_state(transfer_in_state* tis)
 {
     if (!tis->handshake_complete) {
-        // XXX robustness
         send_handshake_syn(tis->xfer);
         tis->handshake_complete = true;
     } else {
@@ -684,7 +691,6 @@ wan_manager :: transfer_more_state(transfer_out_state* tos)
 
         if (tos->iter->has_value())
         {
-            // LOG(INFO) << "iter has value in transfer more state";
             op->has_value = true;
 
             if (tos->iter->unpack_value(&op->value, &op->version, &op->vref) != datalayer::SUCCESS)
@@ -699,9 +705,8 @@ wan_manager :: transfer_more_state(transfer_out_state* tos)
             op->version = 0;
         }
 
-        tos->window.push_back(op);
+        // tos->window.push_back(op); XXX: do we need to store ops at all?
         send_object(tos->xfer, op.get());
-        // LOG(INFO) << "transferring objects to backup";
         tos->iter->next();
     }
 }
@@ -774,13 +779,11 @@ wan_manager :: wan_xfer(const transfer_id& xid,
         if ((*where_to_put_it)->seq_no == seq_no)
         {
             // silently drop it
-            LOG(INFO) << "we have received op already";
             return;
         }
 
         if ((*where_to_put_it)->seq_no > seq_no)
         {
-            LOG(INFO) << "we are past where we acked to";
             break;
         }
     }
@@ -793,10 +796,9 @@ wan_manager :: wan_xfer(const transfer_id& xid,
     op->value = value;
     op->msg = msg;
     tis->queued.insert(where_to_put_it, op);
-    // LOG(INFO) << "iterators queued up for pending op";
 
     make_keychanges(tis);
-    give_me_more_state(tis);
+    // give_me_more_state(tis);
 }
 
 void
@@ -843,7 +845,7 @@ wan_manager :: make_keychanges(transfer_in_state* tis)
         kc->fail_if_found = false;
         kc->checks = checks;
         kc->funcs = funcs;
-        uint64_t nonce = tis->xfer.id.get(); // XXX real nonce
+        uint64_t nonce; // pseudo-random memory
 
         std::vector<region_id> pt_leaders;
         m_daemon->m_config.point_leaders(m_daemon->m_us, &pt_leaders);
@@ -852,7 +854,7 @@ wan_manager :: make_keychanges(transfer_in_state* tis)
             region_id ri = pt_leaders[i];
             virtual_server_id pt_lead = m_daemon->m_config.point_leader(ri, kc->key);
             if (pt_lead != virtual_server_id()) {
-                m_daemon->m_repl.client_atomic(m_daemon->m_us, pt_lead, nonce, kc, msg);
+                m_daemon->m_repl.wan_atomic(m_daemon->m_us, pt_lead, nonce, op->version, kc, msg);
                 break;
             }
         }

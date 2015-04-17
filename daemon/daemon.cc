@@ -428,6 +428,7 @@ daemon :: run(bool daemonize,
                     break;
                 }
                 m_wan->kick();
+                // ualarm(3000000, 0);
                 alarm(3);
                 s_kick = 0;
             }

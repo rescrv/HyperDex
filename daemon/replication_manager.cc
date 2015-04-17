@@ -233,6 +233,52 @@ replication_manager :: debug_dump()
 }
 
 void
+replication_manager :: wan_atomic(const server_id& from,
+                                     const virtual_server_id& to,
+                                     uint64_t nonce,
+                                     uint64_t version,
+                                     std::auto_ptr<key_change> kc,
+                                     std::auto_ptr<e::buffer> backing)
+{
+    const region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+
+    if (m_daemon->m_config.read_only())
+    {
+        respond_to_client(to, from, nonce, NET_READONLY);
+        return;
+    }
+
+    if (!kc->validate(sc))
+    {
+        LOG(ERROR) << "dropping nonce=" << nonce << " from client=" << from
+                   << " because the key, checks, or funcs don't validate";
+        respond_to_client(to, from, nonce, NET_BADDIMSPEC);
+        return;
+    }
+
+    if (m_daemon->m_config.point_leader(ri, kc->key) != to)
+    {
+        LOG(ERROR) << "dropping nonce=" << nonce << " from client=" << from
+                   << " because it doesn't map to " << ri;
+        respond_to_client(to, from, nonce, NET_NOTUS);
+        return;
+    }
+
+    key_map_t::state_reference ksr;
+    key_state* ks = get_or_create_key_state(ri, kc->key, &ksr);
+
+    if (version % datalayer::REGION_PERIODIC == 0)
+    {
+        m_daemon->m_data.bump_version(ri, version);
+    }
+
+    // we hava a valid keychange. put it into the workloop
+    ks->enqueue_key_change(from, nonce, version, kc, backing);
+    ks->work_state_machine(this, to, sc);
+}
+
+void
 replication_manager :: client_atomic(const server_id& from,
                                      const virtual_server_id& to,
                                      uint64_t nonce,
