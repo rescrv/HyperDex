@@ -773,11 +773,12 @@ class RustGenerator(BindingGenerator):
         assert self.f is None
         self.count = 0
         self.path = 'test/rust/{0}.rs'.format(name)
-        precmd = 'rustc -g -L {1} -o "${{HYPERDEX_BUILDDIR}}"/test/rust/{0} "${{HYPERDEX_SRCDIR}}"/test/rust/{0}.rs'.format(name, self.lib_dir + '/target')
+        precmd = 'rustc -g -L {1} -L {2} -o "${{HYPERDEX_BUILDDIR}}"/test/rust/{0} "${{HYPERDEX_SRCDIR}}"/test/rust/{0}.rs'.format(name, self.lib_dir + '/target/debug', self.lib_dir + '/target/debug/deps')
         cmd = '"${{HYPERDEX_BUILDDIR}}"/test/rust/{0}'.format(name)
         gen_shell('rust', name, cmd, space, precmd=precmd)
         self.f = open(self.path, 'w')
         self.f.write('''
+#![feature(convert)]
 #[macro_use] extern crate hyperdex;
 
 use std::os;
@@ -797,13 +798,7 @@ macro_rules! sloppyCompare {
         if $a.len() == 0 && $b.len() == 0 {
             true
         } else {
-            if $a.get_type_id() != $b.get_type_id() {
-                false
-            } else {
-                unsafe {
-                    transmute($a) == $b
-                }
-            }
+            false
         }
     );
 }
@@ -821,25 +816,18 @@ fn sloppyCompareHyper(a: &HyperObject, b: &HyperObject) -> bool {
         // this is dumb but I do not see a better way... fortunately the following lines are generated
         // by a python script
         match (av, bv) {
-            (HyperListString(x), HyperListString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperListString(x), HyperListInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperListString(x), HyperListFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperListInt(x), HyperListString(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperListInt(x), HyperListInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperListInt(x), HyperListFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperListFloat(x), HyperListString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperListFloat(x), HyperListInt(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperListFloat(x), HyperListFloat(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperSetString(x), HyperSetString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperSetString(x), HyperSetInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperSetString(x), HyperSetFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperSetInt(x), HyperSetString(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperSetInt(x), HyperSetInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperSetInt(x), HyperSetFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperSetFloat(x), HyperSetString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperSetFloat(x), HyperSetInt(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperSetFloat(x), HyperSetFloat(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperMapStringString(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringString(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringString(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringString(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
@@ -849,7 +837,6 @@ fn sloppyCompareHyper(a: &HyperObject, b: &HyperObject) -> bool {
             (HyperMapStringString(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringString(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringInt(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperMapStringInt(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringInt(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringInt(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringInt(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
@@ -859,7 +846,6 @@ fn sloppyCompareHyper(a: &HyperObject, b: &HyperObject) -> bool {
             (HyperMapStringInt(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringFloat(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringFloat(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperMapStringFloat(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringFloat(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringFloat(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapStringFloat(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
@@ -869,7 +855,6 @@ fn sloppyCompareHyper(a: &HyperObject, b: &HyperObject) -> bool {
             (HyperMapIntString(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntString(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntString(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperMapIntString(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntString(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntString(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntString(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
@@ -879,7 +864,6 @@ fn sloppyCompareHyper(a: &HyperObject, b: &HyperObject) -> bool {
             (HyperMapIntInt(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntInt(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntInt(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperMapIntInt(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntInt(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntInt(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntInt(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
@@ -889,7 +873,6 @@ fn sloppyCompareHyper(a: &HyperObject, b: &HyperObject) -> bool {
             (HyperMapIntFloat(x), HyperMapStringFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntFloat(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntFloat(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperMapIntFloat(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntFloat(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntFloat(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapIntFloat(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
@@ -899,7 +882,6 @@ fn sloppyCompareHyper(a: &HyperObject, b: &HyperObject) -> bool {
             (HyperMapFloatString(x), HyperMapIntString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatString(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatString(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperMapFloatString(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatString(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatString(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatInt(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
@@ -909,7 +891,6 @@ fn sloppyCompareHyper(a: &HyperObject, b: &HyperObject) -> bool {
             (HyperMapFloatInt(x), HyperMapIntInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatInt(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatInt(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperMapFloatInt(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatInt(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatFloat(x), HyperMapStringString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatFloat(x), HyperMapStringInt(y)) => if !sloppyCompare!(x, y) { return false; },
@@ -919,7 +900,6 @@ fn sloppyCompareHyper(a: &HyperObject, b: &HyperObject) -> bool {
             (HyperMapFloatFloat(x), HyperMapIntFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatFloat(x), HyperMapFloatString(y)) => if !sloppyCompare!(x, y) { return false; },
             (HyperMapFloatFloat(x), HyperMapFloatInt(y)) => if !sloppyCompare!(x, y) { return false; },
-            (HyperMapFloatFloat(x), HyperMapFloatFloat(y)) => if !sloppyCompare!(x, y) { return false; },
             (x, y) => if x != y { return false; },
         }
     }
@@ -927,8 +907,8 @@ fn sloppyCompareHyper(a: &HyperObject, b: &HyperObject) -> bool {
 }
 
 fn main() {
-    let args = os::args();
-    let mut client = Client::new(FromStr::from_str(format!("{}:{}", args[1], args[2]).as_slice()).unwrap()).unwrap();
+    let args: Vec<String> = std::env::args().collect();
+    let mut client = Client::new(FromStr::from_str(format!("{}:{}", args[1], args[2]).as_str()).unwrap()).unwrap();
 ''')
 
     def finish(self):
