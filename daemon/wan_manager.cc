@@ -411,9 +411,15 @@ wan_manager :: background_thread :: do_work()
             std::vector<hyperdex::space> overlap = m_wm->config_space_overlap(m_wm->m_config,
                     m_wm->m_daemon->m_config);
             m_wm->setup_transfer_state(overlap);
+
             for (size_t i = 0; i < m_wm->m_transfers_in.size(); ++i) {
                 po6::threads::mutex::hold hold2(&m_wm->m_transfers_in[i]->mtx);
-                m_wm->give_me_more_state(m_wm->m_transfers_in[i].get());
+                transfer_in_state *tis = m_wm->m_transfers_in[i].get();
+                virtual_server_id v_us = m_wm->m_daemon->m_config.get_virtual(tis->xfer.rid,
+                        m_wm->m_daemon->m_us);
+                if (m_wm->m_daemon->m_config.is_point_leader(v_us)) {
+                    m_wm->give_me_more_state(tis);
+                }
             }
             m_wm->wake_one();
         }
@@ -613,12 +619,13 @@ wan_manager :: setup_transfer_state(std::vector<hyperdex::space> overlap)
         hyperdex::subspace currsub = currspace.subspaces[0];
         for (k = 0; k < currsub.regions.size(); k++) {
             hyperdex::region reg = currsub.regions[k];
-            virtual_server_id vid = m_config.head_of_region(reg.id);
+            virtual_server_id vid = m_config.tail_of_region(reg.id);
             const bool is_in = m_transfer_vids.find(vid) != m_transfer_vids.end();
             if (!is_in) {
                 // XXX make wan_xfer, smaller # fields
                 transfer xfer;
                 xfer.vdst = vid;
+                xfer.rid = reg.id;
                 xfer.id = transfer_id(m_xid++);
                 transfer_in_state *tis = new transfer_in_state(xfer);
                 m_transfer_vids.insert(xfer.vdst);
@@ -756,8 +763,6 @@ wan_manager :: wan_xfer(const transfer_id& xid,
     }
 
     po6::threads::mutex::hold hold(&tis->mtx);
-
-    tis->xfer.rid = rid;
 
     // if (tis->xfer.vsrc != from || tis->xfer.id != xid)
     // {
