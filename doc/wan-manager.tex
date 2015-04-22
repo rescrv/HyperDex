@@ -1,0 +1,128 @@
+\section{Georeplication with HyperDex}
+\label{sec:georepl}
+
+HyperDex has a new feature called "georeplication" available to increase the
+fault-tolerance of a typical HyperDex deployment to protect against catastrophic
+datacenter events, such as natural disasters or power outages. Suppose a user
+has a HyperDex deployment running in Virginia that serves all of the
+\code{get}, \code{put}, etc operations for the user's service. This cluster
+is scalable and fault tolerant in the case of a few machines failing and
+rebooting and/or being replaced; however, if the whole datacenter were
+disabled, the cluster would obviously stop running.
+
+Using georeplication in HyperDex, the user could have both the
+"primary" Virginia cluster running and a secondary "backup" cluster
+running in Arkansas that mirrors all the \code{put} operations
+that are performed at the primary in Virginia. There is a discrete
+time difference between the \code{put}s reflected in the primary
+and the \code{put}s reflected in the backup, but in the limit all
+\code{put}s to the primary will be reflected in the backup.
+
+\section{Starting the Georeplicator}
+\label{sec:startgeo}
+
+To set up a primary cluster to be georeplicated, we first have to
+have the primary cluster running. We start the coordinator
+and a single (or more) daemon with:
+
+\begin{consolecode}
+hyperdex coordinator -f -l 127.0.0.1 -p 1982
+\end{consolecode}
+
+and
+
+\begin{consolecode}
+hyperdex daemon -f --listen=127.0.0.1 --listen-port=2012 \
+                   --coordinator=127.0.0.1 --coordinator-port=1982 --data=/path/to/data
+\end{consolecode}
+
+This will be our primary cluster. We then have to initialize our backup cluster
+as well by doing:
+
+\begin{consolecode}
+hyperdex coordinator -f -l 127.0.0.1 -p 1984
+\end{consolecode}
+
+and
+
+\begin{consolecode}
+hyperdex daemon -f --listen=127.0.0.1 --listen-port=2014 \
+                   --coordinator=127.0.0.1 --coordinator-port=1984 --data=/path/to/data
+\end{consolecode}
+
+This is our backup cluster. For real georeplication, we would want this cluster
+to be geographically separate from the primary, but for the purposes of a demo
+they can both be run on localhost.
+
+All HyperDex clusters started in this
+manner are actually in primary mode, meaning that the code that pulls
+\code{put}s from a primary and replicates them is not running yet. Hence
+both of these clusters are primary clusters so far. Now, let's point our backup
+cluster to the primary we want to georeplicate and have it pull the \code{put}s!
+We do this by running the "hyperdex-set-backup-cluster" tool:
+
+\begin{consolecode}
+  hyperdex-set-backup-cluster -h 127.0.0.1 -p 1984 -r 127.0.0.1 -t 1982
+\end{consolecode}
+
+This tool contacts the backup cluster coordinator (port 1984) and tells
+it to start pulling updates from the primary cluster (port 1982) and
+replicate them. At this point we have the backup cluster set up to
+replicate all the changes to the primary!
+
+\section{Datacenter Catastrophe}
+\label{sec:catastrophe}
+
+As time moves along, the backup cluster we set up in the previous
+section will get closer and closer to an exact replica of the primary.
+Suppose now, that a major catastrophic event occurs to the primary,
+taking the entire cluster out. At this point, we can move the backup cluster
+to be the primary cluster (and no longer pull updates from anyone else) by
+running:
+
+\begin{consolecode}
+  hyperdex-set-primary-cluster -h 127.0.0.1 -p 1984
+\end{consolecode}
+
+which sets the cluster at port 1984 to be a primary cluster. The user
+running HyperDex would also have to redirect all his HyperDex clients to point
+to port 1984 to make their \code{get}s, \code{put}s, etc for the conversion
+to be complete.
+
+\section{Changing Backup Affinity}
+\label{sec:affinity}
+
+Suppose now we had another primary cluster running at port 1986 with:
+
+\begin{consolecode}
+hyperdex coordinator -f -l 127.0.0.1 -p 1986
+\end{consolecode}
+
+and
+
+\begin{consolecode}
+hyperdex daemon -f --listen=127.0.0.1 --listen-port=2016 \
+                   --coordinator=127.0.0.1 --coordinator-port=1986 --data=/path/to/data
+\end{consolecode}
+
+along with our other primary and backup clusters. Also suppose we already
+had the backup cluster (port 1984) pulling changes from port 1982, but instead
+we wanted to start backing up the cluster at port 1986 instead for some reason
+(higher priority data, etc). We could use the "hyperdex-set-backup-affinity"
+tool to redirect the backup to forget about the primary it was backing up
+and to back up another primary instead. To do this, we run:
+
+\begin{consolecode}
+  hyperdex-set-backup-affinity -h 127.0.0.1 -p 1984 -r 127.0.0.1 -t 1986
+\end{consolecode}
+
+This tool contacts the backup cluster coordinator at port 1984 and tells it
+to starting backing up the cluster at port 1986 instead of the cluster
+it is currently backing up.
+
+\section{Georeplication Conclusion}
+\label{sec:geoconc}
+
+The tools given allow users to flexibly and reliably georeplicate HyperDex clusters
+to their needs, allowing performant, reliable, scalable, and linearizable data
+storage at their fingertips.
