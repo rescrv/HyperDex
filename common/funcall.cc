@@ -30,6 +30,7 @@
 // HyperDex
 #include "common/datatype_info.h"
 #include "common/funcall.h"
+#include "common/serialization.h"
 
 using hyperdex::funcall;
 
@@ -187,4 +188,50 @@ bool
 hyperdex :: operator < (const funcall& lhs, const funcall& rhs)
 {
     return lhs.attr < rhs.attr;
+}
+
+e::packer
+hyperdex :: operator << (e::packer lhs, const funcall_t& rhs)
+{
+    uint8_t name = static_cast<uint8_t>(rhs);
+    return lhs << name;
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker lhs, funcall_t& rhs)
+{
+    uint8_t name;
+    lhs = lhs >> name;
+    rhs = static_cast<funcall_t>(name);
+    return lhs;
+}
+
+size_t
+hyperdex :: pack_size(const funcall_t&)
+{
+    return sizeof(uint8_t);
+}
+
+e::packer
+hyperdex :: operator << (e::packer lhs, const funcall& rhs)
+{
+    return lhs << rhs.attr << rhs.name
+               << rhs.arg1 << rhs.arg1_datatype
+               << rhs.arg2 << rhs.arg2_datatype;
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker lhs, funcall& rhs)
+{
+    return lhs >> rhs.attr >> rhs.name
+               >> rhs.arg1 >> rhs.arg1_datatype
+               >> rhs.arg2 >> rhs.arg2_datatype;
+}
+
+size_t
+hyperdex :: pack_size(const funcall& m)
+{
+    return sizeof(uint16_t) + pack_size(m.name)
+         + pack_size(m.arg1) + pack_size(m.arg1_datatype)
+         + pack_size(m.arg2) + pack_size(m.arg2_datatype);
 }

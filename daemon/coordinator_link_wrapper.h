@@ -32,6 +32,7 @@
 #include <stdint.h>
 
 // STL
+#include <map>
 #include <queue>
 
 // po6
@@ -39,6 +40,9 @@
 #include <po6/threads/cond.h>
 #include <po6/threads/mutex.h>
 #include <po6/threads/thread.h>
+
+// e
+#include <e/intrusive_ptr.h>
 
 // HyperDex
 #include "namespace.h"

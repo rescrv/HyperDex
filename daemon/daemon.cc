@@ -795,7 +795,7 @@ daemon :: process_req_get(server_id from,
                   + sizeof(uint16_t)
                   + pack_size(value);
         msg.reset(e::buffer::create(sz));
-        e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
+        e::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
         pa = pa << nonce << static_cast<uint16_t>(result);
 
         if (result == NET_SUCCESS)
@@ -879,7 +879,7 @@ daemon :: process_req_get_partial(server_id from,
                   + pack_size(value)
                   + value.size() * sizeof(uint16_t);
         msg.reset(e::buffer::create(sz));
-        e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
+        e::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
         pa = pa << nonce << static_cast<uint16_t>(result);
 
         if (result == NET_SUCCESS)
@@ -1057,7 +1057,7 @@ daemon :: process_req_group_atomic(server_id from,
     }
 
     // Only forward the actual atomic operation
-    e::slice sl = up.as_slice();
+    e::slice sl = up.remainder();
     m_sm.group_keyop(from, vto, nonce, &checks, REQ_ATOMIC, sl, RESP_GROUP_ATOMIC);
 }
 
@@ -1293,7 +1293,7 @@ daemon :: process_backup(server_id from,
               + sizeof(uint16_t)
               + pack_size(path);
     msg.reset(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
+    e::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
     pa = pa << nonce << static_cast<uint16_t>(result) << path;
     m_comm.send_client(vto, from, BACKUP, msg);
 }
@@ -1345,9 +1345,8 @@ daemon :: process_perf_counters(server_id from,
               + sizeof(uint64_t)
               + out.size() + 1;
     msg.reset(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
-    pa = pa << nonce;
-    pa.copy(e::slice(out.data(), out.size() + 1));
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VC)
+        << nonce << e::pack_memmove(out.c_str(), out.size() + 1);
     m_comm.send_client(vto, from, PERF_COUNTERS, msg);
 }
 

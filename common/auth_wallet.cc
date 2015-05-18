@@ -87,8 +87,8 @@ build_macaroons(const std::vector<std::string>& in,
     }
 }
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer lhs, const auth_wallet& rhs)
+e::packer
+hyperdex :: operator << (e::packer lhs, const auth_wallet& rhs)
 {
     std::vector<e::slice> macaroons;
     build_macaroons(rhs.m_macaroons, &macaroons);

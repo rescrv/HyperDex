@@ -143,8 +143,8 @@ hyperdex :: operator << (std::ostream& lhs, const transfer& rhs)
                << ", vdst=" << rhs.vdst << ")";
 }
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer pa, const transfer& t)
+e::packer
+hyperdex :: operator << (e::packer pa, const transfer& t)
 {
     return pa << t.id << t.rid << t.src << t.vsrc << t.dst << t.vdst;
 }

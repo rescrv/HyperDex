@@ -35,7 +35,7 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 static inline void
-generate_response(replicant_state_machine_context* ctx, coordinator_returncode x)
+generate_response(rsm_context* ctx, coordinator_returncode x)
 {
     const char* ptr = NULL;
 
@@ -64,11 +64,11 @@ generate_response(replicant_state_machine_context* ctx, coordinator_returncode x
             break;
     }
 
-    replicant_state_machine_set_response(ctx, ptr, 2);
+    rsm_set_output(ctx, ptr, 2);
 }
 
 #define INVARIANT_BROKEN(X) \
-    fprintf(log, "invariant broken at " __FILE__ ":%d:  %s\n", __LINE__, X "\n")
+    rsm_log(ctx, "invariant broken at " __FILE__ ":%d:  %s\n", __LINE__, X "\n")
 
 END_HYPERDEX_NAMESPACE
 

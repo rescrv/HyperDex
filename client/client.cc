@@ -151,7 +151,7 @@ client :: get(const char* space, const char* _key, size_t _key_sz,
 
     e::intrusive_ptr<pending> op;
     op = new pending_get(m_next_client_id++, status, attrs, attrs_sz);
-    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ + sizeof(uint32_t) + key.size();
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ + pack_size(key);
     auth_wallet aw(m_macaroons, m_macaroons_sz);
 
     if (m_macaroons_sz)
@@ -160,7 +160,7 @@ client :: get(const char* space, const char* _key, size_t _key_sz,
     }
 
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << key;
+    e::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << key;
 
     if (m_macaroons_sz)
     {
@@ -227,8 +227,8 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
     e::intrusive_ptr<pending> op;
     op = new pending_get_partial(m_next_client_id++, status, attrs, attrs_sz);
     size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
-              + sizeof(uint32_t) + key.size()
-              + sizeof(uint32_t) + attrnums.size() * sizeof(uint16_t);
+              + pack_size(key)
+              + sizeof(uint64_t) + attrnums.size() * sizeof(uint16_t);
     auth_wallet aw(m_macaroons, m_macaroons_sz);
 
     if (m_macaroons_sz)
@@ -237,13 +237,8 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
     }
 
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
-    pa = pa << key << uint32_t(attrnums.size());
-
-    for (size_t i = 0; i < attrnums.size(); ++i)
-    {
-        pa = pa << attrnums[i];
-    }
+    e::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
+    pa = pa << key << attrnums;
 
     if (m_macaroons_sz)
     {
@@ -464,9 +459,9 @@ client :: perform_group_funcall(const hyperdex_client_keyop_info* opinfo,
               + pack_size(checks)
               + inner_msg->size();
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
-    pa = pa << checks;
-    pa.copy(inner_msg->as_slice());
+    e::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
+    e::slice ims = inner_msg->as_slice();
+    pa = pa << checks << e::pack_memmove(ims.data(), ims.size());
     return perform_aggregation(servers, op, REQ_GROUP_ATOMIC, msg, status);
 }
 
@@ -1098,7 +1093,7 @@ client :: maintain_coord_connection(hyperdex_client_returncode* status)
         }
         else
         {
-            ERROR(COORDFAIL) << "coordinator failure: " << m_coord.error().msg();
+            ERROR(COORDFAIL) << "coordinator failure: " << m_coord.error_message();
         }
 
         return false;
@@ -1410,9 +1405,9 @@ client :: uxact_group_commit(microtransaction *transaction,
               + pack_size(checks)
               + inner_msg->size();
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
-    pa = pa << checks;
-    pa.copy(inner_msg->as_slice());
+    e::packer pa = msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ);
+    e::slice ims = inner_msg->as_slice();
+    pa = pa << checks << e::pack_memmove(ims.data(), ims.size());
 
     int64_t result = perform_aggregation(servers, op, REQ_GROUP_ATOMIC, msg, status);
     delete transaction;

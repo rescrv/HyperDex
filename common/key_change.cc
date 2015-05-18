@@ -128,8 +128,8 @@ key_change :: operator = (const key_change& rhs)
 #define FLAG_FINF 1
 #define FLAG_FIF 2
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer pa, const key_change& td)
+e::packer
+hyperdex :: operator << (e::packer pa, const key_change& td)
 {
     uint8_t flags = (td.erase ? 0 : FLAG_WRITE)
                   | (td.fail_if_not_found ? FLAG_FINF : 0)

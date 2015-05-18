@@ -43,6 +43,6 @@ coord_rpc :: ~coord_rpc() throw ()
 {
     if (repl_output)
     {
-        replicant_destroy_output(repl_output, repl_output_sz);
+        free(repl_output);
     }
 }

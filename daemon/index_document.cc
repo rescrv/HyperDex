@@ -227,7 +227,7 @@ index_document :: parse_path(const index* idx,
 {
     hyperdatatype type;
 
-    if (m_di.extract_value(idx->extra.c_str(), document, &type, scratch, value))
+    if (m_di.extract_value(idx->extra.cdata(), document, &type, scratch, value))
     {
         if (type == HYPERDATATYPE_STRING)
         {

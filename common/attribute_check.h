@@ -30,6 +30,7 @@
 
 // e
 #include <e/slice.h>
+#include <e/serialization.h>
 
 // HyperDex
 #include "namespace.h"
@@ -74,6 +75,13 @@ passes_attribute_checks(const schema& sc,
 bool
 operator < (const attribute_check& lhs,
             const attribute_check& rhs);
+
+e::packer
+operator << (e::packer lhs, const attribute_check& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, attribute_check& rhs);
+size_t
+pack_size(const attribute_check& rhs);
 
 END_HYPERDEX_NAMESPACE
 

@@ -241,3 +241,31 @@ hyperdex :: operator < (const attribute_check& lhs, const attribute_check& rhs)
 {
     return lhs.attr < rhs.attr;
 }
+
+e::packer
+hyperdex :: operator << (e::packer lhs, const attribute_check& rhs)
+{
+    return lhs << rhs.attr
+               << rhs.value
+               << rhs.datatype
+               << rhs.predicate;
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker lhs, attribute_check& rhs)
+{
+    return lhs >> rhs.attr
+               >> rhs.value
+               >> rhs.datatype
+               >> rhs.predicate;
+}
+
+size_t
+hyperdex :: pack_size(const attribute_check& rhs)
+{
+    return sizeof(uint16_t)
+         + sizeof(uint32_t)
+         + rhs.value.size()
+         + pack_size(rhs.datatype)
+         + pack_size(rhs.predicate);
+}

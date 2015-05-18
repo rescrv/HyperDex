@@ -193,8 +193,8 @@ space :: reestablish_backing()
     }
 }
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer pa, const space& s)
+e::packer
+hyperdex :: operator << (e::packer pa, const space& s)
 {
     e::slice name;
     uint16_t num_subspaces = s.subspaces.size();
@@ -329,8 +329,8 @@ subspace :: operator = (const subspace& rhs)
     return *this;
 }
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer pa, const subspace& s)
+e::packer
+hyperdex :: operator << (e::packer pa, const subspace& s)
 {
     uint16_t num_attrs = s.attrs.size();
     uint32_t num_regions = s.regions.size();
@@ -421,8 +421,8 @@ region :: operator = (const region& rhs)
     return *this;
 }
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer pa, const region& r)
+e::packer
+hyperdex :: operator << (e::packer pa, const region& r)
 {
     uint16_t num_hashes = r.lower_coord.size();
     uint8_t num_replicas = r.replicas.size();
@@ -513,8 +513,8 @@ replica :: operator = (const replica& rhs)
     return *this;
 }
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer pa, const replica& r)
+e::packer
+hyperdex :: operator << (e::packer pa, const replica& r)
 {
     return pa << r.si.get() << r.vsi.get();
 }

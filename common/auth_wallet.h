@@ -29,8 +29,7 @@
 #define hyperdex_common_auth_wallet_h_
 
 // e
-#include <e/buffer.h>
-#include <e/unpacker.h>
+#include <e/serialization.h>
 
 // macaroons
 #include <macaroons.h>
@@ -52,7 +51,7 @@ class auth_wallet
         bool get_macaroons(std::vector<macaroon*>* macaroons);
 
     private:
-        friend e::buffer::packer operator << (e::buffer::packer lhs, const auth_wallet& rhs);
+        friend e::packer operator << (e::packer lhs, const auth_wallet& rhs);
         friend e::unpacker operator >> (e::unpacker lhs, auth_wallet& rhs);
         friend size_t pack_size(const auth_wallet& aw);
 
@@ -65,8 +64,8 @@ class auth_wallet
         std::vector<std::string> m_macaroons;
 };
 
-e::buffer::packer
-operator << (e::buffer::packer lhs, const auth_wallet& rhs);
+e::packer
+operator << (e::packer lhs, const auth_wallet& rhs);
 e::unpacker
 operator >> (e::unpacker lhs, auth_wallet& rhs);
 size_t

@@ -38,9 +38,6 @@
 // e
 #include <e/endian.h>
 
-// Replicant
-#include <replicant_state_machine.h>
-
 // HyperDex
 #include "common/configuration_flags.h"
 #include "common/serialization.h"
@@ -170,40 +167,37 @@ coordinator :: ~coordinator() throw ()
 }
 
 void
-coordinator :: init(replicant_state_machine_context* ctx, uint64_t token)
+coordinator :: init(rsm_context* ctx, uint64_t token)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
-
     if (m_cluster != 0)
     {
-        fprintf(log, "cannot initialize HyperDex cluster with id %" PRIu64 " "
+        rsm_log(ctx, "cannot initialize HyperDex cluster with id %" PRIu64 " "
                      "because it is already initialized to %" PRIu64 "\n", token, m_cluster);
         // we lie to the client and pretend all is well
         return generate_response(ctx, COORD_SUCCESS);
     }
 
-    replicant_state_machine_alarm(ctx, "alarm", ALARM_INTERVAL);
-    fprintf(log, "initializing HyperDex cluster with id %" PRIu64 "\n", token);
+    rsm_tick_interval(ctx, "periodic", ALARM_INTERVAL);
+    rsm_log(ctx, "initializing HyperDex cluster with id %" PRIu64 "\n", token);
     m_cluster = token;
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
 }
 
 void
-coordinator :: read_only(replicant_state_machine_context* ctx, bool ro)
+coordinator :: read_only(rsm_context* ctx, bool ro)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     uint64_t old_flags = m_flags;
 
     if (ro)
     {
         if ((m_flags & HYPERDEX_CONFIG_READ_ONLY))
         {
-            fprintf(log, "cluster already in read-only mode\n");
+            rsm_log(ctx, "cluster already in read-only mode\n");
         }
         else
         {
-            fprintf(log, "putting cluster into read-only mode\n");
+            rsm_log(ctx, "putting cluster into read-only mode\n");
         }
 
         m_flags |= HYPERDEX_CONFIG_READ_ONLY;
@@ -212,11 +206,11 @@ coordinator :: read_only(replicant_state_machine_context* ctx, bool ro)
     {
         if ((m_flags & HYPERDEX_CONFIG_READ_ONLY))
         {
-            fprintf(log, "putting cluster into read-write mode\n");
+            rsm_log(ctx, "putting cluster into read-write mode\n");
         }
         else
         {
-            fprintf(log, "cluster already in read-write mode\n");
+            rsm_log(ctx, "cluster already in read-write mode\n");
         }
 
         uint64_t mask = HYPERDEX_CONFIG_READ_ONLY;
@@ -233,7 +227,7 @@ coordinator :: read_only(replicant_state_machine_context* ctx, bool ro)
 }
 
 void
-coordinator :: fault_tolerance(replicant_state_machine_context* ctx,
+coordinator :: fault_tolerance(rsm_context* ctx,
                                const char* space, uint64_t ft)
 {
     uint64_t R = 0;
@@ -245,10 +239,16 @@ coordinator :: fault_tolerance(replicant_state_machine_context* ctx,
     for (space_map_t::iterator it = m_spaces.begin();
             it != m_spaces.end(); ++it)
     {
-        if (it->first == space) {
+        if (it->first == space)
+        {
             s = it->second;
             break;
         }
+    }
+
+    if (!s)
+    {
+        return;
     }
 
     s->fault_tolerance = ft;
@@ -266,17 +266,16 @@ coordinator :: fault_tolerance(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: server_register(replicant_state_machine_context* ctx,
+coordinator :: server_register(rsm_context* ctx,
                                const server_id& sid,
                                const po6::net::location& bind_to)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     server* srv = get_server(sid);
 
     if (srv)
     {
         std::string str(to_string(srv->bind_to));
-        fprintf(log, "cannot register server(%" PRIu64 ") because the id belongs to "
+        rsm_log(ctx, "cannot register server(%" PRIu64 ") because the id belongs to "
                      "server(%" PRIu64 ", %s)\n", sid.get(), srv->id.get(), str.c_str());
         return generate_response(ctx, hyperdex::COORD_DUPLICATE);
     }
@@ -284,22 +283,21 @@ coordinator :: server_register(replicant_state_machine_context* ctx,
     srv = new_server(sid);
     srv->state = server::ASSIGNED;
     srv->bind_to = bind_to;
-    fprintf(log, "registered server(%" PRIu64 ")\n", sid.get());
+    rsm_log(ctx, "registered server(%" PRIu64 ")\n", sid.get());
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
 }
 
 void
-coordinator :: server_online(replicant_state_machine_context* ctx,
+coordinator :: server_online(rsm_context* ctx,
                              const server_id& sid,
                              const po6::net::location* bind_to)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     server* srv = get_server(sid);
 
     if (!srv)
     {
-        fprintf(log, "cannot bring server(%" PRIu64 ") online because "
+        rsm_log(ctx, "cannot bring server(%" PRIu64 ") online because "
                      "the server doesn't exist\n", sid.get());
         return generate_response(ctx, hyperdex::COORD_NOT_FOUND);
     }
@@ -309,7 +307,7 @@ coordinator :: server_online(replicant_state_machine_context* ctx,
         srv->state != server::SHUTDOWN &&
         srv->state != server::AVAILABLE)
     {
-        fprintf(log, "cannot bring server(%" PRIu64 ") online because the server is "
+        rsm_log(ctx, "cannot bring server(%" PRIu64 ") online because the server is "
                      "%s\n", sid.get(), server::to_string(srv->state));
         return generate_response(ctx, hyperdex::COORD_NO_CAN_DO);
     }
@@ -326,7 +324,7 @@ coordinator :: server_online(replicant_state_machine_context* ctx,
             if (m_servers[i].id != sid &&
                 m_servers[i].bind_to == *bind_to)
             {
-                fprintf(log, "cannot change server(%" PRIu64 ") to %s "
+                rsm_log(ctx, "cannot change server(%" PRIu64 ") to %s "
                              "because that address is in use by "
                              "server(%" PRIu64 ")\n", sid.get(), to.c_str(),
                              m_servers[i].id.get());
@@ -334,7 +332,7 @@ coordinator :: server_online(replicant_state_machine_context* ctx,
             }
         }
 
-        fprintf(log, "changing server(%" PRIu64 ")'s address from %s to %s\n",
+        rsm_log(ctx, "changing server(%" PRIu64 ")'s address from %s to %s\n",
                      sid.get(), from.c_str(), to.c_str());
         srv->bind_to = *bind_to;
         changed = true;
@@ -342,7 +340,7 @@ coordinator :: server_online(replicant_state_machine_context* ctx,
 
     if (srv->state != server::AVAILABLE)
     {
-        fprintf(log, "changing server(%" PRIu64 ") from %s to %s\n",
+        rsm_log(ctx, "changing server(%" PRIu64 ") from %s to %s\n",
                      sid.get(), server::to_string(srv->state),
                      server::to_string(server::AVAILABLE));
         srv->state = server::AVAILABLE;
@@ -361,23 +359,24 @@ coordinator :: server_online(replicant_state_machine_context* ctx,
         generate_next_configuration(ctx);
     }
 
+#if 0
     char buf[sizeof(uint64_t)];
     e::pack64be(sid.get(), buf);
     uint64_t client = replicant_state_machine_get_client(ctx);
     replicant_state_machine_suspect(ctx, client, "server_suspect",  buf, sizeof(uint64_t));
+#endif
     return generate_response(ctx, COORD_SUCCESS);
 }
 
 void
-coordinator :: server_offline(replicant_state_machine_context* ctx,
+coordinator :: server_offline(rsm_context* ctx,
                               const server_id& sid)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     server* srv = get_server(sid);
 
     if (!srv)
     {
-        fprintf(log, "cannot bring server(%" PRIu64 ") offline because "
+        rsm_log(ctx, "cannot bring server(%" PRIu64 ") offline because "
                      "the server doesn't exist\n", sid.get());
         return generate_response(ctx, hyperdex::COORD_NOT_FOUND);
     }
@@ -387,14 +386,14 @@ coordinator :: server_offline(replicant_state_machine_context* ctx,
         srv->state != server::AVAILABLE &&
         srv->state != server::SHUTDOWN)
     {
-        fprintf(log, "cannot bring server(%" PRIu64 ") offline because the server is "
+        rsm_log(ctx, "cannot bring server(%" PRIu64 ") offline because the server is "
                      "%s\n", sid.get(), server::to_string(srv->state));
         return generate_response(ctx, hyperdex::COORD_NO_CAN_DO);
     }
 
     if (srv->state != server::NOT_AVAILABLE && srv->state != server::SHUTDOWN)
     {
-        fprintf(log, "changing server(%" PRIu64 ") from %s to %s\n",
+        rsm_log(ctx, "changing server(%" PRIu64 ") from %s to %s\n",
                      sid.get(), server::to_string(srv->state),
                      server::to_string(server::NOT_AVAILABLE));
         srv->state = server::NOT_AVAILABLE;
@@ -406,15 +405,14 @@ coordinator :: server_offline(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: server_shutdown(replicant_state_machine_context* ctx,
+coordinator :: server_shutdown(rsm_context* ctx,
                                const server_id& sid)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     server* srv = get_server(sid);
 
     if (!srv)
     {
-        fprintf(log, "cannot shutdown server(%" PRIu64 ") because "
+        rsm_log(ctx, "cannot shutdown server(%" PRIu64 ") because "
                      "the server doesn't exist\n", sid.get());
         return generate_response(ctx, hyperdex::COORD_NOT_FOUND);
     }
@@ -424,14 +422,14 @@ coordinator :: server_shutdown(replicant_state_machine_context* ctx,
         srv->state != server::AVAILABLE &&
         srv->state != server::SHUTDOWN)
     {
-        fprintf(log, "cannot shutdown server(%" PRIu64 ") because the server is "
+        rsm_log(ctx, "cannot shutdown server(%" PRIu64 ") because the server is "
                      "%s\n", sid.get(), server::to_string(srv->state));
         return generate_response(ctx, hyperdex::COORD_NO_CAN_DO);
     }
 
     if (srv->state != server::SHUTDOWN)
     {
-        fprintf(log, "changing server(%" PRIu64 ") from %s to %s\n",
+        rsm_log(ctx, "changing server(%" PRIu64 ") from %s to %s\n",
                      sid.get(), server::to_string(srv->state),
                      server::to_string(server::SHUTDOWN));
         srv->state = server::SHUTDOWN;
@@ -443,22 +441,21 @@ coordinator :: server_shutdown(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: server_kill(replicant_state_machine_context* ctx,
+coordinator :: server_kill(rsm_context* ctx,
                            const server_id& sid)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     server* srv = get_server(sid);
 
     if (!srv)
     {
-        fprintf(log, "cannot kill server(%" PRIu64 ") because "
+        rsm_log(ctx, "cannot kill server(%" PRIu64 ") because "
                      "the server doesn't exist\n", sid.get());
         return generate_response(ctx, hyperdex::COORD_NOT_FOUND);
     }
 
     if (srv->state != server::KILLED)
     {
-        fprintf(log, "changing server(%" PRIu64 ") from %s to %s\n",
+        rsm_log(ctx, "changing server(%" PRIu64 ") from %s to %s\n",
                      sid.get(), server::to_string(srv->state),
                      server::to_string(server::KILLED));
         srv->state = server::KILLED;
@@ -472,15 +469,14 @@ coordinator :: server_kill(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: server_forget(replicant_state_machine_context* ctx,
+coordinator :: server_forget(rsm_context* ctx,
                              const server_id& sid)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     server* srv = get_server(sid);
 
     if (!srv)
     {
-        fprintf(log, "cannot forget server(%" PRIu64 ") because "
+        rsm_log(ctx, "cannot forget server(%" PRIu64 ") because "
                      "the server doesn't exist\n", sid.get());
         return generate_response(ctx, hyperdex::COORD_NOT_FOUND);
     }
@@ -503,15 +499,14 @@ coordinator :: server_forget(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: server_suspect(replicant_state_machine_context* ctx,
+coordinator :: server_suspect(rsm_context* ctx,
                               const server_id& sid)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     server* srv = get_server(sid);
 
     if (!srv)
     {
-        fprintf(log, "cannot suspect server(%" PRIu64 ") because "
+        rsm_log(ctx, "cannot suspect server(%" PRIu64 ") because "
                      "the server doesn't exist\n", sid.get());
         return generate_response(ctx, hyperdex::COORD_NOT_FOUND);
     }
@@ -525,14 +520,14 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
         srv->state != server::NOT_AVAILABLE &&
         srv->state != server::AVAILABLE)
     {
-        fprintf(log, "cannot suspect server(%" PRIu64 ") because the server is "
+        rsm_log(ctx, "cannot suspect server(%" PRIu64 ") because the server is "
                      "%s\n", sid.get(), server::to_string(srv->state));
         return generate_response(ctx, hyperdex::COORD_NO_CAN_DO);
     }
 
     if (srv->state != server::NOT_AVAILABLE && srv->state != server::SHUTDOWN)
     {
-        fprintf(log, "changing server(%" PRIu64 ") from %s to %s because we suspect it failed\n",
+        rsm_log(ctx, "changing server(%" PRIu64 ") from %s to %s because we suspect it failed\n",
                      sid.get(), server::to_string(srv->state),
                      server::to_string(server::NOT_AVAILABLE));
         srv->state = server::NOT_AVAILABLE;
@@ -544,7 +539,7 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: report_disconnect(replicant_state_machine_context* ctx,
+coordinator :: report_disconnect(rsm_context* ctx,
                                  const server_id& sid, uint64_t version)
 {
     if (m_version != version)
@@ -574,19 +569,18 @@ is_space_name(const char* str)
 }
 
 void
-coordinator :: space_add(replicant_state_machine_context* ctx, const space& _s)
+coordinator :: space_add(rsm_context* ctx, const space& _s)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
 
     if (!_s.validate())
     {
-        fprintf(log, "could not add space \"%s\" because the space does not validate\n", _s.name);
+        rsm_log(ctx, "could not add space \"%s\" because the space does not validate\n", _s.name);
         return generate_response(ctx, COORD_MALFORMED);
     }
 
     if (m_spaces.find(std::string(_s.name)) != m_spaces.end())
     {
-        fprintf(log, "could not add space \"%s\" because there is already a space with that name\n", _s.name);
+        rsm_log(ctx, "could not add space \"%s\" because there is already a space with that name\n", _s.name);
         return generate_response(ctx, COORD_DUPLICATE);
     }
 
@@ -618,28 +612,27 @@ coordinator :: space_add(replicant_state_machine_context* ctx, const space& _s)
     x = m_spaces.insert(std::make_pair(std::string(s->name), s));
     assert(x.second);
     s->name = x.first->first.c_str();
-    fprintf(log, "successfully added space \"%s\" with space(%" PRIu64 ")\n", s->name, s->id.get());
+    rsm_log(ctx, "successfully added space \"%s\" with space(%" PRIu64 ")\n", s->name, s->id.get());
     initial_space_layout(ctx, s.get());
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
 }
 
 void
-coordinator :: space_rm(replicant_state_machine_context* ctx, const char* name)
+coordinator :: space_rm(rsm_context* ctx, const char* name)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     space_map_t::iterator it;
     it = m_spaces.find(std::string(name));
 
     if (it == m_spaces.end())
     {
-        fprintf(log, "could not remove space \"%s\" because it doesn't exist\n", name);
+        rsm_log(ctx, "could not remove space \"%s\" because it doesn't exist\n", name);
         return generate_response(ctx, COORD_NOT_FOUND);
     }
     else
     {
         space_id sid(it->second->id.get());
-        fprintf(log, "successfully removed space \"%s\"/space(%" PRIu64 ")\n", name, sid.get());
+        rsm_log(ctx, "successfully removed space \"%s\"/space(%" PRIu64 ")\n", name, sid.get());
         std::vector<region_id> rids;
         regions_in_space(it->second, &rids);
         std::sort(rids.begin(), rids.end());
@@ -678,32 +671,31 @@ coordinator :: space_rm(replicant_state_machine_context* ctx, const char* name)
 }
 
 void
-coordinator :: space_mv(replicant_state_machine_context* ctx, const char* src, const char* dst)
+coordinator :: space_mv(rsm_context* ctx, const char* src, const char* dst)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     space_map_t::iterator it;
     it = m_spaces.find(std::string(src));
 
     if (it == m_spaces.end())
     {
-        fprintf(log, "could not rename space \"%s\" because it doesn't exist\n", src);
+        rsm_log(ctx, "could not rename space \"%s\" because it doesn't exist\n", src);
         return generate_response(ctx, COORD_NOT_FOUND);
     }
     else if (m_spaces.find(std::string(dst)) != m_spaces.end())
     {
-        fprintf(log, "could not rename space \"%s\" to \"%s\" because there is already a space \"%s\"\n", src, dst, dst);
+        rsm_log(ctx, "could not rename space \"%s\" to \"%s\" because there is already a space \"%s\"\n", src, dst, dst);
         return generate_response(ctx, COORD_DUPLICATE);
     }
     else if (!is_space_name(dst))
     {
-        fprintf(log, "could not rename space \"%s\" to \"%s\" because \"%s\" is an invalid space name\n", src, dst, dst);
+        rsm_log(ctx, "could not rename space \"%s\" to \"%s\" because \"%s\" is an invalid space name\n", src, dst, dst);
         return generate_response(ctx, COORD_NO_CAN_DO);
     }
     else
     {
         space_ptr sp(it->second);
         space_id sid(sp->id.get());
-        fprintf(log, "renaming space \"%s\" (%" PRIu64 ") to \"%s\"\n", src, sid.get(), dst);
+        rsm_log(ctx, "renaming space \"%s\" (%" PRIu64 ") to \"%s\"\n", src, sid.get(), dst);
         m_spaces.erase(it);
         std::pair<space_map_t::iterator, bool> x;
         x = m_spaces.insert(std::make_pair(std::string(dst), sp));
@@ -715,16 +707,15 @@ coordinator :: space_mv(replicant_state_machine_context* ctx, const char* src, c
 }
 
 void
-coordinator :: index_add(replicant_state_machine_context* ctx,
+coordinator :: index_add(rsm_context* ctx,
                          const char* space, const char* what)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     space_map_t::iterator it;
     it = m_spaces.find(std::string(space));
 
     if (it == m_spaces.end())
     {
-        fprintf(log, "could not create index on \"%s\" on space \"%s\" because the space doesn't exist\n", what, space);
+        rsm_log(ctx, "could not create index on \"%s\" on space \"%s\" because the space doesn't exist\n", what, space);
         return generate_response(ctx, COORD_NOT_FOUND);
     }
 
@@ -754,14 +745,14 @@ coordinator :: index_add(replicant_state_machine_context* ctx,
 
     if (attr_num >= sp->sc.attrs_sz)
     {
-        fprintf(log, "could not create index on \"%s\" on space \"%s\" because the attribute doesn't exist\n", what, space);
+        rsm_log(ctx, "could not create index on \"%s\" on space \"%s\" because the attribute doesn't exist\n", what, space);
         return generate_response(ctx, COORD_NOT_FOUND);
     }
 
     if (type == index::NORMAL &&
         sp->sc.attrs[attr_num].type == HYPERDATATYPE_DOCUMENT)
     {
-        fprintf(log, "could not create index on \"%s\" on space \"%s\" because "
+        rsm_log(ctx, "could not create index on \"%s\" on space \"%s\" because "
                      "it is a document and no dotted path was provided\n", what, space);
         return generate_response(ctx, COORD_NO_CAN_DO);
     }
@@ -769,7 +760,7 @@ coordinator :: index_add(replicant_state_machine_context* ctx,
     if (type == index::DOCUMENT &&
         sp->sc.attrs[attr_num].type != HYPERDATATYPE_DOCUMENT)
     {
-        fprintf(log, "could not create index on \"%s\" on space \"%s\" because "
+        rsm_log(ctx, "could not create index on \"%s\" on space \"%s\" because "
                      "it is a not document and a dotted path was provided\n", what, space);
         return generate_response(ctx, COORD_NO_CAN_DO);
     }
@@ -780,12 +771,12 @@ coordinator :: index_add(replicant_state_machine_context* ctx,
             sp->indices[i].attr == attr_num &&
             sp->indices[i].extra == e::slice(dotpath))
         {
-            fprintf(log, "did not create index on \"%s\" on space \"%s\" because it is already indexed\n", what, space);
+            rsm_log(ctx, "did not create index on \"%s\" on space \"%s\" because it is already indexed\n", what, space);
             return generate_response(ctx, COORD_DUPLICATE);
         }
     }
 
-    fprintf(log, "creating index on \"%s\" on space \"%s\"\n", what, space);
+    rsm_log(ctx, "creating index on \"%s\" on space \"%s\"\n", what, space);
     index_id id(m_counter);
     ++m_counter;
     sp->indices.push_back(index(type, id, attr_num, e::slice(dotpath)));
@@ -795,9 +786,8 @@ coordinator :: index_add(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: index_rm(replicant_state_machine_context* ctx, index_id ii)
+coordinator :: index_rm(rsm_context* ctx, index_id ii)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     e::compat::shared_ptr<space> s;
     index* idx;
 
@@ -813,7 +803,7 @@ coordinator :: index_rm(replicant_state_machine_context* ctx, index_id ii)
 
     if (!s.get() || !idx)
     {
-        fprintf(log, "could not remove index %lu because it doesn't exist\n", ii.get());
+        rsm_log(ctx, "could not remove index %lu because it doesn't exist\n", ii.get());
         return generate_response(ctx, COORD_NOT_FOUND);
     }
 
@@ -824,7 +814,7 @@ coordinator :: index_rm(replicant_state_machine_context* ctx, index_id ii)
         {
             if (it->attrs[a] == idx->attr)
             {
-                fprintf(log, "could not remove index %lu because it's in use by subspace \"%lu\"\n",
+                rsm_log(ctx, "could not remove index %lu because it's in use by subspace \"%lu\"\n",
                              ii.get(), it->id.get());
                 return generate_response(ctx, COORD_NO_CAN_DO);
             }
@@ -832,17 +822,16 @@ coordinator :: index_rm(replicant_state_machine_context* ctx, index_id ii)
     }
 
     remove_id(ii, &s->indices);
-    fprintf(log, "removed index %lu from space \"%s\"\n", ii.get(), s->name);
+    rsm_log(ctx, "removed index %lu from space \"%s\"\n", ii.get(), s->name);
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
 }
 
 void
-coordinator :: transfer_go_live(replicant_state_machine_context* ctx,
+coordinator :: transfer_go_live(rsm_context* ctx,
                                 uint64_t version,
                                 const transfer_id& xid)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     transfer* xfer = get_transfer(xid);
 
     if (!xfer)
@@ -852,7 +841,7 @@ coordinator :: transfer_go_live(replicant_state_machine_context* ctx,
             return;
         }
 
-        fprintf(log, "cannot make transfer(%" PRIu64 ") live because it doesn't exist\n", xid.get());
+        rsm_log(ctx, "cannot make transfer(%" PRIu64 ") live because it doesn't exist\n", xid.get());
         return generate_response(ctx, COORD_SUCCESS);
     }
 
@@ -860,7 +849,7 @@ coordinator :: transfer_go_live(replicant_state_machine_context* ctx,
 
     if (!reg)
     {
-        fprintf(log, "cannot make transfer(%" PRIu64 ") live because it doesn't exist\n", xid.get());
+        rsm_log(ctx, "cannot make transfer(%" PRIu64 ") live because it doesn't exist\n", xid.get());
         INVARIANT_BROKEN("transfer refers to nonexistent region");
         return generate_response(ctx, COORD_SUCCESS);
     }
@@ -880,17 +869,16 @@ coordinator :: transfer_go_live(replicant_state_machine_context* ctx,
     }
 
     reg->replicas.push_back(replica(xfer->dst, xfer->vdst));
-    fprintf(log, "transfer(%" PRIu64 ") is live\n", xid.get());
+    rsm_log(ctx, "transfer(%" PRIu64 ") is live\n", xid.get());
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
 }
 
 void
-coordinator :: transfer_complete(replicant_state_machine_context* ctx,
+coordinator :: transfer_complete(rsm_context* ctx,
                                  uint64_t version,
                                  const transfer_id& xid)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     transfer* xfer = get_transfer(xid);
 
     if (!xfer)
@@ -900,7 +888,7 @@ coordinator :: transfer_complete(replicant_state_machine_context* ctx,
             return;
         }
 
-        fprintf(log, "cannot complete transfer(%" PRIu64 ") because it doesn't exist\n", xid.get());
+        rsm_log(ctx, "cannot complete transfer(%" PRIu64 ") because it doesn't exist\n", xid.get());
         return generate_response(ctx, COORD_SUCCESS);
     }
 
@@ -908,7 +896,7 @@ coordinator :: transfer_complete(replicant_state_machine_context* ctx,
 
     if (!reg)
     {
-        fprintf(log, "cannot complete transfer(%" PRIu64 ") because it doesn't exist\n", xid.get());
+        rsm_log(ctx, "cannot complete transfer(%" PRIu64 ") because it doesn't exist\n", xid.get());
         INVARIANT_BROKEN("transfer refers to nonexistent region");
         return generate_response(ctx, COORD_SUCCESS);
     }
@@ -917,29 +905,29 @@ coordinator :: transfer_complete(replicant_state_machine_context* ctx,
           reg->replicas[reg->replicas.size() - 2].si == xfer->src &&
           reg->replicas[reg->replicas.size() - 1].si == xfer->dst))
     {
-        fprintf(log, "cannot complete transfer(%" PRIu64 ") because it is not live\n", xid.get());
+        rsm_log(ctx, "cannot complete transfer(%" PRIu64 ") because it is not live\n", xid.get());
         return generate_response(ctx, COORD_SUCCESS);
     }
 
     del_transfer(xfer->id);
-    fprintf(log, "transfer(%" PRIu64 ") is complete\n", xid.get());
+    rsm_log(ctx, "transfer(%" PRIu64 ") is complete\n", xid.get());
     converge_intent(ctx, reg);
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
 }
 
 void
-coordinator :: config_get(replicant_state_machine_context* ctx)
+coordinator :: config_get(rsm_context* ctx)
 {
     assert(m_cluster != 0 && m_version != 0);
     assert(m_latest_config.get());
     const char* output = reinterpret_cast<const char*>(m_latest_config->data());
     size_t output_sz = m_latest_config->size();
-    replicant_state_machine_set_response(ctx, output, output_sz);
+    rsm_set_output(ctx, output, output_sz);
 }
 
 void
-coordinator :: config_ack(replicant_state_machine_context* ctx,
+coordinator :: config_ack(rsm_context* ctx,
                           const server_id& sid, uint64_t version)
 {
     m_config_ack_barrier.pass(version, sid);
@@ -947,7 +935,7 @@ coordinator :: config_ack(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: config_stable(replicant_state_machine_context* ctx,
+coordinator :: config_stable(rsm_context* ctx,
                              const server_id& sid, uint64_t version)
 {
     m_config_stable_barrier.pass(version, sid);
@@ -955,19 +943,11 @@ coordinator :: config_stable(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: checkpoint(replicant_state_machine_context* ctx)
+coordinator :: checkpoint(rsm_context* ctx)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
-    uint64_t cond_state = 0;
-
-    if (replicant_state_machine_condition_broadcast(ctx, "checkp", &cond_state) < 0)
-    {
-        fprintf(log, "could not broadcast on \"checkp\" condition\n");
-    }
-
+    rsm_cond_broadcast(ctx, "checkp");
     ++m_checkpoint;
-    fprintf(log, "establishing checkpoint %" PRIu64 "\n", m_checkpoint);
-    assert(cond_state == m_checkpoint);
+    rsm_log(ctx, "establishing checkpoint %" PRIu64 "\n", m_checkpoint);
     assert(m_checkpoint_stable_through <= m_checkpoint);
     std::vector<server_id> sids;
     servers_in_configuration(&sids);
@@ -976,7 +956,7 @@ coordinator :: checkpoint(replicant_state_machine_context* ctx)
 }
 
 void
-coordinator :: checkpoint_stable(replicant_state_machine_context* ctx,
+coordinator :: checkpoint_stable(rsm_context* ctx,
                                  const server_id& sid,
                                  uint64_t config,
                                  uint64_t number)
@@ -992,7 +972,7 @@ coordinator :: checkpoint_stable(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: checkpoints(replicant_state_machine_context* ctx)
+coordinator :: checkpoints(rsm_context* ctx)
 {
     const size_t sz = sizeof(uint16_t) + 3 * sizeof(uint64_t);
     m_response.reset(e::buffer::create(sz));
@@ -1001,90 +981,88 @@ coordinator :: checkpoints(replicant_state_machine_context* ctx)
     ptr = e::pack64be(m_checkpoint, ptr);
     ptr = e::pack64be(m_checkpoint_stable_through, ptr);
     ptr = e::pack64be(m_checkpoint_gc_through, ptr);
-    replicant_state_machine_set_response(ctx, reinterpret_cast<const char*>(m_response->data()), sz);
+    rsm_set_output(ctx, reinterpret_cast<const char*>(m_response->data()), sz);
 }
 
 void
-coordinator :: alarm(replicant_state_machine_context* ctx)
+coordinator :: periodic(rsm_context* ctx)
 {
-    replicant_state_machine_alarm(ctx, "alarm", ALARM_INTERVAL);
     checkpoint(ctx);
 }
 
 void
-coordinator :: debug_dump(replicant_state_machine_context* ctx)
+coordinator :: debug_dump(rsm_context* ctx)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
-    fprintf(log, "=== begin debug dump ===========================================================\n");
-    fprintf(log, "permutation:\n");
+    rsm_log(ctx, "=== begin debug dump ===========================================================\n");
+    rsm_log(ctx, "permutation:\n");
 
     for (size_t i = 0; i < m_permutation.size(); ++i)
     {
-        fprintf(log, " - %" PRIu64 "\n", m_permutation[i].get());
+        rsm_log(ctx, " - %" PRIu64 "\n", m_permutation[i].get());
     }
 
-    fprintf(log, "spares (desire %" PRIu64 "):\n", m_desired_spares);
+    rsm_log(ctx, "spares (desire %" PRIu64 "):\n", m_desired_spares);
 
     for (size_t i = 0; i < m_spares.size(); ++i)
     {
-        fprintf(log, " - %" PRIu64 "\n", m_spares[i].get());
+        rsm_log(ctx, " - %" PRIu64 "\n", m_spares[i].get());
     }
 
-    fprintf(log, "intents:\n");
+    rsm_log(ctx, "intents:\n");
 
     for (size_t i = 0; i < m_intents.size(); ++i)
     {
-        fprintf(log, " - region=%" PRIu64 ", checkpoint=%" PRIu64 " replicas=[", m_intents[i].id.get(), m_intents[i].checkpoint);
+        rsm_log(ctx, " - region=%" PRIu64 ", checkpoint=%" PRIu64 " replicas=[", m_intents[i].id.get(), m_intents[i].checkpoint);
 
         for (size_t j = 0; j < m_intents[i].replicas.size(); ++j)
         {
             if (j == 0)
             {
-                fprintf(log, "%" PRIu64 "", m_intents[i].replicas[j].get());
+                rsm_log(ctx, "%" PRIu64 "", m_intents[i].replicas[j].get());
             }
             else
             {
-                fprintf(log, ", %" PRIu64 "", m_intents[i].replicas[j].get());
+                rsm_log(ctx, ", %" PRIu64 "", m_intents[i].replicas[j].get());
             }
         }
 
-        fprintf(log, "]\n");
+        rsm_log(ctx, "]\n");
     }
 
-    fprintf(log, "transfers:\n");
+    rsm_log(ctx, "transfers:\n");
 
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
-        fprintf(log, " - id=%" PRIu64 " rid=%" PRIu64 " src=%" PRIu64 " vsrc=%" PRIu64 " dst=%" PRIu64 " vdst=%" PRIu64 "\n",
+        rsm_log(ctx, " - id=%" PRIu64 " rid=%" PRIu64 " src=%" PRIu64 " vsrc=%" PRIu64 " dst=%" PRIu64 " vdst=%" PRIu64 "\n",
                 m_transfers[i].id.get(), m_transfers[i].rid.get(),
                 m_transfers[i].src.get(), m_transfers[i].vsrc.get(),
                 m_transfers[i].dst.get(), m_transfers[i].vdst.get());
     }
 
-    fprintf(log, "offline servers:\n");
+    rsm_log(ctx, "offline servers:\n");
 
     for (size_t i = 0; i < m_offline.size(); ++i)
     {
-        fprintf(log, " - rid=%" PRIu64 " sid=%" PRIu64 "\n",
+        rsm_log(ctx, " - rid=%" PRIu64 " sid=%" PRIu64 "\n",
                      m_offline[i].id.get(), m_offline[i].sid.get());
     }
 
-    fprintf(log, "config ack through: %" PRIu64 "\n", m_config_ack_through);
-    fprintf(log, "config stable through: %" PRIu64 "\n", m_config_stable_through);
-    fprintf(log, "checkpoint: latest=%" PRIu64 ", stable=%" PRIu64 ", gc=%" PRIu64 "\n",
+    rsm_log(ctx, "config ack through: %" PRIu64 "\n", m_config_ack_through);
+    rsm_log(ctx, "config stable through: %" PRIu64 "\n", m_config_stable_through);
+    rsm_log(ctx, "checkpoint: latest=%" PRIu64 ", stable=%" PRIu64 ", gc=%" PRIu64 "\n",
             m_checkpoint, m_checkpoint_stable_through, m_checkpoint_gc_through);
-    fprintf(log, "=== end debug dump =============================================================\n");
+    rsm_log(ctx, "=== end debug dump =============================================================\n");
 }
 
 coordinator*
-coordinator :: recreate(replicant_state_machine_context* ctx,
+coordinator :: recreate(rsm_context* ctx,
                         const char* data, size_t data_sz)
 {
     std::auto_ptr<coordinator> c(new coordinator());
 
     if (!c.get())
     {
-        fprintf(replicant_state_machine_log_stream(ctx), "memory allocation failed\n");
+        rsm_log(ctx, "memory allocation failed\n");
         return NULL;
     }
 
@@ -1107,7 +1085,7 @@ coordinator :: recreate(replicant_state_machine_context* ctx,
 
     if (up.error())
     {
-        fprintf(replicant_state_machine_log_stream(ctx), "unpacking failed\n");
+        rsm_log(ctx, "unpacking failed\n");
         return NULL;
     }
 
@@ -1160,13 +1138,12 @@ coordinator :: recreate(replicant_state_machine_context* ctx,
     }
 
     c->generate_cached_configuration(ctx);
-    replicant_state_machine_alarm(ctx, "alarm", ALARM_INTERVAL);
     return c.release();
 }
 
-void
-coordinator :: snapshot(replicant_state_machine_context* /*ctx*/,
-                        const char** data, size_t* data_sz)
+int
+coordinator :: snapshot(rsm_context* /*ctx*/,
+                        char** data, size_t* data_sz)
 {
     size_t sz = sizeof(m_cluster)
               + sizeof(m_counter)
@@ -1197,7 +1174,7 @@ coordinator :: snapshot(replicant_state_machine_context* /*ctx*/,
     }
 
     std::auto_ptr<e::buffer> buf(e::buffer::create(sz));
-    e::buffer::packer pa = buf->pack_at(0);
+    e::packer pa = buf->pack_at(0);
     pa = pa << m_cluster << m_counter << m_version << m_flags << m_servers
             << m_permutation << m_spares << m_desired_spares << m_intents
             << m_deferred_init << m_offline << m_transfers
@@ -1221,6 +1198,8 @@ coordinator :: snapshot(replicant_state_machine_context* /*ctx*/,
     {
         memmove(ptr, buf->data(), buf->size());
     }
+
+    return 0;
 }
 
 server*
@@ -1341,7 +1320,7 @@ compare_space_ptr_by_r_p(const e::compat::shared_ptr<hyperdex::space>& lhs,
 } // namespace
 
 void
-coordinator :: rebalance_replica_sets(replicant_state_machine_context* ctx)
+coordinator :: rebalance_replica_sets(rsm_context* ctx)
 {
     uint64_t R = 0;
     uint64_t P = 0;
@@ -1384,7 +1363,7 @@ coordinator :: rebalance_replica_sets(replicant_state_machine_context* ctx)
 }
 
 void
-coordinator :: initial_space_layout(replicant_state_machine_context* ctx,
+coordinator :: initial_space_layout(rsm_context* ctx,
                                     space* s)
 {
     if (m_permutation.empty())
@@ -1429,7 +1408,7 @@ coordinator :: get_region(const region_id& rid)
 }
 
 void
-coordinator :: setup_intents(replicant_state_machine_context* ctx,
+coordinator :: setup_intents(rsm_context* ctx,
                              const std::vector<replica_set>& replica_sets,
                              space* s, bool skip_transfers)
 {
@@ -1504,7 +1483,7 @@ coordinator :: setup_intents(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: converge_intent(replicant_state_machine_context* ctx,
+coordinator :: converge_intent(rsm_context* ctx,
                                region* reg)
 {
     region_intent* ri = get_region_intent(reg->id);
@@ -1516,10 +1495,9 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: converge_intent(replicant_state_machine_context* ctx,
+coordinator :: converge_intent(rsm_context* ctx,
                                region* reg, region_intent* ri)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     // if there is a transfer
     transfer* xfer = get_transfer(reg->id);
 
@@ -1568,13 +1546,13 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
             }
             else if (reg->replicas.size() == 1)
             {
-                fprintf(log, "refusing to remove the last server from "
+                rsm_log(ctx, "refusing to remove the last server from "
                              "region(%" PRIu64 ") because it was not a clean shutdown\n",
                              reg->id.get());
                 return;
             }
 
-            fprintf(log, "removing server(%" PRIu64 ") from region(%" PRIu64 ") "
+            rsm_log(ctx, "removing server(%" PRIu64 ") from region(%" PRIu64 ") "
                          "because it is in state %s\n",
                          reg->replicas[i].si.get(), reg->id.get(),
                          server::to_string(s->state));
@@ -1602,13 +1580,13 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
         {
             if (reg->replicas.size() == 1)
             {
-                fprintf(log, "refusing to remove the last server from "
+                rsm_log(ctx, "refusing to remove the last server from "
                              "region(%" PRIu64 ") because we need it to transfer data\n",
                              reg->id.get());
                 return;
             }
 
-            fprintf(log, "removing server(%" PRIu64 ") from region(%" PRIu64 ") "
+            rsm_log(ctx, "removing server(%" PRIu64 ") from region(%" PRIu64 ") "
                          "to make progress toward desired state\n",
                          reg->replicas[i].si.get(), reg->id.get());
             shift_and_pop(i, &reg->replicas);
@@ -1640,7 +1618,7 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
             {
                 reg->replicas.push_back(replica(m_offline[i].sid, virtual_server_id(m_counter)));
                 ++m_counter;
-                fprintf(log, "restoring offline server(%" PRIu64 ") to region(%" PRIu64 ")\n",
+                rsm_log(ctx, "restoring offline server(%" PRIu64 ") to region(%" PRIu64 ")\n",
                              m_offline[i].sid.get(), reg->id.get());
                 remove_offline(reg->id);
                 break;
@@ -1650,7 +1628,7 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
 
     if (reg->replicas.empty())
     {
-        fprintf(log, "cannot transfer state to new servers in "
+        rsm_log(ctx, "cannot transfer state to new servers in "
                      "region(%" PRIu64 ") because all servers are offline\n",
                      reg->id.get());
         return;
@@ -1677,7 +1655,7 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
 
         xfer = new_transfer(reg, ri->replicas[i]);
         assert(xfer);
-        fprintf(log, "adding server(%" PRIu64 ") to region(%" PRIu64 ") "
+        rsm_log(ctx, "adding server(%" PRIu64 ") to region(%" PRIu64 ") "
                      "copying from server(%" PRIu64 ")/virtual_server(%" PRIu64 ") "
                      "using transfer(%" PRIu64 ")/virtual_server(%" PRIu64 ")\n",
                      xfer->dst.get(), reg->id.get(),
@@ -1708,7 +1686,7 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
 
         if (ri->checkpoint >= m_checkpoint_stable_through)
         {
-            fprintf(log, "postponing convergence until after checkpoint %" PRIu64 " is stable\n", ri->checkpoint);
+            rsm_log(ctx, "postponing convergence until after checkpoint %" PRIu64 " is stable\n", ri->checkpoint);
             return;
         }
 
@@ -1720,7 +1698,7 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
         ri->checkpoint = 0;
         xfer = new_transfer(reg, sid);
         assert(xfer);
-        fprintf(log, "rolling server(%" PRIu64 ") to the back of region(%" PRIu64 ") "
+        rsm_log(ctx, "rolling server(%" PRIu64 ") to the back of region(%" PRIu64 ") "
                      "using transfer(%" PRIu64 ")/virtual_server(%" PRIu64 ")\n",
                      xfer->dst.get(), reg->id.get(),
                      xfer->id.get(), xfer->vdst.get());
@@ -1868,50 +1846,41 @@ coordinator :: del_transfer(const transfer_id& xid)
 }
 
 void
-coordinator :: check_ack_condition(replicant_state_machine_context* ctx)
+coordinator :: check_ack_condition(rsm_context* ctx)
 {
     if (m_config_ack_through < m_config_ack_barrier.min_version())
     {
-        FILE* log = replicant_state_machine_log_stream(ctx);
-        fprintf(log, "acked through version %" PRIu64 "\n", m_config_ack_barrier.min_version());
+        rsm_log(ctx, "acked through version %" PRIu64 "\n", m_config_ack_barrier.min_version());
     }
 
     while (m_config_ack_through < m_config_ack_barrier.min_version())
     {
-        replicant_state_machine_condition_broadcast(ctx, "ack", &m_config_ack_through);
+        rsm_cond_broadcast(ctx, "ack");
+        ++m_config_ack_through;
     }
 }
 
 void
-coordinator :: check_stable_condition(replicant_state_machine_context* ctx)
+coordinator :: check_stable_condition(rsm_context* ctx)
 {
     if (m_config_stable_through < m_config_stable_barrier.min_version())
     {
-        FILE* log = replicant_state_machine_log_stream(ctx);
-        fprintf(log, "stable through version %" PRIu64 "\n", m_config_stable_barrier.min_version());
+        rsm_log(ctx, "stable through version %" PRIu64 "\n", m_config_stable_barrier.min_version());
     }
 
     while (m_intents.empty() && m_deferred_init.empty() &&
             m_config_stable_through < m_config_stable_barrier.min_version())
     {
-        replicant_state_machine_condition_broadcast(ctx, "stable", &m_config_stable_through);
+        rsm_cond_broadcast(ctx, "stable");
+        ++m_config_stable_through;
     }
 }
 
 void
-coordinator :: generate_next_configuration(replicant_state_machine_context* ctx)
+coordinator :: generate_next_configuration(rsm_context* ctx)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
-    uint64_t cond_state;
-
-    if (replicant_state_machine_condition_broadcast(ctx, "config", &cond_state) < 0)
-    {
-        fprintf(log, "could not broadcast on \"config\" condition\n");
-    }
-
     ++m_version;
-    fprintf(log, "issuing new configuration version %" PRIu64 "\n", m_version);
-    assert(cond_state == m_version);
+    rsm_log(ctx, "issuing new configuration version %" PRIu64 "\n", m_version);
     std::vector<server_id> sids;
     servers_in_configuration(&sids);
     m_config_ack_barrier.new_version(m_version, sids);
@@ -1919,10 +1888,11 @@ coordinator :: generate_next_configuration(replicant_state_machine_context* ctx)
     check_ack_condition(ctx);
     check_stable_condition(ctx);
     generate_cached_configuration(ctx);
+    rsm_cond_broadcast_data(ctx, "config", m_latest_config->cdata(), m_latest_config->size());
 }
 
 void
-coordinator :: generate_cached_configuration(replicant_state_machine_context*)
+coordinator :: generate_cached_configuration(rsm_context*)
 {
     m_latest_config.reset();
     size_t sz = 7 * sizeof(uint64_t);
@@ -1947,7 +1917,7 @@ coordinator :: generate_cached_configuration(replicant_state_machine_context*)
     prioritized_transfer_subset(&transfers_subset);
 
     std::auto_ptr<e::buffer> new_config(e::buffer::create(sz));
-    e::buffer::packer pa = new_config->pack_at(0);
+    e::packer pa = new_config->pack_at(0);
     pa = pa << m_cluster << m_version << m_flags
             << uint64_t(m_servers.size())
             << uint64_t(m_spaces.size())
@@ -2081,14 +2051,13 @@ coordinator :: regions_in_space(space_ptr s, std::vector<region_id>* rids)
 }
 
 void
-coordinator :: check_checkpoint_stable_condition(replicant_state_machine_context* ctx, bool reissue)
+coordinator :: check_checkpoint_stable_condition(rsm_context* ctx, bool reissue)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     assert(m_checkpoint_stable_through <= m_checkpoint);
 
     if (m_checkpoint_stable_through < m_checkpoint_stable_barrier.min_version())
     {
-        fprintf(log, "checkpoint %" PRIu64 " done\n", m_checkpoint_stable_barrier.min_version());
+        rsm_log(ctx, "checkpoint %" PRIu64 " done\n", m_checkpoint_stable_barrier.min_version());
     }
 
     bool stabilized = false;
@@ -2096,7 +2065,8 @@ coordinator :: check_checkpoint_stable_condition(replicant_state_machine_context
     while (m_checkpoint_stable_through < m_checkpoint_stable_barrier.min_version())
     {
         stabilized = true;
-        replicant_state_machine_condition_broadcast(ctx, "checkps", &m_checkpoint_stable_through);
+        rsm_cond_broadcast(ctx, "checkps");
+        ++m_checkpoint_stable_through;
     }
 
     bool gc = false;
@@ -2124,12 +2094,13 @@ coordinator :: check_checkpoint_stable_condition(replicant_state_machine_context
     while (m_checkpoint_gc_through + outstanding_checkpoints < m_checkpoint_stable_barrier.min_version())
     {
         gc = true;
-        replicant_state_machine_condition_broadcast(ctx, "checkpgc", &m_checkpoint_gc_through);
+        rsm_cond_broadcast(ctx, "checkpgc");
+        ++m_checkpoint_gc_through;
     }
 
     if (gc && m_checkpoint_gc_through > 0)
     {
-        fprintf(log, "garbage collect <= checkpoint %" PRIu64 "\n", m_checkpoint_gc_through);
+        rsm_log(ctx, "garbage collect <= checkpoint %" PRIu64 "\n", m_checkpoint_gc_through);
     }
 
     assert(m_checkpoint_gc_through <= m_checkpoint_stable_through);

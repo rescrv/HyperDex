@@ -55,8 +55,8 @@ pack_size(const region_intent& ri)
     return pack_size(ri.id) + pack_size(ri.replicas) + sizeof(ri.checkpoint);
 }
 
-inline e::buffer::packer
-operator << (e::buffer::packer pa, const region_intent& ri)
+inline e::packer
+operator << (e::packer pa, const region_intent& ri)
 {
     return pa << ri.id << ri.replicas << ri.checkpoint;
 }

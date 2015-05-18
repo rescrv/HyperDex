@@ -27,7 +27,7 @@
  */
 
 /* Replicant */
-#include <replicant_state_machine.h>
+#include <rsm.h>
 
 /* HyperDex */
 #include "visibility.h"
@@ -36,10 +36,9 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-pedantic"
 
-struct replicant_state_machine HYPERDEX_API rsm = {
+struct state_machine HYPERDEX_API rsm = {
     hyperdex_coordinator_create,
     hyperdex_coordinator_recreate,
-    hyperdex_coordinator_destroy,
     hyperdex_coordinator_snapshot,
     {{"config_get", hyperdex_coordinator_config_get},
      {"config_ack", hyperdex_coordinator_config_ack},
@@ -60,7 +59,7 @@ struct replicant_state_machine HYPERDEX_API rsm = {
      {"transfer_go_live", hyperdex_coordinator_transfer_go_live},
      {"transfer_complete", hyperdex_coordinator_transfer_complete},
      {"checkpoint_stable", hyperdex_coordinator_checkpoint_stable},
-     {"alarm", hyperdex_coordinator_alarm},
+     {"periodic", hyperdex_coordinator_periodic},
      {"read_only", hyperdex_coordinator_read_only},
      {"fault_tolerance", hyperdex_coordinator_fault_tolerance},
      {"checkpoints", hyperdex_coordinator_checkpoints},

@@ -63,7 +63,7 @@ class coord_rpc : public yieldable
 
     public:
         replicant_returncode repl_status;
-        const char* repl_output;
+        char* repl_output;
         size_t repl_output_sz;
 
     protected:

@@ -73,7 +73,7 @@ hyperdex_admin_raw_backup(const char* host, uint16_t port,
                   + sizeof(uint64_t) /*nonce*/
                   + pack_size(name_s);
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-        e::buffer::packer pa = msg->pack_at(BUSYBEE_HEADER_SIZE);
+        e::packer pa = msg->pack_at(BUSYBEE_HEADER_SIZE);
         pa = pa << type << flags << version << to << nonce << name_s;
         bbs.set_timeout(-1);
 

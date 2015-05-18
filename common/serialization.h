@@ -28,12 +28,8 @@
 #ifndef hyperdex_common_serialization_h_
 #define hyperdex_common_serialization_h_
 
-// po6
-#include <po6/net/location.h>
-#include <po6/net/hostname.h>
-
 // e
-#include <e/buffer.h>
+#include <e/serialization.h>
 
 // HyperDex
 #include "namespace.h"
@@ -42,82 +38,22 @@
 #include "common/funcall.h"
 
 BEGIN_HYPERDEX_NAMESPACE
+using ::pack_size;
+using e::pack_size;
 
-e::buffer::packer
-operator << (e::buffer::packer lhs, const po6::net::ipaddr& rhs);
-e::unpacker
-operator >> (e::unpacker lhs, po6::net::ipaddr& rhs);
-size_t
-pack_size(const po6::net::ipaddr& rhs);
-
-e::buffer::packer
-operator << (e::buffer::packer lhs, const po6::net::location& rhs);
-e::unpacker
-operator >> (e::unpacker lhs, po6::net::location& rhs);
-size_t
-pack_size(const po6::net::location& rhs);
-
-e::buffer::packer
-operator << (e::buffer::packer lhs, const po6::net::hostname& rhs);
-e::unpacker
-operator >> (e::unpacker lhs, po6::net::hostname& rhs);
-size_t
-pack_size(const po6::net::hostname& rhs);
-
-e::buffer::packer
-operator << (e::buffer::packer lhs, const attribute_check& rhs);
-e::unpacker
-operator >> (e::unpacker lhs, attribute_check& rhs);
-size_t
-pack_size(const attribute_check& rhs);
-
-e::buffer::packer
-operator << (e::buffer::packer lhs, const funcall_t& rhs);
-e::unpacker
-operator >> (e::unpacker lhs, funcall_t& rhs);
-size_t
-pack_size(const funcall_t& f);
-
-e::buffer::packer
-operator << (e::buffer::packer lhs, const funcall& rhs);
-e::unpacker
-operator >> (e::unpacker lhs, funcall& rhs);
-size_t
-pack_size(const funcall& f);
-
-e::buffer::packer
-operator << (e::buffer::packer lhs, const hyperdatatype& rhs);
+e::packer
+operator << (e::packer lhs, const hyperdatatype& rhs);
 e::unpacker
 operator >> (e::unpacker lhs, hyperdatatype& rhs);
 size_t
 pack_size(const hyperdatatype& h);
 
-e::buffer::packer
-operator << (e::buffer::packer lhs, const hyperpredicate& rhs);
+e::packer
+operator << (e::packer lhs, const hyperpredicate& rhs);
 e::unpacker
 operator >> (e::unpacker lhs, hyperpredicate& rhs);
 size_t
 pack_size(const hyperpredicate& p);
-
-inline size_t
-pack_size(uint64_t) { return sizeof(uint64_t); }
-
-size_t
-pack_size(const e::slice& s);
-
-template <typename T>
-size_t
-pack_size(const std::vector<T>& v)
-{
-    size_t sz = sizeof(uint32_t);
-
-    for (size_t i = 0; i < v.size(); ++i)
-    {
-        sz += pack_size(v[i]);
-    }
-
-    return sz;
-}
 
 END_HYPERDEX_NAMESPACE
 

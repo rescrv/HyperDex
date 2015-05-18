@@ -63,8 +63,8 @@ class server
 bool
 operator < (const server& lhs, const server& rhs);
 
-e::buffer::packer
-operator << (e::buffer::packer lhs, const server& rhs);
+e::packer
+operator << (e::packer lhs, const server& rhs);
 e::unpacker
 operator >> (e::unpacker lhs, server& rhs);
 size_t

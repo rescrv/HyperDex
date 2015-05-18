@@ -66,8 +66,8 @@ class transfer
 std::ostream&
 operator << (std::ostream& lhs, const transfer& rhs);
 
-e::buffer::packer
-operator << (e::buffer::packer, const transfer& t);
+e::packer
+operator << (e::packer, const transfer& t);
 e::unpacker
 operator >> (e::unpacker, transfer& t);
 size_t

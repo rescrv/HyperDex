@@ -211,6 +211,12 @@ behind the scenes. (The flip-side of this is that, when HyperDex says the data
 is committed, it really is committed to sufficiently many replicas to withstand
 the number of simultaneous failures in the space specification).
 
+A more subtle pitfall with asynchronous operations is that the order of
+concurrent asynchronous operations is not guaranteed, even if they are issued by
+the same client.  If a client requires that operations be ordered in a
+particular manner, it must do so itself by ensuring that the dependent operation
+is not issued until all its dependencies complete successfully.
+
 \section{A Common Window Pattern}
 \label{sec:async-ops:window}
 

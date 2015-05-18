@@ -37,6 +37,7 @@
 // e
 #include <e/arena.h>
 #include <e/slice.h>
+#include <e/serialization.h>
 
 // HyperDex
 #include "namespace.h"
@@ -112,6 +113,20 @@ apply_funcs(const schema& sc,
 
 bool
 operator < (const funcall& lhs, const funcall& rhs);
+
+e::packer
+operator << (e::packer lhs, const funcall_t& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, funcall_t& rhs);
+size_t
+pack_size(const funcall_t& f);
+
+e::packer
+operator << (e::packer lhs, const funcall& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, funcall& rhs);
+size_t
+pack_size(const funcall& f);
 
 END_HYPERDEX_NAMESPACE
 

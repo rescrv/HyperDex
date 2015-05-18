@@ -109,12 +109,7 @@ class admin
         const char* error_message();
         const char* error_location();
         void set_error_message(const char* msg);
-        // translate returncodes
-        void interpret_rpc_request_failure(replicant_returncode rstatus,
-                                           hyperdex_admin_returncode* status);
-        void interpret_rpc_loop_failure(replicant_returncode rstatus,
-                                        hyperdex_admin_returncode* status);
-        void interpret_rpc_response_failure(replicant_returncode rstatus,
+        void interpret_replicant_returncode(replicant_returncode rstatus,
                                             hyperdex_admin_returncode* status,
                                             e::error* err);
 

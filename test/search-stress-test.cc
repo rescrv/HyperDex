@@ -732,6 +732,10 @@ all_search_tests(size_t testno,
                  hyperdex::Client* cl,
                  const std::vector<bool>& expecting)
 {
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 100 * 1000ULL * 1000ULL;
+    nanosleep(&ts, NULL);
     search(testno, cl, NULL, 0, expecting);
     sorted_search(testno, cl, NULL, 0, expecting);
     size_t num = 0;

@@ -143,7 +143,7 @@ class configuration
     private:
         void refill_cache();
         friend size_t pack_size(const configuration&);
-        friend e::buffer::packer operator << (e::buffer::packer, const configuration& s);
+        friend e::packer operator << (e::packer, const configuration& s);
         friend e::unpacker operator >> (e::unpacker, configuration& s);
 
     private:
@@ -172,8 +172,8 @@ class configuration
         std::vector<transfer> m_transfers;
 };
 
-e::buffer::packer
-operator << (e::buffer::packer, const configuration& c);
+e::packer
+operator << (e::packer, const configuration& c);
 e::unpacker
 operator >> (e::unpacker, configuration& c);
 size_t

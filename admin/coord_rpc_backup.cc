@@ -72,7 +72,7 @@ coord_rpc_backup :: handle_response(admin* adm,
     *status = HYPERDEX_ADMIN_SUCCESS;
     hyperdex_admin_returncode resp_status;
     e::error err;
-    adm->interpret_rpc_response_failure(repl_status, &resp_status, &err);
+    adm->interpret_replicant_returncode(repl_status, &resp_status, &err);
     set_status(resp_status);
     set_error(err);
 

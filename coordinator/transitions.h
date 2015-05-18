@@ -34,25 +34,21 @@ extern "C"
 #endif /* __cplusplus */
 
 /* Replicant */
-#include <replicant_state_machine.h>
+#include <rsm.h>
 
 void*
-hyperdex_coordinator_create(struct replicant_state_machine_context* ctx);
+hyperdex_coordinator_create(struct rsm_context* ctx);
 
 void*
-hyperdex_coordinator_recreate(struct replicant_state_machine_context* ctx,
+hyperdex_coordinator_recreate(struct rsm_context* ctx,
                               const char* data, size_t data_sz);
 
-void
-hyperdex_coordinator_destroy(struct replicant_state_machine_context* ctx,
-                             void* f);
-
-void
-hyperdex_coordinator_snapshot(struct replicant_state_machine_context* ctx,
-                              void* obj, const char** data, size_t* sz);
+int
+hyperdex_coordinator_snapshot(struct rsm_context* ctx,
+                              void* obj, char** data, size_t* sz);
 
 #define TRANSITION(X) void \
-    hyperdex_coordinator_ ## X(struct replicant_state_machine_context* ctx, \
+    hyperdex_coordinator_ ## X(struct rsm_context* ctx, \
                                void* obj, const char* data, size_t data_sz)
 
 TRANSITION(init);
@@ -86,7 +82,7 @@ TRANSITION(transfer_complete);
 TRANSITION(checkpoint_stable);
 TRANSITION(checkpoints);
 
-TRANSITION(alarm);
+TRANSITION(periodic);
 
 TRANSITION(debug_dump);
 

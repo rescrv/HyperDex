@@ -74,7 +74,7 @@ hyperdex :: operator << (std::ostream& lhs, const index& rhs)
             break;
         case index::DOCUMENT:
             lhs << "index(" << rhs.id.get()
-                << ", " << std::string(rhs.extra.c_str(), rhs.extra.size())
+                << ", " << rhs.extra.str()
                 << ", " << rhs.attr <<  ")";
             break;
         default:
@@ -84,8 +84,8 @@ hyperdex :: operator << (std::ostream& lhs, const index& rhs)
     return lhs;
 }
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer pa, const index& t)
+e::packer
+hyperdex :: operator << (e::packer pa, const index& t)
 {
     return pa << t.type << t.id << t.attr << t.extra;
 }
@@ -104,8 +104,8 @@ hyperdex :: pack_size(const index& t)
          + sizeof(uint32_t) + t.extra.size();
 }
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer pa, const index::index_t& t)
+e::packer
+hyperdex :: operator << (e::packer pa, const index::index_t& t)
 {
     uint8_t x = t;
     return pa << x;

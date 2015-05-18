@@ -1025,7 +1025,7 @@ configuration :: dump() const
 
             if (idx.type == index::DOCUMENT)
             {
-                out << " " << std::string(idx.extra.c_str(), idx.extra.size());
+                out << " " << idx.extra.str();
             }
 
             out << "\n";
@@ -1180,9 +1180,9 @@ configuration :: refill_cache()
 e::unpacker
 hyperdex :: operator >> (e::unpacker up, configuration& c)
 {
-    uint64_t num_servers;
-    uint64_t num_spaces;
-    uint64_t num_transfers;
+    uint64_t num_servers = 0;
+    uint64_t num_spaces = 0;
+    uint64_t num_transfers = 0;
     up = up >> c.m_cluster >> c.m_version >> c.m_flags
             >> num_servers >> num_spaces
             >> num_transfers;

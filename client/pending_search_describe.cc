@@ -110,7 +110,7 @@ pending_search_describe :: handle_message(client* cl,
         return true;
     }
 
-    e::slice text = up.as_slice();
+    e::slice text = up.remainder();
     add_text(vsi, text);
     return true;
 }

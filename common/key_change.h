@@ -78,8 +78,8 @@ class key_change
         std::auto_ptr<auth_wallet> auth;
 };
 
-e::buffer::packer
-operator << (e::buffer::packer, const key_change& td);
+e::packer
+operator << (e::packer, const key_change& td);
 e::unpacker
 operator >> (e::unpacker, key_change& td);
 size_t

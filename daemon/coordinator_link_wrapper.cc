@@ -59,7 +59,7 @@ class coordinator_link_wrapper::coord_rpc
 
     public:
         replicant_returncode status;
-        const char* output;
+        char* output;
         size_t output_sz;
         std::ostringstream msg;
 
@@ -89,7 +89,7 @@ coordinator_link_wrapper :: coord_rpc :: ~coord_rpc() throw ()
 {
     if (output)
     {
-        replicant_destroy_output(output, output_sz);
+        free(output);
     }
 }
 
@@ -98,9 +98,9 @@ coordinator_link_wrapper :: coord_rpc :: callback(coordinator_link_wrapper* clw)
 {
     if (status != REPLICANT_SUCCESS)
     {
-        e::error err = clw->m_coord->error();
         LOG(ERROR) << "coordinator error: " << msg.str()
-                   << ": " << err.msg() << " @ " << err.loc();
+                   << ": " << clw->m_coord->error_message()
+                   << " @ " << clw->m_coord->error_location();
     }
 
     if (status == REPLICANT_CLUSTER_JUMP)
@@ -173,7 +173,7 @@ bool
 coordinator_link_wrapper :: register_id(server_id us, const po6::net::location& bind_to)
 {
     std::auto_ptr<e::buffer> buf(e::buffer::create(sizeof(uint64_t) + pack_size(bind_to)));
-    e::buffer::packer pa = buf->pack_at(0);
+    e::packer pa = buf->pack_at(0);
     pa = pa << us << bind_to;
     std::auto_ptr<coord_rpc> rpc(new coord_rpc());
     int64_t rid = m_coord->rpc("server_register",
@@ -184,18 +184,20 @@ coordinator_link_wrapper :: register_id(server_id us, const po6::net::location& 
 
     if (rid < 0)
     {
-        e::error err = m_coord->error();
-        LOG(ERROR) << "could not register as " << us << ": " << err.msg() << " @ " << err.loc();
+        LOG(ERROR) << "could not register as " << us
+                   << ": " << m_coord->error_message()
+                   << " @ " << m_coord->error_location();
         return false;
     }
 
     replicant_returncode lrc = REPLICANT_GARBAGE;
-    int64_t lid = m_coord->loop(-1, &lrc);
+    int64_t lid = m_coord->wait(rid, -1, &lrc);
 
     if (lid < 0)
     {
-        e::error err = m_coord->error();
-        LOG(ERROR) << "could not register as " << us << ": " << err.msg() << " @ " << err.loc();
+        LOG(ERROR) << "could not register as " << us
+                   << ": " << m_coord->error_message()
+                   << " @ " << m_coord->error_location();
         return false;
     }
 
@@ -207,8 +209,9 @@ coordinator_link_wrapper :: register_id(server_id us, const po6::net::location& 
 
     if (rpc->status != REPLICANT_SUCCESS)
     {
-        e::error err = m_coord->error();
-        LOG(ERROR) << "could not register as " << us << ": " << err.msg() << " @ " << err.loc();
+        LOG(ERROR) << "could not register as " << us
+                   << ": " << m_coord->error_message()
+                   << " @ " << m_coord->error_location();
         return false;
     }
 
@@ -221,7 +224,7 @@ coordinator_link_wrapper :: register_id(server_id us, const po6::net::location& 
         switch (rc)
         {
             case COORD_SUCCESS:
-                return true;
+                break;
             case COORD_DUPLICATE:
                 LOG(ERROR) << "could not register as " << us << ": another server has this ID";
                 return false;
@@ -241,6 +244,19 @@ coordinator_link_wrapper :: register_id(server_id us, const po6::net::location& 
         LOG(ERROR) << "could not register as " << us << ": coordinator returned invalid message";
         return false;
     }
+
+    while (!m_coord->config()->exists(us))
+    {
+        lid = m_coord->wait(INT64_MAX, -1, &lrc);
+
+        if (lid < 0)
+        {
+            LOG(ERROR) << "could not register as " << us << ": coordinator loop malfunction";
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool
@@ -253,42 +269,30 @@ coordinator_link_wrapper :: initialize_checkpoints(uint64_t* _checkpoint,
 
     if (id < 0)
     {
-        e::error err = m_coord->error();
-        LOG(ERROR) << "could not retrieve checkpoints: " << err.msg() << " @ " << err.loc();
+        LOG(ERROR) << "could not retrieve checkpoints: "
+                   << m_coord->error_message()
+                   << " @ " << m_coord->error_location();
         return false;
     }
 
     replicant_returncode lrc = REPLICANT_GARBAGE;
-    std::vector<int64_t> irrelevant_for_now;
+    int64_t lid = m_coord->wait(id, -1, &lrc);
 
-    while (true)
+    if (lid < 0)
     {
-        int64_t lid = m_coord->loop(-1, &lrc);
-
-        if (lid < 0)
-        {
-            e::error err = m_coord->error();
-            LOG(ERROR) << "could not retrieve checkpoints: " << err.msg() << " @ " << err.loc();
-            return false;
-        }
-
-        if (lid == id)
-        {
-            break;
-        }
-
-        irrelevant_for_now.push_back(lid);
+        LOG(ERROR) << "could not retrieve checkpoints: "
+                   << m_coord->error_message()
+                   << " @ " << m_coord->error_location();
+        return false;
     }
 
-    for (size_t i = 0; i < irrelevant_for_now.size(); ++i)
-    {
-        m_coord->enqueue_response(irrelevant_for_now[i]);
-    }
+    assert(lid == id);
 
     if (rpc->status != REPLICANT_SUCCESS)
     {
-        e::error err = m_coord->error();
-        LOG(ERROR) << "could not retrieve checkpoints: " << err.msg() << " @ " << err.loc();
+        LOG(ERROR) << "could not retrieve checkpoints: "
+                   << m_coord->error_message()
+                   << " @ " << m_coord->error_location();
         return false;
     }
 
@@ -386,28 +390,30 @@ coordinator_link_wrapper :: maintain_link()
             exit_status = false;
             break;
         }
-        else if (id < 0 && (status == REPLICANT_BACKOFF ||
-                            status == REPLICANT_NEED_BOOTSTRAP))
+        else if (id < 0 && status == REPLICANT_COMM_FAILED)
         {
-            e::error err = m_coord->error();
             LOG(ERROR) << "coordinator disconnected: backing off before retrying";
-            LOG(ERROR) << "details: " << err.msg() << " @ " << err.loc();
+            LOG(ERROR) << "details: "
+                       << m_coord->error_message()
+                       << " @ " << m_coord->error_location();
             do_sleep();
             exit_status = false;
             break;
         }
         else if (id < 0 && status == REPLICANT_CLUSTER_JUMP)
         {
-            e::error err = m_coord->error();
-            LOG(ERROR) << "cluster jump: " << err.msg() << " @ " << err.loc();
+            LOG(ERROR) << "cluster jump: "
+                       << m_coord->error_message()
+                       << " @ " << m_coord->error_location();
             do_sleep();
             exit_status = false;
             break;
         }
         else if (id < 0)
         {
-            e::error err = m_coord->error();
-            LOG(ERROR) << "coordinator error: " << err.msg() << " @ " << err.loc();
+            LOG(ERROR) << "coordinator error: "
+                       << m_coord->error_message()
+                       << " @ " << m_coord->error_location();
             do_sleep();
             exit_status = false;
             break;
@@ -766,7 +772,7 @@ coordinator_link_wrapper :: ensure_available()
 
     size_t sz = sizeof(uint64_t) + pack_size(m_daemon->m_bind_to);
     std::auto_ptr<e::buffer> buf(e::buffer::create(sz));
-    *buf << m_daemon->m_us << m_daemon->m_bind_to;
+    buf->pack() << m_daemon->m_us << m_daemon->m_bind_to;
     e::intrusive_ptr<coord_rpc> rpc = new coord_rpc_available();
     rpc->msg << "server online";
     m_online_id = make_rpc_nosync("server_online",
@@ -1038,9 +1044,9 @@ coordinator_link_wrapper :: make_rpc_nosync(const char* func,
 
     if (id < 0)
     {
-        e::error err = m_coord->error();
         LOG(ERROR) << "coordinator error: " << rpc->msg.str()
-                   << ": " << err.msg() << " @ " << err.loc();
+                   << ": " << m_coord->error_message()
+                   << " @ " << m_coord->error_location();
     }
     else
     {
@@ -1058,9 +1064,9 @@ coordinator_link_wrapper :: wait_nosync(const char* cond, uint64_t state,
 
     if (id < 0)
     {
-        e::error err = m_coord->error();
         LOG(ERROR) << "coordinator error: " << rpc->msg.str()
-                   << ": " << err.msg() << " @ " << err.loc();
+                   << ": " << m_coord->error_message()
+                   << " @ " << m_coord->error_location();
     }
     else
     {

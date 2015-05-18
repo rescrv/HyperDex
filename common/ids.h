@@ -36,6 +36,7 @@
 
 // e
 #include <e/buffer.h>
+#include <e/serialization.h>
 
 // HyperDex
 #include "namespace.h"
@@ -68,8 +69,8 @@
     { \
         return sizeof(uint64_t); \
     } \
-    e::buffer::packer \
-    operator << (e::buffer::packer pa, const TYPE ## _id& rhs); \
+    e::packer \
+    operator << (e::packer pa, const TYPE ## _id& rhs); \
     e::unpacker \
     operator >> (e::unpacker up, TYPE ## _id& rhs); \
     OPERATOR(TYPE, <) \

@@ -1,4 +1,4 @@
-## Copyright (c) 2012-2014, Cornell University
+## Copyright (c) 2012-2015, Cornell University
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -656,6 +656,7 @@ noinst_HEADERS += bindings/java/org_hyperdex_client_LengthGreaterEqual.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_LengthLessEqual.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_LessEqual.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_LessThan.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_Microtransaction.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Range.h
 noinst_HEADERS += bindings/java/org_hyperdex_client_Regex.h
 
@@ -1000,14 +1001,16 @@ endif # ENABLE_ADMIN
 EXTRA_DIST += $(shell_wrappers)
 EXTRA_DIST += test/doc.async-ops.py
 EXTRA_DIST += test/doc.atomic-ops.py
+EXTRA_DIST += test/doc.authorization.py
 EXTRA_DIST += test/doc.data-types.py
 EXTRA_DIST += test/doc.documents.py
-EXTRA_DIST += test/doc.authorization.py
 EXTRA_DIST += test/doc-extract.py
+EXTRA_DIST += test/doc.mongo.py
 EXTRA_DIST += test/doc.quick-start.py
 EXTRA_DIST += test/doctest-runner.py
 EXTRA_DIST += test/env.sh
 EXTRA_DIST += test/runner.py
+EXTRA_DIST += test/python/Admin.py
 EXTRA_DIST += test/python/Basic.py
 EXTRA_DIST += test/python/BasicSearch.py
 EXTRA_DIST += test/python/CondPut.py
@@ -1033,8 +1036,8 @@ EXTRA_DIST += test/python/DataTypeString.py
 EXTRA_DIST += test/python/GroupAtomic.py
 EXTRA_DIST += test/python/HyperMongo.py
 EXTRA_DIST += test/python/LengthString.py
-EXTRA_DIST += test/python/MultiAttribute.py
 EXTRA_DIST += test/python/Microtransactions.py
+EXTRA_DIST += test/python/MultiAttribute.py
 EXTRA_DIST += test/python/RangeSearchInt.py
 EXTRA_DIST += test/python/RangeSearchString.py
 EXTRA_DIST += test/python/RegexSearch.py

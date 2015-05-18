@@ -61,15 +61,15 @@ class index
 std::ostream&
 operator << (std::ostream& lhs, const index& rhs);
 
-e::buffer::packer
-operator << (e::buffer::packer, const index& t);
+e::packer
+operator << (e::packer, const index& t);
 e::unpacker
 operator >> (e::unpacker, index& t);
 size_t
 pack_size(const index& t);
 
-e::buffer::packer
-operator << (e::buffer::packer, const index::index_t& t);
+e::packer
+operator << (e::packer, const index::index_t& t);
 e::unpacker
 operator >> (e::unpacker, index::index_t& t);
 size_t

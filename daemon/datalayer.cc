@@ -234,7 +234,7 @@ datalayer :: save_state(const server_id& us,
               + pack_size(bind_to)
               + pack_size(coordinator);
     std::auto_ptr<e::buffer> state(e::buffer::create(sz));
-    *state << us << bind_to << coordinator;
+    state->pack() << us << bind_to << coordinator;
     leveldb::Status st = m_db->Put(wopts, leveldb::Slice("state", 5),
                                    leveldb::Slice(reinterpret_cast<const char*>(state->data()), state->size()));
 

@@ -208,7 +208,7 @@ pending_perf_counters :: handle_message(admin*,
         return true;
     }
 
-    e::slice rem = up.as_slice();
+    e::slice rem = up.remainder();
     char* ptr = const_cast<char*>(reinterpret_cast<const char*>(rem.data()));
     char* end = ptr + rem.size() - 1;
     uint64_t max_time = 0;

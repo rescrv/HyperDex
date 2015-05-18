@@ -71,8 +71,8 @@ hyperdex :: operator < (const server& lhs, const server& rhs)
     return lhs.id < rhs.id;
 }
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer lhs, const server& rhs)
+e::packer
+hyperdex :: operator << (e::packer lhs, const server& rhs)
 {
     uint8_t s = static_cast<uint8_t>(rhs.state);
     return lhs << s << rhs.id << rhs.bind_to;

@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Cornell University
+// Copyright (c) 2013-2015, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,174 +31,126 @@
 using hyperdex::coordinator_link;
 
 coordinator_link :: coordinator_link(const char* coordinator, uint16_t port)
-    : m_repl(coordinator, port)
+    : m_repl(replicant_client_create(coordinator, port))
     , m_config()
-    , m_state(NOTHING)
     , m_id(-1)
     , m_status(REPLICANT_GARBAGE)
     , m_output(NULL)
     , m_output_sz(0)
-    , m_pending_ids()
 {
+    if (!m_repl)
+    {
+        throw std::bad_alloc();
+    }
 }
 
 coordinator_link :: coordinator_link(const char* conn_str)
-    : m_repl(conn_str)
+    : m_repl(replicant_client_create_conn_str(conn_str))
     , m_config()
-    , m_state(NOTHING)
     , m_id(-1)
     , m_status(REPLICANT_GARBAGE)
     , m_output(NULL)
     , m_output_sz(0)
-    , m_pending_ids()
 {
+    if (!m_repl)
+    {
+        throw std::bad_alloc();
+    }
 }
 
 coordinator_link :: ~coordinator_link() throw ()
 {
     reset();
-}
-
-bool
-coordinator_link :: force_configuration_fetch(replicant_returncode* status)
-{
-    if (m_id >= 0)
-    {
-        m_repl.kill(m_id);
-    }
-
-    if (m_output)
-    {
-        replicant_destroy_output(m_output, m_output_sz);
-    }
-
-    m_id = -1;
-    m_state = WAITING_ON_BROADCAST;
-    m_status = REPLICANT_SUCCESS;
-    m_output = NULL;
-    m_output_sz = 0;
-    return begin_fetching_config(status);
+    replicant_client_destroy(m_repl);
 }
 
 bool
 coordinator_link :: ensure_configuration(replicant_returncode* status)
 {
-    while (true)
+    if (!prime_state_machine(status))
     {
-        if (!prime_state_machine(status))
-        {
-            return false;
-        }
-
-        assert(m_id >= 0);
-        assert(m_state > NOTHING);
-        int timeout = 0;
-
-        switch (m_state)
-        {
-            case WAITING_ON_BROADCAST:
-                timeout = 0;
-                break;
-            case FETCHING_CONFIG:
-                timeout = -1;
-                break;
-            case NOTHING:
-            default:
-                abort();
-        }
-
-        int64_t lid = m_repl.loop(timeout, status);
-
-        if (lid < 0 && *status == REPLICANT_TIMEOUT && timeout >= 0)
-        {
-            return true;
-        }
-        else if (lid < 0)
-        {
-            return false;
-        }
-
-        if (lid == m_id)
-        {
-            bool failed = false;
-
-            if (handle_internal_callback(status, &failed))
-            {
-                return true;
-            }
-
-            if (failed)
-            {
-                return false;
-            }
-        }
-        else
-        {
-            m_pending_ids.push_back(lid);
-        }
+        return false;
     }
+
+    assert(m_id >= 0);
+    int timeout = m_config.cluster() == 0 ? -1 : 0;
+    int64_t lid = replicant_client_wait(m_repl, m_id, timeout, status);
+
+    if (lid < 0)
+    {
+        return *status == REPLICANT_TIMEOUT && timeout == 0;
+    }
+
+    assert(lid == m_id);
+    return process_new_configuration(status);
 }
 
 int64_t
 coordinator_link :: rpc(const char* func,
                         const char* data, size_t data_sz,
                         replicant_returncode* status,
-                        const char** output, size_t* output_sz)
+                        char** output, size_t* output_sz)
 {
-    return m_repl.send("hyperdex", func, data, data_sz, status, output, output_sz);
+    return replicant_client_call(m_repl, "hyperdex", func, data, data_sz,
+                                 REPLICANT_CALL_ROBUST, status, output, output_sz);
 }
 
 int64_t
 coordinator_link :: backup(replicant_returncode* status,
-                           const char** output, size_t* output_sz)
+                           char** output, size_t* output_sz)
 {
-    return m_repl.backup_object("hyperdex", status, output, output_sz);
+    return replicant_client_backup_object(m_repl, "hyperdex", status, output, output_sz);
 }
 
 int64_t
 coordinator_link :: wait(const char* cond, uint64_t state,
                          replicant_returncode* status)
 {
-    return m_repl.wait("hyperdex", cond, state, status);
+    return replicant_client_cond_wait(m_repl, "hyperdex", cond, state, status, NULL, NULL);
 }
 
 int64_t
 coordinator_link :: loop(int timeout, replicant_returncode* status)
 {
-    if (!m_pending_ids.empty())
+    if (!prime_state_machine(status))
     {
-        int64_t ret = m_pending_ids.front();
-        m_pending_ids.pop_front();
-        return ret;
+        return -1;
     }
 
-    while (true)
+    int64_t lid = replicant_client_loop(m_repl, timeout, status);
+
+    if (lid == m_id)
     {
-        if (!prime_state_machine(status))
-        {
-            return -1;
-        }
+        return process_new_configuration(status) ? INT64_MAX : -1;
+    }
+    else
+    {
+        return lid;
+    }
+}
 
-        int64_t lid = m_repl.loop(timeout, status);
+int64_t
+coordinator_link :: wait(int64_t id, int timeout, replicant_returncode* status)
+{
+    if (!prime_state_machine(status))
+    {
+        return -1;
+    }
 
-        if (lid == m_id)
-        {
-            bool failed = false;
+    if (id == INT64_MAX)
+    {
+        id = m_id;
+    }
 
-            if (handle_internal_callback(status, &failed))
-            {
-                return INT64_MAX;
-            }
+    int64_t lid = replicant_client_wait(m_repl, id, timeout, status);
 
-            if (failed)
-            {
-                return -1;
-            }
-        }
-        else
-        {
-            return lid;
-        }
+    if (lid == m_id)
+    {
+        return process_new_configuration(status) ? INT64_MAX : -1;
+    }
+    else
+    {
+        return lid;
     }
 }
 
@@ -210,48 +162,29 @@ coordinator_link :: prime_state_machine(replicant_returncode* status)
         return true;
     }
 
-    if (m_state == NOTHING)
-    {
-        if (m_config.version() == 0)
-        {
-            m_state = WAITING_ON_BROADCAST;
-            m_status = REPLICANT_SUCCESS;
-            return begin_fetching_config(status);
-        }
-        else
-        {
-            return begin_waiting_on_broadcast(status);
-        }
-    }
+    m_id = replicant_client_cond_wait(m_repl, "hyperdex", "config", m_config.version() + 1, &m_status, &m_output, &m_output_sz);
+    *status = m_status;
 
-    return true;
+    if (m_id >= 0)
+    {
+        return true;
+    }
+    else
+    {
+        reset();
+        return false;
+    }
 }
 
 bool
-coordinator_link :: handle_internal_callback(replicant_returncode* status, bool* failed)
+coordinator_link :: process_new_configuration(replicant_returncode* status)
 {
     m_id = -1;
 
     if (m_status != REPLICANT_SUCCESS)
     {
         *status = m_status;
-        *failed = true;
         reset();
-        return false;
-    }
-
-    assert(m_state == WAITING_ON_BROADCAST ||
-           m_state == FETCHING_CONFIG);
-
-    if (m_state == WAITING_ON_BROADCAST)
-    {
-        if (!begin_fetching_config(status))
-        {
-            *failed = true;
-            return false;
-        }
-
-        *failed = false;
         return false;
     }
 
@@ -262,16 +195,7 @@ coordinator_link :: handle_internal_callback(replicant_returncode* status, bool*
 
     if (up.error())
     {
-        *status = REPLICANT_MISBEHAVING_SERVER;
-        *failed = true;
-        return false;
-    }
-
-    if (m_config.cluster() != 0 &&
-        m_config.cluster() != new_config.cluster())
-    {
-        *status = REPLICANT_MISBEHAVING_SERVER;
-        *failed = true;
+        *status = REPLICANT_SERVER_ERROR;
         return false;
     }
 
@@ -279,64 +203,15 @@ coordinator_link :: handle_internal_callback(replicant_returncode* status, bool*
     return true;
 }
 
-bool
-coordinator_link :: begin_waiting_on_broadcast(replicant_returncode* status)
-{
-    assert(m_id == -1);
-    assert(m_state == NOTHING);
-    assert(m_status == REPLICANT_GARBAGE);
-    assert(m_output == NULL);
-    assert(m_output_sz == 0);
-    m_id = m_repl.wait("hyperdex", "config",
-                       m_config.version() + 1, &m_status);
-    m_state = WAITING_ON_BROADCAST;
-    *status = m_status;
-
-    if (m_id >= 0)
-    {
-        return true;
-    }
-    else
-    {
-        reset();
-        return false;
-    }
-}
-
-bool
-coordinator_link :: begin_fetching_config(replicant_returncode* status)
-{
-    assert(m_id == -1);
-    assert(m_state == WAITING_ON_BROADCAST);
-    assert(m_status == REPLICANT_SUCCESS);
-    assert(m_output == NULL);
-    assert(m_output_sz == 0);
-    m_id = m_repl.send("hyperdex", "config_get", "", 0,
-                       &m_status, &m_output, &m_output_sz);
-    m_state = FETCHING_CONFIG;
-    *status = m_status;
-
-    if (m_id >= 0)
-    {
-        return true;
-    }
-    else
-    {
-        reset();
-        return false;
-    }
-}
-
 void
 coordinator_link :: reset()
 {
     if (m_output)
     {
-        replicant_destroy_output(m_output, m_output_sz);
+        free(m_output);
     }
 
     m_id = -1;
-    m_state = NOTHING;
     m_status = REPLICANT_GARBAGE;
     m_output = NULL;
     m_output_sz = 0;

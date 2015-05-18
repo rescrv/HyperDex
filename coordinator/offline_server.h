@@ -51,8 +51,8 @@ pack_size(const offline_server& os)
     return pack_size(os.id) + pack_size(os.sid);
 }
 
-inline e::buffer::packer
-operator << (e::buffer::packer pa, const offline_server& os)
+inline e::packer
+operator << (e::packer pa, const offline_server& os)
 {
     return pa << os.id << os.sid;
 }

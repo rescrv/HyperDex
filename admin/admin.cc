@@ -139,7 +139,7 @@ admin :: read_only(int ro, hyperdex_admin_returncode* status)
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -147,14 +147,6 @@ admin :: read_only(int ro, hyperdex_admin_returncode* status)
 int64_t
 admin :: wait_until_stable(enum hyperdex_admin_returncode* status)
 {
-    replicant_returncode rc;
-
-    if (!m_coord.force_configuration_fetch(&rc))
-    {
-        interpret_rpc_request_failure(rc, status);
-        return -1;
-    }
-
     if (!maintain_coord_connection(status))
     {
         return -1;
@@ -172,7 +164,7 @@ admin :: wait_until_stable(enum hyperdex_admin_returncode* status)
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -204,7 +196,7 @@ admin :: fault_tolerance(const char* space, uint64_t ft,
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -277,7 +269,7 @@ admin :: add_space(const char* description,
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -304,7 +296,7 @@ admin :: rm_space(const char* name,
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -338,7 +330,7 @@ admin :: mv_space(const char* source, const char* target,
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -372,7 +364,7 @@ admin :: add_index(const char* space, const char* attr,
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -401,7 +393,7 @@ admin :: rm_index(uint64_t idxid,
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -466,7 +458,7 @@ admin :: server_register(uint64_t token, const char* address,
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "register server");
     std::auto_ptr<e::buffer> msg(e::buffer::create(sizeof(uint64_t) + pack_size(loc)));
-    *msg << sid << loc;
+    msg->pack() << sid << loc;
     int64_t cid = m_coord.rpc("server_register", reinterpret_cast<const char*>(msg->data()), msg->size(),
                               &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
@@ -477,7 +469,7 @@ admin :: server_register(uint64_t token, const char* address,
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -505,7 +497,7 @@ admin :: server_online(uint64_t token, enum hyperdex_admin_returncode* status)
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -533,7 +525,7 @@ admin :: server_offline(uint64_t token, enum hyperdex_admin_returncode* status)
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -561,7 +553,7 @@ admin :: server_forget(uint64_t token, enum hyperdex_admin_returncode* status)
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -589,7 +581,7 @@ admin :: server_kill(uint64_t token, enum hyperdex_admin_returncode* status)
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -636,7 +628,7 @@ admin :: coord_backup(const char* path,
     }
     else
     {
-        interpret_rpc_request_failure(op->repl_status, status);
+        interpret_replicant_returncode(op->repl_status, status, &m_last_error);
         return -1;
     }
 }
@@ -813,7 +805,7 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
 
             if (lid < 0 && lrc != REPLICANT_TIMEOUT)
             {
-                interpret_rpc_loop_failure(lrc, status);
+                interpret_replicant_returncode(lrc, status, &m_last_error);
                 return -1;
             }
 
@@ -947,148 +939,66 @@ admin :: set_error_message(const char* msg)
     m_last_error.set_msg() << msg;
 }
 
-void
-admin :: interpret_rpc_request_failure(replicant_returncode rstatus,
-                                       hyperdex_admin_returncode* status)
-{
-    e::error err;
-
-    switch (rstatus)
-    {
-        case REPLICANT_TIMEOUT:
-            ERROR(TIMEOUT) << "operation timed out";
-            break;
-        case REPLICANT_INTERRUPTED:
-            ERROR(INTERRUPTED) << "signal received";
-            break;
-        case REPLICANT_NAME_TOO_LONG:
-        case REPLICANT_OBJ_NOT_FOUND:
-        case REPLICANT_FUNC_NOT_FOUND:
-        case REPLICANT_CLUSTER_JUMP:
-            err = m_coord.error();
-            ERROR(COORDFAIL) << "persistent coordinator error: " << err.msg() << " @ " << err.loc();
-            break;
-        case REPLICANT_SERVER_ERROR:
-        case REPLICANT_NEED_BOOTSTRAP:
-        case REPLICANT_BACKOFF:
-            err = m_coord.error();
-            ERROR(COORDFAIL) << "transient coordinator error: " << err.msg() << " @ " << err.loc();
-            break;
-        case REPLICANT_SUCCESS:
-        case REPLICANT_NONE_PENDING:
-        case REPLICANT_INTERNAL_ERROR:
-        case REPLICANT_MISBEHAVING_SERVER:
-        case REPLICANT_BAD_LIBRARY:
-        case REPLICANT_COND_DESTROYED:
-        case REPLICANT_COND_NOT_FOUND:
-        case REPLICANT_OBJ_EXIST:
-        case REPLICANT_CTOR_FAILED:
-        case REPLICANT_GARBAGE:
-        default:
-            err = m_coord.error();
-            ERROR(COORDFAIL) << "internal library error: " << err.msg() << " @ " << err.loc();
-            break;
-    }
-}
+#define INTERPRET_ERROR(CODE) \
+    *status = HYPERDEX_ADMIN_ ## CODE; \
+    err->set_loc(__FILE__, __LINE__); \
+    err->set_msg()
 
 void
-admin :: interpret_rpc_loop_failure(replicant_returncode rstatus,
-                                    hyperdex_admin_returncode* status)
-{
-    e::error err;
-
-    switch (rstatus)
-    {
-        case REPLICANT_TIMEOUT:
-            ERROR(TIMEOUT) << "operation timed out";
-            break;
-        case REPLICANT_INTERRUPTED:
-            ERROR(INTERRUPTED) << "signal received";
-            break;
-        case REPLICANT_NAME_TOO_LONG:
-        case REPLICANT_OBJ_NOT_FOUND:
-        case REPLICANT_FUNC_NOT_FOUND:
-        case REPLICANT_CLUSTER_JUMP:
-            err = m_coord.error();
-            ERROR(COORDFAIL) << "persistent coordinator error: " << err.msg() << " @ " << err.loc();
-            break;
-        case REPLICANT_SERVER_ERROR:
-        case REPLICANT_NEED_BOOTSTRAP:
-        case REPLICANT_BACKOFF:
-            err = m_coord.error();
-            ERROR(COORDFAIL) << "transient coordinator error: " << err.msg() << " @ " << err.loc();
-            break;
-        case REPLICANT_NONE_PENDING:
-            ERROR(NONEPENDING) << "no outstanding operations to process";
-            break;
-        case REPLICANT_SUCCESS:
-        case REPLICANT_INTERNAL_ERROR:
-        case REPLICANT_MISBEHAVING_SERVER:
-        case REPLICANT_BAD_LIBRARY:
-        case REPLICANT_COND_DESTROYED:
-        case REPLICANT_COND_NOT_FOUND:
-        case REPLICANT_OBJ_EXIST:
-        case REPLICANT_CTOR_FAILED:
-        case REPLICANT_GARBAGE:
-        default:
-            err = m_coord.error();
-            ERROR(COORDFAIL) << "internal library error: " << err.msg() << " @ " << err.loc();
-            break;
-    }
-}
-
-void
-admin :: interpret_rpc_response_failure(replicant_returncode rstatus,
+admin :: interpret_replicant_returncode(replicant_returncode rstatus,
                                         hyperdex_admin_returncode* status,
-                                        e::error* ret_err)
+                                        e::error* err)
 {
-    e::error err;
-    e::error tmp = m_last_error;
-    m_last_error = e::error();
-
     switch (rstatus)
     {
         case REPLICANT_SUCCESS:
             *status = HYPERDEX_ADMIN_SUCCESS;
             break;
+        case REPLICANT_OBJ_NOT_FOUND:
+        case REPLICANT_OBJ_EXIST:
+        case REPLICANT_FUNC_NOT_FOUND:
+        case REPLICANT_COND_NOT_FOUND:
+        case REPLICANT_COND_DESTROYED:
+            INTERPRET_ERROR(COORDFAIL) << "persistent coordinator error: "
+                                       << m_coord.error_message()
+                                       << " @ "
+                                       << m_coord.error_location();
+            break;
+        case REPLICANT_MAYBE:
+            INTERPRET_ERROR(COORDFAIL) << "transient coordinator error: "
+                                       << "operation may or may not have completed";
+            break;
+        case REPLICANT_SEE_ERRNO:
+            INTERPRET_ERROR(COORDFAIL) << "transient coordinator error: "
+                                       << e::error::strerror(errno);
+            break;
+        case REPLICANT_CLUSTER_JUMP:
+        case REPLICANT_SERVER_ERROR:
+        case REPLICANT_COMM_FAILED:
+            INTERPRET_ERROR(COORDFAIL) << "transient coordinator error: "
+                                       << m_coord.error_message()
+                                       << " @ "
+                                       << m_coord.error_location();
+            break;
         case REPLICANT_TIMEOUT:
-            ERROR(TIMEOUT) << "operation timed out";
+            INTERPRET_ERROR(TIMEOUT) << "operation timed out";
             break;
         case REPLICANT_INTERRUPTED:
-            ERROR(INTERRUPTED) << "signal received";
-            break;
-        case REPLICANT_NAME_TOO_LONG:
-        case REPLICANT_OBJ_NOT_FOUND:
-        case REPLICANT_FUNC_NOT_FOUND:
-        case REPLICANT_CLUSTER_JUMP:
-            err = m_coord.error();
-            ERROR(COORDFAIL) << "persistent coordinator error: " << err.msg() << " @ " << err.loc();
-            break;
-        case REPLICANT_SERVER_ERROR:
-        case REPLICANT_NEED_BOOTSTRAP:
-        case REPLICANT_BACKOFF:
-            err = m_coord.error();
-            ERROR(COORDFAIL) << "transient coordinator error: " << err.msg() << " @ " << err.loc();
+            INTERPRET_ERROR(INTERRUPTED) << "signal received";
             break;
         case REPLICANT_NONE_PENDING:
-            ERROR(NONEPENDING) << "no outstanding operations to process";
+            INTERPRET_ERROR(NONEPENDING) << "no operations pending";
             break;
-        case REPLICANT_INTERNAL_ERROR:
-        case REPLICANT_MISBEHAVING_SERVER:
-        case REPLICANT_BAD_LIBRARY:
-        case REPLICANT_COND_DESTROYED:
-        case REPLICANT_COND_NOT_FOUND:
-        case REPLICANT_OBJ_EXIST:
-        case REPLICANT_CTOR_FAILED:
+        case REPLICANT_INTERNAL:
+        case REPLICANT_EXCEPTION:
         case REPLICANT_GARBAGE:
         default:
-            err = m_coord.error();
-            ERROR(COORDFAIL) << "internal library error: " << err.msg() << " @ " << err.loc();
+            INTERPRET_ERROR(INTERNAL) << "internal library error: "
+                                      << m_coord.error_message()
+                                      << " @ "
+                                      << m_coord.error_location();
             break;
     }
-
-    *ret_err = m_last_error;
-    m_last_error = tmp;
 }
 
 bool
@@ -1099,52 +1009,13 @@ admin :: maintain_coord_connection(hyperdex_admin_returncode* status)
 
     if (!m_coord.ensure_configuration(&rc))
     {
-        switch (rc)
-        {
-            case REPLICANT_TIMEOUT:
-                ERROR(TIMEOUT) << "operation timed out";
-                return false;
-            case REPLICANT_INTERRUPTED:
-                ERROR(INTERRUPTED) << "signal received";
-                return false;
-            case REPLICANT_NAME_TOO_LONG:
-            case REPLICANT_OBJ_NOT_FOUND:
-            case REPLICANT_FUNC_NOT_FOUND:
-            case REPLICANT_CLUSTER_JUMP:
-                err = m_coord.error();
-                ERROR(COORDFAIL) << "persistent coordinator error: " << err.msg() << " @ " << err.loc();
-                break;
-            case REPLICANT_MISBEHAVING_SERVER:
-            case REPLICANT_SERVER_ERROR:
-            case REPLICANT_NEED_BOOTSTRAP:
-            case REPLICANT_BACKOFF:
-                err = m_coord.error();
-                ERROR(COORDFAIL) << "transient coordinator error: " << err.msg() << " @ " << err.loc();
-                return false;
-            case REPLICANT_SUCCESS:
-            case REPLICANT_OBJ_EXIST:
-            case REPLICANT_COND_NOT_FOUND:
-            case REPLICANT_COND_DESTROYED:
-            case REPLICANT_BAD_LIBRARY:
-            case REPLICANT_INTERNAL_ERROR:
-            case REPLICANT_NONE_PENDING:
-            case REPLICANT_CTOR_FAILED:
-            case REPLICANT_GARBAGE:
-            default:
-                *status = HYPERDEX_ADMIN_INTERNAL;
-                return false;
-        }
+        interpret_replicant_returncode(rc, status, &m_last_error);
     }
 
     if (m_busybee.set_external_fd(m_coord.poll_fd()) != BUSYBEE_SUCCESS)
     {
         ERROR(POLLFAILED) << "poll failed";
         return false;
-    }
-
-    if (m_coord.queued_responses() > 0)
-    {
-        m_handle_coord_ops = true;
     }
 
     return true;

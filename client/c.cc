@@ -43,20 +43,15 @@
 #define FAKE_STATUS     hyperdex_client_returncode _status;     hyperdex_client_returncode* status = &_status
 
 #define SIGNAL_PROTECT_ERR(X) \
-    do \
+    sigset_t old_sigs; \
+    sigset_t all_sigs; \
+    sigfillset(&all_sigs); \
+    if (pthread_sigmask(SIG_BLOCK, &all_sigs, &old_sigs) < 0) \
     { \
-        sigset_t old_sigs; \
-        sigset_t all_sigs; \
-        sigfillset(&all_sigs); \
-        if (pthread_sigmask(SIG_BLOCK, &all_sigs, &old_sigs) < 0) \
-        { \
-            *status = HYPERDEX_CLIENT_INTERNAL; \
-            return (X); \
-        } \
-        e::guard g = e::makeguard(pthread_sigmask, SIG_SETMASK, (sigset_t*)&old_sigs, (sigset_t*)NULL); \
-        g.use_variable(); \
+        *status = HYPERDEX_CLIENT_INTERNAL; \
+        return (X); \
     } \
-    while (0)
+    e::guard g = e::makeguard(pthread_sigmask, SIG_SETMASK, (sigset_t*)&old_sigs, (sigset_t*)NULL)
 
 #define SIGNAL_PROTECT SIGNAL_PROTECT_ERR(-1);
 inline void return_void() {}
