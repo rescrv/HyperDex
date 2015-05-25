@@ -771,13 +771,16 @@ coordinator_link_wrapper :: ensure_available()
     }
 
     size_t sz = sizeof(uint64_t) + pack_size(m_daemon->m_bind_to);
-    std::auto_ptr<e::buffer> buf(e::buffer::create(sz));
-    buf->pack() << m_daemon->m_us << m_daemon->m_bind_to;
+    std::auto_ptr<e::buffer> enter_buf(e::buffer::create(sz));
+    enter_buf->pack() << m_daemon->m_us << m_daemon->m_bind_to;
+    char exit_buf[sizeof(uint64_t)];
+    e::pack64be(m_daemon->m_us.get(), exit_buf);
     e::intrusive_ptr<coord_rpc> rpc = new coord_rpc_available();
     rpc->msg << "server online";
-    m_online_id = make_rpc_nosync("server_online",
-                                  reinterpret_cast<const char*>(buf->data()), buf->size(),
-                                  rpc);
+    m_online_id = make_rpc_defended("server_online",
+                                    enter_buf->cdata(), enter_buf->size(),
+                                    "server_suspect", exit_buf, sizeof(uint64_t),
+                                    rpc);
 }
 
 class coordinator_link_wrapper::coord_rpc_config_ack : public coord_rpc
@@ -1041,6 +1044,31 @@ coordinator_link_wrapper :: make_rpc_nosync(const char* func,
                               &rpc->status,
                               &rpc->output,
                               &rpc->output_sz);
+
+    if (id < 0)
+    {
+        LOG(ERROR) << "coordinator error: " << rpc->msg.str()
+                   << ": " << m_coord->error_message()
+                   << " @ " << m_coord->error_location();
+    }
+    else
+    {
+        m_rpcs.insert(std::make_pair(id, rpc));
+    }
+
+    return id;
+}
+
+int64_t
+coordinator_link_wrapper :: make_rpc_defended(const char* enter_func,
+                                              const char* enter_data, size_t enter_data_sz,
+                                              const char* exit_func,
+                                              const char* exit_data, size_t exit_data_sz,
+                                              e::intrusive_ptr<coord_rpc> rpc)
+{
+    int64_t id = m_coord->rpc_defended(enter_func, enter_data, enter_data_sz,
+                                       exit_func, exit_data, exit_data_sz,
+                                       &rpc->status);
 
     if (id < 0)
     {

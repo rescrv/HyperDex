@@ -121,6 +121,11 @@ class coordinator_link_wrapper
         int64_t make_rpc_nosync(const char* func,
                                 const char* data, size_t data_sz,
                                 e::intrusive_ptr<coord_rpc> rpc);
+        int64_t make_rpc_defended(const char* enter_func,
+                                  const char* enter_data, size_t enter_data_sz,
+                                  const char* exit_func,
+                                  const char* exit_data, size_t exit_data_sz,
+                                  e::intrusive_ptr<coord_rpc> rpc);
         int64_t wait_nosync(const char* cond, uint64_t state,
                             e::intrusive_ptr<coord_rpc> rpc);
 

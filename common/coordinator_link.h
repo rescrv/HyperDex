@@ -65,6 +65,11 @@ class coordinator_link
                     const char* data, size_t data_sz,
                     replicant_returncode* status,
                     char** output, size_t* output_sz);
+        int64_t rpc_defended(const char* enter_func,
+                             const char* enter_data, size_t enter_data_sz,
+                             const char* exit_func,
+                             const char* exit_data, size_t exit_data_sz,
+                             replicant_returncode* status);
         int64_t backup(replicant_returncode* status,
                        char** output, size_t* output_sz);
         int64_t wait(const char* cond, uint64_t state,

@@ -359,12 +359,6 @@ coordinator :: server_online(rsm_context* ctx,
         generate_next_configuration(ctx);
     }
 
-#if 0
-    char buf[sizeof(uint64_t)];
-    e::pack64be(sid.get(), buf);
-    uint64_t client = replicant_state_machine_get_client(ctx);
-    replicant_state_machine_suspect(ctx, client, "server_suspect",  buf, sizeof(uint64_t));
-#endif
     return generate_response(ctx, COORD_SUCCESS);
 }
 

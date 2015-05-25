@@ -96,6 +96,17 @@ coordinator_link :: rpc(const char* func,
 }
 
 int64_t
+coordinator_link :: rpc_defended(const char* enter_func,
+                                 const char* enter_data, size_t enter_data_sz,
+                                 const char* exit_func,
+                                 const char* exit_data, size_t exit_data_sz,
+                                 replicant_returncode* status)
+{
+    return replicant_client_defended_call(m_repl, "hyperdex", enter_func, enter_data, enter_data_sz,
+                                          exit_func, exit_data, exit_data_sz, status);
+}
+
+int64_t
 coordinator_link :: backup(replicant_returncode* status,
                            char** output, size_t* output_sz)
 {
