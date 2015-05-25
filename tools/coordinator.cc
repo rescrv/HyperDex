@@ -68,7 +68,7 @@ main(int argc, const char* argv[])
     }
 
     char token_buf[21];
-    snprintf(token_buf, 21, "%ld", token);
+    snprintf(token_buf, 21, "%lu", (unsigned long) token);
 
     // exec replicant daemon
     std::vector<const char*> args;
