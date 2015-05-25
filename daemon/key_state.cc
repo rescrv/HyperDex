@@ -709,14 +709,7 @@ key_state :: work_state_machine_or_pass_the_buck(replication_manager* rm,
                                                  const virtual_server_id& us,
                                                  const schema& sc)
 {
-    bool have_it = false;
-    m_lock.lock();
-    have_it = !m_someone_is_working_the_state_machine;
-    m_someone_is_working_the_state_machine = true;
-    m_someone_needs_to_work_the_state_machine = !have_it;
-    m_lock.unlock();
-
-    if (have_it)
+    if (possibly_takeover_state_machine())
     {
         work_state_machine_with_work_bit(rm, us, sc);
     }

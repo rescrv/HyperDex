@@ -521,18 +521,23 @@ replication_manager :: send_message(const virtual_server_id& us,
             if (has_next_subspace)
             {
                 dest = m_daemon->m_config.head_of_region(op->next_region());
-                type = type; // it stays the same
+                type = CHAIN_OP;
             }
             else
             {
-                dest = us;
-                type = CHAIN_ACK;
+                if (!op->ackable())
+                {
+                    op->mark_acked();
+                    collect(ri, op);
+                }
+
+                return send_ack(us, key, op);
             }
         }
         else
         {
             dest = m_daemon->m_config.next_in_region(us);
-            type = type; // it stays the same
+            type = CHAIN_OP;
         }
     }
     else if (op->this_old_region() == ri)
@@ -546,7 +551,7 @@ replication_manager :: send_message(const virtual_server_id& us,
         else
         {
             dest = m_daemon->m_config.next_in_region(us);
-            type = type; // it stays the same
+            type = CHAIN_OP;
         }
     }
     else if (op->this_new_region() == ri)
@@ -556,12 +561,17 @@ replication_manager :: send_message(const virtual_server_id& us,
             if (has_next_subspace)
             {
                 dest = m_daemon->m_config.head_of_region(op->next_region());
-                type = type; // it stays the same
+                type = CHAIN_OP;
             }
             else
             {
-                dest = us;
-                type = CHAIN_ACK;
+                if (!op->ackable())
+                {
+                    op->mark_acked();
+                    collect(ri, op);
+                }
+
+                return send_ack(us, key, op);
             }
         }
         else
@@ -592,15 +602,6 @@ replication_manager :: send_message(const virtual_server_id& us,
         msg->pack_at(HYPERDEX_HEADER_SIZE_VV)
             << flags << op->prev_version() << op->this_version()
             << key << op->value();
-    }
-    else if (type == CHAIN_ACK)
-    {
-        size_t sz = HYPERDEX_HEADER_SIZE_VV
-                  + sizeof(uint64_t)
-                  + pack_size(key);
-        msg.reset(e::buffer::create(sz));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV)
-            << op->this_version() << key;
     }
     else if (type == CHAIN_SUBSPACE)
     {
