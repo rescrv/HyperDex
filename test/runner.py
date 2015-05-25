@@ -122,6 +122,9 @@ class HyperDexCluster(object):
             p.terminate()
         time.sleep(0.5)
         for p in reversed(self.processes):
+            p.terminate()
+        time.sleep(0.5)
+        for p in reversed(self.processes):
             p.kill()
             p.wait()
         if self.log_output:
