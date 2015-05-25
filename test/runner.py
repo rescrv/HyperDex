@@ -93,7 +93,7 @@ class HyperDexCluster(object):
             stdout = open(os.path.join(cwd, 'hyperdex-test-runner.log'), 'w')
             proc = subprocess.Popen(cmd, stdout=stdout, stderr=subprocess.STDOUT, env=env, cwd=cwd)
             self.processes.append(proc)
-        time.sleep(0.5)
+        time.sleep(1)
         for i in range(self.daemons):
             cmd = ['hyperdex', 'daemon', '-t', '1',
                    '--foreground', '--listen', '127.0.0.1', '--listen-port', str(2012 + i),
