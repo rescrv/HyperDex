@@ -285,18 +285,18 @@ def generate_client_java():
     fout.write('\n'.join([generate_client_prototype(c) for c in bindings.Client if c.form is not bindings.MicrotransactionCall]))
     fout.write('}\n')
     fout.flush()
-    fout = open(os.path.join(BASE, 'bindings/java/org/hyperdex/client/Microtransaction.java'), 'w')
-    fout.write(bindings.copyright('*', '2015'))
-    fout.write(bindings.java.MICROTRANSACTION_HEAD)
-    fout.write('\n'.join([generate_microtransaction_prototype(c) for c in bindings.Client if c.form is bindings.MicrotransactionCall]))
-    fout.write('}\n')
-    fout.flush()
+    #fout = open(os.path.join(BASE, 'bindings/java/org/hyperdex/client/Microtransaction.java'), 'w')
+    #fout.write(bindings.copyright('*', '2015'))
+    #fout.write(bindings.java.MICROTRANSACTION_HEAD)
+    #fout.write('\n'.join([generate_microtransaction_prototype(c) for c in bindings.Client if c.form is bindings.MicrotransactionCall]))
+    #fout.write('}\n')
+    #fout.flush()
     os.system('cd bindings/java && javac -cp . org/hyperdex/client/Client.java')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
-    os.system('cd bindings/java && javac -cp . org/hyperdex/client/Microtransaction.java')
-    os.system('cd bindings/java && javah -cp . org.hyperdex.client.Microtransaction')
+    #os.system('cd bindings/java && javac -cp . org/hyperdex/client/Microtransaction.java')
+    #os.system('cd bindings/java && javah -cp . org.hyperdex.client.Microtransaction')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Deferred')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.GreaterEqual')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.GreaterThan')
@@ -314,10 +314,10 @@ def generate_client_java():
     fout.write(bindings.java.DEFINITIONS_HEAD)
     fout.write('\n'.join(generate_workers(bindings.Client)))
     fout.write('\n'.join([generate_client_definition(c) for c in bindings.Client if c.form is not bindings.MicrotransactionCall]))
-    fout = open(os.path.join(BASE, 'bindings/java/org_hyperdex_client_Microtransaction.definitions.c'), 'w')
-    fout.write(bindings.copyright('*', '2015'))
-    fout.write(bindings.java.DEFINITIONS_HEAD)
-    fout.write('\n'.join([generate_microtransaction_definition(c) for c in bindings.Client if c.form is bindings.MicrotransactionCall]))
+    #fout = open(os.path.join(BASE, 'bindings/java/org_hyperdex_client_Microtransaction.definitions.c'), 'w')
+    #fout.write(bindings.copyright('*', '2015'))
+    #fout.write(bindings.java.DEFINITIONS_HEAD)
+    #fout.write('\n'.join([generate_microtransaction_definition(c) for c in bindings.Client if c.form is bindings.MicrotransactionCall]))
 
 def generate_client_doc():
     fout = open(os.path.join(BASE, 'doc/java/client/ops.tex'), 'w')
@@ -427,11 +427,6 @@ public class Client
         }
     }
     
-    public Microtransaction initMicrotransaction(String space)
-    {
-        return new Microtransaction(this, space);
-    }
-
     public synchronized void destroy()
     {
         if (ptr != 0)

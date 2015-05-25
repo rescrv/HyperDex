@@ -68,11 +68,6 @@ public class Client
         }
     }
     
-    public Microtransaction initMicrotransaction(String space)
-    {
-        return new Microtransaction(this, space);
-    }
-
     public synchronized void destroy()
     {
         if (ptr != 0)
