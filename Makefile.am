@@ -458,6 +458,7 @@ libhyperdex_client_la_LIBADD += $(MACAROONS_LIBS)
 libhyperdex_client_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(E_LIBS)
+libhyperdex_client_la_LIBADD += -lrt -lpthread
 libhyperdex_client_la_LDFLAGS = -version-info 1:0:0
 
 client/keyop_info.cc: client/keyop_info.gperf client/keyop_info.h
@@ -555,6 +556,7 @@ libhyperdex_admin_la_LIBADD += $(MACAROONS_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
+libhyperdex_admin_la_LIBADD += -lrt -lpthread
 libhyperdex_admin_la_LDFLAGS = -version-info 1:0:0
 
 ################################################################################
