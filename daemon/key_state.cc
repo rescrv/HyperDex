@@ -805,7 +805,7 @@ key_state :: work_state_machine_with_work_bit(replication_manager* rm,
             did_work = true;
         }
 
-        if (did_work)
+        if (did_work && m_committable.size() < 64)
         {
             // continue here because it will not hurt, and the more we can build
             // up the "committable" queue, the more progress we can make
