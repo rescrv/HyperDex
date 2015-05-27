@@ -138,6 +138,9 @@ HyperDex relies upon the glog library.
 Please install glog to continue.
 -------------------------------------------------])])
 fi
+AC_ARG_VAR(POPT_LIBS, [linker flags for popt])
+AS_IF([test "x$POPT_LIBS" = x], [POPT_LIBS="-lpopt"])
+
 if test x"${enable_all_components}" = xyes -o \
         x"${enable_tools}" = xyes -o \
         x"${enable_coordinator}" = xyes -o \
@@ -148,6 +151,8 @@ HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
 fi
+AC_ARG_VAR(GLOG_LIBS, [linker flags for glog])
+AS_IF([test "x$GLOG_LIBS" = x], [GLOG_LIBS="-lglog"])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
