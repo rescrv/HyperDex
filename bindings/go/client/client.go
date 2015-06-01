@@ -1882,13 +1882,6 @@ func (client *Client) Put(spacename string, key Value, attributes Attributes) (e
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_put, spacename, key, attributes)
 }
 
-func stub_uxact_put(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_put(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactPut(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_put, microtransaction, attributes)
-}
-
 func stub_cond_put(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_cond_put(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
 }
@@ -1945,13 +1938,6 @@ func (client *Client) AtomicAdd(spacename string, key Value, attributes Attribut
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_atomic_add, spacename, key, attributes)
 }
 
-func stub_uxact_atomic_add(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_atomic_add(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactAtomicAdd(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_atomic_add, microtransaction, attributes)
-}
-
 func stub_cond_atomic_add(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_cond_atomic_add(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
 }
@@ -1971,13 +1957,6 @@ func stub_atomic_sub(client *C.struct_hyperdex_client, space *C.char, key *C.cha
 }
 func (client *Client) AtomicSub(spacename string, key Value, attributes Attributes) (err *Error) {
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_atomic_sub, spacename, key, attributes)
-}
-
-func stub_uxact_atomic_sub(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_atomic_sub(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactAtomicSub(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_atomic_sub, microtransaction, attributes)
 }
 
 func stub_cond_atomic_sub(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2001,13 +1980,6 @@ func (client *Client) AtomicMul(spacename string, key Value, attributes Attribut
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_atomic_mul, spacename, key, attributes)
 }
 
-func stub_uxact_atomic_mul(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_atomic_mul(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactAtomicMul(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_atomic_mul, microtransaction, attributes)
-}
-
 func stub_cond_atomic_mul(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_cond_atomic_mul(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
 }
@@ -2027,13 +1999,6 @@ func stub_atomic_div(client *C.struct_hyperdex_client, space *C.char, key *C.cha
 }
 func (client *Client) AtomicDiv(spacename string, key Value, attributes Attributes) (err *Error) {
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_atomic_div, spacename, key, attributes)
-}
-
-func stub_uxact_atomic_div(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_atomic_div(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactAtomicDiv(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_atomic_div, microtransaction, attributes)
 }
 
 func stub_cond_atomic_div(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2078,13 +2043,6 @@ func (client *Client) AtomicAnd(spacename string, key Value, attributes Attribut
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_atomic_and, spacename, key, attributes)
 }
 
-func stub_uxact_atomic_and(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_atomic_and(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactAtomicAnd(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_atomic_and, microtransaction, attributes)
-}
-
 func stub_cond_atomic_and(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_cond_atomic_and(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
 }
@@ -2104,13 +2062,6 @@ func stub_atomic_or(client *C.struct_hyperdex_client, space *C.char, key *C.char
 }
 func (client *Client) AtomicOr(spacename string, key Value, attributes Attributes) (err *Error) {
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_atomic_or, spacename, key, attributes)
-}
-
-func stub_uxact_atomic_or(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_atomic_or(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactAtomicOr(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_atomic_or, microtransaction, attributes)
 }
 
 func stub_cond_atomic_or(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2197,13 +2148,6 @@ func (client *Client) StringPrepend(spacename string, key Value, attributes Attr
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_string_prepend, spacename, key, attributes)
 }
 
-func stub_uxact_string_prepend(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_string_prepend(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactStringPrepend(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_string_prepend, microtransaction, attributes)
-}
-
 func stub_cond_string_prepend(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_cond_string_prepend(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
 }
@@ -2223,13 +2167,6 @@ func stub_string_append(client *C.struct_hyperdex_client, space *C.char, key *C.
 }
 func (client *Client) StringAppend(spacename string, key Value, attributes Attributes) (err *Error) {
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_string_append, spacename, key, attributes)
-}
-
-func stub_uxact_string_append(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_string_append(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactStringAppend(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_string_append, microtransaction, attributes)
 }
 
 func stub_cond_string_append(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2253,13 +2190,6 @@ func (client *Client) ListLpush(spacename string, key Value, attributes Attribut
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_list_lpush, spacename, key, attributes)
 }
 
-func stub_uxact_list_lpush(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_list_lpush(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactListLpush(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_list_lpush, microtransaction, attributes)
-}
-
 func stub_cond_list_lpush(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_cond_list_lpush(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
 }
@@ -2279,13 +2209,6 @@ func stub_list_rpush(client *C.struct_hyperdex_client, space *C.char, key *C.cha
 }
 func (client *Client) ListRpush(spacename string, key Value, attributes Attributes) (err *Error) {
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_list_rpush, spacename, key, attributes)
-}
-
-func stub_uxact_list_rpush(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_list_rpush(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactListRpush(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_list_rpush, microtransaction, attributes)
 }
 
 func stub_cond_list_rpush(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2393,13 +2316,6 @@ func (client *Client) DocumentRename(spacename string, key Value, attributes Att
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_document_rename, spacename, key, attributes)
 }
 
-func stub_uxact_document_rename(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_document_rename(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactDocumentRename(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_document_rename, microtransaction, attributes)
-}
-
 func stub_cond_document_rename(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_cond_document_rename(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
 }
@@ -2419,13 +2335,6 @@ func stub_document_unset(client *C.struct_hyperdex_client, space *C.char, key *C
 }
 func (client *Client) DocumentUnset(spacename string, key Value, attributes Attributes) (err *Error) {
 	return client.AsynccallSpacenameKeyAttributesStatus(stub_document_unset, spacename, key, attributes)
-}
-
-func stub_uxact_document_unset(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_document_unset(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactDocumentUnset(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_document_unset, microtransaction, attributes)
 }
 
 func stub_cond_document_unset(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
@@ -2715,13 +2624,6 @@ func (client *Client) GroupMapAtomicMin(spacename string, predicates []Predicate
 	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_min, spacename, predicates, mapattributes)
 }
 
-func stub_uxact_atomic_min(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_atomic_min(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactAtomicMin(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_atomic_min, microtransaction, attributes)
-}
-
 func stub_map_atomic_max(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, mapattrs *C.struct_hyperdex_client_map_attribute, mapattrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_map_atomic_max(client, space, key, key_sz, mapattrs, mapattrs_sz, status))
 }
@@ -2741,13 +2643,6 @@ func stub_group_map_atomic_max(client *C.struct_hyperdex_client, space *C.char, 
 }
 func (client *Client) GroupMapAtomicMax(spacename string, predicates []Predicate, mapattributes MapAttributes) (count uint64, err *Error) {
 	return client.AsynccallSpacenamePredicatesMapattributesStatusCount(stub_group_map_atomic_max, spacename, predicates, mapattributes)
-}
-
-func stub_uxact_atomic_max(client *C.struct_hyperdex_client, microtransaction *C.struct_hyperdex_client_microtransaction, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t) int64 {
-	return int64(C.hyperdex_client_uxact_atomic_max(client, microtransaction, attrs, attrs_sz))
-}
-func (client *Client) UxactAtomicMax(microtransaction Microtransaction, attributes Attributes) {
-	return client.MicrotransactioncallMicrotransactionAttributes(stub_uxact_atomic_max, microtransaction, attributes)
 }
 
 func stub_search(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, status *C.enum_hyperdex_client_returncode, attrs **C.struct_hyperdex_client_attribute, attrs_sz *C.size_t) int64 {

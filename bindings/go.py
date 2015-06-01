@@ -308,7 +308,8 @@ def generate_client_code():
     code = ''
     code += '\n'.join(generate_workers(bindings.Client))
     code += '\n'
-    code += '\n'.join([generate_method(c, 'Client') for c in bindings.Client])
+    code += '\n'.join([generate_method(c, 'Client') for c in bindings.Client if
+        c.form is not bindings.MicrotransactionCall])
     code += '\n'
     goclient = os.path.join(BASE, 'bindings/go/client/client.go')
     current = open(goclient, 'r').read()
