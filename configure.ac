@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.62])
-AC_INIT([HyperDex], [1.7.0], [robert@hyperdex.org])
+AC_INIT([HyperDex], [1.7.1], [robert@hyperdex.org])
 m4_define([serial_tests], [
     m4_esyscmd([case `automake --version | head -n 1` in
                 *1.11*);;
