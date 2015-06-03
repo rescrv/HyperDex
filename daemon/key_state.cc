@@ -250,6 +250,7 @@ key_state :: enqueue_client_atomic(replication_manager* rm,
     else
     {
         m_client_atomics.push(new stub_client_atomic(from, nonce, kc, backing));
+        someone_needs_to_work_the_state_machine();
         work_state_machine_or_pass_the_buck(rm, us, sc);
     }
 }
@@ -305,6 +306,7 @@ key_state :: enqueue_chain_op(replication_manager* rm,
     else
     {
         m_chain_ops.push(new stub_chain_op(from, old_version, new_version, fresh, has_value, value, backing));
+        someone_needs_to_work_the_state_machine();
         work_state_machine_or_pass_the_buck(rm, us, sc);
     }
 }
@@ -368,6 +370,7 @@ key_state :: enqueue_chain_subspace(replication_manager* rm,
     else
     {
         m_chain_subspaces.push(new stub_chain_subspace(from, old_version, new_version, value, backing, prev_region, this_old_region, this_new_region, next_region));
+        someone_needs_to_work_the_state_machine();
         work_state_machine_or_pass_the_buck(rm, us, sc);
     }
 }
@@ -403,6 +406,7 @@ key_state :: enqueue_chain_ack(replication_manager* rm,
     else
     {
         m_chain_acks.push(new stub_chain_ack(from, version));
+        someone_needs_to_work_the_state_machine();
         work_state_machine_or_pass_the_buck(rm, us, sc);
     }
 }
@@ -702,6 +706,13 @@ key_state :: check_invariants() const
     assert(m_blocked_empty == m_blocked.empty());
     assert(m_deferred_empty == m_deferred.empty());
     assert(m_changes_empty == m_changes.empty());
+}
+
+void
+key_state :: someone_needs_to_work_the_state_machine()
+{
+    po6::threads::mutex::hold hold(&m_lock);
+    m_someone_needs_to_work_the_state_machine = true;
 }
 
 void

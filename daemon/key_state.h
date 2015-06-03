@@ -119,6 +119,7 @@ class key_state
 
     private:
         void check_invariants() const;
+        void someone_needs_to_work_the_state_machine();
         void work_state_machine_or_pass_the_buck(replication_manager* rm,
                                                  const virtual_server_id& us,
                                                  const schema& sc);
