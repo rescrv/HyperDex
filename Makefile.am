@@ -728,7 +728,7 @@ bindings_python_hyperdex_client_la_CFLAGS += $(CFLAGS)
 bindings_python_hyperdex_client_la_LIBADD =
 bindings_python_hyperdex_client_la_LIBADD += libhyperdex-client.la
 bindings_python_hyperdex_client_la_LIBADD += $(PYTHON_LDFLAGS)
-bindings_python_hyperdex_client_la_LDFLAGS = -module -avoid-version -export-symbols-regex initclient $(AM_LDFLAGS) $(LDFLAGS)
+bindings_python_hyperdex_client_la_LDFLAGS = -module -avoid-version -export-symbols-regex $(PYTHON_SYMBOL)client $(AM_LDFLAGS) $(LDFLAGS)
 bindings/python/hyperdex/client.c: bindings/python/hyperdex/client.pyx
 	$(pyx_verbose)cython bindings/python/hyperdex/client.pyx
 
@@ -747,7 +747,7 @@ bindings_python_hyperdex_admin_la_CFLAGS += $(CFLAGS)
 bindings_python_hyperdex_admin_la_LIBADD =
 bindings_python_hyperdex_admin_la_LIBADD += libhyperdex-admin.la
 bindings_python_hyperdex_admin_la_LIBADD += $(PYTHON_LDFLAGS)
-bindings_python_hyperdex_admin_la_LDFLAGS = -module -avoid-version -export-symbols-regex initadmin $(AM_LDFLAGS) $(LDFLAGS)
+bindings_python_hyperdex_admin_la_LDFLAGS = -module -avoid-version -export-symbols-regex $(PYTHON_SYMBOL)admin $(AM_LDFLAGS) $(LDFLAGS)
 bindings/python/hyperdex/admin.c: bindings/python/hyperdex/admin.pyx
 	$(pyx_verbose)cython bindings/python/hyperdex/admin.pyx
 
