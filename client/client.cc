@@ -97,6 +97,7 @@ client :: client(const char* coordinator, uint16_t port)
     , m_macaroons_sz(0)
     , m_convert_types(true)
 {
+    m_busybee.set_external_fd(m_flagfd.poll_fd());
 }
 
 client :: client(const char* conn_str)
@@ -115,6 +116,7 @@ client :: client(const char* conn_str)
     , m_macaroons_sz(0)
     , m_convert_types(true)
 {
+    m_busybee.set_external_fd(m_flagfd.poll_fd());
 }
 
 client :: ~client() throw ()
@@ -641,6 +643,7 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
     }
 
     ERROR(NONEPENDING) << "no outstanding operations to process";
+    possibly_clear_flagfd();
     return -1;
 }
 
@@ -648,6 +651,28 @@ int
 client :: poll_fd()
 {
     return m_busybee.poll_fd();
+}
+
+void
+client :: possibly_set_flagfd()
+{
+    if (!m_yieldable.empty() ||
+        m_yielding.get() ||
+        !m_failed.empty())
+    {
+        m_flagfd.set();
+    }
+}
+
+void
+client :: possibly_clear_flagfd()
+{
+    if (m_yieldable.empty() &&
+        !m_yielding.get() &&
+        m_failed.empty())
+    {
+        m_flagfd.clear();
+    }
 }
 
 int

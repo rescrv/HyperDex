@@ -159,6 +159,9 @@ class client
         int64_t loop(int timeout, hyperdex_client_returncode* status);
         // Return the fildescriptor that hyperdex uses for networking
         int poll_fd();
+        // Ensure the flagfd is set correctly
+        void possibly_set_flagfd();
+        void possibly_clear_flagfd();
         // Block unitl there is incoming data or the timeout is reached
         int block(int timeout);
         // error handling
@@ -252,6 +255,7 @@ class client
         busybee_st m_busybee;
         int64_t m_next_client_id;
         uint64_t m_next_server_nonce;
+        e::flagfd m_flagfd;
         pending_map_t m_pending_ops;
         pending_queue_t m_failed;
         std::list<e::intrusive_ptr<pending> > m_yieldable;
