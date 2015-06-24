@@ -525,11 +525,19 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
             return -1;
         }
 
+        const bool isset = m_flagfd.isset();
+        m_flagfd.clear();
+
         uint64_t sid_num;
         std::auto_ptr<e::buffer> msg;
         m_busybee.set_timeout(timeout);
         busybee_returncode rc = m_busybee.recv(&sid_num, &msg);
         server_id id(sid_num);
+
+        if (isset)
+        {
+            m_flagfd.set();
+        }
 
         switch (rc)
         {
