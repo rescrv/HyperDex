@@ -651,7 +651,6 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
     }
 
     ERROR(NONEPENDING) << "no outstanding operations to process";
-    possibly_clear_flagfd();
     return -1;
 }
 
@@ -662,22 +661,17 @@ client :: poll_fd()
 }
 
 void
-client :: possibly_set_flagfd()
+client :: adjust_flagfd()
 {
-    if (!m_yieldable.empty() ||
-        m_yielding.get() ||
-        !m_failed.empty())
+    bool expect = !m_yieldable.empty() ||
+                  m_yielding.get() ||
+                  !m_failed.empty();
+
+    if (expect)
     {
         m_flagfd.set();
     }
-}
-
-void
-client :: possibly_clear_flagfd()
-{
-    if (m_yieldable.empty() &&
-        !m_yielding.get() &&
-        m_failed.empty())
+    else
     {
         m_flagfd.clear();
     }

@@ -160,8 +160,7 @@ class client
         // Return the fildescriptor that hyperdex uses for networking
         int poll_fd();
         // Ensure the flagfd is set correctly
-        void possibly_set_flagfd();
-        void possibly_clear_flagfd();
+        void adjust_flagfd();
         // Block unitl there is incoming data or the timeout is reached
         int block(int timeout);
         // error handling

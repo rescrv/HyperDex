@@ -62,7 +62,7 @@ inline void return_void() {}
     SIGNAL_PROTECT; \
     try \
     { \
-        e::guard gpipe = e::makeobjguard(*cl, &hyperdex::client::possibly_set_flagfd); \
+        e::guard gpipe = e::makeobjguard(*cl, &hyperdex::client::adjust_flagfd); \
         X \
     } \
     catch (po6::error& e) \
