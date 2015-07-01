@@ -62,7 +62,6 @@ inline void return_void() {}
     SIGNAL_PROTECT; \
     try \
     { \
-        e::guard gpipe = e::makeobjguard(*cl, &hyperdex::client::adjust_flagfd); \
         X \
     } \
     catch (po6::error& e) \
@@ -2218,7 +2217,9 @@ hyperdex_client_loop(hyperdex_client* _cl, int timeout,
                      hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
-    return cl->loop(timeout, status);
+    int64_t ret = cl->loop(timeout, status);
+    cl->adjust_flagfd();
+    return ret;
     );
 }
 
