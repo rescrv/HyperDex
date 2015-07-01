@@ -157,7 +157,7 @@ def main(argv):
         if args.space is not None:
             time.sleep(0.5)
             adm.add_space(args.space)
-        adm.wait_until_stable()
+        time.sleep(0.5)
         ctx = {'HOST': '127.0.0.1', 'PORT': 1982}
         cmd_args = [arg.format(**ctx) for arg in args.args]
         status = subprocess.call(cmd_args, stderr=subprocess.STDOUT)
