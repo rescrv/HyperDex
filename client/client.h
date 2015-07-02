@@ -37,11 +37,13 @@
 // BusyBee
 #include <busybee_st.h>
 
+// Replicant
+#include <replicant.h>
+
 // HyperDex
 #include <hyperdex/client.h>
 #include "namespace.h"
 #include "common/configuration.h"
-#include "common/coordinator_link.h"
 #include "common/mapper.h"
 #include "client/keyop_info.h"
 #include "client/pending.h"
@@ -249,17 +251,27 @@ class client
         void handle_disruption(const server_id& si);
 
     private:
-        coordinator_link m_coord;
+        replicant_client* m_coord;
         mapper m_busybee_mapper;
         busybee_st m_busybee;
+        // configuration
+        configuration m_config;
+        int64_t m_config_id;
+        replicant_returncode m_config_status;
+        uint64_t m_config_state;
+        char* m_config_data;
+        size_t m_config_data_sz;
+        // nonces
         int64_t m_next_client_id;
         uint64_t m_next_server_nonce;
         e::flagfd m_flagfd;
+        // operations
         pending_map_t m_pending_ops;
         pending_queue_t m_failed;
         std::list<e::intrusive_ptr<pending> > m_yieldable;
         e::intrusive_ptr<pending> m_yielding;
         e::intrusive_ptr<pending> m_yielded;
+        // misc
         e::error m_last_error;
         const char** m_macaroons;
         size_t m_macaroons_sz;

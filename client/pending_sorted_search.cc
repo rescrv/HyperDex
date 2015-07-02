@@ -92,7 +92,7 @@ pending_sorted_search :: yield(hyperdex_client_returncode* status, e::error* err
     const std::vector<e::slice>& value(m_results[m_results_idx].value);
     ++m_results_idx;
 
-    if (!value_to_attributes(*m_cl->m_coord.config(), m_ri, key.data(), key.size(),
+    if (!value_to_attributes(m_cl->m_config, m_ri, key.data(), key.size(),
                              value, &op_status, &op_error, m_attrs, m_attrs_sz, m_cl->m_convert_types))
     {
         set_status(op_status);
@@ -111,7 +111,7 @@ pending_sorted_search :: handle_sent_to(const server_id& si,
 {
     if (m_ri == region_id())
     {
-        m_ri = m_cl->m_coord.config()->get_region_id(vsi);
+        m_ri = m_cl->m_config.get_region_id(vsi);
     }
 
     return pending_aggregation::handle_sent_to(si, vsi);

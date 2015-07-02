@@ -82,11 +82,18 @@ using hyperdex::client;
 using hyperdex::microtransaction;
 
 client :: client(const char* coordinator, uint16_t port)
-    : m_coord(coordinator, port)
-    , m_busybee_mapper(m_coord.config())
+    : m_coord(replicant_client_create(coordinator, port))
+    , m_busybee_mapper(&m_config)
     , m_busybee(&m_busybee_mapper, 0)
+    , m_config()
+    , m_config_id(-1)
+    , m_config_status()
+    , m_config_state(0)
+    , m_config_data(NULL)
+    , m_config_data_sz(0)
     , m_next_client_id(1)
     , m_next_server_nonce(1)
+    , m_flagfd()
     , m_pending_ops()
     , m_failed()
     , m_yieldable()
@@ -97,15 +104,28 @@ client :: client(const char* coordinator, uint16_t port)
     , m_macaroons_sz(0)
     , m_convert_types(true)
 {
+    if (!m_coord)
+    {
+        throw std::bad_alloc();
+    }
+
+    m_busybee.set_external_fd(replicant_client_poll_fd(m_coord));
     m_busybee.set_external_fd(m_flagfd.poll_fd());
 }
 
 client :: client(const char* conn_str)
-    : m_coord(conn_str)
-    , m_busybee_mapper(m_coord.config())
+    : m_coord(replicant_client_create_conn_str(conn_str))
+    , m_busybee_mapper(&m_config)
     , m_busybee(&m_busybee_mapper, 0)
+    , m_config()
+    , m_config_id(-1)
+    , m_config_status()
+    , m_config_state(0)
+    , m_config_data(NULL)
+    , m_config_data_sz(0)
     , m_next_client_id(1)
     , m_next_server_nonce(1)
+    , m_flagfd()
     , m_pending_ops()
     , m_failed()
     , m_yieldable()
@@ -116,6 +136,12 @@ client :: client(const char* conn_str)
     , m_macaroons_sz(0)
     , m_convert_types(true)
 {
+    if (!m_coord)
+    {
+        throw std::bad_alloc();
+    }
+
+    m_busybee.set_external_fd(replicant_client_poll_fd(m_coord));
     m_busybee.set_external_fd(m_flagfd.poll_fd());
 }
 
@@ -133,7 +159,7 @@ client :: get(const char* space, const char* _key, size_t _key_sz,
         return -1;
     }
 
-    const schema* sc = m_coord.config()->get_schema(space);
+    const schema* sc = m_config.get_schema(space);
 
     if (!sc)
     {
@@ -183,7 +209,7 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
         return -1;
     }
 
-    const schema* sc = m_coord.config()->get_schema(space);
+    const schema* sc = m_config.get_schema(space);
 
     if (!sc)
     {
@@ -255,7 +281,7 @@ client :: get_partial(const char* space, const char* _key, size_t _key_sz,
     { \
         return -1; \
     } \
-    const schema* sc = m_coord.config()->get_schema(space); \
+    const schema* sc = m_config.get_schema(space); \
     if (!sc) \
     { \
         ERROR(UNKNOWNSPACE) << "space \"" << e::strescape(space) << "\" does not exist"; \
@@ -378,7 +404,7 @@ client :: perform_funcall(const hyperdex_client_keyop_info* opinfo,
         return -1;
     }
 
-    const schema* sc = m_coord.config()->get_schema(space);
+    const schema* sc = m_config.get_schema(space);
 
     if (!sc)
     {
@@ -598,7 +624,7 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
 
         if (vfrom == psp.vsi &&
             id == psp.si &&
-            m_coord.config()->get_server_id(vfrom) == id)
+            m_config.get_server_id(vfrom) == id)
         {
             if (!op->handle_message(this, id, vfrom, msg_type, msg, up, status, &m_last_error))
             {
@@ -615,7 +641,7 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
                                << "; it came from "
                                << vfrom << "/" << id
                                << "; our config says that virtual_id should map to "
-                               << m_coord.config()->get_server_id(vfrom);
+                               << m_config.get_server_id(vfrom);
             return -1;
         }
     }
@@ -716,7 +742,7 @@ client :: attribute_type(const char* space, const char* name,
         return HYPERDATATYPE_GARBAGE;
     }
 
-    const hyperdex::schema* sc = m_coord.config()->get_schema(space);
+    const hyperdex::schema* sc = m_config.get_schema(space);
 
     if (!sc)
     {
@@ -1010,7 +1036,7 @@ client :: prepare_searchop(const schema& sc,
     }
 
     std::stable_sort(checks->begin(), checks->end());
-    m_coord.config()->lookup_search(space, *checks, servers); // XXX search guaranteed empty vs. search encounters offline server
+    m_config.lookup_search(space, *checks, servers); // XXX search guaranteed empty vs. search encounters offline server
 
     if (servers->empty())
     {
@@ -1090,7 +1116,7 @@ client :: perform_aggregation(const std::vector<virtual_server_id>& servers,
     for (size_t i = 0; i < servers.size(); ++i)
     {
         uint64_t nonce = m_next_server_nonce++;
-        pending_server_pair psp(m_coord.config()->get_server_id(servers[i]), servers[i], op);
+        pending_server_pair psp(m_config.get_server_id(servers[i]), servers[i], op);
         std::auto_ptr<e::buffer> msg_copy(msg->copy());
 
         if (!send(mt, psp.vsi, nonce, msg_copy, op, status))
@@ -1105,49 +1131,63 @@ client :: perform_aggregation(const std::vector<virtual_server_id>& servers,
 bool
 client :: maintain_coord_connection(hyperdex_client_returncode* status)
 {
-    replicant_returncode rc;
-    uint64_t old_version = m_coord.config()->version();
+    if (m_config_status != REPLICANT_SUCCESS)
+    {
+        replicant_client_kill(m_coord, m_config_id);
+        m_config_id = -1;
+    }
 
-    if (!m_coord.ensure_configuration(&rc))
+    replicant_returncode rc;
+
+    if (m_config_id < 0)
+    {
+        m_config_status = REPLICANT_SUCCESS;
+        m_config_id = replicant_client_cond_follow(m_coord, "hyperdex", "config",
+                                                   &m_config_status, &m_config_state,
+                                                   &m_config_data, &m_config_data_sz);
+        if (replicant_client_wait(m_coord, m_config_id, -1, &rc) < 0)
+        {
+            ERROR(COORDFAIL) << "coordinator failure: " << replicant_client_error_message(m_coord);
+            return false;
+        }
+    }
+
+    if (replicant_client_loop(m_coord, 0, &rc) < 0)
     {
         if (rc == REPLICANT_INTERRUPTED)
         {
-            ERROR(INTERRUPTED) << "signal received";
+            ERROR(INTERRUPTED) << "interrupted by a signal";
+            return false;
         }
-        else if (rc == REPLICANT_TIMEOUT)
+        else if (rc != REPLICANT_NONE_PENDING && rc != REPLICANT_TIMEOUT)
         {
-            ERROR(TIMEOUT) << "operation timed out";
+            ERROR(COORDFAIL) << "coordinator failure: " << replicant_client_error_message(m_coord);
+            return false;
         }
-        else
-        {
-            ERROR(COORDFAIL) << "coordinator failure: " << m_coord.error_message();
-        }
-
-        return false;
     }
 
-    if (m_busybee.set_external_fd(m_coord.poll_fd()) != BUSYBEE_SUCCESS)
+    if (m_config.version() < m_config_state)
     {
-        *status = HYPERDEX_CLIENT_POLLFAILED;
-        return false;
-    }
+        configuration new_config;
+        e::unpacker up(m_config_data, m_config_data_sz);
+        up = up >> new_config;
 
-    uint64_t new_version = m_coord.config()->version();
+        if (!up.error())
+        {
+            m_config = new_config;
+        }
 
-    if (old_version < new_version)
-    {
         pending_map_t::iterator it = m_pending_ops.begin();
 
         while (it != m_pending_ops.end())
         {
             // If the mapping that was true when the operation started is no
             // longer true, we fail the operation with a RECONFIGURE.
-            if (m_coord.config()->get_server_id(it->second.vsi) != it->second.si)
+            if (m_config.get_server_id(it->second.vsi) != it->second.si)
             {
                 m_failed.push_back(it->second);
-                pending_map_t::iterator tmp = it;
-                ++it;
-                m_pending_ops.erase(tmp);
+                m_pending_ops.erase(it);
+                it = m_pending_ops.begin();
             }
             else
             {
@@ -1169,10 +1209,10 @@ client :: send(network_msgtype mt,
 {
     const uint8_t type = static_cast<uint8_t>(mt);
     const uint8_t flags = 0;
-    const uint64_t version = m_coord.config()->version();
+    const uint64_t version = m_config.version();
     msg->pack_at(BUSYBEE_HEADER_SIZE)
         << type << flags << version << to << nonce;
-    server_id id = m_coord.config()->get_server_id(to);
+    server_id id = m_config.get_server_id(to);
     m_busybee.set_timeout(-1);
     busybee_returncode rc = m_busybee.send(id.get(), msg);
 
@@ -1207,7 +1247,7 @@ client :: send_keyop(const char* space,
                      e::intrusive_ptr<pending> op,
                      hyperdex_client_returncode* status)
 {
-    virtual_server_id vsi = m_coord.config()->point_leader(space, key);
+    virtual_server_id vsi = m_config.point_leader(space, key);
 
     if (vsi == virtual_server_id())
     {
@@ -1261,7 +1301,7 @@ microtransaction* client::uxact_init(const char* space, hyperdex_client_returnco
         return NULL;
     }
 
-    const schema* sc = m_coord.config()->get_schema(space);
+    const schema* sc = m_config.get_schema(space);
 
     if (!sc)
     {

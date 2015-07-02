@@ -184,8 +184,8 @@ pending_get_partial :: handle_message(client* cl,
     hyperdex_client_returncode op_status;
     e::error op_error;
 
-    if (!value_to_attributes(*cl->m_coord.config(),
-                             cl->m_coord.config()->get_region_id(vsi),
+    if (!value_to_attributes(cl->m_config,
+                             cl->m_config.get_region_id(vsi),
                              value, &op_status, &op_error,
                              m_attrs, m_attrs_sz, cl->m_convert_types))
     {

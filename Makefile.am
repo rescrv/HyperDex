@@ -408,7 +408,6 @@ libhyperdex_client_la_SOURCES += common/attribute.cc
 libhyperdex_client_la_SOURCES += common/attribute_check.cc
 libhyperdex_client_la_SOURCES += common/auth_wallet.cc
 libhyperdex_client_la_SOURCES += common/configuration.cc
-libhyperdex_client_la_SOURCES += common/coordinator_link.cc
 libhyperdex_client_la_SOURCES += common/datatype_document.cc
 libhyperdex_client_la_SOURCES += common/datatype_float.cc
 libhyperdex_client_la_SOURCES += common/datatype_info.cc
