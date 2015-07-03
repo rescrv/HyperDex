@@ -41,6 +41,9 @@
 #include <glog/logging.h>
 #include <glog/raw_logging.h>
 
+// po6
+#include <po6/errno.h>
+
 // e
 #include <e/endian.h>
 #include <e/strescape.h>
@@ -89,18 +92,13 @@ handle_debug(int /*signum*/)
     s_debug = true;
 }
 
-static void
-dummy(int /*signum*/)
-{
-}
-
 daemon :: daemon()
     : m_us()
     , m_bind_to()
     , m_threads()
     , m_gc()
     , m_gc_ts()
-    , m_coord(this)
+    , m_coord()
     , m_data_dir()
     , m_data(this)
     , m_comm(this)
@@ -186,49 +184,21 @@ daemon :: run(bool daemonize,
               po6::net::hostname coordinator,
               unsigned threads)
 {
-    if (!install_signal_handler(SIGHUP, exit_on_signal))
+    if (!install_signal_handler(SIGHUP, exit_on_signal) ||
+        !install_signal_handler(SIGINT, exit_on_signal) ||
+        !install_signal_handler(SIGTERM, exit_on_signal) ||
+        !install_signal_handler(SIGUSR2, handle_debug))
     {
-        std::cerr << "could not install SIGHUP handler; exiting" << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    if (!install_signal_handler(SIGINT, exit_on_signal))
-    {
-        std::cerr << "could not install SIGINT handler; exiting" << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    if (!install_signal_handler(SIGTERM, exit_on_signal))
-    {
-        std::cerr << "could not install SIGTERM handler; exiting" << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    if (!install_signal_handler(SIGUSR1, dummy))
-    {
-        std::cerr << "could not install SIGUSR1 handler; exiting" << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    if (!install_signal_handler(SIGUSR2, handle_debug))
-    {
-        std::cerr << "could not install SIGUSR2 handler; exiting" << std::endl;
+        std::cerr << "could not install signal handlers: " << po6::strerror(errno) << std::endl;
         return EXIT_FAILURE;
     }
 
     sigset_t ss;
 
-    if (sigfillset(&ss) < 0)
+    if (sigfillset(&ss) < 0 ||
+        pthread_sigmask(SIG_SETMASK, &ss, NULL) < 0)
     {
-        PLOG(ERROR) << "sigfillset";
-        return EXIT_FAILURE;
-    }
-
-    sigdelset(&ss, SIGPROF);
-
-    if (pthread_sigmask(SIG_SETMASK, &ss, NULL) < 0)
-    {
-        PLOG(ERROR) << "could not block signals";
+        std::cerr << "could not block signals: " << po6::strerror(errno) << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -333,7 +303,7 @@ daemon :: run(bool daemonize,
     }
 
     m_bind_to = bind_to;
-    m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
+    m_coord.reset(new coordinator_link(this, coordinator.address.c_str(), coordinator.port));
 
     if (!saved)
     {
@@ -347,7 +317,7 @@ daemon :: run(bool daemonize,
 
         LOG(INFO) << "generated new random token:  " << sid;
 
-        if (!m_coord.register_id(server_id(sid), bind_to))
+        if (!m_coord->register_server(server_id(sid), bind_to))
         {
             return EXIT_FAILURE;
         }
@@ -360,20 +330,10 @@ daemon :: run(bool daemonize,
         return EXIT_FAILURE;
     }
 
-    uint64_t checkpoint = 0;
-    uint64_t checkpoint_stable = 0;
-    uint64_t checkpoint_gc = 0;
-
-    if (!m_coord.initialize_checkpoints(&checkpoint, &checkpoint_stable, &checkpoint_gc))
+    if (!m_coord->initialize())
     {
-        LOG(ERROR) << "could not initialize our session with the coordinator; shutting down";
         return EXIT_FAILURE;
     }
-
-    LOG(INFO) << "starting checkpoint process with"
-              << " checkpoint=" << checkpoint
-              << " checkpoint_stable=" << checkpoint_stable
-              << " checkpoint_gc=" << checkpoint_gc;
 
     determine_block_stat_path(data);
     m_comm.setup(bind_to, threads);
@@ -390,26 +350,23 @@ daemon :: run(bool daemonize,
     }
 
     m_stat_collector.start();
-    bool cluster_jump = false;
-    bool requested_exit = false;
+    uint64_t checkpoint = 0;
+    uint64_t checkpoint_stable = 0;
+    uint64_t checkpoint_gc = 0;
 
-    while (__sync_fetch_and_add(&s_interrupts, 0) < 2 &&
-           !m_coord.should_exit())
+    while (__sync_fetch_and_add(&s_interrupts, 0) < 2)
     {
         if (s_debug)
         {
             s_debug = false;
             LOG(INFO) << "recieved SIGUSR2; dumping internal tables";
-            // XXX m_coord.debug_dump();
             m_data.debug_dump();
-            // XXX m_comm.debug_dump();
             m_repl.debug_dump();
             m_stm.debug_dump();
-            // XXX m_sm.debug_dump();
             LOG(INFO) << "end debug dump";
         }
 
-        if (s_interrupts > 0 && !requested_exit)
+        if (__sync_fetch_and_add(&s_interrupts, 0) == 1)
         {
             if (!install_signal_handler(SIGALRM, exit_after_timeout))
             {
@@ -418,52 +375,76 @@ daemon :: run(bool daemonize,
             }
 
             alarm(10);
-            m_coord.request_shutdown();
-            requested_exit = true;
+            m_coord->shutdown();
         }
 
         if (m_config.version() > 0 &&
-            m_config.version() == m_coord.config_version() &&
-            checkpoint < m_coord.checkpoint())
+            m_config.version() == m_coord->checkpoint_config_version() &&
+            checkpoint < m_coord->checkpoint())
         {
-            checkpoint = m_coord.checkpoint();
+            checkpoint = m_coord->checkpoint();
             m_repl.begin_checkpoint(checkpoint);
         }
 
         if (m_config.version() > 0 &&
-            m_config.version() == m_coord.config_version() &&
-            checkpoint_stable < m_coord.checkpoint_stable())
+            m_config.version() == m_coord->checkpoint_config_version() &&
+            checkpoint_stable < m_coord->checkpoint_stable())
         {
-            checkpoint_stable = m_coord.checkpoint_stable();
+            checkpoint_stable = m_coord->checkpoint_stable();
             m_repl.end_checkpoint(checkpoint_stable);
         }
 
         if (m_config.version() > 0 &&
-            m_config.version() == m_coord.config_version() &&
-            checkpoint_gc < m_coord.checkpoint_gc())
+            m_config.version() == m_coord->checkpoint_config_version() &&
+            checkpoint_gc < m_coord->checkpoint_gc())
         {
-            checkpoint_gc = m_coord.checkpoint_gc();
+            checkpoint_gc = m_coord->checkpoint_gc();
             m_data.set_checkpoint_gc(checkpoint_gc);
         }
 
-        m_gc.quiescent_state(&m_gc_ts);
-        m_gc.offline(&m_gc_ts);
 
-        if (!m_coord.maintain_link())
+        m_gc.offline(&m_gc_ts);
+        bool have_config = m_coord->maintain();
+        m_gc.online(&m_gc_ts);
+
+        if (!have_config)
         {
-            m_gc.online(&m_gc_ts);
             continue;
         }
 
-        m_gc.online(&m_gc_ts);
         const configuration& old_config(m_config);
-        configuration new_config;
-        m_coord.copy_config(&new_config);
+        const configuration& new_config(m_coord->config());
 
         if (old_config.cluster() != 0 &&
             old_config.cluster() != new_config.cluster())
         {
-            cluster_jump = true;
+            LOG(ERROR) << "================================================================================";
+            LOG(ERROR) << "Exiting because the coordinator changed on us.";
+            LOG(ERROR) << "This is most likely the result of deploying a new cluster in place of an";
+            LOG(ERROR) << "existing cluster, and then switching daemons from the old cluster to the new";
+            LOG(ERROR) << "cluster.  To protect data on this node, it will exit.";
+            LOG(ERROR) << "To fix this issue, use the --coordinator flag to specify the coordinator";
+            LOG(ERROR) << "that this HyperDex data node was originally connected to.";
+            LOG(ERROR) << "================================================================================";
+            break;
+        }
+
+        if (__sync_fetch_and_add(&s_interrupts, 0) > 0 &&
+            m_coord->config().get_state(m_us) == server::SHUTDOWN)
+        {
+            break;
+        }
+
+        if (!new_config.exists(m_us))
+        {
+            LOG(ERROR) << "================================================================================";
+            LOG(ERROR) << "Exiting because the coordinator does not know about this node.";
+            LOG(ERROR) << "This is most likely the result of running the command";
+            LOG(ERROR) << "\t\"hyperdex server-forget " << m_us.get() << "\"";
+            LOG(ERROR) << "If you can verify that the cluster is otherwise operational,";
+            LOG(ERROR) << "you should be able to delete the data directory of this node";
+            LOG(ERROR) << "and re-connect it to the cluster under a different identity.";
+            LOG(ERROR) << "================================================================================";
             break;
         }
 
@@ -492,26 +473,7 @@ daemon :: run(bool daemonize,
         LOG(INFO) << "reconfiguration complete; resuming normal operation";
 
         // let the coordinator know we've moved to this config
-        m_coord.config_ack(new_config.version());
-    }
-
-    if (cluster_jump)
-    {
-        LOG(INFO) << "\n================================================================================\n"
-                  << "Exiting because the coordinator changed on us.\n"
-                  << "This is most likely an operations error.  Did you deploy a new HyperDex\n"
-                  << "cluster at the same address as the old cluster?\n"
-                  << "================================================================================";
-    }
-    else if (m_coord.should_exit() && !m_config.exists(m_us))
-    {
-        LOG(INFO) << "\n================================================================================\n"
-                  << "Exiting because the coordinator says it doesn't know about this node.\n"
-                  << "Check the coordinator logs for details, but it's most likely the case that\n"
-                  << "this server was killed, or this server tried reconnecting to a different\n"
-                  << "coordinator.  You may just have to restart the daemon with a different \n"
-                  << "coordinator address or this node may be dead and you can simply erase it.\n"
-                  << "================================================================================";
+        m_coord->config_ack(new_config.version());
     }
 
     __sync_fetch_and_add(&s_interrupts, 2);
@@ -528,7 +490,6 @@ daemon :: run(bool daemonize,
     m_repl.teardown();
     m_comm.teardown();
     m_data.teardown();
-    m_coord.teardown();
     LOG(INFO) << "hyperdex-daemon will now terminate";
     return EXIT_SUCCESS;
 }

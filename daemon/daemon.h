@@ -45,7 +45,7 @@
 #include "namespace.h"
 #include "common/ids.h"
 #include "daemon/communication.h"
-#include "daemon/coordinator_link_wrapper.h"
+#include "daemon/coordinator_link.h"
 #include "daemon/datalayer.h"
 #include "daemon/performance_counter.h"
 #include "daemon/replication_manager.h"
@@ -112,7 +112,7 @@ class daemon
     private:
         friend class background_thread;
         friend class communication;
-        friend class coordinator_link_wrapper;
+        friend class coordinator_link;
         friend class datalayer;
         friend class key_state;
         friend class replication_manager;
@@ -125,7 +125,7 @@ class daemon
         std::vector<e::compat::shared_ptr<po6::threads::thread> > m_threads;
         e::garbage_collector m_gc;
         e::garbage_collector::thread_state m_gc_ts;
-        coordinator_link_wrapper m_coord;
+        std::auto_ptr<coordinator_link> m_coord;
         std::string m_data_dir;
         datalayer m_data;
         communication m_comm;

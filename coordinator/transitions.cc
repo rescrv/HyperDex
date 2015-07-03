@@ -72,9 +72,7 @@ hyperdex_coordinator_create(struct rsm_context* ctx)
     rsm_cond_create(ctx, "config");
     rsm_cond_create(ctx, "ack");
     rsm_cond_create(ctx, "stable");
-    rsm_cond_create(ctx, "checkp");
-    rsm_cond_create(ctx, "checkps");
-    rsm_cond_create(ctx, "checkpgc");
+    rsm_cond_create(ctx, "checkpoint");
     return new (std::nothrow) coordinator();
 }
 

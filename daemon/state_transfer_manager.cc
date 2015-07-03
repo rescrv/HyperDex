@@ -537,11 +537,11 @@ state_transfer_manager :: transfer_more_state(transfer_out_state* tos)
     }
     else if (tos->window.empty() && m_daemon->m_config.is_transfer_live(tos->xfer.id))
     {
-        m_daemon->m_coord.transfer_complete(tos->xfer.id);
+        m_daemon->m_coord->transfer_complete(tos->xfer.id);
     }
     else if (tos->window.empty())
     {
-        m_daemon->m_coord.transfer_go_live(tos->xfer.id);
+        m_daemon->m_coord->transfer_go_live(tos->xfer.id);
     }
 }
 

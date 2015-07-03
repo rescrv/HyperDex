@@ -939,8 +939,8 @@ coordinator :: config_stable(rsm_context* ctx,
 void
 coordinator :: checkpoint(rsm_context* ctx)
 {
-    rsm_cond_broadcast(ctx, "checkp");
     ++m_checkpoint;
+    broadcast_checkpoint_information(ctx);
     rsm_log(ctx, "establishing checkpoint %" PRIu64 "\n", m_checkpoint);
     assert(m_checkpoint_stable_through <= m_checkpoint);
     std::vector<server_id> sids;
@@ -1883,6 +1883,7 @@ coordinator :: generate_next_configuration(rsm_context* ctx)
     check_stable_condition(ctx);
     generate_cached_configuration(ctx);
     rsm_cond_broadcast_data(ctx, "config", m_latest_config->cdata(), m_latest_config->size());
+    broadcast_checkpoint_information(ctx);
 }
 
 void
@@ -2059,8 +2060,8 @@ coordinator :: check_checkpoint_stable_condition(rsm_context* ctx, bool reissue)
     while (m_checkpoint_stable_through < m_checkpoint_stable_barrier.min_version())
     {
         stabilized = true;
-        rsm_cond_broadcast(ctx, "checkps");
         ++m_checkpoint_stable_through;
+        broadcast_checkpoint_information(ctx);
     }
 
     bool gc = false;
@@ -2088,8 +2089,8 @@ coordinator :: check_checkpoint_stable_condition(rsm_context* ctx, bool reissue)
     while (m_checkpoint_gc_through + outstanding_checkpoints < m_checkpoint_stable_barrier.min_version())
     {
         gc = true;
-        rsm_cond_broadcast(ctx, "checkpgc");
         ++m_checkpoint_gc_through;
+        broadcast_checkpoint_information(ctx);
     }
 
     if (gc && m_checkpoint_gc_through > 0)
@@ -2131,4 +2132,15 @@ coordinator :: check_checkpoint_stable_condition(rsm_context* ctx, bool reissue)
     {
         generate_next_configuration(ctx);
     }
+}
+
+void
+coordinator :: broadcast_checkpoint_information(rsm_context* ctx)
+{
+    std::string input;
+    e::packer(&input) << m_version
+                      << m_checkpoint
+                      << m_checkpoint_stable_through
+                      << m_checkpoint_gc_through;
+    rsm_cond_broadcast_data(ctx, "checkpoint", input.data(), input.size());
 }

@@ -193,6 +193,7 @@ class coordinator
         void regions_in_space(space_ptr s, std::vector<region_id>* rids);
         // checkpoints
         void check_checkpoint_stable_condition(rsm_context* ctx, bool reissue);
+        void broadcast_checkpoint_information(rsm_context* ctx);
 
     private:
         // meta state

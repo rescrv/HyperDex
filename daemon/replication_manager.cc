@@ -790,8 +790,8 @@ replication_manager :: check_stable()
 
     if (tell_coord_stable)
     {
-        m_daemon->m_coord.config_stable(m_daemon->m_config.version());
-        m_daemon->m_coord.checkpoint_report_stable(checkpoint);
+        m_daemon->m_coord->config_stable(m_daemon->m_config.version());
+        m_daemon->m_coord->checkpoint_report_stable(checkpoint);
     }
 }
 
@@ -838,8 +838,8 @@ replication_manager :: check_stable(const region_id& ri)
 
     if (tell_coord_stable)
     {
-        m_daemon->m_coord.config_stable(m_daemon->m_config.version());
-        m_daemon->m_coord.checkpoint_report_stable(checkpoint);
+        m_daemon->m_coord->config_stable(m_daemon->m_config.version());
+        m_daemon->m_coord->checkpoint_report_stable(checkpoint);
     }
 }
 
