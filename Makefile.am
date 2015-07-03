@@ -186,6 +186,7 @@ EXTRA_DIST += initscripts/sysv/init.d/hyperdex-daemon
 noinst_HEADERS += daemon/auth.h
 noinst_HEADERS += daemon/background_thread.h
 noinst_HEADERS += daemon/communication.h
+noinst_HEADERS += daemon/coordinator_link.h
 noinst_HEADERS += daemon/daemon.h
 noinst_HEADERS += daemon/datalayer_checkpointer_thread.h
 noinst_HEADERS += daemon/datalayer_encodings.h
