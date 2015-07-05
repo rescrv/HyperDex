@@ -426,7 +426,7 @@ void
 coordinator_link :: make_rpc_no_synchro(e::compat::shared_ptr<rpc> r)
 {
     int64_t id = replicant_client_call(m_repl, "hyperdex", r->func.c_str(),
-                                       r->func.data(), r->func.size(), r->flags,
+                                       r->input.data(), r->input.size(), r->flags,
                                        &r->status, &r->output, &r->output_sz);
 
     if (id < 0)
