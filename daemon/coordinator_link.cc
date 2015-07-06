@@ -238,9 +238,9 @@ coordinator_link :: maintain()
             if (m_checkpoint_id < 0)
             {
                 m_checkpoint_status = REPLICANT_SUCCESS;
-                m_checkpoint_id = replicant_client_cond_follow(m_repl, "hyperdex", "config",
+                m_checkpoint_id = replicant_client_cond_follow(m_repl, "hyperdex", "checkpoint",
                                                                &m_checkpoint_status, &m_checkpoint_state,
-                                                               &m_checkpoint_data, &m_config_data_sz);
+                                                               &m_checkpoint_data, &m_checkpoint_data_sz);
             }
         }
 
