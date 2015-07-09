@@ -114,16 +114,16 @@ if test x"${enable_all_components}" = xyes -o \
     AC_CHECK_LIB([json-c], [json_object_get_double], [needs_json_c=yes], [needs_json_c=no])
 fi
 
-PKG_CHECK_MODULES([PO6], [libpo6 >= 0.7])
-PKG_CHECK_MODULES([E], [libe >= 0.10])
-PKG_CHECK_MODULES([BUSYBEE], [busybee >= 0.6])
+PKG_CHECK_MODULES([PO6], [libpo6 >= 0.8])
+PKG_CHECK_MODULES([E], [libe >= 0.11])
+PKG_CHECK_MODULES([BUSYBEE], [busybee >= 0.7])
 
 if test x"${enable_all_components}" = xyes -o \
         x"${enable_daemon}" = xyes; then
     PKG_CHECK_MODULES([HYPERLEVELDB], [libhyperleveldb >= 1.2])
 fi
 
-PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.7])
+PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.8])
 PKG_CHECK_MODULES([MACAROONS], [libmacaroons >= 0.3])
 PKG_CHECK_MODULES([TREADSTONE], [libtreadstone >= 0.2])
 
