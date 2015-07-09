@@ -240,10 +240,10 @@ backup_state_machine :: callback_wait_to_quiesce(admin* adm, int64_t id)
     // at this point we know that:
     // 1. the cluster is in read-only mode
     // 2. every write initiated before setting it to read-only mode is complete
-    m_configuration_version = adm->m_coord.config()->version();
+    m_configuration_version = adm->m_config.version();
 
     // now figure out the servers to take a backup on
-    adm->m_coord.config()->get_all_addresses(&m_servers);
+    adm->m_config.get_all_addresses(&m_servers);
     std::sort(m_servers.rbegin(), m_servers.rend());
     return callback_daemon_backup(adm, id);
 }
@@ -319,7 +319,7 @@ backup_state_machine :: callback_wait_to_quiesce_again(admin* adm, int64_t id)
         return;
     }
 
-    if (m_configuration_version != adm->m_coord.config()->version())
+    if (m_configuration_version != adm->m_config.version())
     {
         YIELDING_ERROR(INTERNAL) << "configuration changed while taking backup";
         backout(adm);

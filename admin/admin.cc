@@ -60,9 +60,15 @@
 using hyperdex::admin;
 
 admin :: admin(const char* coordinator, uint16_t port)
-    : m_coord(coordinator, port)
-    , m_busybee_mapper(m_coord.config())
+    : m_coord(replicant_client_create(coordinator, port))
+    , m_busybee_mapper(&m_config)
     , m_busybee(&m_busybee_mapper, 0)
+    , m_config()
+    , m_config_id(-1)
+    , m_config_status()
+    , m_config_state(0)
+    , m_config_data(NULL)
+    , m_config_data_sz(0)
     , m_next_admin_id(1)
     , m_next_server_nonce(1)
     , m_handle_coord_ops(false)
@@ -93,7 +99,7 @@ admin :: dump_config(hyperdex_admin_returncode* status,
 
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
-    std::string tmp = m_coord.config()->dump();
+    std::string tmp = m_config.dump();
     e::intrusive_ptr<pending> op = new pending_string(id, status, HYPERDEX_ADMIN_SUCCESS, tmp, config);
     m_yieldable.push_back(op.get());
     return op->admin_visible_id();
@@ -109,7 +115,7 @@ admin :: list_subspaces(const char* space, hyperdex_admin_returncode* status, co
 
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
-    std::string tmp = m_coord.config()->list_subspaces(space);
+    std::string tmp = m_config.list_subspaces(space);
     e::intrusive_ptr<pending> op = new pending_string(id, status, HYPERDEX_ADMIN_SUCCESS, tmp, subspaces);
     m_yieldable.push_back(op.get());
     return op->admin_visible_id();
@@ -129,8 +135,8 @@ admin :: read_only(int ro, hyperdex_admin_returncode* status)
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, (set ? "set read-only" : "set read-write"));
     char buf[sizeof(uint8_t)];
     buf[0] = set ? 1 : 0;
-    int64_t cid = m_coord.rpc("read_only", buf, sizeof(uint8_t),
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("read_only", buf, sizeof(uint8_t),
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -155,7 +161,7 @@ admin :: wait_until_stable(enum hyperdex_admin_returncode* status)
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "wait for stability");
-    int64_t cid = m_coord.wait("stable", m_coord.config()->version(), &op->repl_status);
+    int64_t cid = replicant_client_cond_wait(m_coord, "hyperdex", "stable", m_config.version(), &op->repl_status, NULL, NULL);
 
     if (cid >= 0)
     {
@@ -186,8 +192,8 @@ admin :: fault_tolerance(const char* space, uint64_t ft,
     memcpy(&buf[0], space, space_sz);
     e::pack64be(ft, &buf[0] + space_sz);
 
-    int64_t cid = m_coord.rpc("fault_tolerance", &buf[0], space_sz + sizeof(uint64_t),
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("fault_tolerance", &buf[0], space_sz + sizeof(uint64_t),
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -259,8 +265,8 @@ admin :: add_space(const char* description,
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "add space");
-    int64_t cid = m_coord.rpc("space_add", reinterpret_cast<const char*>(msg->data()), msg->size(),
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("space_add", reinterpret_cast<const char*>(msg->data()), msg->size(),
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -286,8 +292,8 @@ admin :: rm_space(const char* name,
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "rm space");
-    int64_t cid = m_coord.rpc("space_rm", name, strlen(name) + 1,
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("space_rm", name, strlen(name) + 1,
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -320,8 +326,8 @@ admin :: mv_space(const char* source, const char* target,
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "mv space");
-    int64_t cid = m_coord.rpc("space_mv", &buf[0], buf.size(),
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("space_mv", &buf[0], buf.size(),
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -354,8 +360,8 @@ admin :: add_index(const char* space, const char* attr,
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "add_index");
-    int64_t cid = m_coord.rpc("index_add", &buf[0], buf.size(),
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("index_add", &buf[0], buf.size(),
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -383,8 +389,8 @@ admin :: rm_index(uint64_t idxid,
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "rm_index");
-    int64_t cid = m_coord.rpc("index_rm", buf, sizeof(uint64_t),
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("index_rm", buf, sizeof(uint64_t),
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -409,7 +415,7 @@ admin :: list_indices(const char* space, enum hyperdex_admin_returncode* status,
 
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
-    std::string tmp = m_coord.config()->list_indices(space);
+    std::string tmp = m_config.list_indices(space);
     e::intrusive_ptr<pending> op = new pending_string(id, status, HYPERDEX_ADMIN_SUCCESS, tmp, indexes);
     m_yieldable.push_back(op.get());
     return op->admin_visible_id();
@@ -426,7 +432,7 @@ admin :: list_spaces(hyperdex_admin_returncode* status,
 
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
-    std::string tmp = m_coord.config()->list_spaces();
+    std::string tmp = m_config.list_spaces();
     e::intrusive_ptr<pending> op = new pending_string(id, status, HYPERDEX_ADMIN_SUCCESS, tmp, spaces);
     m_yieldable.push_back(op.get());
     return op->admin_visible_id();
@@ -459,8 +465,8 @@ admin :: server_register(uint64_t token, const char* address,
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "register server");
     std::auto_ptr<e::buffer> msg(e::buffer::create(sizeof(uint64_t) + pack_size(loc)));
     msg->pack() << sid << loc;
-    int64_t cid = m_coord.rpc("server_register", reinterpret_cast<const char*>(msg->data()), msg->size(),
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("server_register", reinterpret_cast<const char*>(msg->data()), msg->size(),
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -487,8 +493,8 @@ admin :: server_online(uint64_t token, enum hyperdex_admin_returncode* status)
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "bring server online");
     char buf[sizeof(uint64_t)];
     e::pack64be(token, buf);
-    int64_t cid = m_coord.rpc("server_online", buf, sizeof(uint64_t),
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("server_online", buf, sizeof(uint64_t),
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -515,8 +521,8 @@ admin :: server_offline(uint64_t token, enum hyperdex_admin_returncode* status)
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "bring server offline");
     char buf[sizeof(uint64_t)];
     e::pack64be(token, buf);
-    int64_t cid = m_coord.rpc("server_offline", buf, sizeof(uint64_t),
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("server_offline", buf, sizeof(uint64_t),
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -543,8 +549,8 @@ admin :: server_forget(uint64_t token, enum hyperdex_admin_returncode* status)
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "forget server");
     char buf[sizeof(uint64_t)];
     e::pack64be(token, buf);
-    int64_t cid = m_coord.rpc("server_forget", buf, sizeof(uint64_t),
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("server_forget", buf, sizeof(uint64_t),
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -571,8 +577,8 @@ admin :: server_kill(uint64_t token, enum hyperdex_admin_returncode* status)
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "kill server");
     char buf[sizeof(uint64_t)];
     e::pack64be(token, buf);
-    int64_t cid = m_coord.rpc("server_kill", buf, sizeof(uint64_t),
-                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = rpc("server_kill", buf, sizeof(uint64_t),
+                      &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -619,7 +625,7 @@ admin :: coord_backup(const char* path,
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_backup(id, status, path);
-    int64_t cid = m_coord.backup(&op->repl_status, &op->repl_output, &op->repl_output_sz);
+    int64_t cid = replicant_client_backup_object(m_coord, "hyperdex", &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
     {
@@ -680,7 +686,7 @@ admin :: enable_perf_counters(hyperdex_admin_returncode* status,
         int64_t id = m_next_admin_id;
         ++m_next_admin_id;
         m_pcs = new pending_perf_counters(id, status, pc);
-        m_pcs->send_perf_reqs(this, m_coord.config(), status);
+        m_pcs->send_perf_reqs(this, &m_config, status);
         return m_pcs->admin_visible_id();
     }
 }
@@ -773,7 +779,7 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
 
             if (t <= 0)
             {
-                m_pcs->send_perf_reqs(this, m_coord.config(), status);
+                m_pcs->send_perf_reqs(this, &m_config, status);
                 t = m_pcs->millis_to_next_send();
             }
 
@@ -801,7 +807,7 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
         {
             m_handle_coord_ops = false;
             replicant_returncode lrc = REPLICANT_GARBAGE;
-            int64_t lid = m_coord.loop(0, &lrc);
+            int64_t lid = replicant_client_loop(m_coord, 0, &lrc);
 
             if (lid < 0 && lrc != REPLICANT_TIMEOUT)
             {
@@ -960,9 +966,7 @@ admin :: interpret_replicant_returncode(replicant_returncode rstatus,
         case REPLICANT_COND_NOT_FOUND:
         case REPLICANT_COND_DESTROYED:
             INTERPRET_ERROR(COORDFAIL) << "persistent coordinator error: "
-                                       << m_coord.error_message()
-                                       << " @ "
-                                       << m_coord.error_location();
+                                       << replicant_client_error_message(m_coord);
             break;
         case REPLICANT_MAYBE:
             INTERPRET_ERROR(COORDFAIL) << "transient coordinator error: "
@@ -976,9 +980,7 @@ admin :: interpret_replicant_returncode(replicant_returncode rstatus,
         case REPLICANT_SERVER_ERROR:
         case REPLICANT_COMM_FAILED:
             INTERPRET_ERROR(COORDFAIL) << "transient coordinator error: "
-                                       << m_coord.error_message()
-                                       << " @ "
-                                       << m_coord.error_location();
+                                       << replicant_client_error_message(m_coord);
             break;
         case REPLICANT_TIMEOUT:
             INTERPRET_ERROR(TIMEOUT) << "operation timed out";
@@ -994,9 +996,7 @@ admin :: interpret_replicant_returncode(replicant_returncode rstatus,
         case REPLICANT_GARBAGE:
         default:
             INTERPRET_ERROR(INTERNAL) << "internal library error: "
-                                      << m_coord.error_message()
-                                      << " @ "
-                                      << m_coord.error_location();
+                                      << replicant_client_error_message(m_coord);
             break;
     }
 }
@@ -1004,21 +1004,64 @@ admin :: interpret_replicant_returncode(replicant_returncode rstatus,
 bool
 admin :: maintain_coord_connection(hyperdex_admin_returncode* status)
 {
-    replicant_returncode rc;
-    e::error err;
-
-    if (!m_coord.ensure_configuration(&rc))
+    if (m_config_status != REPLICANT_SUCCESS)
     {
-        interpret_replicant_returncode(rc, status, &m_last_error);
+        replicant_client_kill(m_coord, m_config_id);
+        m_config_id = -1;
     }
 
-    if (m_busybee.set_external_fd(m_coord.poll_fd()) != BUSYBEE_SUCCESS)
+    replicant_returncode rc;
+
+    if (m_config_id < 0)
     {
-        ERROR(POLLFAILED) << "poll failed";
-        return false;
+        m_config_status = REPLICANT_SUCCESS;
+        m_config_id = replicant_client_cond_follow(m_coord, "hyperdex", "config",
+                                                   &m_config_status, &m_config_state,
+                                                   &m_config_data, &m_config_data_sz);
+        if (replicant_client_wait(m_coord, m_config_id, -1, &rc) < 0)
+        {
+            ERROR(COORDFAIL) << "coordinator failure: " << replicant_client_error_message(m_coord);
+            return false;
+        }
+    }
+
+    if (replicant_client_wait(m_coord, m_config_id, 0, &rc) < 0)
+    {
+        if (rc == REPLICANT_INTERRUPTED)
+        {
+            ERROR(INTERRUPTED) << "interrupted by a signal";
+            return false;
+        }
+        else if (rc != REPLICANT_NONE_PENDING && rc != REPLICANT_TIMEOUT)
+        {
+            ERROR(COORDFAIL) << "coordinator failure: " << replicant_client_error_message(m_coord);
+            return false;
+        }
+    }
+
+    if (m_config.version() < m_config_state)
+    {
+        configuration new_config;
+        e::unpacker up(m_config_data, m_config_data_sz);
+        up = up >> new_config;
+
+        if (!up.error())
+        {
+            m_config = new_config;
+        }
     }
 
     return true;
+}
+
+int64_t
+admin :: rpc(const char* func,
+             const char* data, size_t data_sz,
+             replicant_returncode* status,
+             char** output, size_t* output_sz)
+{
+    return replicant_client_call(m_coord, "hyperdex", func, data, data_sz,
+                                 REPLICANT_CALL_ROBUST, status, output, output_sz);
 }
 
 bool
@@ -1031,7 +1074,7 @@ admin :: send(network_msgtype mt,
 {
     const uint8_t type = static_cast<uint8_t>(mt);
     const uint8_t flags = 0;
-    const uint64_t version = m_coord.config()->version();
+    const uint64_t version = m_config.version();
     msg->pack_at(BUSYBEE_HEADER_SIZE)
         << type << flags << version << uint64_t(UINT64_MAX) << nonce;
     m_busybee.set_timeout(-1);

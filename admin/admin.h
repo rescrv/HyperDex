@@ -37,10 +37,12 @@
 // BusyBee
 #include <busybee_st.h>
 
+// Replicant
+#include <replicant.h>
+
 // HyperDex
 #include "include/hyperdex/admin.h"
 #include "namespace.h"
-#include "common/coordinator_link.h"
 #include "common/mapper.h"
 #include "admin/coord_rpc.h"
 #include "admin/multi_yieldable.h"
@@ -134,6 +136,10 @@ class admin
 
     private:
         bool maintain_coord_connection(hyperdex_admin_returncode* status);
+        int64_t rpc(const char* func,
+                    const char* data, size_t data_sz,
+                    replicant_returncode* status,
+                    char** output, size_t* output_sz);
         bool send(network_msgtype mt,
                   server_id id,
                   uint64_t nonce,
@@ -143,11 +149,20 @@ class admin
         void handle_disruption(const server_id& si);
 
     private:
-        coordinator_link m_coord;
+        replicant_client* m_coord;
         mapper m_busybee_mapper;
         busybee_st m_busybee;
+        // configuration
+        configuration m_config;
+        int64_t m_config_id;
+        replicant_returncode m_config_status;
+        uint64_t m_config_state;
+        char* m_config_data;
+        size_t m_config_data_sz;
+        // nonces
         int64_t m_next_admin_id;
         uint64_t m_next_server_nonce;
+        // operations
         bool m_handle_coord_ops;
         coord_rpc_map_t m_coord_ops;
         pending_map_t m_server_ops;
@@ -157,7 +172,12 @@ class admin
         e::intrusive_ptr<yieldable> m_yielding;
         e::intrusive_ptr<yieldable> m_yielded;
         e::intrusive_ptr<pending_perf_counters> m_pcs;
+        // misc
         e::error m_last_error;
+
+    private:
+        admin(const admin&);
+        admin& operator = (const admin&);
 };
 
 END_HYPERDEX_NAMESPACE
