@@ -82,6 +82,7 @@ admin :: admin(const char* coordinator, uint16_t port)
     , m_pcs()
     , m_last_error()
 {
+    m_busybee.set_external_fd(replicant_client_poll_fd(m_coord));
 }
 
 admin :: ~admin() throw ()
