@@ -189,15 +189,15 @@ class datalayer::range_index_iterator : public index_iterator
         leveldb_iterator_ptr m_iter;
         const index_encoding *const m_val_ie;
         const index_encoding *const m_key_ie;
-        e::slice m_range_prefix;
+        e::slice m_prefix;
         e::slice m_range_lower;
         e::slice m_range_upper;
         e::slice m_value_lower;
         e::slice m_value_upper;
         std::vector<char> m_range_buf;
         std::vector<char> m_scratch;
-        bool m_has_value_lower;
-        bool m_has_value_upper;
+        bool m_has_lower;
+        bool m_has_upper;
         bool m_invalid;
 };
 

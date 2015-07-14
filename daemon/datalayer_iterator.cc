@@ -332,26 +332,26 @@ datalayer :: index_iterator :: ~index_iterator() throw ()
 ////////////////////////// class range_index_iterator //////////////////////////
 
 datalayer :: range_index_iterator :: range_index_iterator(leveldb_snapshot_ptr s,
-                                                          size_t range_prefix_sz,
+                                                          size_t prefix_sz,
                                                           const e::slice& range_lower,
                                                           const e::slice& range_upper,
-                                                          bool has_value_lower,
-                                                          bool has_value_upper,
+                                                          bool has_lower,
+                                                          bool has_upper,
                                                           const index_encoding* val_ie,
                                                           const index_encoding* key_ie)
     : index_iterator(s)
     , m_iter()
     , m_val_ie(val_ie)
     , m_key_ie(key_ie)
-    , m_range_prefix()
+    , m_prefix()
     , m_range_lower()
     , m_range_upper()
     , m_value_lower()
     , m_value_upper()
     , m_range_buf(range_lower.size() + range_upper.size())
     , m_scratch()
-    , m_has_value_lower(has_value_lower)
-    , m_has_value_upper(has_value_upper)
+    , m_has_lower(has_lower)
+    , m_has_upper(has_upper)
     , m_invalid(false)
 {
     // setup the iterator
@@ -366,21 +366,21 @@ datalayer :: range_index_iterator :: range_index_iterator(leveldb_snapshot_ptr s
     memmove(&m_range_buf[0] + range_lower.size(), range_upper.data(), range_upper.size());
     m_range_lower = e::slice(&m_range_buf[0], range_lower.size());
     m_range_upper = e::slice(&m_range_buf[0] + range_lower.size(), range_upper.size());
-    assert(m_range_lower.size() >= range_prefix_sz);
-    assert(m_range_upper.size() >= range_prefix_sz);
-    assert(memcmp(m_range_lower.data(), m_range_upper.data(), range_prefix_sz) == 0);
-    m_range_prefix = e::slice(m_range_lower.data(), range_prefix_sz);
+    assert(m_range_lower.size() >= prefix_sz);
+    assert(m_range_upper.size() >= prefix_sz);
+    assert(memcmp(m_range_lower.data(), m_range_upper.data(), prefix_sz) == 0);
+    m_prefix = e::slice(m_range_lower.data(), prefix_sz);
 
     // pull the value lower/upper
-    if (m_has_value_lower)
+    if (m_has_lower)
     {
-        m_invalid = m_invalid && decode_entry_keyless(m_range_lower, &m_value_lower);
+        m_invalid = !decode_entry_keyless(m_range_lower, &m_value_lower) || m_invalid;
     }
 
     // pull the value lower/upper
-    if (m_has_value_upper)
+    if (m_has_upper)
     {
-        m_invalid = m_invalid && decode_entry_keyless(m_range_upper, &m_value_upper);
+        m_invalid = !decode_entry_keyless(m_range_upper, &m_value_upper) || m_invalid;
     }
 
     m_iter->Seek(e2level(m_range_lower));
@@ -395,28 +395,13 @@ datalayer :: range_index_iterator :: valid()
 {
     while (!m_invalid && m_iter->Valid())
     {
-        if (!m_iter->key().starts_with(e2level(m_range_prefix)))
+        if (!m_iter->key().starts_with(e2level(m_prefix)))
         {
             m_invalid = true;
             return false;
-        }
-
-        if (!m_has_value_upper)
-        {
-            return true;
         }
 
         e::slice current = level2e(m_iter->key());
-        size_t sz = std::min(m_range_upper.size(), current.size());
-        int cmp = memcmp(m_range_upper.data(), current.data(), sz);
-
-        // we've overrun the end
-        if (cmp < 0)
-        {
-            m_invalid = true;
-            return false;
-        }
-
         e::slice iv;
         e::slice ik;
 
@@ -426,7 +411,21 @@ datalayer :: range_index_iterator :: valid()
             return false;
         }
 
-        if (m_value_lower > iv)
+        size_t sz = std::min(m_range_upper.size(), current.size());
+
+        if (m_has_upper && memcmp(m_range_upper.data(), current.data(), sz) < 0)
+        {
+            m_invalid = true;
+            return false;
+        }
+
+        if (m_has_lower && internal_key_compare(m_value_lower, iv) > 0)
+        {
+            m_iter->Next();
+            continue;
+        }
+
+        if (m_has_upper && internal_key_compare(m_value_upper, iv) < 0)
         {
             m_iter->Next();
             continue;
@@ -498,8 +497,7 @@ datalayer :: range_index_iterator :: internal_key()
 bool
 datalayer :: range_index_iterator :: sorted()
 {
-    return m_has_value_lower && m_has_value_upper &&
-           m_value_lower == m_value_upper;
+    return m_has_lower && m_has_upper && m_value_lower == m_value_upper;
 }
 
 void
@@ -516,10 +514,10 @@ datalayer :: range_index_iterator :: seek(const e::slice& ik)
 bool
 datalayer :: range_index_iterator :: decode_entry(const e::slice& in, e::slice* v, e::slice* k)
 {
-    assert(in.starts_with(m_range_prefix));
+    assert(in.starts_with(m_prefix));
     const char* ptr = reinterpret_cast<const char*>(in.data());
     const char* const end = ptr + in.size();
-    ptr += m_range_prefix.size();
+    ptr += m_prefix.size();
     size_t rem = end - ptr;
 
     if (!m_val_ie)
@@ -576,8 +574,8 @@ datalayer :: range_index_iterator :: decode_entry(const e::slice& in, e::slice* 
 bool
 datalayer :: range_index_iterator :: decode_entry_keyless(const e::slice& in, e::slice* val)
 {
-    assert(in.starts_with(m_range_prefix));
-    *val = e::slice(in.data() + m_range_prefix.size(), in.size() - m_range_prefix.size());
+    assert(in.starts_with(m_prefix));
+    *val = e::slice(in.data() + m_prefix.size(), in.size() - m_prefix.size());
     return true;
 }
 
@@ -589,7 +587,7 @@ datalayer :: range_index_iterator :: encode_entry(const e::slice& v,
 {
     if (!m_val_ie)
     {
-        size_t sz = m_range_prefix.size() + k.size();
+        size_t sz = m_prefix.size() + k.size();
 
         if (scratch->size() < sz)
         {
@@ -597,15 +595,15 @@ datalayer :: range_index_iterator :: encode_entry(const e::slice& v,
         }
 
         char* ptr = &(*scratch)[0];
-        memmove(ptr, m_range_prefix.data(), m_range_prefix.size());
-        ptr += m_range_prefix.size();
+        memmove(ptr, m_prefix.data(), m_prefix.size());
+        ptr += m_prefix.size();
         memmove(ptr, k.data(), k.size());
         ptr += k.size();
         *slice = e::slice(&(*scratch)[0], ptr - &(*scratch)[0]);
     }
     else
     {
-        size_t sz = m_range_prefix.size() + v.size() + k.size() + sizeof(uint32_t);
+        size_t sz = m_prefix.size() + v.size() + k.size() + sizeof(uint32_t);
 
         if (scratch->size() < sz)
         {
@@ -613,8 +611,8 @@ datalayer :: range_index_iterator :: encode_entry(const e::slice& v,
         }
 
         char* ptr = &(*scratch)[0];
-        memmove(ptr, m_range_prefix.data(), m_range_prefix.size());
-        ptr += m_range_prefix.size();
+        memmove(ptr, m_prefix.data(), m_prefix.size());
+        ptr += m_prefix.size();
         memmove(ptr, v.data(), v.size());
         ptr += v.size();
         memmove(ptr, k.data(), k.size());
