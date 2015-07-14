@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// POSIX
+#include <signal.h>
+
 // STL
 #include <string>
 
@@ -199,6 +202,27 @@ increment_sleep(unsigned* x)
     }
 }
 
+static bool
+atomically_allow_pending_blocked_signals()
+{
+    sigset_t ss;
+    sigemptyset(&ss);
+
+    if (sigpending(&ss) == 0 &&
+        (sigismember(&ss, SIGHUP) == 1 ||
+         sigismember(&ss, SIGINT) == 1 ||
+         sigismember(&ss, SIGTERM) == 1 ||
+         sigismember(&ss, SIGQUIT) == 1 ||
+         sigismember(&ss, SIGALRM) == 1))
+    {
+        sigemptyset(&ss);
+        sigsuspend(&ss);
+        return true;
+    }
+
+    return false;
+}
+
 bool
 coordinator_link :: maintain()
 {
@@ -210,6 +234,11 @@ coordinator_link :: maintain()
             ts.tv_sec = m_sleep_ms / 1000;
             ts.tv_nsec = (m_sleep_ms % 1000) * 1000ULL * 1000ULL;
             nanosleep(&ts, NULL);
+
+            if (atomically_allow_pending_blocked_signals())
+            {
+                return false;
+            }
         }
 
         {
