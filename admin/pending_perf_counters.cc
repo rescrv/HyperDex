@@ -27,8 +27,8 @@
 
 #define __STDC_LIMIT_MACROS
 
-// e
-#include <e/time.h>
+// po6
+#include <po6/time.h>
 
 // HyperDex
 #include "admin/admin.h"
@@ -36,27 +36,6 @@
 #include "admin/pending_perf_counters.h"
 
 using hyperdex::pending_perf_counters;
-
-#if defined(__APPLE__)
-#include <mach/mach_time.h>
-#endif
-
-static uint64_t
-monotonic_time()
-{
-#ifdef __APPLE__
-    return e::time();
-#else
-    timespec ts;
-
-    if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
-    {
-        throw po6::error(errno);
-    }
-
-    return ts.tv_sec * 1000000000ULL + ts.tv_nsec;
-#endif
-}
 
 struct pending_perf_counters::perf_counter
 {
@@ -150,7 +129,7 @@ int
 pending_perf_counters :: millis_to_next_send()
 {
     const uint64_t one_second = 1000ULL * 1000ULL * 1000ULL;
-    uint64_t now = monotonic_time();
+    uint64_t now = po6::monotonic_time();
 
     if (now >= m_next_send)
     {

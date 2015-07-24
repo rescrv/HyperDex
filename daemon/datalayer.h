@@ -41,7 +41,7 @@
 // po6
 #include <po6/net/hostname.h>
 #include <po6/net/location.h>
-#include <po6/pathname.h>
+#include <po6/path.h>
 #include <po6/threads/cond.h>
 #include <po6/threads/mutex.h>
 #include <po6/threads/thread.h>
@@ -93,7 +93,7 @@ class datalayer
         ~datalayer() throw ();
 
     public:
-        bool initialize(const po6::pathname& path,
+        bool initialize(const std::string& path,
                         bool* saved,
                         server_id* saved_us,
                         po6::net::location* saved_bind_to,

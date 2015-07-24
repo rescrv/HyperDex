@@ -140,10 +140,6 @@ main(int argc, const char* argv[])
             listen_ip = po6::net::ipaddr(listen_host);
             bind_to = po6::net::location(listen_ip, listen_port);
         }
-        catch (po6::error& e)
-        {
-            // fallthrough
-        }
         catch (std::invalid_argument& e)
         {
             // fallthrough
@@ -197,9 +193,9 @@ main(int argc, const char* argv[])
         }
 
         return d.run(daemonize,
-                     po6::pathname(data),
-                     po6::pathname(log ? log : data),
-                     po6::pathname(pidfile), has_pidfile,
+                     std::string(data),
+                     std::string(log ? log : data),
+                     std::string(pidfile), has_pidfile,
                      listen, bind_to,
                      coordinator, po6::net::hostname(coordinator_host, coordinator_port),
                      threads);

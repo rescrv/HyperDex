@@ -28,9 +28,6 @@
 // C
 #include <cstdlib>
 
-// po6
-#include <po6/error.h>
-
 // e
 #include <e/guard.h>
 

@@ -28,11 +28,15 @@
 #ifndef hyperdex_tools_util_h_
 #define hyperdex_tools_util_h_
 
+// C
+#include <limits.h>
+#include <stdlib.h>
+
 // POSIX
 #include <sys/stat.h>
 
 // po6
-#include <po6/pathname.h>
+#include <po6/path.h>
 
 // e
 #include <e/popt.h>
@@ -87,10 +91,10 @@ class connect_opts
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wlarger-than="
 bool
-locate_coordinator_lib(const char* argv0, po6::pathname* path)
+locate_coordinator_lib(const char* argv0, std::string* path)
 {
     // find the right library
-    std::vector<po6::pathname> paths;
+    std::vector<std::string> paths;
     const char* env = getenv("HYPERDEX_COORD_LIB");
     static const char* exts[] = { "", ".so.0.0.0", ".so.0", ".so", ".dylib", 0 };
 
@@ -98,9 +102,8 @@ locate_coordinator_lib(const char* argv0, po6::pathname* path)
     {
         std::string base(HYPERDEX_LIB_NAME);
         base += exts[i];
-        paths.push_back(po6::join(HYPERDEX_EXEC_DIR, base));
-        paths.push_back(po6::join(po6::pathname(argv0).dirname(),
-                                  po6::join(".libs", base)));
+        paths.push_back(po6::path::join(HYPERDEX_EXEC_DIR, base));
+        paths.push_back(po6::path::join(po6::path::dirname(argv0), ".libs", base));
 
         if (env)
         {
@@ -116,21 +119,21 @@ locate_coordinator_lib(const char* argv0, po6::pathname* path)
 
     if (readlink("/proc/self/exe", selfbuf, PATH_MAX) >= 0)
     {
-        po6::pathname workdir(selfbuf);
-        workdir = workdir.dirname();
-        po6::pathname gitdir(po6::join(workdir, ".git"));
+        std::string workdir(selfbuf);
+        workdir = po6::path::dirname(workdir);
+        std::string gitdir(po6::path::join(workdir, ".git"));
         struct stat buf;
 
-        if (stat(gitdir.get(), &buf) == 0 &&
+        if (stat(gitdir.c_str(), &buf) == 0 &&
             S_ISDIR(buf.st_mode))
         {
-            po6::pathname libdir(po6::join(workdir, ".libs"));
+            std::string libdir(po6::path::join(workdir, ".libs"));
 
             for (size_t i = 0; exts[i]; ++i)
             {
                 std::string libname(HYPERDEX_LIB_NAME);
                 libname += exts[i];
-                paths.push_back(po6::join(libdir, libname));
+                paths.push_back(po6::path::join(libdir, libname));
             }
         }
     }
@@ -141,7 +144,7 @@ locate_coordinator_lib(const char* argv0, po6::pathname* path)
     {
         struct stat buf;
 
-        if (stat(paths[idx].get(), &buf) == 0)
+        if (stat(paths[idx].c_str(), &buf) == 0)
         {
             *path = paths[idx];
             return true;

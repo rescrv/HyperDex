@@ -40,9 +40,7 @@
 #include <e/buffer.h>
 #include <e/compat.h>
 #include <e/intrusive_ptr.h>
-#include <e/lockfree_hash_map.h>
 #include <e/nwf_hash_map.h>
-#include <e/striped_lock.h>
 
 // HyperDex
 #include "namespace.h"

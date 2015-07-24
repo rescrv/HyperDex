@@ -553,6 +553,7 @@ libhyperdex_admin_la_LIBADD += $(MACAROONS_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
+libhyperdex_admin_la_LIBADD += $(PO6_LIBS)
 libhyperdex_admin_la_LIBADD += -lrt -lpthread
 libhyperdex_admin_la_LDFLAGS = -version-info 1:0:0
 
@@ -1193,7 +1194,7 @@ EXTRA_DIST += man/hyperdex.1.md
 EXTRA_DIST += man/hyperdex.1.h2m
 hyperdex_SOURCES = hyperdex.cc
 hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(AM_CPPFLAGS) $(CPPFLAGS)
-hyperdex_LDADD = $(POPT_LIBS)
+hyperdex_LDADD = $(E_LIBS) $(PO6_LIBS) $(POPT_LIBS)
 man/hyperdex.1: man/hyperdex.1.h2m hyperdex.cc | hyperdex$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex$(EXEEXT)
 

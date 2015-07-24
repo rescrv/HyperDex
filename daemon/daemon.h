@@ -32,7 +32,7 @@
 #include <po6/net/hostname.h>
 #include <po6/net/ipaddr.h>
 #include <po6/net/location.h>
-#include <po6/pathname.h>
+#include <po6/path.h>
 #include <po6/threads/thread.h>
 
 // e
@@ -62,9 +62,9 @@ class daemon
 
     public:
         int run(bool daemonize,
-                po6::pathname data,
-                po6::pathname log,
-                po6::pathname pidfile,
+                std::string data,
+                std::string log,
+                std::string pidfile,
                 bool has_pidfile,
                 bool set_bind_to,
                 po6::net::location bind_to,
@@ -106,7 +106,7 @@ class daemon
         void collect_stats();
         void collect_stats_msgs(std::ostringstream* ret);
         void collect_stats_leveldb(std::ostringstream* ret);
-        void determine_block_stat_path(const po6::pathname& data);
+        void determine_block_stat_path(const std::string& data);
         void collect_stats_io(std::ostringstream* ret);
 
     private:

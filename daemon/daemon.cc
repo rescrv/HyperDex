@@ -43,11 +43,11 @@
 
 // po6
 #include <po6/errno.h>
+#include <po6/time.h>
 
 // e
 #include <e/endian.h>
 #include <e/strescape.h>
-#include <e/time.h>
 
 // HyperDex
 #include "common/coordinator_returncode.h"
@@ -174,9 +174,9 @@ generate_token(uint64_t* token)
 
 int
 daemon :: run(bool daemonize,
-              po6::pathname data,
-              po6::pathname log,
-              po6::pathname pidfile,
+              std::string data,
+              std::string log,
+              std::string pidfile,
               bool has_pidfile,
               bool set_bind_to,
               po6::net::location bind_to,
@@ -208,17 +208,17 @@ daemon :: run(bool daemonize,
     {
         struct stat x;
 
-        if (lstat(log.get(), &x) < 0 || !S_ISDIR(x.st_mode))
+        if (lstat(log.c_str(), &x) < 0 || !S_ISDIR(x.st_mode))
         {
             LOG(ERROR) << "cannot fork off to the background because "
-                       << log.get() << " does not exist or is not writable";
+                       << log.c_str() << " does not exist or is not writable";
             return EXIT_FAILURE;
         }
 
         if (!has_pidfile)
         {
             LOG(INFO) << "forking off to the background";
-            LOG(INFO) << "you can find the log at " << log.get() << "/hyperdex-daemon-YYYYMMDD-HHMMSS.sssss";
+            LOG(INFO) << "you can find the log at " << log.c_str() << "/hyperdex-daemon-YYYYMMDD-HHMMSS.sssss";
             LOG(INFO) << "provide \"--foreground\" on the command-line if you want to run in the foreground";
         }
 
@@ -226,8 +226,8 @@ daemon :: run(bool daemonize,
         google::SetLogSymlink(google::WARNING, "");
         google::SetLogSymlink(google::ERROR, "");
         google::SetLogSymlink(google::FATAL, "");
-        log = po6::join(log, "hyperdex-daemon-");
-        google::SetLogDestination(google::INFO, log.get());
+        log = po6::path::join(log, "hyperdex-daemon-");
+        google::SetLogDestination(google::INFO, log.c_str());
 
         if (::daemon(1, 0) < 0)
         {
@@ -240,11 +240,11 @@ daemon :: run(bool daemonize,
             char buf[21];
             ssize_t buf_sz = sprintf(buf, "%d\n", getpid());
             assert(buf_sz < static_cast<ssize_t>(sizeof(buf)));
-            po6::io::fd pid(open(pidfile.get(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR));
+            po6::io::fd pid(open(pidfile.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR));
 
             if (pid.get() < 0 || pid.xwrite(buf, buf_sz) != buf_sz)
             {
-                PLOG(ERROR) << "could not create pidfile " << pidfile.get();
+                PLOG(ERROR) << "could not create pidfile " << pidfile.c_str();
                 return EXIT_FAILURE;
             }
         }
@@ -261,16 +261,16 @@ daemon :: run(bool daemonize,
     po6::net::location saved_bind_to;
     po6::net::hostname saved_coordinator;
     LOG(INFO) << "initializing local storage";
-    m_data_dir = data.get();
+    m_data_dir = data;
 
     if (!m_data.initialize(data, &saved, &saved_us, &saved_bind_to, &saved_coordinator))
     {
         return EXIT_FAILURE;
     }
 
-    if (strlen(data.dirname().get()))
+    if (po6::path::dirname(data).size())
     {
-        if (chdir(data.dirname().get()) < 0)
+        if (chdir(po6::path::dirname(data).c_str()) < 0)
         {
             PLOG(ERROR) << "could not change cwd to data directory";
             return EXIT_FAILURE;
@@ -1242,12 +1242,15 @@ daemon :: process_backup(server_id from,
                   << "  Copy the complete directory to elsewhere so your backup is safe.";
     }
 
-    using po6::join;
-    using po6::pathname;
-    pathname _path(join(pathname(m_data_dir),
-                        pathname(("backup-" + name).c_str())).get());
-    _path = _path.realpath();
-    e::slice path(_path.get());
+    using po6::path::join;
+    std::string _path(join(m_data_dir, "backup-" + name));
+
+    if (!po6::path::realpath(_path, &_path))
+    {
+        // XXX
+    }
+
+    e::slice path(_path.c_str());
 
     size_t sz = HYPERDEX_HEADER_SIZE_VC
               + sizeof(uint64_t)
@@ -1316,7 +1319,7 @@ daemon :: process_perf_counters(server_id from,
 void
 daemon :: collect_stats()
 {
-    uint64_t target = e::time();
+    uint64_t target = po6::monotonic_time();
     target = target - (target % INTERVAL) + INTERVAL;
 
     {
@@ -1327,7 +1330,7 @@ daemon :: collect_stats()
     while (__sync_fetch_and_add(&s_interrupts, 0) == 0)
     {
         // every INTERVAL nanoseconds collect stats
-        uint64_t now = e::time();
+        uint64_t now = po6::monotonic_time();
 
         if (now < target)
         {
@@ -1474,17 +1477,13 @@ read_sys_block_star(std::vector<std::string>* blocks)
 } // namespace
 
 void
-daemon :: determine_block_stat_path(const po6::pathname& data)
+daemon :: determine_block_stat_path(const std::string& data)
 {
-    po6::pathname dir;
+    std::string dir;
 
-    try
+    if (!po6::path::realpath(data, &dir))
     {
-       dir = data.realpath();
-    }
-    catch (po6::error& e)
-    {
-        LOG(ERROR) << "could not resolve true path for data: " << e.what();
+        LOG(ERROR) << "could not resolve true path for data: " << po6::strerror(errno);
         LOG(ERROR) << "iostat-like statistics will not be reported";
         return;
     }
@@ -1502,7 +1501,7 @@ daemon :: determine_block_stat_path(const po6::pathname& data)
 
     if (!mounts)
     {
-        LOG(ERROR) << "could not open /proc/mounts: " << po6::error(errno).what();
+        LOG(ERROR) << "could not open /proc/mounts: " << po6::strerror(errno);
         LOG(ERROR) << "iostat-like statistics will not be reported";
         return;
     }
@@ -1519,7 +1518,7 @@ daemon :: determine_block_stat_path(const po6::pathname& data)
         {
             if (ferror(mounts) != 0)
             {
-                LOG(WARNING) << "could not read from /proc/mounts: " << po6::error(errno).what();
+                LOG(WARNING) << "could not read from /proc/mounts: " << po6::strerror(errno);
                 break;
             }
 
@@ -1543,13 +1542,13 @@ daemon :: determine_block_stat_path(const po6::pathname& data)
 
         size_t msz = strlen(mnt);
 
-        if (strncmp(mnt, dir.get(), msz) != 0 ||
+        if (strncmp(mnt, dir.c_str(), msz) != 0 ||
             msz < max_mnt_sz)
         {
             continue;
         }
 
-        std::string stat_path = po6::pathname(dev).basename().get();
+        std::string stat_path = po6::path::basename(dev);
 
         for (size_t i = 0; i < block_devs.size(); ++i)
         {

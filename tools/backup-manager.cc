@@ -29,11 +29,15 @@
 #include <cstdlib>
 
 // POSIX
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
 // STL
 #include <string>
+
+// po6
+#include <po6/io/fd.h>
 
 // HyperDex
 #include <hyperdex/admin.hpp>
@@ -151,10 +155,10 @@ take_backup(const connect_opts& conn,
 }
 
 static bool
-read_latest(const po6::pathname& base, bool* has_previous, po6::pathname* previous)
+read_latest(const std::string& base, bool* has_previous, std::string* previous)
 {
-    po6::pathname latest_path = po6::join(base, po6::pathname("LATEST"));
-    po6::io::fd latest(open(latest_path.get(), O_RDONLY));
+    std::string latest_path = po6::path::join(base, "LATEST");
+    po6::io::fd latest(open(latest_path.c_str(), O_RDONLY));
 
     if (latest.get() < 0 && errno == ENOENT)
     {
@@ -178,15 +182,15 @@ read_latest(const po6::pathname& base, bool* has_previous, po6::pathname* previo
 
     buf.resize(amt);
     *has_previous = true;
-    *previous = po6::join(base, po6::pathname(std::string(buf.begin(), buf.end())));
+    *previous = po6::path::join(base, std::string(buf.begin(), buf.end()));
     return true;
 }
 
 static bool
-record_latest(const po6::pathname& base, const std::string& now)
+record_latest(const std::string& base, const std::string& now)
 {
-    po6::pathname latest_path = po6::join(base, po6::pathname("LATEST"));
-    po6::io::fd latest(open(latest_path.get(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR));
+    std::string latest_path = po6::path::join(base, "LATEST");
+    po6::io::fd latest(open(latest_path.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR));
 
     if (latest.get() < 0)
     {
@@ -280,16 +284,20 @@ main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    using po6::pathname;
-    using po6::join;
+    using po6::path::join;
 
     try
     {
         bool success = true;
-        pathname base(_data);
-        base = base.realpath();
+        std::string base(_data);
 
-        if (chdir(base.get()) < 0)
+        if (!po6::path::realpath(base, &base))
+        {
+            std::cerr << "error: " << po6::strerror(errno) << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        if (chdir(base.c_str()) < 0)
         {
             std::cerr << "could not change directory to: " << _data << std::endl;
             return EXIT_FAILURE;
@@ -309,24 +317,24 @@ main(int argc, const char* argv[])
         }
 
         bool has_previous = false;
-        pathname previous;
+        std::string previous;
 
         if (!read_latest(base, &has_previous, &previous))
         {
             return EXIT_FAILURE;
         }
 
-        pathname backupdir(join(base, pathname(now)));
+        std::string backupdir(join(base, now));
 
-        if (mkdir(backupdir.get(), S_IRWXU) < 0)
+        if (mkdir(backupdir.c_str(), S_IRWXU) < 0)
         {
             std::cerr << "could not make local directory for the backup: "
                       << strerror(errno) << std::endl;
             return EXIT_FAILURE;
         }
 
-        if (rename(join(base, pathname(now + ".coordinator.bin")).get(),
-                   join(backupdir, pathname("coordinator.bin")).get()) < 0)
+        if (rename(join(base, now + ".coordinator.bin").c_str(),
+                   join(backupdir, "coordinator.bin").c_str()) < 0)
         {
             std::cerr << "could not rename coordinator backup: "
                       << strerror(errno) << std::endl;
@@ -337,15 +345,15 @@ main(int argc, const char* argv[])
         {
             char buf[21];
             sprintf(buf, "%lu", daemons[i].sid);
-            pathname daemon_dir(join(base, pathname(now), pathname(buf)).get());
+            std::string daemon_dir(join(base, now, buf));
             bool prev = false;
             std::string link_dest;
 
             if (has_previous)
             {
                 struct stat stbuf;
-                pathname daemon_prev(join(previous, pathname(buf)));
-                int status = stat(daemon_prev.get(), &stbuf);
+                std::string daemon_prev(join(previous, buf));
+                int status = stat(daemon_prev.c_str(), &stbuf);
 
                 if (status < 0 && errno == ENOENT)
                 {
@@ -362,7 +370,7 @@ main(int argc, const char* argv[])
                 {
                     prev = true;
                     link_dest  = "--link-dest=";
-                    link_dest += daemon_prev.get();
+                    link_dest += daemon_prev.c_str();
                 }
             }
 
@@ -388,7 +396,7 @@ main(int argc, const char* argv[])
                 args.push_back(rsync_url);
             }
 
-            args.push_back(daemon_dir.get());
+            args.push_back(daemon_dir.c_str());
 
             if (!fork_exec_wait(args))
             {

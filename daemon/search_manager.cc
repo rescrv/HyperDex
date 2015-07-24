@@ -34,9 +34,11 @@
 // Google Log
 #include <glog/logging.h>
 
+// po6
+#include <po6/time.h>
+
 // e
 #include <e/intrusive_ptr.h>
-#include <e/time.h>
 
 // HyperDex
 #include "common/attribute_check.h"
@@ -641,14 +643,14 @@ search_manager :: search_describe(const server_id& from,
     datalayer::returncode rc = datalayer::SUCCESS;
     std::ostringstream ostr;
     ostr << "search\n";
-    uint64_t t_start = e::time();
+    uint64_t t_start = po6::monotonic_time();
     datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
-    uint64_t t_end = e::time();
+    uint64_t t_end = po6::monotonic_time();
     ostr << " snapshot took " << t_end - t_start << "ns\n";
     e::intrusive_ptr<datalayer::iterator> iter;
-    t_start = e::time();
+    t_start = po6::monotonic_time();
     iter = m_daemon->m_data.make_search_iterator(snap, ri, *checks, &ostr);
-    t_end = e::time();
+    t_end = po6::monotonic_time();
     ostr << " iterator took " << t_end - t_start << "ns\n";
 
     switch (rc)
@@ -667,7 +669,7 @@ search_manager :: search_describe(const server_id& from,
     }
 
     uint64_t num = 0;
-    t_start = e::time();
+    t_start = po6::monotonic_time();
 
     while (iter->valid())
     {
@@ -675,7 +677,7 @@ search_manager :: search_describe(const server_id& from,
         iter->next();
     }
 
-    t_end = e::time();
+    t_end = po6::monotonic_time();
     ostr << " retrieved " << num << " objects in " << t_end - t_start << "ns\n";
     std::string str(ostr.str());
     const char* text = str.c_str();

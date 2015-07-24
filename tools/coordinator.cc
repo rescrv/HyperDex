@@ -41,7 +41,7 @@
 int
 main(int argc, const char* argv[])
 {
-    po6::pathname libpath;
+    std::string libpath;
 
     if (!hyperdex::locate_coordinator_lib(argv[0], &libpath))
     {
@@ -83,7 +83,7 @@ main(int argc, const char* argv[])
     args.push_back("--object");
     args.push_back("hyperdex");
     args.push_back("--library");
-    args.push_back(libpath.get());
+    args.push_back(libpath.c_str());
     args.push_back("--init-string");
     args.push_back(token_buf);
     args.push_back(NULL);

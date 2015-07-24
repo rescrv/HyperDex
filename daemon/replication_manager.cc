@@ -36,9 +36,6 @@
 // Google Log
 #include <glog/logging.h>
 
-// e
-#include <e/time.h>
-
 // HyperDex
 #include "common/datatype_info.h"
 #include "common/hash.h"

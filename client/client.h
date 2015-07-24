@@ -58,8 +58,6 @@ struct microtransaction
         : space(space_), sc(sc_), status(status_), funcalls(), memory()
     {}
 
-    PO6_NONCOPYABLE(microtransaction);
-
     int64_t generate_message(size_t header_sz, size_t footer_sz,
                              const std::vector<attribute_check>& checks,
                              std::auto_ptr<e::buffer>* msg);
@@ -69,6 +67,10 @@ struct microtransaction
     hyperdex_client_returncode* status;
     std::vector<funcall> funcalls;
     e::arena memory;
+
+    private:
+        microtransaction(const microtransaction&);
+        microtransaction& operator = (const microtransaction&);
 };
 
 class client

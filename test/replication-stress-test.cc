@@ -33,9 +33,6 @@
 // STL
 #include <map>
 
-// po6
-#include <po6/error.h>
-
 // e
 #include <e/compat.h>
 #include <e/endian.h>
@@ -111,29 +108,21 @@ main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    try
-    {
-        hyperdex::Client cl(conn.host(), conn.port());
-        _cl = &cl;
+    hyperdex::Client cl(conn.host(), conn.port());
+    _cl = &cl;
 
-        do
-        {
-            wipe();
-            test0();
-            test1();
-            test2();
-            test3();
-            test4();
-        }
-        while (_continuous);
-
-        return EXIT_SUCCESS;
-    }
-    catch (po6::error& e)
+    do
     {
-        std::cerr << "system error:  " << e.what() << std::endl;
-        return EXIT_FAILURE;
+        wipe();
+        test0();
+        test1();
+        test2();
+        test3();
+        test4();
     }
+    while (_continuous);
+
+    return EXIT_SUCCESS;
 }
 
 static void

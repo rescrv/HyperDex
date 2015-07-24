@@ -35,6 +35,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <stdint.h>
+#include <string.h>
 
 // Popt
 #include <popt.h>
@@ -151,11 +152,6 @@ main(int argc, const char* argv[])
                 try
                 {
                     coord = po6::net::ipaddr(host);
-                }
-                catch (po6::error& e)
-                {
-                    std::cerr << "cannot parse coordinator address" << std::endl;
-                    return EXIT_FAILURE;
                 }
                 catch (std::invalid_argument& e)
                 {

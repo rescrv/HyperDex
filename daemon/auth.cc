@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// e
-#include <e/time.h>
+// po6
+#include <po6/time.h>
 
 // HyperDex
 #include <hyperdex/client.h>
@@ -173,7 +173,7 @@ hyperdex :: auth_verify_read(const schema& sc,
                              auth_wallet* aw)
 {
     const char* exact[] = {"op = read", NULL};
-    uint64_t time = e::time() / 1000000000ULL;
+    uint64_t time = po6::time() / 1000000000ULL;
     general_caveat general[] = {general_caveat(check_time, &time), general_caveat()};
     return auth_verify(sc, has_value, value, aw, exact, general);
 }
@@ -214,7 +214,7 @@ hyperdex :: auth_verify_write(const schema& sc,
     else
     {
         const char* exact[] = {"op = write", NULL};
-        uint64_t time = e::time() / 1000000000ULL;
+        uint64_t time = po6::time() / 1000000000ULL;
         general_caveat general[] = {general_caveat(check_time, &time), general_caveat()};
         return auth_verify(sc, has_value, value, kc.auth.get(), exact, general);
     }

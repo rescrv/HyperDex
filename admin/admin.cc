@@ -450,16 +450,7 @@ admin :: server_register(uint64_t token, const char* address,
 
     server_id sid(token);
     po6::net::location loc;
-
-    try
-    {
-        loc = po6::net::location(address);
-    }
-    catch (po6::error& e)
-    {
-        ERROR(TIMEOUT) << "could not parse address";
-        return -1;
-    }
+    loc = po6::net::location(address);
 
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;

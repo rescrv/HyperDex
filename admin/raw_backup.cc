@@ -144,12 +144,6 @@ hyperdex_admin_raw_backup(const char* host, uint16_t port,
             return -1;
         }
     }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERDEX_ADMIN_EXCEPTION;
-        return -1;
-    }
     catch (std::bad_alloc& ba)
     {
         errno = ENOMEM;

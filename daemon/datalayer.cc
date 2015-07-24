@@ -100,7 +100,7 @@ datalayer :: ~datalayer() throw ()
 #define FORMAT_1_6 "v1.6.0 format"
 
 bool
-datalayer :: initialize(const po6::pathname& path,
+datalayer :: initialize(const std::string& path,
                         bool* saved,
                         server_id* saved_us,
                         po6::net::location* saved_bind_to,
@@ -112,7 +112,7 @@ datalayer :: initialize(const po6::pathname& path,
     opts.filter_policy = leveldb::NewBloomFilterPolicy(10);
     opts.manual_garbage_collection = true;
     opts.max_open_files = std::max(sysconf(_SC_OPEN_MAX) >> 1, 1024L);
-    std::string name(path.get());
+    std::string name(path);
     leveldb::DB* tmp_db;
     leveldb::Status st = leveldb::DB::Open(opts, name, &tmp_db);
 
