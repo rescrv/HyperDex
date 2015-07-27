@@ -87,6 +87,7 @@ admin :: admin(const char* coordinator, uint16_t port)
 
 admin :: ~admin() throw ()
 {
+    replicant_client_destroy(m_coord);
 }
 
 int64_t

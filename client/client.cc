@@ -147,6 +147,7 @@ client :: client(const char* conn_str)
 
 client :: ~client() throw ()
 {
+    replicant_client_destroy(m_coord);
 }
 
 int64_t
