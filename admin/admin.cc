@@ -967,7 +967,7 @@ admin :: interpret_replicant_returncode(replicant_returncode rstatus,
             break;
         case REPLICANT_SEE_ERRNO:
             INTERPRET_ERROR(COORDFAIL) << "transient coordinator error: "
-                                       << e::error::strerror(errno);
+                                       << po6::strerror(errno);
             break;
         case REPLICANT_CLUSTER_JUMP:
         case REPLICANT_SERVER_ERROR:
