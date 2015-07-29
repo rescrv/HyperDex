@@ -45,6 +45,7 @@
 
 // STL
 #include <map>
+#include <stdexcept>
 #include <vector>
 
 // po6
