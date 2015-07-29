@@ -27,6 +27,9 @@
 
 #define __STDC_LIMIT_MACROS
 
+// STL
+#include <stdexcept>
+
 // Google Log
 #include <glog/logging.h>
 
