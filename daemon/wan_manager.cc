@@ -640,7 +640,6 @@ wan_manager :: give_me_more_state(transfer_in_state* tis)
 {
     if (!tis->handshake_complete) {
         send_handshake_syn(tis->xfer);
-        tis->handshake_complete = true;
     } else {
         send_ask_for_more(tis->xfer);
     }
@@ -764,6 +763,7 @@ wan_manager :: wan_xfer(const transfer_id& xid,
 
     po6::threads::mutex::hold hold(&tis->mtx);
 
+    tis->handshake_complete = true;
     // if (tis->xfer.vsrc != from || tis->xfer.id != xid)
     // {
     //     LOG(INFO) << "dropping XFER_OP that came from the wrong host";
