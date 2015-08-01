@@ -60,13 +60,13 @@ attribute :: operator = (const attribute& rhs)
 }
 
 bool
-attribute :: operator == (const attribute rhs) const
+attribute :: operator == (const attribute& rhs) const
 {
     return ((strcmp(name, rhs.name) == 0) && type == rhs.type);
 }
 
 bool
-attribute :: operator != (const attribute rhs) const
+attribute :: operator != (const attribute& rhs) const
 {
     return ((strcmp(name, rhs.name) != 0) || type != rhs.type);
 }

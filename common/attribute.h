@@ -43,8 +43,8 @@ class attribute
 
     public:
         attribute& operator = (const attribute& rhs);
-        bool operator == (const attribute rhs) const;
-        bool operator != (const attribute rhs) const;
+        bool operator == (const attribute& rhs) const;
+        bool operator != (const attribute& rhs) const;
 
     public:
         const char* name;
