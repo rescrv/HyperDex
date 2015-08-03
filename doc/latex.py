@@ -1,4 +1,4 @@
-# Copyright (c) 2013, Robert Escriva
+# Copyright (c) 2013-2015, Robert Escriva
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+import argparse
 import hashlib
 import logging
 import os.path
@@ -51,37 +52,20 @@ EXTENSIONS = (('.tex', True,  False, False),
               ('.ind', True,  False, False),
               ('.log', True,  False, False))
 
+SKIP_LINES = set([
+    r'\write18 enabled.',
+    'entering extended mode',
+    'ABD: EveryShipout initializing macros'
+])
 
-# Lines that start with any of these strings will be cut
-SKIP_LINES = set(['Babel <'
-                 ,'Document Class'
-                 ,"Option `squaren' provided!"
-                 ,' Command \squaren defined by SIunits package!'
-                 ,'\openout1 = `'
-                 ,'ABD: EveryShipout initializing macros'
-                 ,' %&-line parsing enabled.'
-                 ,'entering extended mode'
-                 ,' restricted \\write18'
-                 ,'LaTeX2e <2011/06/27>'
-                 ,'LaTeX Info:'
-                 ,'LaTeX Font Info:'
-                 ,'(textcomp)'
-                 ,'(Font)'
-                 ,'File: '
-                 ])
-
-
-SUPPRESS_WARNINGS = set(['Your graphic driver pgfsys-dvips.def does not support fadings. This warning is given only once on input line 31.'
-                        ])
-
+SUPPRESS_PACKAGE_WARNINGS = set([
+    ('pgf', 'Your graphic driver pgfsys-dvips.def does not support fadings. This warning is given only once on input line 31.'),
+])
 
 latex_version_re = re.compile(r'^This is (?P<tex>.*?), Version (?P<version>.*?) \((?P<distro>.*?)\).*')
-constant_re = re.compile(r'\\[a-zA-Z0-9@_-]+=\\[a-zA-Z0-9@_-]+')
 package_warning_re = re.compile(r'^Package (?P<package>[-a-zA-Z0-9_.]*?) Warning: (?P<message>.*)')
-package_info_re = re.compile(r'^Package (?P<package>[-a-zA-Z0-9_.]*?) Info: (?P<message>.*)')
-package_load_re = re.compile(r'Package: (?P<package>[-a-zA-Z0-9_.]*?) \d{4}/\d{2}/\d{2} .*')
 output_re = re.compile(r'^Output written on (?P<outfile>[-a-zA-Z0-9_.]*?) \((?P<pages>[0-9]+) pages?, (?P<bytes>[0-9]+) bytes?\).')
-
+pagenum_re = re.compile(r'^\[(\d+)\] (.*)')
 
 class TeXLineIterator(object):
 
@@ -103,73 +87,55 @@ class TeXLineIterator(object):
     def push(self, line):
         self._pushback.append(line)
 
+def process_tex_log(name):
+    deps = set([])
+    tli = TeXLineIterator(name + '.stdout.log')
+    for line in tli:
+        line = re.sub('^[ )>]*', '', line).strip()
+        # collect deps
+        if line.startswith('(') or line.startswith('<'):
+            pieces = re.split('[ )>]', line[1:], 1)
+            assert len(pieces) in (1, 2)
+            x = pieces[0]
+            if os.path.exists(x):
+                if len(pieces) == 2:
+                    tli.push(pieces[1])
+                deps.add(x)
+                continue
+        if not line:
+            pass
+        elif line in SKIP_LINES:
+            pass
+        elif pagenum_re.match(line):
+            x = pagenum_re.match(line)
+            logging.info('page {0}'.format(x.group(1)))
+            tli.push(x.group(2))
+        elif latex_version_re.match(line):
+            x = latex_version_re.match(line)
+            logging.info('{distro}: {tex} version {version}'.format(**x.groupdict()))
+        elif package_warning_re.match(line):
+            x = package_warning_re.match(line)
+            pkg = x.groupdict()['package']
+            msg = x.groupdict()['message']
+            if (pkg, msg) not in SUPPRESS_PACKAGE_WARNINGS:
+                logging.error('{0}: {1}'.format(pkg, msg))
+        elif output_re.match(line):
+            logging.info(line)
+        elif line == 'Transcript written on {name}.log.'.format(name=name):
+            logging.info(line)
+        else:
+            for x in SKIP_LINES:
+                if line.startswith(x):
+                    tli.push(line[len(x):])
+                    break
+            else:
+                logging.error('error: ' + repr(line))
+    return set([os.path.normpath(d) for d in deps])
 
 def cat_tex_log(name):
     with open(name + '.log') as f:
         data = f.read()
         sys.stderr.write(data)
-
-
-def process_tex_log(name):
-    filtered = os.path.exists(name + '.filtered')
-    deps = []
-    tli = TeXLineIterator(name + '.stdout.log')
-    if not filtered:
-        logging.getLogger().setLevel(logging.CRITICAL)
-    for line in tli:
-        line = line.strip('\n')
-        if not filtered:
-            print line
-        if line.startswith('This is'):
-            match = latex_version_re.match(line)
-            if match:
-                logging.info('{distro}: {tex} version {version}'.format(**match.groupdict()))
-            else:
-                logging.error('unhandled version string case: {0}'.format(line))
-        elif line.startswith('Package'):
-            match = package_warning_re.match(line)
-            if match:
-                if match.groupdict()['message'] not in SUPPRESS_WARNINGS:
-                    logging.warning('{package}: {message}'.format(**match.groupdict()))
-                continue
-            match = package_info_re.match(line)
-            if match:
-                if match.groupdict()['message'] not in SUPPRESS_WARNINGS:
-                    logging.debug('{package}: {message}'.format(**match.groupdict()))
-                continue
-            if not package_load_re.match(line):
-                logging.error('unhandled package message case: {0}'.format(line))
-        elif line.startswith('Output'):
-            match = output_re.match(line)
-            if match:
-                logging.info(line.strip('.'))
-            else:
-                logging.error('unhandled output case: {0}'.format(line))
-        elif constant_re.match(line):
-            logging.debug('constant: {0}'.format(line))
-        elif line == "Here is how much of TeX's memory you used:":
-            try:
-                x = tli.next()
-                while x.startswith(' '):
-                    x = tli.next()
-                tli.push(x)
-            except StopIteration:
-                pass
-        elif any(line.startswith(s) for s in SKIP_LINES):
-            logging.debug('skip line: {0}'.format(line))
-        elif line == '**{0}'.format(name):
-            logging.debug('useless: {0}'.format(line))
-        elif line.strip(')( ') == '':
-            logging.debug('empty string: {0}'.format(line))
-        else:
-            paths = [p.strip(')(') for p in line.strip(')( ').split(' ')]
-            if all(os.path.exists(p) for p in paths):
-                deps += paths
-                logging.debug('paths: {0}'.format(', '.join(paths)))
-            else:
-                logging.error('unhandled input: {0}'.format(line))
-    return set(sorted(deps))
-
 
 def compute_sha1s(name):
     sha1s = {}
@@ -201,10 +167,10 @@ def older_than(name, target, dep):
     return os.stat(t).st_mtime < os.stat(d).st_mtime
 
 
-def build(name):
+def build(name, run_xtx=False, run_idx=False):
     need_tex = True
-    need_xtx = older_than(name, '.bbl', '.xtx')
-    need_idx = older_than(name, '.ind', '.idx')
+    need_xtx = run_xtx and older_than(name, '.bbl', '.xtx')
+    need_idx = run_idx and older_than(name, '.ind', '.idx')
     if not need_tex and not need_xtx and not need_idx:
         need_tex = True
     sha1s = compute_sha1s(name)
@@ -215,9 +181,12 @@ def build(name):
     iters = 0
     deps = set([])
     while need_tex or need_xtx or need_idx:
-        if iters > 4:
-            logging.error("error, iterated 4 times; you'd think tex would converge by now; bailing")
-            return 0
+        if iters > 16:
+            logging.error("error, iterated 16 times; you'd think tex would converge by now; bailing")
+            return -1
+        logging.error("=======================")
+        logging.error("beginning iteration %d" % iters)
+        logging.error("=======================")
         if need_tex or (need_xtx and not os.path.exists(name + '.aux')):
             env = os.environ.copy()
             env['max_print_line'] = '4096'
@@ -250,8 +219,8 @@ def build(name):
         for ext, tex, xtx, idx in EXTENSIONS:
             if sha1s[name + ext] != new_sha1s[name + ext]:
                 need_tex = need_tex or tex
-                need_xtx = need_xtx or xtx
-                need_idx = need_idx or idx
+                need_xtx = run_xtx and (need_xtx or xtx)
+                need_idx = run_idx and (need_idx or idx)
         sha1s = new_sha1s
         iters += 1
     write_deps(name, deps)
@@ -260,9 +229,12 @@ def build(name):
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        logging.error("program takes just one argument")
-    rc = build(sys.argv[1])
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--crosstex', default=False, action='store_true')
+    parser.add_argument('--index', default=False, action='store_true')
+    parser.add_argument('document')
+    args = parser.parse_args()
+    rc = build(args.document, run_xtx=args.crosstex, run_idx=args.index)
     if rc != 0:
-        os.unlink(sys.argv[1] + '.dvi')
+        os.unlink(args.document + '.dvi')
     sys.exit(rc)
