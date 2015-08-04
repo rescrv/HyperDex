@@ -82,14 +82,6 @@ fi
 AC_SUBST([JNI_CPPFLAGS], [${JNI_CPPFLAGS}])
 
 # Checks for libraries.
-AC_CHECK_LIB([rt], [clock_gettime], [needs_lrt=yes], [needs_lrt=no])
-
-if test x"${needs_lrt}" = xyes; then
-    AC_SUBST([LRT_LDFLAGS], ["-lrt"])
-else
-    AC_SUBST([LRT_LDFLAGS], [""])
-fi
-
 if test x"${enable_all_components}" = xyes -o \
         x"${enable_tools}" = xyes -o \
         x"${enable_coordinator}" = xyes -o \
@@ -99,12 +91,6 @@ if test x"${enable_all_components}" = xyes -o \
 HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
-fi
-AC_CHECK_LIB([rt], [clock_gettime], [needs_lrt=yes], [needs_lrt=no])
-if test x"${needs_lrt}" = xyes; then
-    AC_SUBST([LRT_CFLAGS], ["-lrt"])
-else
-    AC_SUBST([LRT_CFLAGS], [""])
 fi
 
 if test x"${enable_all_components}" = xyes -o \
@@ -184,7 +170,7 @@ fi
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([alarm clock_gettime mach_absolute_time ftruncate memmove mkdir munmap rmdir socket])
+AC_CHECK_FUNCS([alarm ftruncate memmove mkdir munmap rmdir socket])
 
 # Optional components
 AC_ARG_ENABLE([ycsb], [AS_HELP_STRING([--enable-ycsb],

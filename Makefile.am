@@ -303,7 +303,7 @@ hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(E_LIBS)
 hyperdex_daemon_LDADD += $(PO6_LIBS)
-hyperdex_daemon_LDADD += $(POPT_LIBS) ${GLOG_LIBS} $(LRT_LDFLAGS) -lpthread
+hyperdex_daemon_LDADD += $(POPT_LIBS) ${GLOG_LIBS} -lpthread
 man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc | hyperdex-daemon$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-daemon$(EXEEXT)
 
