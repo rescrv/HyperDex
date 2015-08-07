@@ -3,13 +3,13 @@
 set -e
 
 TARBALL_PO6=libpo6-0.9.dev
-TARBALL_E=libe-0.12.dev.tar.gz
-TARBALL_BUSYBEE=busybee-0.7.dev.tar.gz
-TARBALL_LEVELDB=hyperleveldb-1.2.2.tar.gz
-TARBALL_REPLICANT=replicant-0.8.dev.tar.gz
-TARBALL_MACAROONS=libmacaroons-0.3.0.tar.gz
-TARBALL_TREADSTONE=libtreadstone-0.3.dev.tar.gz
-TARBALL_HYPERDEX=hyperdex-1.8.dev.tar.gz
+TARBALL_E=libe-0.12.dev
+TARBALL_BUSYBEE=busybee-0.7.dev
+TARBALL_LEVELDB=hyperleveldb-1.2.2
+TARBALL_REPLICANT=replicant-0.8.dev
+TARBALL_MACAROONS=libmacaroons-0.3.0
+TARBALL_TREADSTONE=libtreadstone-0.3.dev
+TARBALL_HYPERDEX=hyperdex-1.8.dev
 
 for tarball in \
     ${TARBALL_PO6} ${TARBALL_E} ${TARBALL_BUSYBEE} \
