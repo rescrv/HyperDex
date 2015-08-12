@@ -114,3 +114,51 @@ server_barrier :: maybe_clear_prefix()
         }
     }
 }
+
+size_t
+hyperdex :: pack_size(const server_barrier& ri)
+{
+    typedef server_barrier::version_list_t version_list_t;
+    size_t sz = sizeof(uint32_t);
+
+    for (version_list_t::const_iterator it = ri.m_versions.begin();
+            it != ri.m_versions.end(); ++it)
+    {
+        sz += sizeof(uint64_t) + pack_size(it->second);
+    }
+
+    return sz;
+}
+
+e::packer
+hyperdex :: operator << (e::packer pa, const server_barrier& ri)
+{
+    typedef server_barrier::version_list_t version_list_t;
+    uint32_t x = ri.m_versions.size();
+    pa = pa << x;
+
+    for (version_list_t::const_iterator it = ri.m_versions.begin();
+            it != ri.m_versions.end(); ++it)
+    {
+        pa = pa << it->first << it->second;
+    }
+
+    return pa;
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker up, server_barrier& ri)
+{
+    typedef server_barrier::version_t version_t;
+    uint32_t x = 0;
+    up = up >> x;
+
+    for (size_t i = 0; i < x && !up.error(); ++i)
+    {
+        ri.m_versions.push_back(version_t());
+        version_t& v(ri.m_versions.back());
+        up = up >> v.first >> v.second;
+    }
+
+    return up;
+}
