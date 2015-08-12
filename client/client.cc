@@ -544,6 +544,7 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
             continue;
         }
 
+        m_flagfd.clear();
         m_yielded = NULL;
         assert(!m_pending_ops.empty());
 
@@ -552,19 +553,11 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
             return -1;
         }
 
-        const bool isset = m_flagfd.isset();
-        m_flagfd.clear();
-
         uint64_t sid_num;
         std::auto_ptr<e::buffer> msg;
         m_busybee.set_timeout(timeout);
         busybee_returncode rc = m_busybee.recv(&sid_num, &msg);
         server_id id(sid_num);
-
-        if (isset)
-        {
-            m_flagfd.set();
-        }
 
         switch (rc)
         {
@@ -690,18 +683,14 @@ client :: poll_fd()
 void
 client :: adjust_flagfd()
 {
-    bool expect = !m_yieldable.empty() ||
-                  m_yielding.get() ||
-                  !m_failed.empty();
-
-    if (expect)
+    if (!m_failed.empty() ||
+        !m_yieldable.empty() ||
+        m_yielding.get())
     {
         m_flagfd.set();
     }
-    else
-    {
-        m_flagfd.clear();
-    }
+
+    assert(m_yieldable.empty() || m_flagfd.isset());
 }
 
 int
