@@ -132,6 +132,8 @@ datatype_list :: apply(const e::slice& old_value,
             case FUNC_FAIL:
             case FUNC_STRING_APPEND:
             case FUNC_STRING_PREPEND:
+            case FUNC_STRING_LTRIM:
+            case FUNC_STRING_RTRIM:
             case FUNC_NUM_ADD:
             case FUNC_NUM_SUB:
             case FUNC_NUM_MUL:

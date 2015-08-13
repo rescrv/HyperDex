@@ -1198,6 +1198,160 @@ func (client *Client) GroupStringAppend(spacename string, predicates []Predicate
 \paragraph{Returns:}
 \input{\topdir/go/client/fragments/return_asynccall__status_count}
 
+%%%%%%%%%%%%%%%%%%%% StringLtrim %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{StringLtrim}}
+\label{api:Go:StringLtrim}
+\index{StringLtrim!Go API}
+\input{\topdir/client/fragments/string_ltrim}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) StringLtrim(spacename string, key Value, attributes Attributes) (err *Error)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/go/client/fragments/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/go/client/fragments/in_asynccall_key}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% CondStringLtrim %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{CondStringLtrim}}
+\label{api:Go:CondStringLtrim}
+\index{CondStringLtrim!Go API}
+\input{\topdir/client/fragments/cond_string_ltrim}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) CondStringLtrim(spacename string, key Value, predicates []Predicate, attributes Attributes) (err *Error)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/go/client/fragments/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/go/client/fragments/in_asynccall_key}
+\item \code{predicates}\\
+\input{\topdir/go/client/fragments/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% GroupStringLtrim %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{GroupStringLtrim}}
+\label{api:Go:GroupStringLtrim}
+\index{GroupStringLtrim!Go API}
+\input{\topdir/client/fragments/group_string_ltrim}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) GroupStringLtrim(spacename string, predicates []Predicate, attributes Attributes) (count uint64, err *Error)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/go/client/fragments/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/go/client/fragments/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_asynccall__status_count}
+
+%%%%%%%%%%%%%%%%%%%% StringRtrim %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{StringRtrim}}
+\label{api:Go:StringRtrim}
+\index{StringRtrim!Go API}
+\input{\topdir/client/fragments/string_rtrim}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) StringRtrim(spacename string, key Value, attributes Attributes) (err *Error)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/go/client/fragments/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/go/client/fragments/in_asynccall_key}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% CondStringRtrim %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{CondStringRtrim}}
+\label{api:Go:CondStringRtrim}
+\index{CondStringRtrim!Go API}
+\input{\topdir/client/fragments/cond_string_rtrim}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) CondStringRtrim(spacename string, key Value, predicates []Predicate, attributes Attributes) (err *Error)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/go/client/fragments/in_asynccall_spacename}
+\item \code{key}\\
+\input{\topdir/go/client/fragments/in_asynccall_key}
+\item \code{predicates}\\
+\input{\topdir/go/client/fragments/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_asynccall__status}
+
+%%%%%%%%%%%%%%%%%%%% GroupStringRtrim %%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\subsubsection{\code{GroupStringRtrim}}
+\label{api:Go:GroupStringRtrim}
+\index{GroupStringRtrim!Go API}
+\input{\topdir/client/fragments/group_string_rtrim}
+
+\paragraph{Definition:}
+\begin{gocode}
+func (client *Client) GroupStringRtrim(spacename string, predicates []Predicate, attributes Attributes) (count uint64, err *Error)
+\end{gocode}
+
+\paragraph{Parameters:}
+\begin{itemize}[noitemsep]
+\item \code{spacename}\\
+\input{\topdir/go/client/fragments/in_asynccall_spacename}
+\item \code{predicates}\\
+\input{\topdir/go/client/fragments/in_asynccall_predicates}
+\item \code{attributes}\\
+\input{\topdir/go/client/fragments/in_asynccall_attributes}
+\end{itemize}
+
+\paragraph{Returns:}
+\input{\topdir/go/client/fragments/return_asynccall__status_count}
+
 %%%%%%%%%%%%%%%%%%%% ListLpush %%%%%%%%%%%%%%%%%%%%
 \pagebreak
 \subsubsection{\code{ListLpush}}

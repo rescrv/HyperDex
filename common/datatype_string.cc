@@ -32,6 +32,7 @@
 #include <e/endian.h>
 
 // HyperDex
+#include "common/datatype_int64.h"
 #include "common/datatype_string.h"
 #include "common/regex_match.h"
 #include "cityhash/city.h"
@@ -62,11 +63,30 @@ datatype_string :: validate(const e::slice&) const
 bool
 datatype_string :: check_args(const funcall& func) const
 {
-    return func.arg1_datatype == HYPERDATATYPE_STRING &&
-           validate(func.arg1) &&
-           (func.name == FUNC_SET ||
-            func.name == FUNC_STRING_PREPEND ||
-            func.name == FUNC_STRING_APPEND);
+    if (func.name == FUNC_SET ||
+        func.name == FUNC_STRING_PREPEND ||
+        func.name == FUNC_STRING_APPEND)
+    {
+        return func.arg1_datatype == HYPERDATATYPE_STRING &&
+               validate(func.arg1);
+    }
+    else if (func.name == FUNC_STRING_LTRIM ||
+             func.name == FUNC_STRING_RTRIM)
+    {
+        datatype_info* di = datatype_info::lookup(HYPERDATATYPE_INT64);
+
+        if (func.arg1_datatype != HYPERDATATYPE_INT64 ||
+            !di->validate(func.arg1))
+        {
+            return false;
+        }
+
+        return datatype_int64::unpack(func.arg1) >= 0;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 bool
@@ -86,6 +106,7 @@ datatype_string :: apply(const e::slice& old_value,
     new_memory->allocate(alloc_sz, &ptr);
     size_t sz = old_value.size();
     memmove(ptr, old_value.data(), sz);
+    int64_t x = 0;
 
     for (size_t i = 0; i < funcs_sz; ++i)
     {
@@ -109,6 +130,17 @@ datatype_string :: apply(const e::slice& old_value,
                 memmove(ptr + sz, funcs[i].arg1.data(), funcs[i].arg1.size());
                 // Resize
                 sz += funcs[i].arg1.size();
+                break;
+            case FUNC_STRING_LTRIM:
+                x = datatype_int64::unpack(funcs[i].arg1);
+                x = uint64_t(x) > sz ? sz : x;
+                sz -= x;
+                memmove(ptr, ptr + x, sz);
+                break;
+            case FUNC_STRING_RTRIM:
+                x = datatype_int64::unpack(funcs[i].arg1);
+                x = uint64_t(x) > sz ? sz : x;
+                sz -= x;
                 break;
             case FUNC_FAIL:
             case FUNC_NUM_ADD:

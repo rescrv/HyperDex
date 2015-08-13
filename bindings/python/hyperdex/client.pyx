@@ -230,6 +230,14 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_uxact_string_append(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_string_append(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_group_string_append(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
+    int64_t hyperdex_client_string_ltrim(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_string_ltrim(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
+    int64_t hyperdex_client_cond_string_ltrim(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_string_ltrim(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
+    int64_t hyperdex_client_string_rtrim(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_uxact_string_rtrim(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
+    int64_t hyperdex_client_cond_string_rtrim(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_group_string_rtrim(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status, uint64_t* count)
     int64_t hyperdex_client_list_lpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_uxact_list_lpush(hyperdex_client* client, hyperdex_client_microtransaction* microtransaction, const hyperdex_client_attribute* attrs, size_t attrs_sz)
     int64_t hyperdex_client_cond_list_lpush(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
@@ -1266,6 +1274,22 @@ cdef class Microtransaction:
         if res < 0:
             raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
         return True
+    def string_ltrim(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_string_ltrim(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
+    def string_rtrim(self, dict attributes):
+        cdef hyperdex_client_attribute* in_attrs
+        cdef size_t in_attrs_sz
+        self.client.convert_attributes(self.deferred.arena, attributes, &in_attrs, &in_attrs_sz)
+        res = hyperdex_client_uxact_string_rtrim(self.client.client, self.transaction, in_attrs, in_attrs_sz)
+        if res < 0:
+            raise HyperDexClientException(self.deferred.status, hyperdex_client_error_message(self.client.client))
+        return True
     def list_lpush(self, dict attributes):
         cdef hyperdex_client_attribute* in_attrs
         cdef size_t in_attrs_sz
@@ -2012,6 +2036,36 @@ cdef class Client:
         return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_string_append, spacename, predicates, attributes, auth)
     def group_string_append(self, bytes spacename, dict predicates, dict attributes, auth=None):
         return self.async_group_string_append(spacename, predicates, attributes, auth).wait()
+
+    def async_string_ltrim(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_string_ltrim, spacename, key, attributes, auth)
+    def string_ltrim(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_string_ltrim(spacename, key, attributes, auth).wait()
+
+    def async_cond_string_ltrim(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_ltrim, spacename, key, predicates, attributes, auth)
+    def cond_string_ltrim(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_string_ltrim(spacename, key, predicates, attributes, auth).wait()
+
+    def async_group_string_ltrim(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_string_ltrim, spacename, predicates, attributes, auth)
+    def group_string_ltrim(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.async_group_string_ltrim(spacename, predicates, attributes, auth).wait()
+
+    def async_string_rtrim(self, bytes spacename, key, dict attributes, auth=None):
+        return self.asynccall__spacename_key_attributes__status(hyperdex_client_string_rtrim, spacename, key, attributes, auth)
+    def string_rtrim(self, bytes spacename, key, dict attributes, auth=None):
+        return self.async_string_rtrim(spacename, key, attributes, auth).wait()
+
+    def async_cond_string_rtrim(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_rtrim, spacename, key, predicates, attributes, auth)
+    def cond_string_rtrim(self, bytes spacename, key, dict predicates, dict attributes, auth=None):
+        return self.async_cond_string_rtrim(spacename, key, predicates, attributes, auth).wait()
+
+    def async_group_string_rtrim(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_string_rtrim, spacename, predicates, attributes, auth)
+    def group_string_rtrim(self, bytes spacename, dict predicates, dict attributes, auth=None):
+        return self.async_group_string_rtrim(spacename, predicates, attributes, auth).wait()
 
     def async_list_lpush(self, bytes spacename, key, dict attributes, auth=None):
         return self.asynccall__spacename_key_attributes__status(hyperdex_client_list_lpush, spacename, key, attributes, auth)

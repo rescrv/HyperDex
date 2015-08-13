@@ -196,6 +196,8 @@ datatype_int64 :: apply(const e::slice& old_value,
                 break;
             case FUNC_STRING_APPEND:
             case FUNC_STRING_PREPEND:
+            case FUNC_STRING_LTRIM:
+            case FUNC_STRING_RTRIM:
             case FUNC_LIST_LPUSH:
             case FUNC_LIST_RPUSH:
             case FUNC_SET_ADD:

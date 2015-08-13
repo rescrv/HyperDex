@@ -417,6 +417,54 @@ JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1gr
 
 /*
  * Class:     org_hyperdex_client_Client
+ * Method:    async_string_ltrim
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1string_1ltrim
+  (JNIEnv *, jobject, jstring, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Client
+ * Method:    async_cond_string_ltrim
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1string_1ltrim
+  (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Client
+ * Method:    async_group_string_ltrim
+ * Signature: (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1group_1string_1ltrim
+  (JNIEnv *, jobject, jstring, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Client
+ * Method:    async_string_rtrim
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1string_1rtrim
+  (JNIEnv *, jobject, jstring, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Client
+ * Method:    async_cond_string_rtrim
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1string_1rtrim
+  (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Client
+ * Method:    async_group_string_rtrim
+ * Signature: (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1group_1string_1rtrim
+  (JNIEnv *, jobject, jstring, jobject, jobject);
+
+/*
+ * Class:     org_hyperdex_client_Client
  * Method:    async_list_lpush
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */

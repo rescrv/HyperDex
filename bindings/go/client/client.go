@@ -2183,6 +2183,48 @@ func (client *Client) GroupStringAppend(spacename string, predicates []Predicate
 	return client.AsynccallSpacenamePredicatesAttributesStatusCount(stub_group_string_append, spacename, predicates, attributes)
 }
 
+func stub_string_ltrim(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
+	return int64(C.hyperdex_client_string_ltrim(client, space, key, key_sz, attrs, attrs_sz, status))
+}
+func (client *Client) StringLtrim(spacename string, key Value, attributes Attributes) (err *Error) {
+	return client.AsynccallSpacenameKeyAttributesStatus(stub_string_ltrim, spacename, key, attributes)
+}
+
+func stub_cond_string_ltrim(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
+	return int64(C.hyperdex_client_cond_string_ltrim(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
+}
+func (client *Client) CondStringLtrim(spacename string, key Value, predicates []Predicate, attributes Attributes) (err *Error) {
+	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_string_ltrim, spacename, key, predicates, attributes)
+}
+
+func stub_group_string_ltrim(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_string_ltrim(client, space, checks, checks_sz, attrs, attrs_sz, status, count))
+}
+func (client *Client) GroupStringLtrim(spacename string, predicates []Predicate, attributes Attributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesAttributesStatusCount(stub_group_string_ltrim, spacename, predicates, attributes)
+}
+
+func stub_string_rtrim(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
+	return int64(C.hyperdex_client_string_rtrim(client, space, key, key_sz, attrs, attrs_sz, status))
+}
+func (client *Client) StringRtrim(spacename string, key Value, attributes Attributes) (err *Error) {
+	return client.AsynccallSpacenameKeyAttributesStatus(stub_string_rtrim, spacename, key, attributes)
+}
+
+func stub_cond_string_rtrim(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
+	return int64(C.hyperdex_client_cond_string_rtrim(client, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status))
+}
+func (client *Client) CondStringRtrim(spacename string, key Value, predicates []Predicate, attributes Attributes) (err *Error) {
+	return client.AsynccallSpacenameKeyPredicatesAttributesStatus(stub_cond_string_rtrim, spacename, key, predicates, attributes)
+}
+
+func stub_group_string_rtrim(client *C.struct_hyperdex_client, space *C.char, checks *C.struct_hyperdex_client_attribute_check, checks_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode, count *C.uint64_t) int64 {
+	return int64(C.hyperdex_client_group_string_rtrim(client, space, checks, checks_sz, attrs, attrs_sz, status, count))
+}
+func (client *Client) GroupStringRtrim(spacename string, predicates []Predicate, attributes Attributes) (count uint64, err *Error) {
+	return client.AsynccallSpacenamePredicatesAttributesStatusCount(stub_group_string_rtrim, spacename, predicates, attributes)
+}
+
 func stub_list_lpush(client *C.struct_hyperdex_client, space *C.char, key *C.char, key_sz C.size_t, attrs *C.struct_hyperdex_client_attribute, attrs_sz C.size_t, status *C.enum_hyperdex_client_returncode) int64 {
 	return int64(C.hyperdex_client_list_lpush(client, space, key, key_sz, attrs, attrs_sz, status))
 }

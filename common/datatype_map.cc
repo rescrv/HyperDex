@@ -198,6 +198,8 @@ datatype_map :: apply(const e::slice& old_value,
                 break;
             case FUNC_STRING_APPEND:
             case FUNC_STRING_PREPEND:
+            case FUNC_STRING_LTRIM:
+            case FUNC_STRING_RTRIM:
             case FUNC_NUM_ADD:
             case FUNC_NUM_MIN:
             case FUNC_NUM_MAX:

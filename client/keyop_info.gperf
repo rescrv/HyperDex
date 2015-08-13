@@ -77,6 +77,14 @@ string_append,           false, true,  false,  hyperdex::FUNC_STRING_APPEND
 uxact_string_append,     false, true,  false,  hyperdex::FUNC_STRING_APPEND
 cond_string_append,      false, true,  false,  hyperdex::FUNC_STRING_APPEND
 group_string_append,     false, true,  false,  hyperdex::FUNC_STRING_APPEND
+string_ltrim,            false, true,  false,  hyperdex::FUNC_STRING_LTRIM
+uxact_string_ltrim,      false, true,  false,  hyperdex::FUNC_STRING_LTRIM
+cond_string_ltrim,       false, true,  false,  hyperdex::FUNC_STRING_LTRIM
+group_string_ltrim,      false, true,  false,  hyperdex::FUNC_STRING_LTRIM
+string_rtrim,            false, true,  false,  hyperdex::FUNC_STRING_RTRIM
+uxact_string_rtrim,      false, true,  false,  hyperdex::FUNC_STRING_RTRIM
+cond_string_rtrim,       false, true,  false,  hyperdex::FUNC_STRING_RTRIM
+group_string_rtrim,      false, true,  false,  hyperdex::FUNC_STRING_RTRIM
 list_lpush,              false, true,  false,  hyperdex::FUNC_LIST_LPUSH
 uxact_list_lpush,        false, true,  false,  hyperdex::FUNC_LIST_LPUSH
 cond_list_lpush,         false, true,  false,  hyperdex::FUNC_LIST_LPUSH

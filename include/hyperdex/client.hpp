@@ -318,6 +318,40 @@ class Client
                                     hyperdex_client_returncode* status,
                                     uint64_t* count)
             { return hyperdex_client_group_string_append(m_cl, space, checks, checks_sz, attrs, attrs_sz, status, count); }
+        int64_t string_ltrim(const char* space,
+                             const char* key, size_t key_sz,
+                             const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                             hyperdex_client_returncode* status)
+            { return hyperdex_client_string_ltrim(m_cl, space, key, key_sz, attrs, attrs_sz, status); }
+        int64_t cond_string_ltrim(const char* space,
+                                  const char* key, size_t key_sz,
+                                  const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                  const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                  hyperdex_client_returncode* status)
+            { return hyperdex_client_cond_string_ltrim(m_cl, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status); }
+        int64_t group_string_ltrim(const char* space,
+                                   const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                   const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                   hyperdex_client_returncode* status,
+                                   uint64_t* count)
+            { return hyperdex_client_group_string_ltrim(m_cl, space, checks, checks_sz, attrs, attrs_sz, status, count); }
+        int64_t string_rtrim(const char* space,
+                             const char* key, size_t key_sz,
+                             const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                             hyperdex_client_returncode* status)
+            { return hyperdex_client_string_rtrim(m_cl, space, key, key_sz, attrs, attrs_sz, status); }
+        int64_t cond_string_rtrim(const char* space,
+                                  const char* key, size_t key_sz,
+                                  const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                  const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                  hyperdex_client_returncode* status)
+            { return hyperdex_client_cond_string_rtrim(m_cl, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status); }
+        int64_t group_string_rtrim(const char* space,
+                                   const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                   const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                   hyperdex_client_returncode* status,
+                                   uint64_t* count)
+            { return hyperdex_client_group_string_rtrim(m_cl, space, checks, checks_sz, attrs, attrs_sz, status, count); }
         int64_t list_lpush(const char* space,
                            const char* key, size_t key_sz,
                            const hyperdex_client_attribute* attrs, size_t attrs_sz,

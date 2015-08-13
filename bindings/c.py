@@ -509,13 +509,6 @@ inline void return_void() {}
     { \\
         X \\
     } \\
-    catch (po6::error& e) \\
-    { \\
-        errno = e; \\
-        *status = HYPERDEX_CLIENT_EXCEPTION; \\
-        cl->set_error_message("unhandled exception was thrown"); \\
-        return -1; \\
-    } \\
     catch (std::bad_alloc& ba) \\
     { \\
         errno = ENOMEM; \\
@@ -544,11 +537,6 @@ hyperdex_client_create(const char* coordinator, uint16_t port)
     {
         return reinterpret_cast<hyperdex_client*>(new hyperdex::client(coordinator, port));
     }
-    catch (po6::error& e)
-    {
-        errno = e;
-        return NULL;
-    }
     catch (std::bad_alloc& ba)
     {
         errno = ENOMEM;
@@ -568,11 +556,6 @@ hyperdex_client_create_conn_str(const char* conn_str)
     try
     {
         return reinterpret_cast<hyperdex_client*>(new hyperdex::client(conn_str));
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        return NULL;
     }
     catch (std::bad_alloc& ba)
     {
@@ -657,13 +640,6 @@ hyperdex_client_attribute_type(hyperdex_client* _cl,
     try
     {
         return cl->attribute_type(space, name, status);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERDEX_CLIENT_EXCEPTION;
-        cl->set_error_message("unhandled exception was thrown");
-        return HYPERDATATYPE_GARBAGE;
     }
     catch (std::bad_alloc& ba)
     {
@@ -915,12 +891,6 @@ inline void return_void() {}
     { \\
         X \\
     } \\
-    catch (po6::error& e) \\
-    { \\
-        errno = e; \\
-        *status = HYPERDEX_ADMIN_EXCEPTION; \\
-        return -1; \\
-    } \\
     catch (std::bad_alloc& ba) \\
     { \\
         errno = ENOMEM; \\
@@ -942,11 +912,6 @@ hyperdex_admin_create(const char* coordinator, uint16_t port)
     try
     {
         return reinterpret_cast<struct hyperdex_admin*>(new hyperdex::admin(coordinator, port));
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        return NULL;
     }
     catch (std::bad_alloc& ba)
     {

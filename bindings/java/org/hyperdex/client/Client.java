@@ -384,6 +384,42 @@ public class Client
         return (Long) async_group_string_append(spacename, predicates, attributes).waitForIt();
     }
 
+    public native Deferred async_string_ltrim(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean string_ltrim(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Boolean) async_string_ltrim(spacename, key, attributes).waitForIt();
+    }
+
+    public native Deferred async_cond_string_ltrim(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_string_ltrim(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Boolean) async_cond_string_ltrim(spacename, key, predicates, attributes).waitForIt();
+    }
+
+    public native Deferred async_group_string_ltrim(String spacename, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Long group_string_ltrim(String spacename, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Long) async_group_string_ltrim(spacename, predicates, attributes).waitForIt();
+    }
+
+    public native Deferred async_string_rtrim(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean string_rtrim(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Boolean) async_string_rtrim(spacename, key, attributes).waitForIt();
+    }
+
+    public native Deferred async_cond_string_rtrim(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Boolean cond_string_rtrim(String spacename, Object key, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Boolean) async_cond_string_rtrim(spacename, key, predicates, attributes).waitForIt();
+    }
+
+    public native Deferred async_group_string_rtrim(String spacename, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException;
+    public Long group_string_rtrim(String spacename, Map<String, Object> predicates, Map<String, Object> attributes) throws HyperDexClientException
+    {
+        return (Long) async_group_string_rtrim(spacename, predicates, attributes).waitForIt();
+    }
+
     public native Deferred async_list_lpush(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException;
     public Boolean list_lpush(String spacename, Object key, Map<String, Object> attributes) throws HyperDexClientException
     {

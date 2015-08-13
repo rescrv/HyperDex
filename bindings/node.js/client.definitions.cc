@@ -875,6 +875,42 @@ HyperDexClient :: group_string_append(const v8::Arguments& args)
 }
 
 v8::Handle<v8::Value>
+HyperDexClient :: string_ltrim(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_attributes__status(hyperdex_client_string_ltrim, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: cond_string_ltrim(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_ltrim, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_string_ltrim(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_string_ltrim, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: string_rtrim(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_attributes__status(hyperdex_client_string_rtrim, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: cond_string_rtrim(const v8::Arguments& args)
+{
+    return asynccall__spacename_key_predicates_attributes__status(hyperdex_client_cond_string_rtrim, args);
+}
+
+v8::Handle<v8::Value>
+HyperDexClient :: group_string_rtrim(const v8::Arguments& args)
+{
+    return asynccall__spacename_predicates_attributes__status_count(hyperdex_client_group_string_rtrim, args);
+}
+
+v8::Handle<v8::Value>
 HyperDexClient :: list_lpush(const v8::Arguments& args)
 {
     return asynccall__spacename_key_attributes__status(hyperdex_client_list_lpush, args);
