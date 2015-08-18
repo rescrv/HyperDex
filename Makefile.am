@@ -87,19 +87,19 @@ TESTS =
 
 gperf_verbose = $(gperf_verbose_$(V))
 gperf_verbose_ = $(gperf_verbose_$(AM_DEFAULT_VERBOSITY))
-gperf_verbose_0 = @echo "  GPERF " $@;
+gperf_verbose_0 = @echo "  GPERF   " $@;
 help2man_verbose = $(help2man_verbose_$(V))
 help2man_verbose_ = $(help2man_verbose_$(AM_DEFAULT_VERBOSITY))
-help2man_verbose_0 = @echo "  MAN   " $@;
+help2man_verbose_0 = @echo "  MAN     " $@;
 pandoc_verbose = $(pandoc_verbose_$(V))
 pandoc_verbose_ = $(pandoc_verbose_$(AM_DEFAULT_VERBOSITY))
-pandoc_verbose_0 = @echo "  PANDOC" $@;
+pandoc_verbose_0 = @echo "  PANDOC  " $@;
 pyx_verbose = $(pyx_verbose_$(V))
 pyx_verbose_ = $(pyx_verbose_$(AM_DEFAULT_VERBOSITY))
 pyx_verbose_0 = @echo "  PYX   " $@;
 sed_verbose = $(sed_verbose_$(V))
 sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
-sed_verbose_0 = @echo "  SED   " $@;
+sed_verbose_0 = @echo "  SED     " $@;
 
 th_sources = test/th_main.cc test/th.cc test/th.h
 
@@ -801,16 +801,27 @@ check_PROGRAMS += test/replication-stress-test
 check_PROGRAMS += test/search-stress-test
 check_PROGRAMS += test/simple-consistency-stress-test
 
-shell_wrappers =
+EXTRA_DIST += test/env.sh
+EXTRA_DIST += test/runner.py
+EXTRA_DIST += test/gremlin/5-node-cluster
 
-doctest_wrappers =
-doctest_wrappers += test/sh/doc.quick-start.sh
-doctest_wrappers += test/sh/doc.data-types.sh
-doctest_wrappers += test/sh/doc.documents.sh
-doctest_wrappers += test/sh/doc.async-ops.sh
-doctest_wrappers += test/sh/doc.atomic-ops.sh
-doctest_wrappers += test/sh/doc.authorization.sh
-shell_wrappers += $(doctest_wrappers)
+doctest_gremlins =
+doctest_gremlins += test/gremlin/doc.quick-start
+doctest_gremlins += test/gremlin/doc.data-types
+doctest_gremlins += test/gremlin/doc.async-ops
+doctest_gremlins += test/gremlin/doc.atomic-ops
+doctest_gremlins += test/gremlin/doc.documents
+doctest_gremlins += test/gremlin/doc.authorization
+EXTRA_DIST += $(doctest_gremlins)
+EXTRA_DIST += test/doc.async-ops.py
+EXTRA_DIST += test/doc.atomic-ops.py
+EXTRA_DIST += test/doc.authorization.py
+EXTRA_DIST += test/doc.data-types.py
+EXTRA_DIST += test/doc.documents.py
+EXTRA_DIST += test/doc-extract.py
+EXTRA_DIST += test/doc.mongo.py
+EXTRA_DIST += test/doc.quick-start.py
+EXTRA_DIST += test/doctest-runner.py
 
 stress_wrappers =
 stress_wrappers += test/sh/replication.simple.daemons=1.fault-tolerance=0.sh
@@ -849,7 +860,7 @@ stress_wrappers += test/sh/search.combination.keytype=int,daemons=4.fault-tolera
 stress_wrappers += test/sh/search.combination.keytype=string,daemons=1.fault-tolerance=0.sh
 stress_wrappers += test/sh/search.combination.keytype=string,daemons=4.fault-tolerance=0.sh
 stress_wrappers += test/sh/search.combination.keytype=string,daemons=4.fault-tolerance=1.sh
-shell_wrappers += $(stress_wrappers)
+EXTRA_DIST += $(stress_wrappers)
 
 python_wrappers =
 python_wrappers += test/sh/bindings.python.Admin.sh
@@ -883,7 +894,7 @@ python_wrappers += test/sh/bindings.python.MultiAttribute.sh
 python_wrappers += test/sh/bindings.python.RangeSearchInt.sh
 python_wrappers += test/sh/bindings.python.RangeSearchString.sh
 python_wrappers += test/sh/bindings.python.RegexSearch.sh
-shell_wrappers += $(python_wrappers)
+EXTRA_DIST += $(python_wrappers)
 
 java_wrappers =
 java_wrappers += test/sh/bindings.java.BasicSearch.sh
@@ -915,7 +926,7 @@ java_wrappers += test/sh/bindings.java.MultiAttribute.sh
 java_wrappers += test/sh/bindings.java.RangeSearchInt.sh
 java_wrappers += test/sh/bindings.java.RangeSearchString.sh
 java_wrappers += test/sh/bindings.java.RegexSearch.sh
-shell_wrappers += $(java_wrappers)
+EXTRA_DIST += $(java_wrappers)
 
 ruby_wrappers =
 ruby_wrappers += test/sh/bindings.ruby.BasicSearch.sh
@@ -944,7 +955,7 @@ ruby_wrappers += test/sh/bindings.ruby.MultiAttribute.sh
 ruby_wrappers += test/sh/bindings.ruby.RangeSearchInt.sh
 ruby_wrappers += test/sh/bindings.ruby.RangeSearchString.sh
 ruby_wrappers += test/sh/bindings.ruby.RegexSearch.sh
-shell_wrappers += $(ruby_wrappers)
+EXTRA_DIST += $(ruby_wrappers)
 
 go_wrappers =
 go_wrappers += test/sh/bindings.go.Basic.sh
@@ -973,12 +984,12 @@ go_wrappers += test/sh/bindings.go.MultiAttribute.sh
 go_wrappers += test/sh/bindings.go.RangeSearchInt.sh
 go_wrappers += test/sh/bindings.go.RangeSearchString.sh
 go_wrappers += test/sh/bindings.go.RegexSearch.sh
-shell_wrappers += $(go_wrappers)
+EXTRA_DIST += $(go_wrappers)
 
 if ENABLE_ADMIN
 if ENABLE_CLIENT
 if ENABLE_PYTHON_BINDINGS
-TESTS += $(doctest_wrappers)
+TESTS += $(doctest_gremlins)
 
 TESTS += $(python_wrappers)
 check_PROGRAMS += bindings/python/hyperdex/admin.so
@@ -1000,18 +1011,6 @@ endif # ENABLE_PYTHON_BINDINGS
 endif # ENABLE_CLIENT
 endif # ENABLE_ADMIN
 
-EXTRA_DIST += $(shell_wrappers)
-EXTRA_DIST += test/doc.async-ops.py
-EXTRA_DIST += test/doc.atomic-ops.py
-EXTRA_DIST += test/doc.authorization.py
-EXTRA_DIST += test/doc.data-types.py
-EXTRA_DIST += test/doc.documents.py
-EXTRA_DIST += test/doc-extract.py
-EXTRA_DIST += test/doc.mongo.py
-EXTRA_DIST += test/doc.quick-start.py
-EXTRA_DIST += test/doctest-runner.py
-EXTRA_DIST += test/env.sh
-EXTRA_DIST += test/runner.py
 EXTRA_DIST += test/python/Admin.py
 EXTRA_DIST += test/python/Basic.py
 EXTRA_DIST += test/python/BasicSearch.py

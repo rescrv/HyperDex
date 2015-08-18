@@ -1,0 +1,4 @@
+#!/usr/bin/env gremlin
+include 5-node-cluster
+
+run python2 "${HYPERDEX_SRCDIR}"/test/doctest-runner.py "${HYPERDEX_SRCDIR}"/test/doc.data-types.py 127.0.0.1 1982

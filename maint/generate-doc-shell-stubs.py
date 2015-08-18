@@ -1,13 +1,13 @@
 import os
 
-template = '''#!/bin/sh
-python2 "${{HYPERDEX_SRCDIR}}"/test/runner.py --daemons=1 -- \\
-    python2 "${{HYPERDEX_SRCDIR}}"/test/doctest-runner.py \\
-           "${{HYPERDEX_SRCDIR}}"/test/doc.{name}.py {{HOST}} {{PORT}}
+template = '''#!/usr/bin/env gremlin
+include 5-node-cluster
+
+run python2 "${{HYPERDEX_SRCDIR}}"/test/doctest-runner.py "${{HYPERDEX_SRCDIR}}"/test/doc.{name}.py 127.0.0.1 1982
 '''
 
 for x in ('quick-start', 'data-types', 'async-ops', 'atomic-ops', 'documents', 'authorization'):
-    fname = 'test/sh/doc.{name}.sh'.format(name=x)
+    fname = 'test/gremlin/doc.{name}'.format(name=x)
     f = open(fname, 'w')
     f.write(template.format(name=x))
     f.flush()
