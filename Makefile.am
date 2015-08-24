@@ -801,7 +801,14 @@ check_PROGRAMS += test/simple-consistency-stress-test
 
 EXTRA_DIST += test/env.sh
 EXTRA_DIST += test/runner.py
+EXTRA_DIST += test/add-space
+EXTRA_DIST += test/gremlin/1-node-cluster
+EXTRA_DIST += test/gremlin/1-node-cluster-no-mt
+EXTRA_DIST += test/gremlin/4-node-cluster
+EXTRA_DIST += test/gremlin/4-node-cluster-no-mt
 EXTRA_DIST += test/gremlin/5-node-cluster
+EXTRA_DIST += test/gremlin/5-node-cluster-no-mt
+
 
 doctest_gremlins =
 doctest_gremlins += test/gremlin/doc.quick-start
