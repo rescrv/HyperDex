@@ -1,0 +1,6 @@
+#!/usr/bin/env gremlin
+include 4-node-cluster-no-mt
+
+run "${HYPERDEX_SRCDIR}"/test/add-space 127.0.0.1 1982 "space replication key int A attributes int B, int C subspace C subspace B create 4 partitions tolerate 0 failures"
+run sleep 1
+run "${HYPERDEX_BUILDDIR}"/test/replication-stress-test -n 4 -h 127.0.0.1 -p 1982

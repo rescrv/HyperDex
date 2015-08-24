@@ -19,15 +19,15 @@ run replicant server-status --host 127.0.0.1 --port 1985
 daemon hyperdex coordinator --foreground --data=coord4 --listen 127.0.0.1 --listen-port 1986 --connect-port 1985
 run replicant server-status --host 127.0.0.1 --port 1986
 
-daemon hyperdex daemon --foreground --data=daemon0 --listen 127.0.0.1 --listen-port 2012 --coordinator 127.0.0.1 --coordinator-port 1982
+daemon hyperdex daemon --foreground --threads 1 --data=daemon0 --listen 127.0.0.1 --listen-port 2012 --coordinator 127.0.0.1 --coordinator-port 1982
 #run replicant server-status --host 127.0.0.1 --port 1982
-daemon hyperdex daemon --foreground --data=daemon1 --listen 127.0.0.1 --listen-port 2013 --coordinator 127.0.0.1 --coordinator-port 1983
+daemon hyperdex daemon --foreground --threads 1 --data=daemon1 --listen 127.0.0.1 --listen-port 2013 --coordinator 127.0.0.1 --coordinator-port 1983
 #run replicant server-status --host 127.0.0.1 --port 1983
-daemon hyperdex daemon --foreground --data=daemon2 --listen 127.0.0.1 --listen-port 2014 --coordinator 127.0.0.1 --coordinator-port 1984
+daemon hyperdex daemon --foreground --threads 1 --data=daemon2 --listen 127.0.0.1 --listen-port 2014 --coordinator 127.0.0.1 --coordinator-port 1984
 #run replicant server-status --host 127.0.0.1 --port 1984
-daemon hyperdex daemon --foreground --data=daemon3 --listen 127.0.0.1 --listen-port 2015 --coordinator 127.0.0.1 --coordinator-port 1985
+daemon hyperdex daemon --foreground --threads 1 --data=daemon3 --listen 127.0.0.1 --listen-port 2015 --coordinator 127.0.0.1 --coordinator-port 1985
 #run replicant server-status --host 127.0.0.1 --port 1985
-daemon hyperdex daemon --foreground --data=daemon4 --listen 127.0.0.1 --listen-port 2016 --coordinator 127.0.0.1 --coordinator-port 1986
+daemon hyperdex daemon --foreground --threads 1 --data=daemon4 --listen 127.0.0.1 --listen-port 2016 --coordinator 127.0.0.1 --coordinator-port 1986
 #run replicant server-status --host 127.0.0.1 --port 1986
 
 run sleep 2

@@ -1,0 +1,17 @@
+env GLOG_logtostderr
+env GLOG_minloglevel 0
+env GLOG_logbufsecs 0
+
+tcp-port 1982
+tcp-port 2012
+
+run mkdir coord0
+run mkdir daemon0
+
+daemon hyperdex coordinator --foreground --data=coord0 --listen 127.0.0.1 --listen-port 1982
+run replicant server-status --host 127.0.0.1 --port 1982
+
+daemon hyperdex daemon --foreground --data=daemon0 --listen 127.0.0.1 --listen-port 2012 --coordinator 127.0.0.1 --coordinator-port 1982
+#run replicant server-status --host 127.0.0.1 --port 1982
+
+run sleep 2

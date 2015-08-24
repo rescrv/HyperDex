@@ -35,21 +35,21 @@ def double_quote(x):
     y = '"' + y[1:-1] + '"'
     return y
 
-def gen_shell(lang, name, cmd, space, precmd=None):
-    shell = '#!/bin/sh\n'
+def gen_gremlin(lang, name, cmd, space, precmd=None):
+    shell = '#!/usr/bin/env gremlin\n'
+    shell += 'include 1-node-cluster\n\n'
     if precmd is not None:
-        shell += precmd + '\n'
-    shell += '''
-python2 "${{HYPERDEX_SRCDIR}}"/test/runner.py --space="{0}" --daemons=1 -- \\
-    {1} {{HOST}} {{PORT}}
-'''.format(space, cmd)
-    path = 'test/sh/bindings.{0}.{1}.sh'.format(lang, name)
+        shell += 'run ' + precmd + '\n'
+    shell += 'run "${{HYPERDEX_SRCDIR}}"/test/add-space 127.0.0.1 1982 "{0}"\n'.format(space)
+    shell += 'run sleep 1\n'
+    shell += 'run {0} 127.0.0.1 1982\n'.format(cmd)
+    path = 'test/gremlin/bindings.{0}.{1}'.format(lang, name)
     f = open(path, 'w')
     f.write(shell)
     f.flush()
     f.close()
     os.chmod(path, 0755)
-    print 'shellwrappers += ' + path
+    return path
 
 class LessEqual(object):
     def __init__(self, x):
@@ -110,6 +110,10 @@ class BindingGenerator(object):
 
     __metaclass__ = abc.ABCMeta
 
+    @abc.abstractproperty
+    def LANG(self):
+        return 'UNDEFINED'
+
     @abc.abstractmethod
     def test(self, name, space):
         pass
@@ -139,11 +143,18 @@ class PythonGenerator(BindingGenerator):
 
     def __init__(self):
         self.f = None
+        self.gremlins = []
+        self.paths = []
+
+    @property
+    def LANG(self):
+        return 'python'
 
     def test(self, name, space):
         assert self.f is None
         self.name = 'test/python/{0}.py'.format(name)
-        gen_shell('python', name, 'python2 "${HYPERDEX_SRCDIR}"/' + self.name, space)
+        p = gen_gremlin('python', name, 'python2 "${HYPERDEX_SRCDIR}"/' + self.name, space)
+        self.gremlins.append(p)
         self.f = open(self.name, 'w')
         self.f.write('''#!/usr/bin/env python2
 import sys
@@ -159,6 +170,7 @@ def to_objectset(xs):
         self.f.close()
         self.f = None
         os.chmod(self.name, 0755)
+        self.paths.append(self.name)
 
     def get(self, space, key, expected):
         self.f.write('assert c.get({0!r}, {1!r}) == {2!r}\n'.format(space, key, expected))
@@ -182,12 +194,19 @@ class RubyGenerator(BindingGenerator):
 
     def __init__(self):
         self.f = None
+        self.gremlins = []
+        self.paths = []
+
+    @property
+    def LANG(self):
+        return 'ruby'
 
     def test(self, name, space):
         assert self.f is None
         self.count = 0
         self.name = 'test/ruby/{0}.rb'.format(name)
-        gen_shell('ruby', name, 'ruby "${HYPERDEX_SRCDIR}"/' + self.name, space)
+        p = gen_gremlin('ruby', name, 'ruby "${HYPERDEX_SRCDIR}"/' + self.name, space)
+        self.gremlins.append(p)
         self.f = open(self.name, 'w')
         self.f.write('''#!/usr/bin/env ruby
 require 'hyperdex'
@@ -223,6 +242,7 @@ c = HyperDex::Client::Client.new(ARGV[0], ARGV[1].to_i)
         self.f.close()
         self.f = None
         os.chmod(self.name, 0755)
+        self.paths.append(self.name)
 
     def get(self, space, key, expected):
         self.f.write('assert {{ c.get({0}, {1}) == {2} }}\n'
@@ -307,6 +327,12 @@ class JavaGenerator(BindingGenerator):
 
     def __init__(self):
         self.f = None
+        self.gremlins = []
+        self.paths = []
+
+    @property
+    def LANG(self):
+        return 'java'
 
     def test(self, name, space):
         assert self.f is None
@@ -314,7 +340,8 @@ class JavaGenerator(BindingGenerator):
         self.path = 'test/java/{0}.java'.format(name)
         precmd = 'javac -d "${{HYPERDEX_BUILDDIR}}"/test/java "${{HYPERDEX_SRCDIR}}"/test/java/{0}.java'.format(name)
         cmd = 'java -ea -Djava.library.path="${{HYPERDEX_BUILDDIR}}"/.libs:/usr/local/lib:/usr/local/lib64:/usr/lib:/usr/lib64 {0}'.format(name)
-        gen_shell('java', name, cmd, space, precmd=precmd)
+        p = gen_gremlin('java', name, cmd, space, precmd=precmd)
+        self.gremlins.append(p)
         self.f = open(self.path, 'w')
         self.f.write('''import java.util.*;
 
@@ -347,6 +374,7 @@ public class {0}
         self.f.close()
         self.f = None
         os.chmod(self.path, 0755)
+        self.paths.append(self.path)
 
     def get(self, space, key, expected):
         c = self.count
@@ -521,11 +549,18 @@ class GoGenerator(BindingGenerator):
 
     def __init__(self):
         self.f = None
+        self.gremlins = []
+        self.paths = []
+
+    @property
+    def LANG(self):
+        return 'go'
 
     def test(self, name, space):
         assert self.f is None
         self.path = 'test/go/{0}.go'.format(name)
-        gen_shell('go', name, 'go run test/go/{0}.go'.format(name), space)
+        p = gen_gremlin('go', name, 'go run test/go/{0}.go'.format(name), space)
+        self.gremlins.append(p)
         self.f = open(self.path, 'w')
         self.f.write('package main\n\n')
         self.f.write('import "fmt"\n')
@@ -630,6 +665,7 @@ func sloppyEqualAttributes(lhs client.Attributes, rhs client.Attributes) bool {
         self.f.flush()
         self.f.close()
         self.f = None
+        self.paths.append(self.path)
 
     def get(self, space, key, expected):
         self.f.write('\tattrs, err = c.Get({0}, {1})\n'.format(self.to_go(space), self.to_go(key)))
@@ -1141,3 +1177,33 @@ t.search('kv', {'k': LengthLessEqual(3)},
 t.search('kv', {'k': LengthGreaterEqual(3)},
          [{'k': 'ABC'}, {'k': 'ABCD'}, {'k': 'ABCDE'}])
 t.finish()
+
+# Adjust the Makefile.am
+def adjust_makefile(replacement):
+    text = open('Makefile.am', 'r').read()
+    if not replacement.endswith('\n'):
+        replacement += '\n'
+    START = '# Begin Automatically Generated Gremlins\n'
+    END = '# End Automatically Generated Gremlins\n'
+    head, tail = text.split(START)
+    body, tail = tail.split(END)
+    last_line = body.rsplit('\n')[-1]
+    text = head + START + replacement + last_line + END + tail
+    f = open('Makefile.am', 'w')
+    f.write(text)
+    f.flush()
+    f.close()
+
+gremlins = ''
+prev = None
+for gen in t.generators:
+    if prev is not None:
+        gremlins += '\n'
+    gremlins += '{0}_gremlins =\n'.format(gen.LANG)
+    for p in gen.gremlins:
+        gremlins += '{0}_gremlins += {1}\n'.format(gen.LANG, p)
+    gremlins += 'EXTRA_DIST += $({0}_gremlins)\n'.format(gen.LANG)
+    for p in gen.paths:
+        gremlins += 'EXTRA_DIST += {0}\n'.format(p)
+    prev = gen.LANG
+adjust_makefile(gremlins)

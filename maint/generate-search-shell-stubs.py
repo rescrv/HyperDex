@@ -1,9 +1,11 @@
 import os
 
-template = '''#!/bin/sh
-SPACE="{space} create {daemons} partitions tolerate {ft} failures"
-exec python2 "${{HYPERDEX_SRCDIR}}"/test/runner.py --daemons={daemons} --space="${{SPACE}}" -- \\
-     "${{HYPERDEX_BUILDDIR}}"/test/search-stress-test --quiet -h {{HOST}} -p {{PORT}} -k {keytype}
+template = '''#!/usr/bin/env gremlin
+include {daemons}-node-cluster
+
+run "${{HYPERDEX_SRCDIR}}"/test/add-space 127.0.0.1 1982 "{space} create {daemons} partitions tolerate {ft} failures"
+run sleep 1
+run "${{HYPERDEX_BUILDDIR}}"/test/search-stress-test -h 127.0.0.1 -p 1982 -k {keytype}
 '''
 
 SIMPLE = '''space search key {keytype} number attributes
@@ -126,7 +128,7 @@ configs = [("simple", SIMPLE.format(keytype='int'), 'int', 1, 0),
           ]
 
 for name, space, keytype, daemons, ft in configs:
-    fname = 'test/sh/search.{name}.keytype={keytype},daemons={daemons}.fault-tolerance={ft}.sh'.format(name=name, keytype=keytype, daemons=daemons, ft=ft)
+    fname = 'test/gremlin/search.{name}.keytype={keytype},daemons={daemons}.fault-tolerance={ft}'.format(name=name, keytype=keytype, daemons=daemons, ft=ft)
     f = open(fname, 'w')
     f.write(template.format(space=space.replace('\n', ' '), keytype=keytype, daemons=daemons, ft=ft))
     f.flush()

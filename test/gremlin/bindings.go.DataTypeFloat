@@ -1,0 +1,6 @@
+#!/usr/bin/env gremlin
+include 1-node-cluster
+
+run "${HYPERDEX_SRCDIR}"/test/add-space 127.0.0.1 1982 "space kv key k attributes float v"
+run sleep 1
+run go run test/go/DataTypeFloat.go 127.0.0.1 1982

@@ -1,0 +1,7 @@
+#!/usr/bin/env gremlin
+include 1-node-cluster
+
+run javac -d "${HYPERDEX_BUILDDIR}"/test/java "${HYPERDEX_SRCDIR}"/test/java/DataTypeMapFloatFloat.java
+run "${HYPERDEX_SRCDIR}"/test/add-space 127.0.0.1 1982 "space kv key k attributes map(float, float) v"
+run sleep 1
+run java -ea -Djava.library.path="${HYPERDEX_BUILDDIR}"/.libs:/usr/local/lib:/usr/local/lib64:/usr/lib:/usr/lib64 DataTypeMapFloatFloat 127.0.0.1 1982

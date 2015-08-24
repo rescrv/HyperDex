@@ -1,0 +1,29 @@
+env GLOG_logtostderr
+env GLOG_minloglevel 0
+env GLOG_logbufsecs 0
+
+tcp-port 1982 1983 1984 1985
+tcp-port 2012 2013 2014 2015
+
+run mkdir coord0 coord1 coord2 coord3
+run mkdir daemon0 daemon1 daemon2 daemon3
+
+daemon hyperdex coordinator --foreground --data=coord0 --listen 127.0.0.1 --listen-port 1982
+run replicant server-status --host 127.0.0.1 --port 1982
+daemon hyperdex coordinator --foreground --data=coord1 --listen 127.0.0.1 --listen-port 1983 --connect-port 1982
+run replicant server-status --host 127.0.0.1 --port 1983
+daemon hyperdex coordinator --foreground --data=coord2 --listen 127.0.0.1 --listen-port 1984 --connect-port 1983
+run replicant server-status --host 127.0.0.1 --port 1984
+daemon hyperdex coordinator --foreground --data=coord3 --listen 127.0.0.1 --listen-port 1985 --connect-port 1984
+run replicant server-status --host 127.0.0.1 --port 1985
+
+daemon hyperdex daemon --foreground --threads 1 --data=daemon0 --listen 127.0.0.1 --listen-port 2012 --coordinator 127.0.0.1 --coordinator-port 1982
+#run replicant server-status --host 127.0.0.1 --port 1982
+daemon hyperdex daemon --foreground --threads 1 --data=daemon1 --listen 127.0.0.1 --listen-port 2013 --coordinator 127.0.0.1 --coordinator-port 1983
+#run replicant server-status --host 127.0.0.1 --port 1983
+daemon hyperdex daemon --foreground --threads 1 --data=daemon2 --listen 127.0.0.1 --listen-port 2014 --coordinator 127.0.0.1 --coordinator-port 1984
+#run replicant server-status --host 127.0.0.1 --port 1984
+daemon hyperdex daemon --foreground --threads 1 --data=daemon3 --listen 127.0.0.1 --listen-port 2015 --coordinator 127.0.0.1 --coordinator-port 1985
+#run replicant server-status --host 127.0.0.1 --port 1985
+
+run sleep 2

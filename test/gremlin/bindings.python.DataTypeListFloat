@@ -1,0 +1,6 @@
+#!/usr/bin/env gremlin
+include 1-node-cluster
+
+run "${HYPERDEX_SRCDIR}"/test/add-space 127.0.0.1 1982 "space kv key k attributes list(float) v"
+run sleep 1
+run python2 "${HYPERDEX_SRCDIR}"/test/python/DataTypeListFloat.py 127.0.0.1 1982
