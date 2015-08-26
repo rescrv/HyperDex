@@ -823,20 +823,13 @@ coordinator :: index_rm(rsm_context* ctx, index_id ii)
 
 void
 coordinator :: transfer_go_live(rsm_context* ctx,
-                                uint64_t version,
                                 const transfer_id& xid)
 {
     transfer* xfer = get_transfer(xid);
 
     if (!xfer)
     {
-        if (version < m_version)
-        {
-            return;
-        }
-
-        rsm_log(ctx, "cannot make transfer(%" PRIu64 ") live because it doesn't exist\n", xid.get());
-        return generate_response(ctx, COORD_SUCCESS);
+        return;
     }
 
     region* reg = get_region(xfer->rid);
@@ -870,20 +863,13 @@ coordinator :: transfer_go_live(rsm_context* ctx,
 
 void
 coordinator :: transfer_complete(rsm_context* ctx,
-                                 uint64_t version,
                                  const transfer_id& xid)
 {
     transfer* xfer = get_transfer(xid);
 
     if (!xfer)
     {
-        if (version < m_version)
-        {
-            return;
-        }
-
-        rsm_log(ctx, "cannot complete transfer(%" PRIu64 ") because it doesn't exist\n", xid.get());
-        return generate_response(ctx, COORD_SUCCESS);
+        return;
     }
 
     region* reg = get_region(xfer->rid);

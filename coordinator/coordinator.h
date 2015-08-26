@@ -105,10 +105,8 @@ class coordinator
     // transfers management
     public:
         void transfer_go_live(rsm_context* ctx,
-                              uint64_t version,
                               const transfer_id& xid);
         void transfer_complete(rsm_context* ctx,
-                               uint64_t version,
                                const transfer_id& xid);
 
     // config management

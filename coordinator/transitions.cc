@@ -364,11 +364,10 @@ hyperdex_coordinator_transfer_go_live(struct rsm_context* ctx,
 {
     PROTECT_UNINITIALIZED;
     transfer_id xid;
-    uint64_t version;
     e::unpacker up(data, data_sz);
-    up = up >> xid >> version;
+    up = up >> xid;
     CHECK_UNPACK(transfer_go_live);
-    c->transfer_go_live(ctx, version, xid);
+    c->transfer_go_live(ctx, xid);
 }
 
 void
@@ -377,11 +376,10 @@ hyperdex_coordinator_transfer_complete(struct rsm_context* ctx,
 {
     PROTECT_UNINITIALIZED;
     transfer_id xid;
-    uint64_t version;
     e::unpacker up(data, data_sz);
-    up = up >> xid >> version;
+    up = up >> xid;
     CHECK_UNPACK(transfer_complete);
-    c->transfer_complete(ctx, version, xid);
+    c->transfer_complete(ctx, xid);
 }
 
 void
