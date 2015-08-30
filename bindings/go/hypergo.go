@@ -83,9 +83,10 @@ func NewAdmin(ip string, port int) (*Admin, error) {
 			default:
 				// check if there are pending requests
 				// and only if there are, call hyperdex_client_loop
-				if len(admin.requests) > 0 {
+				for len(admin.requests) > 0 {
 					var status C.enum_hyperdex_admin_returncode
 					ret := int64(C.hyperdex_admin_loop(admin.ptr, C.int(TimeOutMsec), &status))
+					req := admin.requests[0]
 					//log.Printf("hyperdex_client_loop(%X, %d, %X) -> %d\n", unsafe.Pointer(client.ptr), hyperdex_client_loop_timeout, unsafe.Pointer(&status), ret)
 					if ret < 0 {
 						panic(newInternalError(status, "Admin error"))
@@ -107,7 +108,7 @@ func NewAdmin(ip string, port int) (*Admin, error) {
 						req.failure(status,
 							C.GoString(C.hyperdex_admin_error_message(admin.ptr)))
 					}
-					admin.requests = append(admin.requests[:i], admin.requests[i+1:]...)
+					admin.requests = admin.requests[1:]
 				}
 			}
 			// prevent other goroutines from starving
