@@ -35,7 +35,10 @@ HyperDexClient :: asynccall__spacename_key__status_attributes(int64_t (*f)(struc
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[2].As<v8::Function>();
+    const size_t base_args_sz = 2;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -44,6 +47,7 @@ HyperDexClient :: asynccall__spacename_key__status_attributes(int64_t (*f)(struc
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -51,8 +55,15 @@ HyperDexClient :: asynccall__spacename_key__status_attributes(int64_t (*f)(struc
     size_t in_key_sz;
     v8::Local<v8::Value> key = args[1];
     if (!op->convert_key(key, &in_key, &in_key_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_key, in_key_sz, &op->status, &op->attrs, &op->attrs_sz);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();
@@ -71,7 +82,10 @@ HyperDexClient :: asynccall__spacename_key_attributenames__status_attributes(int
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[3].As<v8::Function>();
+    const size_t base_args_sz = 3;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -80,6 +94,7 @@ HyperDexClient :: asynccall__spacename_key_attributenames__status_attributes(int
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -91,8 +106,15 @@ HyperDexClient :: asynccall__spacename_key_attributenames__status_attributes(int
     size_t in_attrnames_sz;
     v8::Local<v8::Value> attributenames = args[2];
     if (!op->convert_attributenames(attributenames, &in_attrnames, &in_attrnames_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_key, in_key_sz, in_attrnames, in_attrnames_sz, &op->status, &op->attrs, &op->attrs_sz);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();
@@ -111,7 +133,10 @@ HyperDexClient :: asynccall__spacename_key_attributes__status(int64_t (*f)(struc
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[3].As<v8::Function>();
+    const size_t base_args_sz = 3;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -120,6 +145,7 @@ HyperDexClient :: asynccall__spacename_key_attributes__status(int64_t (*f)(struc
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -131,8 +157,15 @@ HyperDexClient :: asynccall__spacename_key_attributes__status(int64_t (*f)(struc
     size_t in_attrs_sz;
     v8::Local<v8::Value> attributes = args[2];
     if (!op->convert_attributes(attributes, &in_attrs, &in_attrs_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_key, in_key_sz, in_attrs, in_attrs_sz, &op->status);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();
@@ -151,7 +184,10 @@ HyperDexClient :: asynccall__spacename_key_predicates_attributes__status(int64_t
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[4].As<v8::Function>();
+    const size_t base_args_sz = 4;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -160,6 +196,7 @@ HyperDexClient :: asynccall__spacename_key_predicates_attributes__status(int64_t
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -175,8 +212,15 @@ HyperDexClient :: asynccall__spacename_key_predicates_attributes__status(int64_t
     size_t in_attrs_sz;
     v8::Local<v8::Value> attributes = args[3];
     if (!op->convert_attributes(attributes, &in_attrs, &in_attrs_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_key, in_key_sz, in_checks, in_checks_sz, in_attrs, in_attrs_sz, &op->status);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();
@@ -195,7 +239,10 @@ HyperDexClient :: asynccall__spacename_predicates_attributes__status_count(int64
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[3].As<v8::Function>();
+    const size_t base_args_sz = 3;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -204,6 +251,7 @@ HyperDexClient :: asynccall__spacename_predicates_attributes__status_count(int64
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -215,8 +263,15 @@ HyperDexClient :: asynccall__spacename_predicates_attributes__status_count(int64
     size_t in_attrs_sz;
     v8::Local<v8::Value> attributes = args[2];
     if (!op->convert_attributes(attributes, &in_attrs, &in_attrs_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_checks, in_checks_sz, in_attrs, in_attrs_sz, &op->status, &op->count);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();
@@ -235,7 +290,10 @@ HyperDexClient :: asynccall__spacename_key__status(int64_t (*f)(struct hyperdex_
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[2].As<v8::Function>();
+    const size_t base_args_sz = 2;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -244,6 +302,7 @@ HyperDexClient :: asynccall__spacename_key__status(int64_t (*f)(struct hyperdex_
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -251,8 +310,15 @@ HyperDexClient :: asynccall__spacename_key__status(int64_t (*f)(struct hyperdex_
     size_t in_key_sz;
     v8::Local<v8::Value> key = args[1];
     if (!op->convert_key(key, &in_key, &in_key_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_key, in_key_sz, &op->status);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();
@@ -271,7 +337,10 @@ HyperDexClient :: asynccall__spacename_key_predicates__status(int64_t (*f)(struc
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[3].As<v8::Function>();
+    const size_t base_args_sz = 3;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -280,6 +349,7 @@ HyperDexClient :: asynccall__spacename_key_predicates__status(int64_t (*f)(struc
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -291,8 +361,15 @@ HyperDexClient :: asynccall__spacename_key_predicates__status(int64_t (*f)(struc
     size_t in_checks_sz;
     v8::Local<v8::Value> predicates = args[2];
     if (!op->convert_predicates(predicates, &in_checks, &in_checks_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_key, in_key_sz, in_checks, in_checks_sz, &op->status);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();
@@ -311,7 +388,10 @@ HyperDexClient :: asynccall__spacename_predicates__status_count(int64_t (*f)(str
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[2].As<v8::Function>();
+    const size_t base_args_sz = 2;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -320,6 +400,7 @@ HyperDexClient :: asynccall__spacename_predicates__status_count(int64_t (*f)(str
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -327,8 +408,15 @@ HyperDexClient :: asynccall__spacename_predicates__status_count(int64_t (*f)(str
     size_t in_checks_sz;
     v8::Local<v8::Value> predicates = args[1];
     if (!op->convert_predicates(predicates, &in_checks, &in_checks_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_checks, in_checks_sz, &op->status, &op->count);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();
@@ -347,7 +435,10 @@ HyperDexClient :: asynccall__spacename_key_mapattributes__status(int64_t (*f)(st
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[3].As<v8::Function>();
+    const size_t base_args_sz = 3;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -356,6 +447,7 @@ HyperDexClient :: asynccall__spacename_key_mapattributes__status(int64_t (*f)(st
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -367,8 +459,15 @@ HyperDexClient :: asynccall__spacename_key_mapattributes__status(int64_t (*f)(st
     size_t in_mapattrs_sz;
     v8::Local<v8::Value> mapattributes = args[2];
     if (!op->convert_mapattributes(mapattributes, &in_mapattrs, &in_mapattrs_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_key, in_key_sz, in_mapattrs, in_mapattrs_sz, &op->status);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();
@@ -387,7 +486,10 @@ HyperDexClient :: asynccall__spacename_key_predicates_mapattributes__status(int6
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[4].As<v8::Function>();
+    const size_t base_args_sz = 4;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -396,6 +498,7 @@ HyperDexClient :: asynccall__spacename_key_predicates_mapattributes__status(int6
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -411,8 +514,15 @@ HyperDexClient :: asynccall__spacename_key_predicates_mapattributes__status(int6
     size_t in_mapattrs_sz;
     v8::Local<v8::Value> mapattributes = args[3];
     if (!op->convert_mapattributes(mapattributes, &in_mapattrs, &in_mapattrs_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_key, in_key_sz, in_checks, in_checks_sz, in_mapattrs, in_mapattrs_sz, &op->status);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();
@@ -431,7 +541,10 @@ HyperDexClient :: asynccall__spacename_predicates_mapattributes__status_count(in
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[3].As<v8::Function>();
+    const size_t base_args_sz = 3;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -440,6 +553,7 @@ HyperDexClient :: asynccall__spacename_predicates_mapattributes__status_count(in
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -451,8 +565,15 @@ HyperDexClient :: asynccall__spacename_predicates_mapattributes__status_count(in
     size_t in_mapattrs_sz;
     v8::Local<v8::Value> mapattributes = args[2];
     if (!op->convert_mapattributes(mapattributes, &in_mapattrs, &in_mapattrs_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_checks, in_checks_sz, in_mapattrs, in_mapattrs_sz, &op->status, &op->count);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();
@@ -515,7 +636,10 @@ HyperDexClient :: asynccall__spacename_predicates__status_description(int64_t (*
     v8::Local<v8::Object> client_obj = args.This();
     HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);
     e::intrusive_ptr<Operation> op(new Operation(client_obj, client));
-    v8::Local<v8::Function> func = args[2].As<v8::Function>();
+    const size_t base_args_sz = 2;
+    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);
+    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;
+    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();
 
     if (func.IsEmpty() || !func->IsFunction())
     {
@@ -524,6 +648,7 @@ HyperDexClient :: asynccall__spacename_predicates__status_description(int64_t (*
     }
 
     if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }
+
     const char* in_space;
     v8::Local<v8::Value> spacename = args[0];
     if (!op->convert_spacename(spacename, &in_space)) return scope.Close(v8::Undefined());
@@ -531,8 +656,15 @@ HyperDexClient :: asynccall__spacename_predicates__status_description(int64_t (*
     size_t in_checks_sz;
     v8::Local<v8::Value> predicates = args[1];
     if (!op->convert_predicates(predicates, &in_checks, &in_checks_sz)) return scope.Close(v8::Undefined());
+    if (bDoAuth)
+    {
+        v8::Handle<v8::Value> M = args[base_args_sz];
+        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }
+    }
+
     op->reqid = f(client->client(), in_space, in_checks, in_checks_sz, &op->status, &op->description);
 
+    if (bDoAuth) op->clear_auth_context();
     if (op->reqid < 0)
     {
         op->callback_error_from_status();

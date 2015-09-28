@@ -42,7 +42,7 @@ def generate_worker_declarations(xs, lib):
             continue
         if x.form is bindings.MicrotransactionCall:
             continue #TODO support microtransactions in NodeJS
-            
+
         assert x.form in (bindings.AsyncCall, bindings.Iterator)
         fptr = bindings.c.generate_func_ptr(x, lib)
         yield 'static v8::Handle<v8::Value> {0}({1}, const v8::Arguments& args);'.format(call, fptr)
@@ -53,6 +53,8 @@ def generate_declaration(x):
     func = 'static v8::Handle<v8::Value> {0}(const v8::Arguments& args);'
     return func.format(x.name)
 
+# 20 Sept 2015 - William Whitacre
+# Patch against 1.8.1: Enable macaroon authorization.
 def generate_worker_definitions(xs, lib):
     calls = set([])
     for x in xs:
@@ -70,14 +72,21 @@ def generate_worker_definitions(xs, lib):
         func += '    v8::Local<v8::Object> client_obj = args.This();\n'
         func += '    HyperDexClient* client = node::ObjectWrap::Unwrap<HyperDexClient>(client_obj);\n'
         func += '    e::intrusive_ptr<Operation> op(new Operation(client_obj, client));\n'
+        wrap_auth_context, arg_count = False, len(x.args_in)
         if x.form == bindings.AsyncCall:
-            func += '    v8::Local<v8::Function> func = args[{0}].As<v8::Function>();\n'.format(len(x.args_in))
+            func += '    const size_t base_args_sz = {0};\n'.format(arg_count)
+            func += '    const bool bDoAuth = ((size_t)args.Length() > base_args_sz + 1);\n'
+            func += '    const size_t i_Func = bDoAuth ? base_args_sz + 1 : base_args_sz;\n'
+
+            func += '    v8::Local<v8::Function> func = args[i_Func].As<v8::Function>();\n'
             func += '\n    if (func.IsEmpty() || !func->IsFunction())\n'
             func += '    {\n'
             func += '        v8::ThrowException(v8::String::New("Callback must be a function"));\n'
             func += '        return scope.Close(v8::Undefined());\n'
             func += '    }\n\n'
-            func += '    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }\n'
+            func += '    if (!op->set_callback(func)) { return scope.Close(v8::Undefined()); }\n\n'
+
+            wrap_auth_context = True
         if x.form == bindings.Iterator:
             func += '    v8::Local<v8::Function> func = args[{0}].As<v8::Function>();\n'.format(len(x.args_in))
             func += '\n    if (func.IsEmpty() || !func->IsFunction())\n'
@@ -92,14 +101,27 @@ def generate_worker_definitions(xs, lib):
             func += '        return scope.Close(v8::Undefined());\n'
             func += '    }\n\n'
             func += '    if (!op->set_callback(func, done)) { return scope.Close(v8::Undefined()); }\n'
+
+            wrap_auth_context = False
+
         for idx, arg in enumerate(x.args_in):
             for p, n in arg.args:
                 func += '    ' + p + ' in_' + n + ';\n'
             args = ', '.join(['&in_' + n for p, n in arg.args])
             func += '    v8::Local<v8::Value> {0} = args[{1}];\n'.format(arg.__name__.lower(), idx)
             func += '    if (!op->convert_{0}({0}, {1})) return scope.Close(v8::Undefined());\n'.format(arg.__name__.lower(), args)
+
+        if wrap_auth_context:
+            func += '    if (bDoAuth)\n    {\n'
+            func += '        v8::Handle<v8::Value> M = args[base_args_sz];\n'
+            func += '        if (!op->set_auth_context(M)) { return scope.Close(v8::Undefined()); }\n    }\n\n'
+
         func += '    op->reqid = f(client->client(), {0}, {1});\n\n'.format(', '.join(['in_' + n for p, n in sum([list(a.args) for a in x.args_in], [])]),
                                                                             ', '.join(['&op->' + n for p, n in sum([list(a.args) for a in x.args_out], [])]))
+
+        if wrap_auth_context:
+            func += '    if (bDoAuth) op->clear_auth_context();\n'
+
         func += '    if (op->reqid < 0)\n    {\n'
         func += '        op->callback_error_from_status();\n'
         func += '        return scope.Close(v8::Undefined());\n'

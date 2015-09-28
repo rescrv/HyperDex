@@ -1,1 +1,16 @@
-{"name": "hyperdex-client", "license": "BSD-3-Clause", "bugs": {"url": "https://github.com/rescrv/HyperDex/issues", "email": "support@hyperdex.org"}, "version": "0.0.3", "homepage": "http://hyperdex.org", "description": "Client bindings for HyperDex"}
+{
+  "name": "node-hyperdex-test",
+  "version": "0.0.0",
+  "description": "testing patch for node.js hyperdex-client authorization support",
+  "main": "test-patch.js",
+  "dependencies": {
+    "macaroons.js": "^0.3.5",
+    "when": "^3.7.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node test-patch.js"
+  },
+  "author": "NuMaya LLC.",
+  "license": ""
+}

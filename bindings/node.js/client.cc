@@ -182,6 +182,17 @@ class Operation
         bool convert_maxmin(v8::Handle<v8::Value>& _maxmin,
                             int* maximize);
 
+        // 20 Sept 2015 - William Whitacre
+        // Patch against 1.8.1: Enable macaroon authorization.
+
+        // Convert a v8 array of strings to a character pointer array.
+        bool convert_auth_context(v8::Handle<v8::Value> &_value,
+                                  const char ***p_auth, size_t *p_auth_sz);
+
+        // Set and clear the auth context using the hyperdex_client API.
+        bool set_auth_context(v8::Handle<v8::Value> &_value);
+        bool clear_auth_context();
+
         bool build_string(const char* value, size_t value_sz,
                           v8::Local<v8::Value>& retval,
                           v8::Local<v8::Value>& error);
@@ -275,6 +286,7 @@ class Operation
         uint64_t count;
         bool finished;
         void (Operation::*encode_return)();
+        const char **m_auth;
 
     private:
         void inc() { ++m_ref; }
@@ -845,6 +857,7 @@ Operation :: Operation(v8::Handle<v8::Object>& c1, HyperDexClient* c2)
     , count(0)
     , finished(false)
     , encode_return()
+    , m_auth(NULL)
     , m_ref(0)
     , m_arena(hyperdex_ds_arena_create())
     , m_client()
@@ -869,6 +882,11 @@ Operation :: ~Operation() throw ()
     if (attrs)
     {
         hyperdex_client_destroy_attrs(attrs, attrs_sz);
+    }
+
+    if (m_auth)
+    {
+        free((void *)m_auth);
     }
 
     if (description)
@@ -1659,6 +1677,95 @@ Operation :: convert_maxmin(v8::Handle<v8::Value>& _maxmin,
                             int* maximize)
 {
     *maximize = _maxmin->IsTrue() ? 1 : 0;
+    return true;
+}
+
+// 20 Sept 2015 - William Whitacre
+// Patch against 1.8.1: Enable macaroon authorization.
+bool
+Operation :: convert_auth_context(v8::Handle<v8::Value> &_value,
+                                  const char ***p_auth, size_t *p_auth_sz)
+{
+    // Make sure this is an array we've been passed.
+    if (!_value->IsArray())
+    {
+        this->callback_error_message("auth must be specified as an array");
+        return false;
+    }
+
+    // Reference it as an array.
+    v8::Local<v8::Array> arr =
+        v8::Local<v8::Array>::New(_value.As<v8::Array>());
+
+    // Allocate the pointer array for storing the authorization chain.
+    const size_t auth_sz = arr->Length();
+    const char **auth = reinterpret_cast<const char **>(malloc(auth_sz * sizeof(const char *)));
+
+    // Loop through the array elements.
+    for (size_t i = 0; i < auth_sz; ++i)
+    {
+        // Retrieve array element at index i.
+        v8::Local<v8::Value> _M = arr->Get(i);
+
+        // Make sure it's actually a string and use the convert_cstring member
+        // function to copy the string.
+        if (_M.IsEmpty() ||
+            !(_M->IsString() && this->convert_cstring(_M, &auth[i])))
+        {
+            this->callback_error_message("auth must be an array of strings");
+            return false;
+        }
+    }
+
+    // Copy the resulting pointers to the return arguments.
+    *p_auth_sz = auth_sz;
+    *p_auth = auth;
+
+    // Everything worked ok.
+    return true;
+}
+
+bool
+Operation :: set_auth_context(v8::Handle<v8::Value> &_value)
+{
+    // Clear the authorization context if it's already been set (wierd).
+    this->clear_auth_context();
+    size_t auth_sz;
+
+    // Convert the authorization context object to an array of character
+    // pointers.
+    if (this->convert_auth_context(_value, &this->m_auth, &auth_sz))
+    {
+        // Call hyperdex client to set the authorization context.
+        hyperdex_client_set_auth_context(
+            this->client->client(),
+            this->m_auth, auth_sz
+        );
+        return true;
+    }
+    else
+    {
+        // Something went wrong during conversion!
+        return false;
+    }
+}
+
+bool
+Operation :: clear_auth_context()
+{
+    // Make sure the authorization context has been set.
+    if (this->m_auth != NULL)
+    {
+        // Call hyperdex client to clear the authorization context.
+        hyperdex_client_clear_auth_context(this->client->client());
+
+        // Free the array.
+        free((void *)this->m_auth);
+        this->m_auth = NULL;
+    }
+
+    // this->m_auth is always null at this point, and if an array was there
+    // it was freed.
     return true;
 }
 
