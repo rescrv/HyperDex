@@ -114,7 +114,7 @@ the scheduler} like so (where DEV is your block device):
 
 \subsection{Linux VM Tuning}
 
-The Linux kernel buffers writes to disk, by asynchronously flushing them in the
+The Linux kernel buffers writes in memory before flushing them to disk in the
 background.  On occasion, the size of the write buffer can grow to such an
 extent that the kernel will use HyperDex's scheduled time slots to flush data to
 disk instead, appearing to stall the application for periods of time.  There are

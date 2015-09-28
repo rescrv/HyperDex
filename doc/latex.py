@@ -52,85 +52,80 @@ EXTENSIONS = (('.tex', True,  False, False),
               ('.ind', True,  False, False),
               ('.log', True,  False, False))
 
-SKIP_LINES = set([
-    r'\write18 enabled.',
-    'entering extended mode',
-    'ABD: EveryShipout initializing macros'
-])
+BAD_STARTS = ['This is pdfTeX, Version',
+              r'\write18',
+              'entering extended mode',
+              'LaTeX2e',
+              'Babel',
+              'Style option: `fancyvrb\' v2.7a',
+              'Document Class: article 2014/09/29 v1.4h Standard LaTeX document class',
+              'Option `squaren\' provided!',
+              'Package pgf Warning: Your graphic driver pgfsys-dvips.def does not support fadings',
+              'Command \\squaren defined by SIunits package!',
+              'ABD: EveryShipout initializing macros',
+              'see the transcript file for additional information',
+              'Output written on ',
+              'Transcript written on ',
+              ]
 
-SUPPRESS_PACKAGE_WARNINGS = set([
-    ('pgf', 'Your graphic driver pgfsys-dvips.def does not support fadings. This warning is given only once on input line 31.'),
-])
+pathsoft_re = re.compile(r'\([-/a-zA-Z0-9_.]+[ )]', flags=re.M)
+pathhard_re = re.compile(r'<[-/a-zA-Z0-9_.]+[ >]', flags=re.M)
+pathsoftnl_re = re.compile(r'\([-/a-zA-Z0-9_.]+$', flags=re.M)
+pathhardnl_re = re.compile(r'<[-/a-zA-Z0-9_.]+$', flags=re.M)
+pagenum_re = re.compile(r'\[\d+\]')
 
-latex_version_re = re.compile(r'^This is (?P<tex>.*?), Version (?P<version>.*?) \((?P<distro>.*?)\).*')
-package_warning_re = re.compile(r'^Package (?P<package>[-a-zA-Z0-9_.]*?) Warning: (?P<message>.*)')
-output_re = re.compile(r'^Output written on (?P<outfile>[-a-zA-Z0-9_.]*?) \((?P<pages>[0-9]+) pages?, (?P<bytes>[0-9]+) bytes?\).')
-pagenum_re = re.compile(r'^\[(\d+)\] (.*)')
+def eliminate_paths(path_re, log, deps):
+    xs = reversed(list(path_re.finditer(log)))
+    for x in xs:
+        path = log[x.start(0):x.end(0)]
+        char = ' '
+        if '\n' in path:
+            char = '\n'
+        path = path.strip('()<> \n')
+        if os.path.exists(path):
+            deps.add(path)
+            log = log[:x.start(0)] + char + log[x.end(0):]
+    return log
 
-class TeXLineIterator(object):
-
-    def __init__(self, filename):
-        self._file = open(filename)
-        self._pushback = []
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        if self._pushback:
-            ret = self._pushback[0]
-            self._pushback = self._pushback[1:]
-            return ret
-        else:
-            return self._file.next()
-
-    def push(self, line):
-        self._pushback.append(line)
+def sanitize_lines(lines):
+    for line in lines:
+        xs = pagenum_re.finditer(line)
+        breaks = set()
+        for x in xs:
+            breaks.add(x.start(0))
+            breaks.add(x.end(0))
+        prev = 0
+        for x in sorted(breaks):
+            s = line[prev:x]
+            s = s.strip('()<> ')
+            if s:
+                yield s
+            prev = x
+        if breaks:
+            line = line[max(breaks):]
+        line = line.strip('()<> ')
+        if line:
+            yield line
 
 def process_tex_log(name):
     deps = set([])
-    tli = TeXLineIterator(name + '.stdout.log')
-    for line in tli:
-        line = re.sub('^[ )>]*', '', line).strip()
-        # collect deps
-        if line.startswith('(') or line.startswith('<'):
-            pieces = re.split('[ )>]', line[1:], 1)
-            assert len(pieces) in (1, 2)
-            x = pieces[0]
-            if os.path.exists(x):
-                if len(pieces) == 2:
-                    tli.push(pieces[1])
-                deps.add(x)
-                continue
-        if not line:
-            pass
-        elif line in SKIP_LINES:
-            pass
-        elif pagenum_re.match(line):
-            x = pagenum_re.match(line)
-            logging.info('page {0}'.format(x.group(1)))
-            tli.push(x.group(2))
-        elif latex_version_re.match(line):
-            x = latex_version_re.match(line)
-            logging.info('{distro}: {tex} version {version}'.format(**x.groupdict()))
-        elif package_warning_re.match(line):
-            x = package_warning_re.match(line)
-            pkg = x.groupdict()['package']
-            msg = x.groupdict()['message']
-            if (pkg, msg) not in SUPPRESS_PACKAGE_WARNINGS:
-                logging.error('{0}: {1}'.format(pkg, msg))
-        elif output_re.match(line):
-            logging.info(line)
-        elif line == 'Transcript written on {name}.log.'.format(name=name):
-            logging.info(line)
-        else:
-            for x in SKIP_LINES:
-                if line.startswith(x):
-                    tli.push(line[len(x):])
-                    break
-            else:
-                logging.error('error: ' + repr(line))
-    return set([os.path.normpath(d) for d in deps])
+    log = open(name + '.stdout.log').read()
+    log.replace('\t', ' ')
+    next_page = 1
+    log = eliminate_paths(pathsoft_re, log, deps)
+    log = eliminate_paths(pathhard_re, log, deps)
+    log = eliminate_paths(pathsoftnl_re, log, deps)
+    log = eliminate_paths(pathhardnl_re, log, deps)
+    lines = sanitize_lines(log.split('\n'))
+    for line in lines:
+        skip = False
+        for bs in BAD_STARTS:
+            if line.startswith(bs):
+                skip = True
+        if skip:
+            continue
+        print line
+    return deps
 
 def cat_tex_log(name):
     with open(name + '.log') as f:

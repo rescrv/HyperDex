@@ -161,7 +161,7 @@ floats support range searches and atomic operations.
 \section{Lists}
 \label{sec:data-types:lists}
 
-Let's add support for friend requests using HyperDex lists the basis of the
+Let's add support for friend requests using HyperDex lists as the basis of the
 feature.  For this we'll use the \code{pending\_requests} attribute in the
 \code{profiles} space.
  
@@ -240,9 +240,9 @@ the intersection of a set with \code{set\_intersect}.
 
 Lastly, our social networking system needs a means for allowing users to
 exchange messages.  Let's demonstrate how we can accomplish this with the
-\code{unread\_messages} attribute. In this contrived example, we're going to use
-an object attribute as a map (aka dictionary) to map from a user name to a
-string that contains the message from that user, as follows:
+\code{unread\_messages} attribute. In this contrived example, the
+\code{unread\_messages} attribute is a map of usernames to unread messages from
+that user.  For example:
 
 \begin{pythoncode}
 >>> c.map_add('profiles', 'jsmith1',
@@ -257,7 +257,7 @@ True
 
 HyperDex enables map contents to be modified in-place within the map.  For
 example, if Brian sent another message to John, we could separate the messages
-with "|" and just append the new message:
+with ``\code{|}'' and just append the new message:
 
 \begin{pythoncode}
 >>> c.map_string_append('profiles', 'jsmith1',
@@ -272,8 +272,7 @@ operation available for strings and integers is also available in map form,
 operating on the values of the map.
 
 For the sake of illustrating maps involving integers, let's imagine that we will
-use a map to keep track of the plus-one's and like/dislike's on John's status
-updates. 
+use a map to keep track of the like/dislike's on John's status updates. 
 
 First, let's create some counters that will keep the net count of up and down
 votes corresponding to John's link posts, with ids "http://url1.com" and
@@ -287,7 +286,7 @@ votes corresponding to John's link posts, with ids "http://url1.com" and
 True
 \end{pythoncode}
 
-So John's posts start out with a counter set to 1, as shown above. 
+So, John's posts start out with a counter set to 1, as shown above. 
 
 Imagine that two other users, Jane and Elaine, upvote John's first link post, we
 would implement it like this:
@@ -340,7 +339,7 @@ True
 In this space, the key-space will be broken into one second intervals, and
 timestamps that fall within the same interval will be hashed to nearby to each
 other, while timestamps that map to different intervals will be hashed further
-apart in the key space.
+apart in the key space.  Each object is stored under the \code{when} attribute.
 
 The HyperDex timestamp type appears to our application as a normal Python
 \code{datetime.datetime} object, and will be converted to and from this type by

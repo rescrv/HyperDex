@@ -84,7 +84,7 @@ operation, while the status pointer passed to loop will be used to report
 transient problems with the cluster.  Until the operation's id is returned from
 loop, the operation is still outstanding and incomplete.
 
-The stored value is passed via \code{struct hyperdex\_client\_attribute} which
+The stored value is passed via \code{struct hyperdex\_client\_attribute}, which
 specifies both the value of the string "Hello World!" and that this value is, in
 fact, a string.  All HyperDex datatypes are passed to HyperDex as bytestrings
 via this interface.
@@ -433,10 +433,10 @@ b'\x05\x00\x00\x00world\xff\xff\xff\xff\xff\xff\xff\xff'
 
 \paragraph{map(string, float) format}
 
-Maps from strings to ints are formed by encoding the individual elements, where
-keys are prefixed by an unsigned 4-byte little endian integer indicating their
-length.  The pairs of elements are stored in sorted order according to the first
-element of the pair (the map's key).  For example:
+Maps from strings to floats are formed by encoding the individual elements,
+where keys are prefixed by an unsigned 4-byte little endian integer indicating
+their length.  The pairs of elements are stored in sorted order according to the
+first element of the pair (the map's key).  For example:
 
 \begin{pythoncode}
 >>> encode_map_string_float({})
@@ -610,7 +610,7 @@ int hyperdex_ds_copy_int(struct hyperdex_ds_arena* arena, int64_t num,
 \end{ccode}
 Encode \code{num} into memory allocated via \code{arena} and return
 the value via \code{value} and \code{value\_sz}.  This function will fail and
-return -1 if there is insufficient memory available for encoding the nubmer.
+return -1 if there is insufficient memory available for encoding the number.
 All pointers returned by this function remain valid until \code{arena} is
 destroyed.  The client should not attempt to free the returned copy.
 
@@ -771,7 +771,7 @@ int hyperdex_ds_map_insert_key_int(struct hyperdex_ds_map* map,
 \end{ccode}
 Set the key of the next pair to be inserted into \code{map} to the
 integer specified by \code{num}.  This function will fail and return -1 if
-memory allocation fails, or the map does not nuse integers for keys.
+memory allocation fails, or the map does not use integers for keys.
 
 \begin{ccode}
 int hyperdex_ds_map_insert_val_int(struct hyperdex_ds_map* map,
@@ -872,7 +872,7 @@ int hyperdex_ds_iterate_list_string_next(struct hyperdex_ds_iterator* iter,
 \end{ccode}
 Return the next string element in the list.  This function will return
 1 if an element is returned, 0 if there are no elements to return, and -1 if the
-list of strings is malformed.  The falue stored in \code{*str} is a pointer into
+list of strings is malformed.  The value stored in \code{*str} is a pointer into
 the list of strings and should not be free'd by the application.
 
 \begin{ccode}
@@ -1038,7 +1038,7 @@ and should not be free'd independently by the application.
 \section{Attributes}
 \label{sec:api:c:client:attributes}
 
-In HyperDex, {\em attributes} specified named values that comprise an object.
+In HyperDex, {\em attributes} specify named values that comprise an object.
 For instance, in Chapter~\nameref{chap:quick-start}, the phonebook space has
 attributes ``username'', ``first'', ``last'', and ``phone''.  The C API
 represents such attributes using \code{struct hyperdex\_client\_attribute}.  The
@@ -1113,7 +1113,7 @@ struct hyperdex_client_attribute_check
 };
 \end{ccode}
 
-Note that this struct closely resembes \code{struct
+Note that this struct closely resembles \code{struct
 hyperdex\_client\_attribute}, with the addition of a field named
 \code{predicate}.  This field is an enum with the following values:
 
@@ -1256,7 +1256,7 @@ those operations.
 
 Local errors are always returned via the \code{enum
 hyperdex\_client\_returncode*} pointer passed at the time the application
-initated the operation.  These errors may either result from the application
+initiated the operation.  These errors may either result from the application
 returning a negative operation id, in which case the operation immediately
 completes, or from the result of a successful \code{hyperdex\_client\_loop}
 call.  In either case, the error has no impact on the result of any other

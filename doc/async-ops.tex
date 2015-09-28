@@ -1,12 +1,12 @@
 \chapter{Asynchronous Operations}
 \label{chap:async-ops}
 
-Thus far, all HyperDex operations we've seen are {\em synchronous}, that is, the
-application calls the HyperDex operation and blocks until the operation is
-complete.  HyperDex is very fast, but even so, clients may spend a non-trivial
+Thus far, all HyperDex operations we've seen are {\em synchronous}.  That is,
+the application calls the HyperDex operation and blocks until the operation is
+complete.  HyperDex is very fast.  But even so, clients may spend a non-trivial
 amount of time waiting on HyperDex operations.  For each operation in HyperDex,
-there is an {\em asynchronous} variant that accomplishes the same task, but
-allows the client to perform other work while the operation completes.
+there is an {\em asynchronous} variant that accomplishes the same task, while
+allowing the client to perform other work during operation completion.
 
 In this chapter, we'll look at the asynchronous operations HyperDex supports,
 and see different ways to use them to increase concurrency in the system.
@@ -70,7 +70,7 @@ True
 \label{sec:async-ops:ops}
 
 Asynchronous operations permit applications to retrieve or modify multiple
-objects simultaneously and to perform local computation while doing the same.
+objects simultaneously, and to perform local computation while doing the same.
 In previous chapters, we submitted synchronous operations to the key-value
 store, where each client had just a single outstanding request, and waited
 patiently for that request to complete.  In high-throughput applications,
@@ -186,7 +186,8 @@ friend of John can be done in parallel:
 
 Using the \code{loop()} method, it is possible to issue thousands of requests
 and then wait for each one in turn without having to serialize the round trips
-to the server.
+to the server.  Each call to loop returns a \code{Deferred} object represents
+one outstanding operation.
 
 \section{Potential Pitfalls}
 \label{sec:async-ops:pitfalls}

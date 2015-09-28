@@ -36,8 +36,8 @@ In this example, let's create a space that may be suitable for storing virtual
 currency in a banking application:
 
 \begin{pyconcode}
->>> import hyperclient
->>> c = hyperclient.Client('127.0.0.1', 1982)
+>>> import hyperdex.client
+>>> c = hyperdex.client.Client('127.0.0.1', 1982)
 >>> c.add_space('''
 ... space accounts
 ... key id
@@ -182,8 +182,8 @@ Joe's balance is still the same as before.  Now, open another window and start a
 second, concurrent transaction where Joe deposits cash at a branch location:
 
 \begin{pyconcode}
->>> import hyperclient
->>> c2 = hyperclient.Client('127.0.0.1', 1982)
+>>> import hyperdex.client
+>>> c2 = hyperdex.client.Client('127.0.0.1', 1982)
 >>> y = c2.begin_transaction()
 >>> balance = y.get('accounts', 'joe')['balance']
 >>> balance += 386
@@ -238,8 +238,8 @@ aborted transactions is to repeatedly try the transaction until it succeeds:
 ...         balance = int(balance * 1.05)
 ...         x.put('accounts', 'joe', {'balance': balance})
 ...         committed = x.commit()
-...     except hyperclient.HyperClientException as e:
-...         if e.status != hyperclient.HYPERCLIENT_ABORTED:
+...     except hyperdex.client.HyperDexClientException as e:
+...         if e.status != hyperdex.client.HYPERCLIENT_ABORTED:
 ...             raise e
 ...
 True

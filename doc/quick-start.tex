@@ -13,10 +13,10 @@ application.
 A HyperDex cluster consists of three types of components: clients, servers, and
 coordinators.
 
-Applications built on top of HyperDex are the clients.  They use the HyperDex
-API through various bindings for popular languages (e.g. C, C++, Java, and
-Python) to issue operations, such as \code{get}, \code{put}, \code{search},
-\code{delete}, etc, to the storage system.
+Applications built on top of HyperDex are referred to as {\em clients}.  and
+access HyperDex through various bindings for popular languages (e.g. C, C++,
+Java, and Python) to issue operations such as \code{get}, \code{put},
+\code{search}, \code{delete}, etc.
 
 The HyperDex servers are responsible for storing the data in the system. You can
 have a cluster with as few as just a single server, though typical installations
@@ -25,12 +25,12 @@ and on disk, and they can crash at any time. HyperDex can be configured to
 tolerate as many failed nodes as desired.
 
 The HyperDex coordinator maintains the entire cluster.  This involves making
-sure that servers are up, detecting failed or slow nodes, taking them out of the
-system, and replacing them where necessary. The coordinator maintains a critical
-data structure, the hyperspace map, that establishes the mapping of data to
-servers.  Clients use this map to locate the servers they need to contact, while
-servers use it to perform object propagation and replication to achieve the
-application's desired goals.
+sure that servers are up, as well as detecting, removing, and replacing failed
+or slow nodes.  The coordinator maintains a critical data structure, the
+hyperspace map, that establishes the mapping of data to servers.  Clients use
+this map to locate the servers they need to contact, while servers use it to
+perform object propagation and replication to achieve the application's desired
+goals.
 
 In this tutorial, we'll discuss how to get a HyperDex cluster up and running. In
 particular, we'll create a simple space, insert objects into it, retrieve those
@@ -63,7 +63,7 @@ additional nodes in our cluster.
 
 The HyperDex daemons are the workhorse processes that actually house the data in
 the data store and respond to client requests. Let's start a daemon on the the
-same machine as the coordinator:
+same machine as the coordinator by running this in another terminal window:
 
 \begin{consolecode}
 hyperdex daemon -f --listen=127.0.0.1 --listen-port=2012 \
@@ -173,8 +173,8 @@ protect against up to two failures by creating three replicas of each object.
 Even if two daemons holding an object fail, there will still be one copy of the
 object remaining.  HyperDex automatically repairs from this one remaining copy.
 
-Finally, it's possible to create objects using command-line tools that ship with
-HyperDex.  One could have created the ``phonebook'' space using the
+Finally, it's possible to create spaces using the command-line tools that ship
+with HyperDex.  One could have created the ``phonebook'' space using the
 command-line:
 
 \begin{consolecode}
@@ -223,7 +223,7 @@ We can easily retrieve the same ``jsmith'' object by using a standard
 {'first': 'John', 'last': 'Smith', 'phone': 6075551024}
 \end{pythoncode}
 
-Yay, we inserted an object under the key ``jsmith1'' and retrieved it using the
+Yay!  We inserted an object under the key ``jsmith1'' and retrieved it using the
 same key.  This looks exactly like every other NoSQL store out there, but there
 are a few differences.
 
@@ -249,8 +249,8 @@ might happen with an eventually consistent NoSQL key-value store.  Eventual
 consistency is no consistency at all.  In contrast, HyperDex provides
 linearizability. Time will never roll backwards from the point of any client.
 
-And it gets better. For we can not only retrieve objects by their key, but we
-can also retrieve them when we don't know their key. Here are some examples:
+And it gets better. Not only can we retrieve objects by their key, but we can
+also retrieve them when we don't know their key. Here are some examples:
 
 \begin{pythoncode}
 >>> [x for x in c.search('phonebook', {'first': 'John'})]

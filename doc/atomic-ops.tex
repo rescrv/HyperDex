@@ -324,7 +324,7 @@ True
 '->some string<-'
 \end{pythoncode}
 
-Lists provide atomic operations as well, to push new items on the left or the
+Atomic operations on lists allow the client to push new items on the left or
 right of the list:
 
 \begin{pythoncode}
@@ -449,7 +449,8 @@ True
 \end{pythoncode}
 
 \subsection{Atomic Operations on Documents}
-Note that Hyperdex also supports atomic operations on documents. To do this, we first have to create a space that has a field of the type document.
+Note that Hyperdex also supports atomic operations on documents. To do this, we
+first have to create a space that has a field of the type document.
 
 \begin{pythoncode}
 >>> a.add_space('''
@@ -468,8 +469,11 @@ Now, we can insert data into this table.
 True
 \end{pythoncode}
 
-We might now want to modify the information of this person without rewriting the whole document. For example, it might be Jane Doe's birthday and we want to increment the age.
-Fortunately, atomic operations also work on this kind of data. Hyperdex is able to add up two documents as long as the argument is a subset of the original data and only has numerical values.
+We might now want to modify this information of this person without rewriting
+the whole document. For example, it might be Jane Doe's birthday and we want to
+increment the age.  Fortunately, atomic operations also work on this kind of
+data.  HyperDex is able to increment integers within documents by providing the
+full path to the integer within the document.
 
 \begin{pythoncode}
 >>> c.atomic_add('people', 'jane', {'info.age' : 1})
@@ -514,7 +518,7 @@ True
 
 
 
-HyperDex's atomic operations are extensive and very expressive. And they are
+HyperDex's atomic operations are extensive and very expressive.  They are
 guaranteed to be applied in the same order on all replicas, so the state of the
 object you are operating on is guaranteed to be the same, regardless of
 failovers.

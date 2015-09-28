@@ -135,9 +135,8 @@ and, we have the restored copy of the cluster running on on ports 1983 and 2013.
 
 \section{Backup Efficiency}
 
-HyperDex's backups are extremely efficient, because they leverage the structure
-of the on-disk format to take snapshots quickly, which may then be copied in the
-background.
+HyperDex's backups are extremely efficient, because its architecture enables
+quick snapshots, which may then be copied in the background.
 
 HyperDex uses HyperLevelDB as its storage backend, which, in turn, constructs an
 LSM-tree on disk.  The majority of data stored within HyperLevelDB is stored
@@ -190,7 +189,7 @@ all of the server's state to this directory.  This directory is suitable for
 passing to the \code{--data} parameter of HyperDex's daemon.
 
 In addition to the per-daemon state backups, the backup command above also
-creates a file in the curren directory called \code{my-backup.coordinator.bin}.
+creates a file in the current directory called \code{my-backup.coordinator.bin}.
 This file contains the coordinator's state, suitable for using to bootstrap a
 new coordinator cluster as shown above.
 
@@ -232,8 +231,8 @@ also present, unchanged, in the link-dest directory, then it will be hard-linked
 into place and not copied over the network.
 
 Assuming an existing backup exists in the directory
-\code{13036267341651542609-1},
-we can create an incremental backup in \code{13036267341651542609-2} by issuing:
+\code{13036267341651542609-1}, we can create an incremental backup in
+\code{13036267341651542609-2} by issuing:
 
 \begin{consolecode}
 % rsync -a --delete --link-dest=13036267341651542609-1 -- \

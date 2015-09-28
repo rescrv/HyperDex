@@ -1,14 +1,13 @@
 \chapter{Installing HyperDex}
 \label{chap:installation}
 
-HyperDex provides multiple installation methods that provide easy access to
-HyperDex in a variety of environments.  Those looking to play around with
-HyperDex and go through the tutorials may find it easiest to start with the
-quickstart Docker container.  For Linux users, the easiest and most convenient
-way to install HyperDex is to use pre-compiled binary packages.  Users of OS X
-have the option to install using Homebrew packages.  Finally, HyperDex is also
-distributed as a set of tarballs so that power users may install HyperDex in a
-custom manner on their platform of choice.
+HyperDex provides multiple installation methods for a variety of environments.
+Those looking to play around with HyperDex and go through the tutorials may find
+it easiest to start with the quickstart Docker container.  For Linux users, the
+easiest and most convenient way to install HyperDex is to use pre-compiled
+binary packages.  OS X users have the option to install using Homebrew
+packages.  Finally, HyperDex is also distributed as a set of tarballs so that
+power users may install HyperDex in a custom manner on their platform of choice.
 
 \section{Quick Installation with Docker}
 
@@ -50,8 +49,8 @@ You can connect to this cluster at address=172.17.3.27, port=1982.
 \end{enumerate}
 
 With this quickstart cluster, both the coordinator and daemon logs will be
-displayed on stdout.  You can connect to the cluster at athe address and port
-listed, and can stop the cluster at any time using the command displayed on your
+displayed on stdout.  You can connect to the cluster at the address and port
+listed and can stop the cluster at any time using the command displayed on your
 console.  When you stop the cluster, the HyperDex cluster will be destroyed, and
 taken offline automatically.  To fully clean up any disk space in use by the
 cluster, run \code{docker rm b6ae7c60c275}, where b6ae7c60c275 is the ID of your
@@ -156,7 +155,7 @@ accomplished with this script:
 \subsubsection{Changing the Installation Directory}
 \label{sec:installation:source:prefix}
 
-By default HyperDex installs files in \texttt{/usr/local}.  If you'd like to
+By default, HyperDex installs files in \texttt{/usr/local}.  If you'd like to
 install HyperDex elsewhere, you can specify the installation prefix at configure
 time.  For example, to install HyperDex in \texttt{/opt/hyperdex}:
 
@@ -384,7 +383,7 @@ cluster using the provided backup tools.  Start the 1.4 cluster from the
 backup.  This will upgrade the coordinator to 1.4, and the daemons will work
 with the old data directory.
 
-Alternatively, take a backup, and restart the coordinator from the backed-up
+Alternatively take a backup, and restart the coordinator from the backed-up
 coordinator state on the same address.  Then do a rolling restart of the
 daemons.
 
@@ -400,7 +399,7 @@ cluster using the provided backup tools.  Start the 1.3 cluster from the
 backup.  This will upgrade the coordinator to 1.3, and the daemons will work
 with the old data directory.
 
-Alternatively, take a backup, and restart the coordinator from the backed-up
+Alternatively take a backup, and restart the coordinator from the backed-up
 coordinator state on the same address.  Then do a rolling restart of the
 daemons.
 
