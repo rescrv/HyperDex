@@ -99,25 +99,25 @@
 } while(0)
 
 struct ieee_single {
-	u_int	sng_frac:23;
-	u_int	sng_exp:8;
-	u_int	sng_sign:1;
+	unsigned int	sng_frac:23;
+	unsigned int	sng_exp:8;
+	unsigned int	sng_sign:1;
 };
 
 struct ieee_double {
-	u_int	dbl_fracl;
-	u_int	dbl_frach:20;
-	u_int	dbl_exp:11;
-	u_int	dbl_sign:1;
+	unsigned int	dbl_fracl;
+	unsigned int	dbl_frach:20;
+	unsigned int	dbl_exp:11;
+	unsigned int	dbl_sign:1;
 };
 
 struct ieee_ext {
-	u_int	ext_fracl;
-	u_int	ext_frach;
-	u_int	ext_exp:15;
-	u_int	ext_sign:1;
-	u_int	ext_padl:16;
-	u_int	ext_padh;
+	unsigned int	ext_fracl;
+	unsigned int	ext_frach;
+	unsigned int	ext_exp:15;
+	unsigned int	ext_sign:1;
+	unsigned int	ext_padl:16;
+	unsigned int	ext_padh;
 };
 
 /*
