@@ -29,21 +29,15 @@
 #include <ciso646>
 
 // C
-#if defined(_MSC_VER) || defined(_LIBCPP_VERSION)
+#if defined(_LIBCPP_VERSION)
 #include <cmath>
 #else
 #include <tr1/cmath>
 #endif
 #include <cstdlib>
 
-// Linux
-#ifdef __APPLE__
-#include <osx/ieee754.h>
-#else
-#include <ieee754.h>
-#endif
-
 // HyperDex
+#include "common/ieee.h"
 #include "common/ordered_encoding.h"
 
 uint64_t
@@ -114,21 +108,15 @@ hyperdex :: ordered_decode_int64(uint64_t x)
 //                                          exp=0x7ff
 //                                          frac=0
 //                                          shift=3
-#ifndef _MSC_VER
-#pragma GCC diagnostic push
+
 #pragma GCC diagnostic ignored "-Wfloat-equal"
-#endif
 
 uint64_t
 hyperdex :: ordered_encode_double(double x)
 {
     uint64_t out = 0xffffffffffffffffULL;
 
-#ifdef _MSC_VER
-    if (isinf(x))
-#else
     if (std::isinf(x))
-#endif
     {
         if (x > 0)
         {
@@ -139,11 +127,7 @@ hyperdex :: ordered_encode_double(double x)
             out = 0;
         }
     }
-#ifdef _MSC_VER
-    else if (isnan(x))
-#else
     else if (std::isnan(x))
-#endif
     {
         out = 0xfff0000000000000ULL + 3;
     }
@@ -153,13 +137,13 @@ hyperdex :: ordered_encode_double(double x)
     }
     else
     {
-        ieee754_double d;
+        union { double d; ieee_double ieee; } d;
         d.d = x;
-        uint64_t sign = d.ieee.negative ^ 0x1;
-        uint64_t exp  = d.ieee.exponent;
-        uint64_t frac = d.ieee.mantissa0;
+        uint64_t sign = d.ieee.dbl_sign ^ 0x1;
+        uint64_t exp  = d.ieee.dbl_exp;
+        uint64_t frac = d.ieee.dbl_frach;
         frac <<= 32;
-        frac |= d.ieee.mantissa1;
+        frac |= d.ieee.dbl_fracl;
         uint64_t shift = 2;
 
         if (x < 0)
@@ -175,7 +159,3 @@ hyperdex :: ordered_encode_double(double x)
 
     return out;
 }
-
-#ifndef _MSC_VER
-#pragma GCC diagnostic pop
-#endif
