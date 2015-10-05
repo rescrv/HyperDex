@@ -25,6 +25,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// POSIX
+#include <sys/types.h>
+#include <sys/stat.h>
+
 // po6
 #include <po6/io/fd.h>
 

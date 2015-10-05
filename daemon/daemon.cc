@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 #define __STDC_LIMIT_MACROS
+#define _WITH_GETLINE
 
 // POSIX
 #include <dirent.h>

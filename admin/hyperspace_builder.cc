@@ -64,9 +64,6 @@ yyparse(struct hyperspace* space, void* scanner);
 
 #define BUFFER_SIZE 1024
 
-using hyperdex::attribute;
-using hyperdex::datatype_info;
-
 namespace
 {
 
@@ -102,8 +99,8 @@ class hyperspace
 
         // parsed components
         const char* name;
-        attribute key;
-        std::vector<attribute> attributes;
+        hyperdex::attribute key;
+        std::vector<hyperdex::attribute> attributes;
         std::vector<hypersubspace> subspaces;
         std::vector<const char*> indices;
         uint64_t fault_tolerance;
@@ -196,14 +193,14 @@ is_identifier(const char* str)
 static bool
 is_key_datatype(hyperdatatype type)
 {
-    datatype_info* di = datatype_info::lookup(type);
+    hyperdex::datatype_info* di = hyperdex::datatype_info::lookup(type);
     return di && di->hashable();
 }
 
 static bool
 is_concrete_datatype(hyperdatatype type)
 {
-    return datatype_info::lookup(type) != NULL;
+    return hyperdex::datatype_info::lookup(type) != NULL;
 }
 
 extern "C"
@@ -344,7 +341,7 @@ hyperspace_set_key(hyperspace* space,
         return HYPERSPACE_DUPLICATE;
     }
 
-    space->key = attribute(space->internalize(attr), datatype);
+    space->key = hyperdex::attribute(space->internalize(attr), datatype);
     return HYPERSPACE_SUCCESS;
 }
 
@@ -385,7 +382,7 @@ hyperspace_add_attribute(hyperspace* space,
         return HYPERSPACE_DUPLICATE;
     }
 
-    space->attributes.push_back(attribute(space->internalize(attr), datatype));
+    space->attributes.push_back(hyperdex::attribute(space->internalize(attr), datatype));
     return HYPERSPACE_SUCCESS;
 }
 
@@ -415,7 +412,7 @@ hyperspace_add_subspace_attribute(hyperspace* space, const char* attr)
         return HYPERSPACE_UNKNOWN_ATTR;
     }
 
-    if (!datatype_info::lookup(space->attr_type(attr))->hashable())
+    if (!hyperdex::datatype_info::lookup(space->attr_type(attr))->hashable())
     {
         snprintf(space->buffer, BUFFER_SIZE, "cannot add attribute \"%s\" to subspace because the type is not hashable", attr);
         space->buffer[BUFFER_SIZE - 1] = '\0';
@@ -457,7 +454,7 @@ hyperspace_add_index(hyperspace* space, const char* attr)
         return HYPERSPACE_UNKNOWN_ATTR;
     }
 
-    if (!datatype_info::lookup(space->attr_type(attr))->indexable())
+    if (!hyperdex::datatype_info::lookup(space->attr_type(attr))->indexable())
     {
         snprintf(space->buffer, BUFFER_SIZE, "cannot create index on \"%s\" because the type is not indexable", attr);
         space->buffer[BUFFER_SIZE - 1] = '\0';
@@ -522,7 +519,7 @@ bool
 hyperdex :: space_to_space(hyperspace* in, hyperdex::space* out)
 {
     assert(!hyperspace_error(in));
-    std::vector<attribute> attrs;
+    std::vector<hyperdex::attribute> attrs;
     attrs.push_back(in->key);
 
     for (size_t i = 0; i < in->attributes.size(); ++i)
@@ -532,7 +529,7 @@ hyperdex :: space_to_space(hyperspace* in, hyperdex::space* out)
 
     if (in->authorization)
     {
-        attrs.push_back(attribute(HYPERDEX_ATTRIBUTE_SECRET, HYPERDATATYPE_MACAROON_SECRET));
+        attrs.push_back(hyperdex::attribute(HYPERDEX_ATTRIBUTE_SECRET, HYPERDATATYPE_MACAROON_SECRET));
     }
 
     schema sc;
@@ -568,7 +565,7 @@ hyperdex :: space_to_space(hyperspace* in, hyperdex::space* out)
 
     for (size_t i = 0; i < sp.subspaces.size(); ++i)
     {
-        partition(sp.subspaces[i].attrs.size(), in->partitions, &sp.subspaces[i].regions);
+        hyperdex::partition(sp.subspaces[i].attrs.size(), in->partitions, &sp.subspaces[i].regions);
     }
 
     for (size_t i = 0; i < in->indices.size(); ++i)
