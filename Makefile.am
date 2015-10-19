@@ -132,6 +132,7 @@ noinst_HEADERS += common/funcall.h
 noinst_HEADERS += common/hash.h
 noinst_HEADERS += common/hyperspace.h
 noinst_HEADERS += common/ids.h
+noinst_HEADERS += common/ieee.h
 noinst_HEADERS += common/index.h
 noinst_HEADERS += common/json_path.h
 noinst_HEADERS += common/key_change.h
