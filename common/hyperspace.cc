@@ -232,6 +232,8 @@ hyperdex :: operator >> (e::unpacker up, space& s)
     uint16_t num_indices;
     up = up >> s.id >> name >> s.fault_tolerance >> s.sc.attrs_sz
             >> num_subspaces >> num_indices;
+    strs.reserve(s.sc.attrs_sz + 1);
+    attrs.reserve(s.sc.attrs_sz);
     strs.push_back(std::string(name.cdata(), name.size()));
     s.name = strs.back().c_str();
 

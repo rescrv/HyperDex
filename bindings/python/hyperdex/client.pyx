@@ -314,6 +314,7 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_search_describe(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, const char** description)
     int64_t hyperdex_client_sorted_search(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const char* sort_by, uint64_t limit, int maxmin, hyperdex_client_returncode* status, const hyperdex_client_attribute** attrs, size_t* attrs_sz)
     int64_t hyperdex_client_count(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, uint64_t* count)
+    int64_t hyperdex_client_sum(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz,  const char* sum_key, hyperdex_client_returncode* status, uint64_t* count)
     # End Automatically Generated Prototypes
 
 
@@ -399,6 +400,7 @@ ctypedef int64_t asynccall__spacename_predicates_attributes__status_count_fptr(h
 ctypedef int64_t asynccall__spacename_key__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_key_predicates__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_predicates__status_count_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, hyperdex_client_returncode* status, uint64_t* count)
+ctypedef int64_t asynccall__spacename_predicates__status_sum_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const char* key, hyperdex_client_returncode* status, uint64_t* count)
 ctypedef int64_t asynccall__spacename_key_mapattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_key_predicates_mapattributes__status_fptr(hyperdex_client* client, const char* space, const char* key, size_t key_sz, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status)
 ctypedef int64_t asynccall__spacename_predicates_mapattributes__status_count_fptr(hyperdex_client* client, const char* space, const hyperdex_client_attribute_check* checks, size_t checks_sz, const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz, hyperdex_client_returncode* status, uint64_t* count)
@@ -1506,6 +1508,9 @@ cdef class Client:
     cdef convert_sortby(self, hyperdex_ds_arena* arena, bytes sortby, const char** sortby_str):
         sortby_str[0] = sortby
 
+    cdef convert_sum_key(self, hyperdex_ds_arena* arena, bytes key, const char** sum_key_str):
+        sum_key_str[0] = key 
+
     cdef convert_limit(self, hyperdex_ds_arena* arena, long limit, uint64_t* count):
         count[0] = limit
 
@@ -1688,6 +1693,24 @@ cdef class Client:
         self.convert_predicates(d.arena, predicates, &in_checks, &in_checks_sz);
         self.set_auth_context(auth)
         d.reqid = f(self.client, in_space, in_checks, in_checks_sz, &d.status, &d.count);
+        self.clear_auth_context()
+        if d.reqid < 0:
+            raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
+        d.encode_return = hyperdex_python_client_deferred_encode_status_count
+        self.ops[d.reqid] = d
+        return d
+
+    cdef asynccall__spacename_predicates__status_sum(self, asynccall__spacename_predicates__status_sum_fptr f, bytes spacename, dict predicates, bytes key, auth=None):
+        cdef Deferred d = Deferred(self)
+        cdef const char* in_space
+        cdef hyperdex_client_attribute_check* in_checks
+        cdef size_t in_checks_sz
+        cdef const char* in_sum_key 
+        self.convert_spacename(d.arena, spacename, &in_space);
+        self.convert_predicates(d.arena, predicates, &in_checks, &in_checks_sz);
+        self.convert_sum_key(d.arena, key, &in_sum_key);
+        self.set_auth_context(auth)
+        d.reqid = f(self.client, in_space, in_checks, in_checks_sz, in_sum_key, &d.status, &d.count);
         self.clear_auth_context()
         if d.reqid < 0:
             raise HyperDexClientException(d.status, hyperdex_client_error_message(self.client))
@@ -2412,4 +2435,8 @@ cdef class Client:
         return self.asynccall__spacename_predicates__status_count(hyperdex_client_count, spacename, predicates, auth)
     def count(self, bytes spacename, dict predicates, auth=None):
         return self.async_count(spacename, predicates, auth).wait()
+    def async_sum(self, bytes spacename, dict predicates, bytes sum_key, auth=None):
+        return self.asynccall__spacename_predicates__status_sum(hyperdex_client_sum, spacename, predicates, sum_key, auth)
+    def sum(self, bytes spacename, dict predicates, bytes sum_key, auth=None):
+        return self.async_sum(spacename, predicates, sum_key, auth).wait()
     # End Automatically Generated Methods

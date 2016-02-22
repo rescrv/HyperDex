@@ -831,4 +831,9 @@ public class Client
     {
         return (Long) async_count(spacename, predicates).waitForIt();
     }
+    public native Deferred async_sum(String spacename, Map<String, Object> predicates, String sum_key) throws HyperDexClientException;
+    public Long sum(String spacename, Map<String, Object> predicates, String sum_key) throws HyperDexClientException
+    {
+        return (Long) async_sum(spacename, predicates, sum_key).waitForIt();
+    }
 }

@@ -216,7 +216,10 @@ hyperdex_client_destroy_attrs(const hyperdex_client_attribute* attrs, size_t /*a
 {
     FAKE_STATUS;
     SIGNAL_PROTECT_VOID;
-    free(const_cast<hyperdex_client_attribute*>(attrs));
+	if (attrs) {
+		free(const_cast<hyperdex_client_attribute*>(attrs));
+		attrs = NULL;
+	}
 }
 
 HYPERDEX_API void
@@ -2301,6 +2304,19 @@ hyperdex_client_count(struct hyperdex_client* _cl,
 {
     C_WRAP_EXCEPT(
     return cl->count(space, checks, checks_sz, status, count);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_client_sum(struct hyperdex_client* _cl,
+                      const char* space,
+                      const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                      const char* sum_key, 
+                      enum hyperdex_client_returncode* status,
+                      uint64_t* total)
+{
+    C_WRAP_EXCEPT(
+    return cl->sum(space, checks, checks_sz, sum_key, status, total);
     );
 }
 

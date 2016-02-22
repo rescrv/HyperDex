@@ -57,7 +57,11 @@ hyperdex_admin_raw_backup(const char* host, uint16_t port,
 {
     try
     {
-        busybee_single bbs(po6::net::location(host, port));
+		po6::net::location loc;
+		if (!loc.set(host, port)) {
+			return -1;
+		}
+		busybee_single bbs(loc);
         const uint8_t type = static_cast<uint8_t>(BACKUP);
         const uint8_t flags = 0;
         const uint64_t version = 0;

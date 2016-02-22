@@ -138,14 +138,9 @@ main(int argc, const char* argv[])
     }
     else
     {
-        try
+        if (listen_ip.set(listen_host))
         {
-            listen_ip = po6::net::ipaddr(listen_host);
             bind_to = po6::net::location(listen_ip, listen_port);
-        }
-        catch (std::invalid_argument& e)
-        {
-            // fallthrough
         }
 
         if (bind_to == po6::net::location())
@@ -161,7 +156,7 @@ main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    if (bind_to.address == po6::net::ipaddr("0.0.0.0"))
+    if (bind_to.address == po6::net::ipaddr::ANY())
     {
         std::cerr << "cannot bind to " << bind_to << " because it is not routable" << std::endl;
         return EXIT_FAILURE;

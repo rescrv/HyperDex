@@ -1162,6 +1162,14 @@ hyperdex_client_count(struct hyperdex_client* client,
                       uint64_t* count);
 
 int64_t
+hyperdex_client_sum(struct hyperdex_client* client,
+                      const char* space,
+                      const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                      const char* sum_key,
+                      enum hyperdex_client_returncode* status,
+                      uint64_t* sum_count);
+
+int64_t
 hyperdex_client_loop(struct hyperdex_client* client, int timeout,
                      enum hyperdex_client_returncode* status);
 

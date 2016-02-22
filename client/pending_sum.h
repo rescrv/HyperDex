@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2012-2016, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,73 +25,56 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_network_msgtype_h_
-#define hyperdex_common_network_msgtype_h_
-
-// C++
-#include <iostream>
+#ifndef hyperdex_client_pending_sum_h_
+#define hyperdex_client_pending_sum_h_
 
 // HyperDex
 #include "namespace.h"
+#include "client/pending_aggregation.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-enum network_msgtype
+class datatype_info;
+class pending_sum : public pending_aggregation
 {
-    REQ_GET         = 8,
-    RESP_GET        = 9,
+    public:
+        pending_sum(uint64_t client_visible_id,
+                      uint16_t sum_idx,
+					  datatype_info* sum_di,
+                      hyperdex_client_returncode* status,
+                      uint64_t* count);
+        virtual ~pending_sum() throw ();
 
-    REQ_GET_PARTIAL = 10,
-    RESP_GET_PARTIAL = 11,
+    // return to client
+    public:
+        virtual bool can_yield();
+        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
 
-    REQ_ATOMIC      = 16,
-    RESP_ATOMIC     = 17,
+    // events
+    public:
+        virtual void handle_failure(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual bool handle_message(client*,
+                                    const server_id& si,
+                                    const virtual_server_id& vsi,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer> msg,
+                                    e::unpacker up,
+                                    hyperdex_client_returncode* status,
+                                    e::error* error);
 
-    REQ_SEARCH_START    = 32,
-    REQ_SEARCH_NEXT     = 33,
-    REQ_SEARCH_STOP     = 34,
-    RESP_SEARCH_ITEM    = 35,
-    RESP_SEARCH_DONE    = 36,
+    // noncopyable
+    private:
+        pending_sum(const pending_sum& other);
+        pending_sum& operator = (const pending_sum& rhs);
 
-    REQ_SORTED_SEARCH   = 40,
-    RESP_SORTED_SEARCH  = 41,
-
-    /* 48, 49 retired */
-
-    REQ_COUNT       = 50,
-    RESP_COUNT      = 51,
-
-    REQ_SEARCH_DESCRIBE  = 52,
-    RESP_SEARCH_DESCRIBE = 53,
-
-    REQ_GROUP_ATOMIC = 54,
-    RESP_GROUP_ATOMIC = 55,
-
-	REQ_SUM         = 58,
-	RESP_SUM        = 59,
-
-    CHAIN_OP        = 64,
-    CHAIN_SUBSPACE  = 65,
-    CHAIN_ACK       = 66,
-    /* 67 retired */
-
-    XFER_OP  = 80,
-    XFER_ACK = 81,
-    XFER_HS  = 82, // handshake syn
-    XFER_HSA = 83, // handshake syn-ack
-    XFER_HA  = 84, // handshake ack
-    XFER_HW  = 85, // wiped
-
-    BACKUP = 126,
-    PERF_COUNTERS = 127,
-
-    CONFIGMISMATCH  = 254,
-    PACKET_NOP      = 255
+    private:
+		const uint16_t m_sum_idx;
+		datatype_info *m_sum_di;
+        uint64_t* m_sum;
+        bool m_done;
 };
-
-std::ostream&
-operator << (std::ostream& lhs, const network_msgtype& rhs);
 
 END_HYPERDEX_NAMESPACE
 
-#endif // hyperdex_common_network_msgtype_h_
+#endif // hyperdex_client_pending_sum_h_

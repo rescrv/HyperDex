@@ -39,6 +39,7 @@
 
 // e
 #include <e/intrusive_ptr.h>
+#include <e/endian.h>
 
 // HyperDex
 #include "common/attribute_check.h"
@@ -623,6 +624,87 @@ search_manager :: count(const server_id& from,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << result;
     m_daemon->m_comm.send_client(to, from, RESP_COUNT, msg);
+}
+
+void
+search_manager :: sum(const server_id& from,
+                        const virtual_server_id& to,
+                        uint64_t nonce,
+                        std::vector<attribute_check>* checks,
+                        uint16_t sum_idx)
+{
+    region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+
+    if (sc->authorization)
+    {
+        return;
+    }
+
+    std::stable_sort(checks->begin(), checks->end());
+    datalayer::returncode rc = datalayer::SUCCESS;
+    datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
+    e::intrusive_ptr<datalayer::iterator> iter;
+    iter = m_daemon->m_data.make_search_iterator(snap, ri, *checks, NULL);
+    uint64_t result = 0;
+
+    switch (rc)
+    {
+        case datalayer::SUCCESS:
+            break;
+        case datalayer::NOT_FOUND:
+        case datalayer::BAD_ENCODING:
+        case datalayer::CORRUPTION:
+        case datalayer::IO_ERROR:
+        case datalayer::LEVELDB_ERROR:
+            LOG(ERROR) << "could not make snapshot for search:  " << rc;
+            result = UINT64_MAX;
+            break;
+        default:
+            abort();
+    }
+
+    while (iter->valid() && result < UINT64_MAX)
+    {
+        e::slice key;
+        std::vector<e::slice> val;
+        uint64_t ver;
+        datalayer::reference tmp;
+        m_daemon->m_data.get_from_iterator(ri, *sc, iter.get(), &key, &val, &ver, &tmp);
+		if (val.size() < sum_idx)
+		{
+			LOG(ERROR) << "occur some error for sum:  " << val.size();
+		}
+		switch (sc->attrs[sum_idx].type)
+		{
+			case HYPERDATATYPE_INT64:
+			{
+				uint64_t num = 0;
+				e::unpack64le(val[sum_idx-1].cdata(), &num);
+				result += num;
+			}
+			break;
+			case HYPERDATATYPE_FLOAT:
+			{
+				double num = 0;
+				e::unpackdoublele(val[sum_idx-1].cdata(), &num);
+				result += (uint64_t)num;
+			}
+			break;
+			case HYPERDATATYPE_STRING:
+			default:
+            LOG(ERROR) << "could not sum item because of not int and double(" << sc->attrs[sum_idx].type << ")";
+		}
+        iter->next();
+    }
+	//LOG(INFO) << "result(" << result << ")";
+
+    size_t sz = HYPERDEX_HEADER_SIZE_VC
+              + sizeof(uint64_t)
+              + sizeof(uint64_t);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << result;
+    m_daemon->m_comm.send_client(to, from, RESP_SUM, msg);
 }
 
 void

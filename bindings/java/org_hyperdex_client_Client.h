@@ -1023,6 +1023,14 @@ JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_sorted_1s
 JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1count
   (JNIEnv *, jobject, jstring, jobject);
 
+/*
+ * Class:     org_hyperdex_client_Client
+ * Method:    async_sum
+ * Signature: (Ljava/lang/String;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
+ */
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1sum
+  (JNIEnv *, jobject, jstring, jobject, jstring);
+
 #ifdef __cplusplus
 }
 #endif

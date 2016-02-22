@@ -114,6 +114,9 @@ class client
         int64_t count(const char* space,
                       const hyperdex_client_attribute_check* checks, size_t checks_sz,
                       hyperdex_client_returncode* status, uint64_t* result);
+        int64_t sum(const char* space,
+                      const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                      const char* sum_key, hyperdex_client_returncode* status, uint64_t* result);
 
         // General keyop call
         // This will be called by the bindings from c.cc
