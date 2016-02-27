@@ -56,7 +56,7 @@ pending_sorted_search :: pending_sorted_search(client* cl,
     , m_attrs(attrs)
     , m_attrs_sz(attrs_sz)
     , m_results()
-    , m_results_idx()
+    , m_results_idx(0)
 {
 }
 
