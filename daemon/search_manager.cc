@@ -323,11 +323,20 @@ struct _sorted_search_item
 {
     _sorted_search_item(_sorted_search_params* p)
         : params(p), key(), value(), version(), ref() {}
+    _sorted_search_item(_sorted_search_params* p, uint16_t val_sz)
+        : params(p), key_str(), version(), ref() 
+	{
+		value.reserve(val_sz);
+		value_str.reserve(val_sz);
+	}
     _sorted_search_item(const _sorted_search_item& other);
     ~_sorted_search_item() throw () {}
     _sorted_search_item& operator = (const _sorted_search_item& other);
+    void assign();
     _sorted_search_params* params;
+    std::string key_str;
     e::slice key;
+    std::vector<std::string> value_str;
     std::vector<e::slice> value;
     uint64_t version;
     datalayer::reference ref;
@@ -335,7 +344,9 @@ struct _sorted_search_item
 
 _sorted_search_item :: _sorted_search_item(const _sorted_search_item& other)
     : params(other.params)
+    , key_str(other.key_str)
     , key(other.key)
+    , value_str(other.value_str)
     , value(other.value)
     , version(other.version)
     , ref(other.ref)
@@ -346,11 +357,24 @@ _sorted_search_item&
 _sorted_search_item :: _sorted_search_item :: operator = (const _sorted_search_item& other)
 {
     params = other.params;
+    key_str = other.key_str;
     key = other.key;
+    value_str = other.value_str;
     value = other.value;
     version = other.version;
     ref = other.ref;
     return *this;
+}
+
+void
+_sorted_search_item :: assign ()
+{
+    key = e::slice(key_str);
+    value.clear();
+    for (size_t i = 0; i < value_str.size(); i ++)
+    {
+        value.push_back(e::slice(value_str[i]));
+    }
 }
 
 bool
@@ -369,13 +393,16 @@ operator < (const _sorted_search_item& lhs, const _sorted_search_item& rhs)
     if (params->sort_by == 0)
     {
         datatype_info* di = datatype_info::lookup(params->sc->attrs[0].type);
-        cmp = di->compare(lhs.key, rhs.key);
+        e::slice lhs_key(lhs.key_str);
+        e::slice rhs_key(rhs.key_str);
+        cmp = di->compare(lhs_key, rhs_key);
     }
     else
     {
         datatype_info* di = datatype_info::lookup(params->sc->attrs[params->sort_by].type);
-        cmp = di->compare(lhs.value[params->sort_by - 1],
-                          rhs.value[params->sort_by - 1]);
+        e::slice lhs_value(lhs.value_str[params->sort_by - 1]);
+        e::slice rhs_value(rhs.value_str[params->sort_by - 1]);
+        cmp = di->compare(lhs_value, rhs_value);
     }
 
     if (params->maximize)
@@ -404,13 +431,16 @@ operator > (const _sorted_search_item& lhs, const _sorted_search_item& rhs)
     if (params->sort_by == 0)
     {
         datatype_info* di = datatype_info::lookup(params->sc->attrs[0].type);
-        cmp = di->compare(lhs.key, rhs.key);
+        e::slice lhs_key(lhs.key_str);
+        e::slice rhs_key(rhs.key_str);
+        cmp = di->compare(lhs_key, rhs_key);
     }
     else
     {
         datatype_info* di = datatype_info::lookup(params->sc->attrs[params->sort_by].type);
-        cmp = di->compare(lhs.value[params->sort_by - 1],
-                          rhs.value[params->sort_by - 1]);
+        e::slice lhs_value(lhs.value_str[params->sort_by - 1]);
+        e::slice rhs_value(rhs.value_str[params->sort_by - 1]);
+        cmp = di->compare(lhs_value, rhs_value);
     }
 
     if (params->maximize)
@@ -465,12 +495,22 @@ search_manager :: sorted_search(const server_id& from,
 
     _sorted_search_params params(sc, sort_by, maximize);
     std::vector<_sorted_search_item> top_n;
-    top_n.reserve(limit);
+    top_n.reserve(limit + 1);
 
     while (iter->valid())
     {
-        top_n.push_back(_sorted_search_item(&params));
-        m_daemon->m_data.get_from_iterator(ri, *sc, iter.get(), &top_n.back().key, &top_n.back().value, &top_n.back().version, &top_n.back().ref);
+        e::slice key;
+        std::vector<e::slice> val;
+        uint64_t ver;
+        datalayer::reference tmp;
+        m_daemon->m_data.get_from_iterator(ri, *sc, iter.get(), &key, &val, &ver, &tmp);
+        _sorted_search_item ssi(&params, sc->attrs_sz);
+        ssi.key_str = key.str();
+        for (size_t i = 0; i < val.size(); i ++)
+        {
+            ssi.value_str.push_back(val[i].str());
+        }
+        top_n.push_back(ssi);
         std::push_heap(top_n.begin(), top_n.end());
 
         if (top_n.size() > limit)
@@ -487,6 +527,7 @@ search_manager :: sorted_search(const server_id& from,
 
     for (size_t i = 0; i < top_n.size(); ++i)
     {
+        top_n[i].assign();
         sz += pack_size(top_n[i].key) + pack_size(top_n[i].value);
     }
 
