@@ -55,6 +55,7 @@
 #include "client/pending_atomic.h"
 #include "client/pending_group_atomic.h"
 #include "client/pending_count.h"
+#include "client/pending_sum.h"
 #include "client/pending_get.h"
 #include "client/pending_get_partial.h"
 #include "client/pending_search.h"
@@ -390,6 +391,45 @@ client :: count(const char* space,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << checks;
     return perform_aggregation(servers, op, REQ_COUNT, msg, status);
+}
+
+int64_t
+client :: sum(const char* space,
+                const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                const char* sum_key,
+                hyperdex_client_returncode* status,
+                uint64_t* result)
+{
+    SEARCH_BOILERPLATE
+    uint16_t sum_idx = sc->lookup_attr(sum_key);
+
+    if (sum_idx== sc->attrs_sz)
+    {
+        ERROR(UNKNOWNATTR) << "\"" << e::strescape(sum_key)
+                           << "\" is not an attribute of space \""
+                           << e::strescape(space) << "\"";
+        return -1 - chks_sz;
+    }
+
+    datatype_info* di = datatype_info::lookup(sc->attrs[sum_idx].type);
+
+    if (!di->comparable())
+    {
+        ERROR(WRONGTYPE) << "cannot sort by attribute \""
+                         << e::strescape(sum_key)
+                         << "\": it is not comparable";
+        return -1 - chks_sz;
+    }
+
+    int64_t client_id = m_next_client_id++;
+    e::intrusive_ptr<pending_aggregation> op;
+    op = new pending_sum(client_id, sum_idx, di, status, result);
+    size_t sz = HYPERDEX_CLIENT_HEADER_SIZE_REQ
+              + pack_size(checks)
+              + sizeof(sum_idx);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << checks << sum_idx;
+    return perform_aggregation(servers, op, REQ_SUM, msg, status);
 }
 
 int64_t

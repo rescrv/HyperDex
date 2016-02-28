@@ -49,6 +49,8 @@ hyperdex :: operator << (std::ostream& lhs, const network_msgtype& rhs)
         STRINGIFY(RESP_SORTED_SEARCH);
         STRINGIFY(REQ_COUNT);
         STRINGIFY(RESP_COUNT);
+        STRINGIFY(REQ_SUM);
+        STRINGIFY(RESP_SUM);
         STRINGIFY(REQ_SEARCH_DESCRIBE);
         STRINGIFY(RESP_SEARCH_DESCRIBE);
         STRINGIFY(REQ_GROUP_ATOMIC);

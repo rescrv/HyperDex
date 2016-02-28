@@ -67,6 +67,9 @@ enum network_msgtype
     REQ_GROUP_ATOMIC = 54,
     RESP_GROUP_ATOMIC = 55,
 
+	REQ_SUM         = 58,
+	RESP_SUM        = 59,
+
     CHAIN_OP        = 64,
     CHAIN_SUBSPACE  = 65,
     CHAIN_ACK       = 66,

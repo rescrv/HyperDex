@@ -1316,6 +1316,17 @@ hyperdex_java_client_convert_sortby(JNIEnv* env, jobject client,
 }
 
 static int
+hyperdex_java_client_convert_sum_key(JNIEnv* env, jobject client,
+                                    struct hyperdex_ds_arena* arena,
+                                    jstring str,
+                                    const char** sum_key)
+{
+    (void)client;
+    *sum_key = hyperdex_java_client_convert_cstring(env, arena, str);
+    return *sum_key != NULL ? 0 : -1;
+}
+
+static int
 hyperdex_java_client_convert_spacename(JNIEnv* env, jobject client,
                                        struct hyperdex_ds_arena* arena,
                                        jstring str,

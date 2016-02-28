@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013, Cornell University
+// Copyright (c) 2012-2016, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,32 +25,25 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_pending_sorted_search_h_
-#define hyperdex_client_pending_sorted_search_h_
-
-// e
-#include <e/compat.h>
+#ifndef hyperdex_client_pending_sum_h_
+#define hyperdex_client_pending_sum_h_
 
 // HyperDex
 #include "namespace.h"
-#include "common/datatype_info.h"
 #include "client/pending_aggregation.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-class pending_sorted_search : public pending_aggregation
+class datatype_info;
+class pending_sum : public pending_aggregation
 {
     public:
-        pending_sorted_search(client* cl,
-                              uint64_t id,
-                              bool maximize,
-                              uint64_t limit,
-                              uint16_t sort_by_idx,
-                              datatype_info* sort_by_di,
-                              hyperdex_client_returncode* status,
-                              const hyperdex_client_attribute** attrs,
-                              size_t* attrs_sz);
-        virtual ~pending_sorted_search() throw ();
+        pending_sum(uint64_t client_visible_id,
+                      uint16_t sum_idx,
+					  datatype_info* sum_di,
+                      hyperdex_client_returncode* status,
+                      uint64_t* count);
+        virtual ~pending_sum() throw ();
 
     // return to client
     public:
@@ -59,8 +52,6 @@ class pending_sorted_search : public pending_aggregation
 
     // events
     public:
-        virtual void handle_sent_to(const server_id& si,
-                                    const virtual_server_id& vsi);
         virtual void handle_failure(const server_id& si,
                                     const virtual_server_id& vsi);
         virtual bool handle_message(client*,
@@ -72,66 +63,18 @@ class pending_sorted_search : public pending_aggregation
                                     hyperdex_client_returncode* status,
                                     e::error* error);
 
-    public:
-        class item;
-
     // noncopyable
     private:
-        pending_sorted_search(const pending_sorted_search& other);
-        pending_sorted_search& operator = (const pending_sorted_search& rhs);
+        pending_sum(const pending_sum& other);
+        pending_sum& operator = (const pending_sum& rhs);
 
     private:
-        client* m_cl;
-        bool m_yield;
-        region_id m_ri;
-        bool m_maximize;
-        const uint64_t m_limit;
-        const uint16_t m_sort_by_idx;
-        datatype_info* m_sort_by_di;
-        const hyperdex_client_attribute** m_attrs;
-        size_t* m_attrs_sz;
-        std::vector<item> m_results;
-        size_t m_results_idx;
-};
-
-class sorted_search_comparator
-{
-    public:
-        sorted_search_comparator(bool maximize,
-                                 uint16_t sort_by_idx,
-								 datatype_info* sort_by_di)
-			: m_maximize(maximize)
-			  , m_sort_by_idx(sort_by_idx)
-			  , m_sort_by_di(sort_by_di)
-	{
-	}
-
-	public:
-		bool m_maximize;
-		uint16_t m_sort_by_idx;
-        datatype_info* m_sort_by_di;
-};
-class pending_sorted_search :: item
-{
-    public:
-        item();
-        item(const sorted_search_comparator *sscobj,
-			 const e::slice& key,
-             const std::vector<e::slice>& value,
-             e::compat::shared_ptr<e::buffer> backing);
-        item(const item&);
-        ~item() throw ();
-
-    public:
-        item& operator = (const item&);
-
-    public:
-		const sorted_search_comparator *ssc_ptr;
-        e::slice key;
-        std::vector<e::slice> value;
-        e::compat::shared_ptr<e::buffer> backing;
+		const uint16_t m_sum_idx;
+		datatype_info *m_sum_di;
+        uint64_t* m_sum;
+        bool m_done;
 };
 
 END_HYPERDEX_NAMESPACE
 
-#endif // hyperdex_client_pending_sorted_search_h_
+#endif // hyperdex_client_pending_sum_h_

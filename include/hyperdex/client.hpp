@@ -749,6 +749,12 @@ class Client
                       hyperdex_client_returncode* status,
                       uint64_t* count)
             { return hyperdex_client_count(m_cl, space, checks, checks_sz, status, count); }
+        int64_t sum(const char* space,
+                      const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                      const char* sum_key,
+                      hyperdex_client_returncode* status,
+                      uint64_t* count)
+            { return hyperdex_client_sum(m_cl, space, checks, checks_sz, sum_key, status, count); }
 
     public:
         void clear_auth_context()

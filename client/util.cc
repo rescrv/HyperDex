@@ -88,9 +88,20 @@ hyperdex :: value_to_attributes(const configuration& config,
 
     std::vector<hyperdex_client_attribute> ha;
     ha.reserve(sc->attrs_sz);
-    char* ret = static_cast<char*>(malloc(sz));
+	char *ret = NULL;
+	if (attrs)
+	{
+        if (*attrs == NULL)
+        {
+            ret = static_cast<char*>(malloc(sz));
+        }
+		else
+		{
+            ret = static_cast<char*>(realloc((void *)*attrs, sz));
+		}
+	}
 
-    if (!ret)
+    if (ret == NULL)
     {
         UTIL_ERROR(NOMEM) << "out of memory";
         return false;

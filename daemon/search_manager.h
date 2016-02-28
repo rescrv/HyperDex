@@ -95,6 +95,11 @@ class search_manager
                    const virtual_server_id& to,
                    uint64_t nonce,
                    std::vector<attribute_check>* checks);
+        void sum(const server_id& from,
+                   const virtual_server_id& to,
+                   uint64_t nonce,
+                   std::vector<attribute_check>* checks,
+                   uint16_t sum_idx);
 
         void search_describe(const server_id& from,
                              const virtual_server_id& to,

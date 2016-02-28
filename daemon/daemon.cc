@@ -614,6 +614,10 @@ daemon :: loop(size_t thread)
                 process_req_count(from, vfrom, vto, msg, up);
                 m_perf_req_count.tap();
                 break;
+            case REQ_SUM:
+                process_req_sum(from, vfrom, vto, msg, up);
+                m_perf_req_sum.tap();
+                break;
             case REQ_SEARCH_DESCRIBE:
                 process_req_search_describe(from, vfrom, vto, msg, up);
                 m_perf_req_search_describe.tap();
@@ -673,6 +677,7 @@ daemon :: loop(size_t thread)
             case RESP_SEARCH_DONE:
             case RESP_SORTED_SEARCH:
             case RESP_COUNT:
+            case RESP_SUM:
             case RESP_SEARCH_DESCRIBE:
             case CONFIGMISMATCH:
             case PACKET_NOP:
@@ -980,6 +985,26 @@ daemon :: process_req_count(server_id from,
     }
 
     m_sm.count(from, vto, nonce, &checks);
+}
+
+void
+daemon :: process_req_sum(server_id from,
+                            virtual_server_id,
+                            virtual_server_id vto,
+                            std::auto_ptr<e::buffer> msg,
+                            e::unpacker up)
+{
+    uint64_t nonce;
+    std::vector<attribute_check> checks;
+    uint16_t sum_idx;
+
+    if ((up >> nonce >> checks >> sum_idx).error())
+    {
+        LOG(WARNING) << "unpack of REQ_SUM failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_sm.sum(from, vto, nonce, &checks, sum_idx);
 }
 
 void

@@ -32,6 +32,7 @@
 #include "client/client.h"
 #include "client/pending_sorted_search.h"
 #include "client/util.h"
+#include <functional>
 
 using hyperdex::datatype_info;
 using hyperdex::pending_sorted_search;
@@ -56,7 +57,7 @@ pending_sorted_search :: pending_sorted_search(client* cl,
     , m_attrs(attrs)
     , m_attrs_sz(attrs_sz)
     , m_results()
-    , m_results_idx()
+    , m_results_idx(0)
 {
 }
 
@@ -127,64 +128,77 @@ pending_sorted_search :: handle_failure(const server_id& si,
     return pending_aggregation::handle_failure(si, vsi);
 }
 
-namespace
+namespace hyperdex 
 {
-
-class sorted_search_comparator
-{
-    public:
-        sorted_search_comparator(bool maximize,
-                                 uint16_t sort_by_idx,
-                                 datatype_info* sort_by_di);
-
-    public:
-        bool operator () (const pending_sorted_search::item& lhs,
-                          const pending_sorted_search::item& rhs);
-
-    private:
-        bool m_maximize;
-        uint16_t m_sort_by_idx;
-        datatype_info* m_sort_by_di;
-};
-
-} // namespace
-
-sorted_search_comparator :: sorted_search_comparator(bool maximize,
-                                                     uint16_t sort_by_idx,
-                                                     datatype_info* sort_by_di)
-    : m_maximize(maximize)
-    , m_sort_by_idx(sort_by_idx)
-    , m_sort_by_di(sort_by_di)
-{
-}
 
 bool
-sorted_search_comparator :: operator () (const pending_sorted_search::item& lhs,
-                                         const pending_sorted_search::item& rhs)
+operator < (const pending_sorted_search::item& lhs, const pending_sorted_search::item& rhs)
 {
-    if (m_sort_by_idx > lhs.value.size() ||
-        m_sort_by_idx > rhs.value.size() ||
+    assert(lhs.ssc_ptr == rhs.ssc_ptr);
+    const sorted_search_comparator* ssc_ptr = lhs.ssc_ptr;
+
+    if (ssc_ptr->m_sort_by_idx > lhs.value.size() ||
+        ssc_ptr->m_sort_by_idx > rhs.value.size() ||
         lhs.value.size() != rhs.value.size())
     {
         return false;
     }
 
-    e::slice lhs_attr;
-    e::slice rhs_attr;
+    int cmp = 0;
 
-    if (m_sort_by_idx == 0)
+    if (ssc_ptr->m_sort_by_idx == 0)
     {
-        lhs_attr = lhs.key;
-        rhs_attr = rhs.key;
+        cmp = ssc_ptr->m_sort_by_di->compare(lhs.key, rhs.key);
     }
     else
     {
-        lhs_attr = lhs.value[m_sort_by_idx - 1];
-        rhs_attr = rhs.value[m_sort_by_idx - 1];
+		cmp = ssc_ptr->m_sort_by_di->compare(lhs.value[ssc_ptr->m_sort_by_idx - 1], rhs.value[ssc_ptr->m_sort_by_idx - 1]);
     }
 
-    int cmp = m_sort_by_di->compare(lhs_attr, rhs_attr);
-    return m_maximize ? (cmp > 0) : (cmp < 0);
+    if (ssc_ptr->m_maximize)
+    {
+        return cmp < 0;
+    }
+    else
+    {
+        return cmp > 0;
+    }
+}
+
+bool
+operator > (const pending_sorted_search::item& lhs, const pending_sorted_search::item& rhs)
+{
+    assert(lhs.ssc_ptr == rhs.ssc_ptr);
+    const sorted_search_comparator* ssc_ptr = lhs.ssc_ptr;
+
+    if (ssc_ptr->m_sort_by_idx > lhs.value.size() ||
+        ssc_ptr->m_sort_by_idx > rhs.value.size() ||
+        lhs.value.size() != rhs.value.size())
+    {
+        return false;
+    }
+
+    int cmp = 0;
+
+    if (ssc_ptr->m_sort_by_idx == 0)
+    {
+        cmp = ssc_ptr->m_sort_by_di->compare(lhs.key, rhs.key);
+    }
+    else
+    {
+		cmp = ssc_ptr->m_sort_by_di->compare(lhs.value[ssc_ptr->m_sort_by_idx - 1], rhs.value[ssc_ptr->m_sort_by_idx - 1]);
+    }
+
+    if (ssc_ptr->m_maximize)
+    {
+        return cmp > 0;
+    }
+    else
+    {
+        return cmp < 0;
+    }
+}
+
 }
 
 bool
@@ -242,12 +256,12 @@ pending_sorted_search :: handle_message(client* cl,
             return true;
         }
 
-        m_results.push_back(item(key, value, backing));
-        std::push_heap(m_results.begin(), m_results.end(), ssc);
+        m_results.push_back(item(&ssc, key, value, backing));
+        std::push_heap(m_results.begin(), m_results.end());
 
         if (m_results.size() > m_limit)
         {
-            std::pop_heap(m_results.begin(), m_results.end(), ssc);
+            std::pop_heap(m_results.begin(), m_results.end());
             m_results.pop_back();
         }
     }
@@ -258,23 +272,26 @@ pending_sorted_search :: handle_message(client* cl,
 
     if (m_yield)
     {
-        std::sort(m_results.begin(), m_results.end(), ssc);
+        std::sort(m_results.begin(), m_results.end(), std::greater<pending_sorted_search::item>());
     }
 
     return true;
 }
 
-pending_sorted_search :: item :: item(const e::slice& _key,
+pending_sorted_search :: item :: item(const sorted_search_comparator *sscobj, 
+		                              const e::slice& _key,
                                       const std::vector<e::slice>& _value,
                                       e::compat::shared_ptr<e::buffer> _backing)
-    : key(_key)
+    : ssc_ptr(sscobj)
+	, key(_key)
     , value(_value)
     , backing(_backing)
 {
 }
 
 pending_sorted_search :: item :: item(const item& other)
-    : key(other.key)
+    : ssc_ptr(other.ssc_ptr)
+    , key(other.key)
     , value(other.value)
     , backing(other.backing)
 {
@@ -289,6 +306,7 @@ pending_sorted_search :: item :: operator = (const item& other)
 {
     if (this != &other)
     {
+		ssc_ptr = other.ssc_ptr;
         key = other.key;
         value = other.value;
         backing = other.backing;
