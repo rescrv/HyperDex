@@ -94,11 +94,29 @@ class pending_sorted_search : public pending_aggregation
         size_t m_results_idx;
 };
 
+class sorted_search_comparator
+{
+    public:
+        sorted_search_comparator(bool maximize,
+                                 uint16_t sort_by_idx,
+								 datatype_info* sort_by_di)
+			: m_maximize(maximize)
+			  , m_sort_by_idx(sort_by_idx)
+			  , m_sort_by_di(sort_by_di)
+	{
+	}
+
+	public:
+		bool m_maximize;
+		uint16_t m_sort_by_idx;
+        datatype_info* m_sort_by_di;
+};
 class pending_sorted_search :: item
 {
     public:
         item();
-        item(const e::slice& key,
+        item(const sorted_search_comparator *sscobj,
+			 const e::slice& key,
              const std::vector<e::slice>& value,
              e::compat::shared_ptr<e::buffer> backing);
         item(const item&);
@@ -108,12 +126,10 @@ class pending_sorted_search :: item
         item& operator = (const item&);
 
     public:
+		const sorted_search_comparator *ssc_ptr;
         e::slice key;
         std::vector<e::slice> value;
         e::compat::shared_ptr<e::buffer> backing;
-
-    public:
-        friend class sorted_search_comparator;
 };
 
 END_HYPERDEX_NAMESPACE
