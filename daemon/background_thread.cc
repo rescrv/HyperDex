@@ -43,169 +43,153 @@
 using po6::threads::make_thread_wrapper;
 using hyperdex::background_thread;
 
-background_thread :: background_thread(daemon* d)
-    : m_thread(make_thread_wrapper(&background_thread::run, this))
-    , m_gc(&d->m_gc)
-    , m_protect()
-    , m_wakeup_thread(&m_protect)
-    , m_wakeup_pauser(&m_protect)
-    , m_shutdown(true)
-    , m_pause_count(0)
-    , m_paused(false)
-    , m_offline(false)
+background_thread :: background_thread(daemon *d)
+	: m_thread(make_thread_wrapper(&background_thread::run, this))
+	, m_gc(&d->m_gc)
+	, m_protect()
+	, m_wakeup_thread(&m_protect)
+	, m_wakeup_pauser(&m_protect)
+	, m_shutdown(true)
+	, m_pause_count(0)
+	, m_paused(false)
+	, m_offline(false)
 {
-    po6::threads::mutex::hold hold(&m_protect);
+	po6::threads::mutex::hold hold(&m_protect);
 }
 
 background_thread :: ~background_thread() throw ()
 {
-    shutdown();
+	shutdown();
 }
 
 void
 background_thread :: start()
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    m_thread.start();
-    m_shutdown = false;
+	po6::threads::mutex::hold hold(&m_protect);
+	m_thread.start();
+	m_shutdown = false;
 }
 
 void
 background_thread :: initiate_pause()
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    ++m_pause_count;
+	po6::threads::mutex::hold hold(&m_protect);
+	++m_pause_count;
 }
 
 void
 background_thread :: wait_until_paused()
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    assert(m_pause_count > 0);
-
-    while (!m_paused && !m_offline)
-    {
-        m_wakeup_pauser.wait();
-    }
+	po6::threads::mutex::hold hold(&m_protect);
+	assert(m_pause_count > 0);
+	while (!m_paused && !m_offline)
+	{
+		m_wakeup_pauser.wait();
+	}
 }
 
 void
 background_thread :: unpause()
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    assert(m_pause_count > 0);
-    --m_pause_count;
-    m_wakeup_thread.broadcast();
+	po6::threads::mutex::hold hold(&m_protect);
+	assert(m_pause_count > 0);
+	--m_pause_count;
+	m_wakeup_thread.broadcast();
 }
 
 void
 background_thread :: shutdown()
 {
-    bool already_shutdown;
-
-    {
-        po6::threads::mutex::hold hold(&m_protect);
-        m_wakeup_thread.broadcast();
-        already_shutdown = m_shutdown;
-        m_shutdown = true;
-    }
-
-    if (!already_shutdown)
-    {
-        m_thread.join();
-    }
+	bool already_shutdown;
+	{
+		po6::threads::mutex::hold hold(&m_protect);
+		m_wakeup_thread.broadcast();
+		already_shutdown = m_shutdown;
+		m_shutdown = true;
+	}
+	if (!already_shutdown)
+	{
+		m_thread.join();
+	}
 }
 
 void
 background_thread :: offline()
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    assert(!m_offline);
-    m_offline = true;
-
-    if (m_pause_count > 0)
-    {
-        m_wakeup_pauser.broadcast();
-    }
+	po6::threads::mutex::hold hold(&m_protect);
+	assert(!m_offline);
+	m_offline = true;
+	if (m_pause_count > 0)
+	{
+		m_wakeup_pauser.broadcast();
+	}
 }
 
 void
 background_thread :: online()
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    assert(m_offline);
-    m_offline = false;
-
-    while (m_pause_count > 0 && !m_shutdown)
-    {
-        m_paused = true;
-        m_wakeup_thread.wait();
-        m_paused = false;
-    }
+	po6::threads::mutex::hold hold(&m_protect);
+	assert(m_offline);
+	m_offline = false;
+	while (m_pause_count > 0 && !m_shutdown)
+	{
+		m_paused = true;
+		m_wakeup_thread.wait();
+		m_paused = false;
+	}
 }
 
 void
 background_thread :: run()
 {
-    LOG(INFO) << this->thread_name() << " thread started";
-    block_signals();
-    e::garbage_collector::thread_state ts;
-    m_gc->register_thread(&ts);
-
-    while (true)
-    {
-        {
-            m_gc->quiescent_state(&ts);
-            po6::threads::mutex::hold hold(&m_protect);
-
-            while ((!this->have_work() && !m_shutdown) || m_pause_count > 0)
-            {
-                m_paused = true;
-
-                if (m_pause_count > 0)
-                {
-                    m_wakeup_pauser.signal();
-                }
-
-                m_gc->offline(&ts);
-                m_wakeup_thread.wait();
-                m_gc->online(&ts);
-                m_paused = false;
-            }
-
-            if (m_shutdown)
-            {
-                break;
-            }
-
-            this->copy_work();
-        }
-
-        this->do_work();
-    }
-
-    m_gc->deregister_thread(&ts);
-    LOG(INFO) << this->thread_name() << " thread stopped";
+	LOG(INFO) << this->thread_name() << " thread started";
+	block_signals();
+	e::garbage_collector::thread_state ts;
+	m_gc->register_thread(&ts);
+	while (true)
+	{
+		{
+			m_gc->quiescent_state(&ts);
+			po6::threads::mutex::hold hold(&m_protect);
+			while ((!this->have_work() && !m_shutdown) || m_pause_count > 0)
+			{
+				m_paused = true;
+				if (m_pause_count > 0)
+				{
+					m_wakeup_pauser.signal();
+				}
+				m_gc->offline(&ts);
+				m_wakeup_thread.wait();
+				m_gc->online(&ts);
+				m_paused = false;
+			}
+			if (m_shutdown)
+			{
+				break;
+			}
+			this->copy_work();
+		}
+		this->do_work();
+	}
+	m_gc->deregister_thread(&ts);
+	LOG(INFO) << this->thread_name() << " thread stopped";
 }
 
 void
 background_thread :: block_signals()
 {
-    sigset_t ss;
-
-    if (sigfillset(&ss) < 0)
-    {
-        PLOG(ERROR) << "sigfillset";
-        LOG(ERROR) << "could not successfully block signals; this could result in undefined behavior";
-        return;
-    }
-
-    sigdelset(&ss, SIGPROF);
-
-    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
-    {
-        PLOG(ERROR) << "could not block signals";
-        LOG(ERROR) << "could not successfully block signals; this could result in undefined behavior";
-        return;
-    }
+	sigset_t ss;
+	if (sigfillset(&ss) < 0)
+	{
+		PLOG(ERROR) << "sigfillset";
+		LOG(ERROR) << "could not successfully block signals; this could result in undefined behavior";
+		return;
+	}
+	sigdelset(&ss, SIGPROF);
+	if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
+	{
+		PLOG(ERROR) << "could not block signals";
+		LOG(ERROR) << "could not successfully block signals; this could result in undefined behavior";
+		return;
+	}
 }

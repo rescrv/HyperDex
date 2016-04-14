@@ -36,20 +36,20 @@ extern "C"
 /* Replicant */
 #include <rsm.h>
 
-void*
-hyperdex_coordinator_create(struct rsm_context* ctx);
+void *
+hyperdex_coordinator_create(struct rsm_context *ctx);
 
-void*
-hyperdex_coordinator_recreate(struct rsm_context* ctx,
-                              const char* data, size_t data_sz);
+void *
+hyperdex_coordinator_recreate(struct rsm_context *ctx,
+                              const char *data, size_t data_sz);
 
 int
-hyperdex_coordinator_snapshot(struct rsm_context* ctx,
-                              void* obj, char** data, size_t* sz);
+hyperdex_coordinator_snapshot(struct rsm_context *ctx,
+                              void *obj, char **data, size_t *sz);
 
 #define TRANSITION(X) void \
-    hyperdex_coordinator_ ## X(struct rsm_context* ctx, \
-                               void* obj, const char* data, size_t data_sz)
+	hyperdex_coordinator_ ## X(struct rsm_context* ctx, \
+	                           void* obj, const char* data, size_t data_sz)
 
 TRANSITION(init);
 

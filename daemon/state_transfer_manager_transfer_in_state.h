@@ -36,31 +36,31 @@
 
 class hyperdex::state_transfer_manager::transfer_in_state
 {
-    public:
-        transfer_in_state(const transfer& xfer);
-        ~transfer_in_state() throw ();
+public:
+	transfer_in_state(const transfer &xfer);
+	~transfer_in_state() throw ();
 
-    public:
-        void debug_dump();
+public:
+	void debug_dump();
 
-    public:
-        transfer xfer;
-        po6::threads::mutex mtx;
-        uint64_t upper_bound_acked;
-        std::list<e::intrusive_ptr<pending> > queued;
-        bool handshake_complete;
-        bool wipe;
-        bool wiped;
+public:
+	transfer xfer;
+	po6::threads::mutex mtx;
+	uint64_t upper_bound_acked;
+	std::list<e::intrusive_ptr<pending> > queued;
+	bool handshake_complete;
+	bool wipe;
+	bool wiped;
 
-    private:
-        friend class e::intrusive_ptr<transfer_in_state>;
+private:
+	friend class e::intrusive_ptr<transfer_in_state>;
 
-    private:
-        void inc() { __sync_add_and_fetch(&m_ref, 1); }
-        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+private:
+	void inc() { __sync_add_and_fetch(&m_ref, 1); }
+	void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
 
-    private:
-        size_t m_ref;
+private:
+	size_t m_ref;
 };
 
 #endif // hyperdex_daemon_state_transfer_manager_transfer_in_state_h_

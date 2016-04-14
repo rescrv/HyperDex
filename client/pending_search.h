@@ -36,40 +36,40 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class pending_search : public pending_aggregation
 {
-    public:
-        pending_search(uint64_t client_visible_id,
-                       hyperdex_client_returncode* status,
-                       const hyperdex_client_attribute** attrs, size_t* attrs_sz);
-        virtual ~pending_search() throw ();
+public:
+	pending_search(uint64_t client_visible_id,
+	               hyperdex_client_returncode *status,
+	               const hyperdex_client_attribute **attrs, size_t *attrs_sz);
+	virtual ~pending_search() throw ();
 
-    // return to client
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
+	// return to client
+public:
+	virtual bool can_yield();
+	virtual bool yield(hyperdex_client_returncode *status, e::error *error);
 
-    // events
-    public:
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode* status,
-                                    e::error* error);
+	// events
+public:
+	virtual void handle_failure(const server_id &si,
+	                            const virtual_server_id &vsi);
+	virtual bool handle_message(client *,
+	                            const server_id &si,
+	                            const virtual_server_id &vsi,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_client_returncode *status,
+	                            e::error *error);
 
-    // noncopyable
-    private:
-        pending_search(const pending_search& other);
-        pending_search& operator = (const pending_search& rhs);
+	// noncopyable
+private:
+	pending_search(const pending_search &other);
+	pending_search &operator = (const pending_search &rhs);
 
-    private:
-        const hyperdex_client_attribute** m_attrs;
-        size_t* m_attrs_sz;
-        bool m_yield;
-        bool m_done;
+private:
+	const hyperdex_client_attribute **m_attrs;
+	size_t *m_attrs_sz;
+	bool m_yield;
+	bool m_done;
 };
 
 END_HYPERDEX_NAMESPACE

@@ -38,36 +38,36 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class pending_raw_backup : public pending
 {
-    public:
-        pending_raw_backup(uint64_t admin_visible_id,
-                           hyperdex_admin_returncode* status,
-                           const char** path);
-        virtual ~pending_raw_backup() throw ();
+public:
+	pending_raw_backup(uint64_t admin_visible_id,
+	                   hyperdex_admin_returncode *status,
+	                   const char **path);
+	virtual ~pending_raw_backup() throw ();
 
-    // return to admin
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_admin_returncode* status);
+	// return to admin
+public:
+	virtual bool can_yield();
+	virtual bool yield(hyperdex_admin_returncode *status);
 
-    // events
-    public:
-        virtual void handle_sent_to(const server_id& si);
-        virtual void handle_failure(const server_id& si);
-        virtual bool handle_message(admin* adm,
-                                    const server_id& si,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_admin_returncode* status);
+	// events
+public:
+	virtual void handle_sent_to(const server_id &si);
+	virtual void handle_failure(const server_id &si);
+	virtual bool handle_message(admin *adm,
+	                            const server_id &si,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_admin_returncode *status);
 
-    private:
-        pending_raw_backup(const pending_raw_backup& other);
-        pending_raw_backup& operator = (const pending_raw_backup& rhs);
+private:
+	pending_raw_backup(const pending_raw_backup &other);
+	pending_raw_backup &operator = (const pending_raw_backup &rhs);
 
-    private:
-        std::string m_path;
-        const char** m_path_c_str;
-        bool m_done;
+private:
+	std::string m_path;
+	const char **m_path_c_str;
+	bool m_done;
 };
 
 END_HYPERDEX_NAMESPACE

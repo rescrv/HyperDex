@@ -94,29 +94,32 @@
 #define	EXT_FRACBITS	64
 
 #define	EXT_TO_ARRAY32(p, a) do {		\
-	(a)[0] = (uint32_t)(p)->ext_fracl;	\
-	(a)[1] = (uint32_t)(p)->ext_frach;	\
-} while(0)
+		(a)[0] = (uint32_t)(p)->ext_fracl;	\
+		(a)[1] = (uint32_t)(p)->ext_frach;	\
+	} while(0)
 
-struct ieee_single {
-	unsigned int	sng_frac:23;
-	unsigned int	sng_exp:8;
-	unsigned int	sng_sign:1;
+struct ieee_single
+{
+	unsigned int	sng_frac: 23;
+	unsigned int	sng_exp: 8;
+	unsigned int	sng_sign: 1;
 };
 
-struct ieee_double {
+struct ieee_double
+{
 	unsigned int	dbl_fracl;
-	unsigned int	dbl_frach:20;
-	unsigned int	dbl_exp:11;
-	unsigned int	dbl_sign:1;
+	unsigned int	dbl_frach: 20;
+	unsigned int	dbl_exp: 11;
+	unsigned int	dbl_sign: 1;
 };
 
-struct ieee_ext {
+struct ieee_ext
+{
 	unsigned int	ext_fracl;
 	unsigned int	ext_frach;
-	unsigned int	ext_exp:15;
-	unsigned int	ext_sign:1;
-	unsigned int	ext_padl:16;
+	unsigned int	ext_exp: 15;
+	unsigned int	ext_sign: 1;
+	unsigned int	ext_padl: 16;
 	unsigned int	ext_padh;
 };
 

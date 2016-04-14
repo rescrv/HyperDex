@@ -35,32 +35,31 @@ using hyperdex::datalayer;
 
 struct datalayer::index_state
 {
-    index_state() : ri(), ii(), m_usable(0) {}
-    index_state(region_id _ri, index_id _ii)
-        : ri(_ri), ii(_ii), m_usable(0) {}
-    index_state(const index_state& other)
-        : ri(other.ri), ii(other.ii)
-        , m_usable(other.m_usable) {}
-    bool is_usable() { e::atomic::memory_barrier(); return e::atomic::load_64_acquire(&m_usable) == 1; }
-    void set_usable() { e::atomic::store_64_release(&m_usable, 1); e::atomic::memory_barrier(); }
-    index_state& operator = (const index_state& rhs)
-    {
-        if (this != &rhs)
-        {
-            ri = rhs.ri;
-            ii = rhs.ii;
-            m_usable = rhs.m_usable;
-        }
+	index_state() : ri(), ii(), m_usable(0) {}
+	index_state(region_id _ri, index_id _ii)
+		: ri(_ri), ii(_ii), m_usable(0) {}
+	index_state(const index_state &other)
+		: ri(other.ri), ii(other.ii)
+		, m_usable(other.m_usable) {}
+	bool is_usable() { e::atomic::memory_barrier(); return e::atomic::load_64_acquire(&m_usable) == 1; }
+	void set_usable() { e::atomic::store_64_release(&m_usable, 1); e::atomic::memory_barrier(); }
+	index_state &operator = (const index_state &rhs)
+	{
+		if (this != &rhs)
+		{
+			ri = rhs.ri;
+			ii = rhs.ii;
+			m_usable = rhs.m_usable;
+		}
+		return *this;
+	}
+	bool operator < (const region_id &x) const { return ri < x; }
 
-        return *this;
-    }
-    bool operator < (const region_id& x) const { return ri < x; }
+	region_id ri;
+	index_id ii;
 
-    region_id ri;
-    index_id ii;
-
-    private:
-        uint64_t m_usable;
+private:
+	uint64_t m_usable;
 };
 
 #endif // hyperdex_daemon_datalayer_index_state_h_

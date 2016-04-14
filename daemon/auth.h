@@ -40,27 +40,27 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 void
-sanitize_secrets(const schema& sc, std::vector<e::slice>* value);
+sanitize_secrets(const schema &sc, std::vector<e::slice> *value);
 
 bool
-auth_verify(const schema& sc,
+auth_verify(const schema &sc,
             bool has_value,
-            const std::vector<e::slice>* value,
-            auth_wallet* aw,
-            const char** exact,
-            struct general_caveat* general);
+            const std::vector<e::slice> *value,
+            auth_wallet *aw,
+            const char **exact,
+            struct general_caveat *general);
 
 bool
-auth_verify_read(const schema& sc,
+auth_verify_read(const schema &sc,
                  bool has_value,
-                 const std::vector<e::slice>* value,
-                 auth_wallet* aw);
+                 const std::vector<e::slice> *value,
+                 auth_wallet *aw);
 
 bool
-auth_verify_write(const schema& sc,
+auth_verify_write(const schema &sc,
                   bool has_value,
-                  const std::vector<e::slice>* value,
-                  const key_change& kc);
+                  const std::vector<e::slice> *value,
+                  const key_change &kc);
 
 END_HYPERDEX_NAMESPACE
 

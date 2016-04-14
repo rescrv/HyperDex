@@ -34,22 +34,21 @@
 using hyperdex::schema;
 
 schema :: schema()
-    : attrs_sz(0)
-    , attrs(NULL)
-    , authorization(false)
+	: attrs_sz(0)
+	, attrs(NULL)
+	, authorization(false)
 {
 }
 
 uint16_t
-schema :: lookup_attr(const char* name) const
+schema :: lookup_attr(const char *name) const
 {
-    for (uint16_t i = 0; i < attrs_sz; ++i)
-    {
-        if (strcmp(name, attrs[i].name) == 0)
-        {
-            return i;
-        }
-    }
-
-    return attrs_sz;
+	for (uint16_t i = 0; i < attrs_sz; ++i)
+	{
+		if (strcmp(name, attrs[i].name) == 0)
+		{
+			return i;
+		}
+	}
+	return attrs_sz;
 }

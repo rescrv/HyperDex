@@ -36,41 +36,41 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class pending_get_partial : public pending
 {
-    public:
-        pending_get_partial(uint64_t client_visible_id,
-                            hyperdex_client_returncode* status,
-                            const hyperdex_client_attribute** attrs, size_t* attrs_sz);
-        virtual ~pending_get_partial() throw ();
+public:
+	pending_get_partial(uint64_t client_visible_id,
+	                    hyperdex_client_returncode *status,
+	                    const hyperdex_client_attribute **attrs, size_t *attrs_sz);
+	virtual ~pending_get_partial() throw ();
 
-    // return to client
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
+	// return to client
+public:
+	virtual bool can_yield();
+	virtual bool yield(hyperdex_client_returncode *status, e::error *error);
 
-    // events
-    public:
-        virtual void handle_sent_to(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode* status,
-                                    e::error* error);
+	// events
+public:
+	virtual void handle_sent_to(const server_id &si,
+	                            const virtual_server_id &vsi);
+	virtual void handle_failure(const server_id &si,
+	                            const virtual_server_id &vsi);
+	virtual bool handle_message(client *,
+	                            const server_id &si,
+	                            const virtual_server_id &vsi,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_client_returncode *status,
+	                            e::error *error);
 
-    // noncopyable
-    private:
-        pending_get_partial(const pending_get_partial& other);
-        pending_get_partial& operator = (const pending_get_partial& rhs);
+	// noncopyable
+private:
+	pending_get_partial(const pending_get_partial &other);
+	pending_get_partial &operator = (const pending_get_partial &rhs);
 
-    private:
-        enum { INITIALIZED, SENT, RECV, YIELDED } m_state;
-        const hyperdex_client_attribute** m_attrs;
-        size_t* m_attrs_sz;
+private:
+	enum { INITIALIZED, SENT, RECV, YIELDED } m_state;
+	const hyperdex_client_attribute **m_attrs;
+	size_t *m_attrs_sz;
 };
 
 END_HYPERDEX_NAMESPACE

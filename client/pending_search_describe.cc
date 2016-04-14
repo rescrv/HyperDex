@@ -31,13 +31,13 @@
 using hyperdex::pending_search_describe;
 
 pending_search_describe :: pending_search_describe(uint64_t id,
-                                                   hyperdex_client_returncode* status,
-                                                   const char** description)
-    : pending_aggregation(id, status)
-    , m_description(description)
-    , m_done(false)
-    , m_msgs()
-    , m_text()
+        hyperdex_client_returncode *status,
+        const char **description)
+	: pending_aggregation(id, status)
+	, m_description(description)
+	, m_done(false)
+	, m_msgs()
+	, m_text()
 {
 }
 
@@ -48,83 +48,78 @@ pending_search_describe :: ~pending_search_describe() throw ()
 bool
 pending_search_describe :: can_yield()
 {
-    return this->aggregation_done() && !m_done;
+	return this->aggregation_done() && !m_done;
 }
 
 bool
-pending_search_describe :: yield(hyperdex_client_returncode* status, e::error* err)
+pending_search_describe :: yield(hyperdex_client_returncode *status, e::error *err)
 {
-    std::ostringstream ostr;
-
-    for (size_t i = 0; i < m_msgs.size(); ++i)
-    {
-        ostr << m_msgs[i].first << " " << m_msgs[i].second << "\n";
-    }
-
-    m_text = ostr.str();
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *m_description = m_text.c_str();
-    *err = e::error();
-    assert(this->can_yield());
-    m_done = true;
-    set_status(HYPERDEX_CLIENT_SUCCESS);
-    set_error(e::error());
-    return true;
+	std::ostringstream ostr;
+	for (size_t i = 0; i < m_msgs.size(); ++i)
+	{
+		ostr << m_msgs[i].first << " " << m_msgs[i].second << "\n";
+	}
+	m_text = ostr.str();
+	*status = HYPERDEX_CLIENT_SUCCESS;
+	*m_description = m_text.c_str();
+	*err = e::error();
+	assert(this->can_yield());
+	m_done = true;
+	set_status(HYPERDEX_CLIENT_SUCCESS);
+	set_error(e::error());
+	return true;
 }
 
 void
-pending_search_describe :: handle_sent_to(const server_id& si,
-                                          const virtual_server_id& vsi)
+pending_search_describe :: handle_sent_to(const server_id &si,
+                                          const virtual_server_id &vsi)
 {
-    add_text(vsi, "touched by search");
-    return pending_aggregation::handle_sent_to(si, vsi);
+	add_text(vsi, "touched by search");
+	return pending_aggregation::handle_sent_to(si, vsi);
 }
 
 void
-pending_search_describe :: handle_failure(const server_id& si,
-                                          const virtual_server_id& vsi)
+pending_search_describe :: handle_failure(const server_id &si,
+                                          const virtual_server_id &vsi)
 {
-    add_text(vsi, "failed");
-    return pending_aggregation::handle_sent_to(si, vsi);
+	add_text(vsi, "failed");
+	return pending_aggregation::handle_sent_to(si, vsi);
 }
 
 bool
-pending_search_describe :: handle_message(client* cl,
-                                          const server_id& si,
-                                          const virtual_server_id& vsi,
+pending_search_describe :: handle_message(client *cl,
+                                          const server_id &si,
+                                          const virtual_server_id &vsi,
                                           network_msgtype mt,
                                           std::auto_ptr<e::buffer>,
                                           e::unpacker up,
-                                          hyperdex_client_returncode* status,
-                                          e::error* err)
+                                          hyperdex_client_returncode *status,
+                                          e::error *err)
 {
-    bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
-    assert(handled);
-
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
-
-    if (mt != RESP_SEARCH_DESCRIBE)
-    {
-        add_text(vsi, "sent non-RESP_SEARCH_DESCRIBE message");
-        return true;
-    }
-
-    e::slice text = up.remainder();
-    add_text(vsi, text);
-    return true;
+	bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
+	assert(handled);
+	*status = HYPERDEX_CLIENT_SUCCESS;
+	*err = e::error();
+	if (mt != RESP_SEARCH_DESCRIBE)
+	{
+		add_text(vsi, "sent non-RESP_SEARCH_DESCRIBE message");
+		return true;
+	}
+	e::slice text = up.remainder();
+	add_text(vsi, text);
+	return true;
 }
 
 void
-pending_search_describe :: add_text(const hyperdex::virtual_server_id& vid,
-                                    const e::slice& text)
+pending_search_describe :: add_text(const hyperdex::virtual_server_id &vid,
+                                    const e::slice &text)
 {
-    m_msgs.push_back(std::make_pair(vid, std::string(reinterpret_cast<const char*>(text.data()), text.size())));
+	m_msgs.push_back(std::make_pair(vid, std::string(reinterpret_cast<const char *>(text.data()), text.size())));
 }
 
 void
-pending_search_describe :: add_text(const hyperdex::virtual_server_id& vid,
-                                    const char* text)
+pending_search_describe :: add_text(const hyperdex::virtual_server_id &vid,
+                                    const char *text)
 {
-    m_msgs.push_back(std::make_pair(vid, std::string(text)));
+	m_msgs.push_back(std::make_pair(vid, std::string(text)));
 }

@@ -35,27 +35,27 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class coord_rpc_backup : public coord_rpc
 {
-    public:
-        coord_rpc_backup(uint64_t admin_visible_id,
-                         hyperdex_admin_returncode* status,
-                         const char* path);
-        virtual ~coord_rpc_backup() throw ();
+public:
+	coord_rpc_backup(uint64_t admin_visible_id,
+	                 hyperdex_admin_returncode *status,
+	                 const char *path);
+	virtual ~coord_rpc_backup() throw ();
 
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_admin_returncode* status);
+public:
+	virtual bool can_yield();
+	virtual bool yield(hyperdex_admin_returncode *status);
 
-    public:
-        virtual bool handle_response(admin* adm,
-                                     hyperdex_admin_returncode* status);
+public:
+	virtual bool handle_response(admin *adm,
+	                             hyperdex_admin_returncode *status);
 
-    private:
-        coord_rpc_backup(const coord_rpc_backup&);
-        coord_rpc_backup& operator = (const coord_rpc_backup&);
+private:
+	coord_rpc_backup(const coord_rpc_backup &);
+	coord_rpc_backup &operator = (const coord_rpc_backup &);
 
-    private:
-        std::string m_path;
-        bool m_done;
+private:
+	std::string m_path;
+	bool m_done;
 };
 
 END_HYPERDEX_NAMESPACE

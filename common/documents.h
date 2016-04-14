@@ -37,13 +37,13 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 bool
-is_document_path(const e::slice& p);
+is_document_path(const e::slice &p);
 
 void
-parse_document_path(const char* attr_path,
-                    const char** attr,
-                    const char** path,
-                    std::string* scratch);
+parse_document_path(const char *attr_path,
+                    const char **attr,
+                    const char **path,
+                    std::string *scratch);
 
 END_HYPERDEX_NAMESPACE
 

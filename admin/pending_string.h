@@ -36,39 +36,39 @@ class admin;
 
 class pending_string : public pending
 {
-    public:
-        pending_string(uint64_t admin_visible_id,
-                       hyperdex_admin_returncode* status,
-                       hyperdex_admin_returncode set_status,
-                       const std::string& string,
-                       const char** store);
-        virtual ~pending_string() throw ();
+public:
+	pending_string(uint64_t admin_visible_id,
+	               hyperdex_admin_returncode *status,
+	               hyperdex_admin_returncode set_status,
+	               const std::string &string,
+	               const char **store);
+	virtual ~pending_string() throw ();
 
-    // return to admin
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_admin_returncode* status);
+	// return to admin
+public:
+	virtual bool can_yield();
+	virtual bool yield(hyperdex_admin_returncode *status);
 
-    // events
-    public:
-        virtual void handle_sent_to(const server_id& si);
-        virtual void handle_failure(const server_id& si);
-        virtual bool handle_message(admin* cl,
-                                    const server_id& si,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_admin_returncode* status);
+	// events
+public:
+	virtual void handle_sent_to(const server_id &si);
+	virtual void handle_failure(const server_id &si);
+	virtual bool handle_message(admin *cl,
+	                            const server_id &si,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_admin_returncode *status);
 
-    private:
-        pending_string(const pending_string&);
-        pending_string& operator = (const pending_string&);
+private:
+	pending_string(const pending_string &);
+	pending_string &operator = (const pending_string &);
 
-    private:
-        hyperdex_admin_returncode m_status;
-        std::string m_string;
-        const char** m_store;
-        bool m_done;
+private:
+	hyperdex_admin_returncode m_status;
+	std::string m_string;
+	const char **m_store;
+	bool m_done;
 };
 
 END_HYPERDEX_NAMESPACE

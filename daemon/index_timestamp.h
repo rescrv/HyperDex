@@ -38,32 +38,32 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class index_timestamp : public index_primitive
 {
-    public:
-        index_timestamp(hyperdatatype t);
-        virtual ~index_timestamp() throw ();
+public:
+	index_timestamp(hyperdatatype t);
+	virtual ~index_timestamp() throw ();
 
-    public:
-        virtual hyperdatatype datatype() const;
+public:
+	virtual hyperdatatype datatype() const;
 
-    private:
-        hyperdatatype m_type;
+private:
+	hyperdatatype m_type;
 };
 
 class index_encoding_timestamp : public index_encoding
 {
-    public:
-        index_encoding_timestamp();
-        virtual ~index_encoding_timestamp() throw ();
+public:
+	index_encoding_timestamp();
+	virtual ~index_encoding_timestamp() throw ();
 
-    public:
-        virtual bool encoding_fixed() const;
-        virtual size_t encoded_size(const e::slice& decoded) const;
-        virtual char* encode(const e::slice& decoded, char* encoded) const;
-        virtual size_t decoded_size(const e::slice& encoded) const;
-        virtual char* decode(const e::slice& encoded, char* decoded) const;
+public:
+	virtual bool encoding_fixed() const;
+	virtual size_t encoded_size(const e::slice &decoded) const;
+	virtual char *encode(const e::slice &decoded, char *encoded) const;
+	virtual size_t decoded_size(const e::slice &encoded) const;
+	virtual char *decode(const e::slice &encoded, char *decoded) const;
 
-    private:
-        index_encoding_int64 m_iei;
+private:
+	index_encoding_int64 m_iei;
 };
 
 END_HYPERDEX_NAMESPACE

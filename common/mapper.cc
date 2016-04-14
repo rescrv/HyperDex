@@ -30,8 +30,8 @@
 
 using hyperdex::mapper;
 
-mapper :: mapper(const hyperdex::configuration* config)
-    : m_config(config)
+mapper :: mapper(const hyperdex::configuration *config)
+	: m_config(config)
 {
 }
 
@@ -40,8 +40,8 @@ mapper :: ~mapper() throw ()
 }
 
 bool
-mapper :: lookup(uint64_t id, po6::net::location* addr)
+mapper :: lookup(uint64_t id, po6::net::location *addr)
 {
-    *addr = m_config->get_address(server_id(id));
-    return *addr != po6::net::location();
+	*addr = m_config->get_address(server_id(id));
+	return *addr != po6::net::location();
 }

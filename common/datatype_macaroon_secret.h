@@ -36,18 +36,18 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class datatype_macaroon_secret : public datatype_info
 {
-    public:
-        datatype_macaroon_secret();
-        virtual ~datatype_macaroon_secret() throw ();
+public:
+	datatype_macaroon_secret();
+	virtual ~datatype_macaroon_secret() throw ();
 
-    public:
-        virtual hyperdatatype datatype() const;
-        virtual bool validate(const e::slice& value) const;
-        virtual bool check_args(const funcall& func) const;
-        virtual bool apply(const e::slice& old_value,
-                           const funcall* funcs, size_t funcs_sz,
-                           e::arena* new_memory,
-                           e::slice* new_value) const;
+public:
+	virtual hyperdatatype datatype() const;
+	virtual bool validate(const e::slice &value) const;
+	virtual bool check_args(const funcall &func) const;
+	virtual bool apply(const e::slice &old_value,
+	                   const funcall *funcs, size_t funcs_sz,
+	                   e::arena *new_memory,
+	                   e::slice *new_value) const;
 };
 
 END_HYPERDEX_NAMESPACE

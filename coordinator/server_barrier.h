@@ -42,34 +42,34 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class server_barrier
 {
-    public:
-        server_barrier();
-        ~server_barrier() throw ();
+public:
+	server_barrier();
+	~server_barrier() throw ();
 
-    public:
-        uint64_t min_version() const;
-        void new_version(uint64_t version,
-                         const std::vector<server_id>& servers);
-        void pass(uint64_t version, const server_id& sid);
+public:
+	uint64_t min_version() const;
+	void new_version(uint64_t version,
+	                 const std::vector<server_id> &servers);
+	void pass(uint64_t version, const server_id &sid);
 
-    private:
-        void maybe_clear_prefix();
+private:
+	void maybe_clear_prefix();
 
-    private:
-        friend size_t pack_size(const server_barrier& ri);
-        friend e::packer operator << (e::packer pa, const server_barrier& ri);
-        friend e::unpacker operator >> (e::unpacker up, server_barrier& ri);
-        typedef std::pair<uint64_t, std::vector<server_id> > version_t;
-        typedef std::list<version_t> version_list_t;
-        version_list_t m_versions;
+private:
+	friend size_t pack_size(const server_barrier &ri);
+	friend e::packer operator << (e::packer pa, const server_barrier &ri);
+	friend e::unpacker operator >> (e::unpacker up, server_barrier &ri);
+	typedef std::pair<uint64_t, std::vector<server_id> > version_t;
+	typedef std::list<version_t> version_list_t;
+	version_list_t m_versions;
 };
 
 size_t
-pack_size(const server_barrier& ri);
+pack_size(const server_barrier &ri);
 e::packer
-operator << (e::packer pa, const server_barrier& ri);
+operator << (e::packer pa, const server_barrier &ri);
 e::unpacker
-operator >> (e::unpacker up, server_barrier& ri);
+operator >> (e::unpacker up, server_barrier &ri);
 
 END_HYPERDEX_NAMESPACE
 

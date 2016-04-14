@@ -40,145 +40,134 @@ namespace
 
 void
 _small_replica_sets(uint64_t, uint64_t,
-                    const std::vector<server_id>& permutation,
-                    const std::vector<server_id>& servers,
-                    std::vector<server_id>* replica_storage,
-                    std::vector<replica_set>* replica_sets)
+                    const std::vector<server_id> &permutation,
+                    const std::vector<server_id> &servers,
+                    std::vector<server_id> *replica_storage,
+                    std::vector<replica_set> *replica_sets)
 {
-    for (size_t i = 0; i < permutation.size(); ++i)
-    {
-        size_t repls = 0;
-        size_t start = replica_storage->size();
-
-        for (size_t j = 0; j < permutation.size(); ++j)
-        {
-            size_t idx = (i + j) % permutation.size();
-
-            if (std::binary_search(servers.begin(),
-                                   servers.end(),
-                                   permutation[idx]))
-            {
-                replica_storage->push_back(permutation[idx]);
-                ++repls;
-            }
-        }
-
-        replica_sets->push_back(replica_set(start, repls, replica_storage));
-    }
+	for (size_t i = 0; i < permutation.size(); ++i)
+	{
+		size_t repls = 0;
+		size_t start = replica_storage->size();
+		for (size_t j = 0; j < permutation.size(); ++j)
+		{
+			size_t idx = (i + j) % permutation.size();
+			if (std::binary_search(servers.begin(),
+			                       servers.end(),
+			                       permutation[idx]))
+			{
+				replica_storage->push_back(permutation[idx]);
+				++repls;
+			}
+		}
+		replica_sets->push_back(replica_set(start, repls, replica_storage));
+	}
 }
 
 void
 _permutation_replica_sets(uint64_t R, uint64_t P,
-                          const std::vector<server_id>& permutation,
-                          const std::vector<server_id>& servers,
-                          std::vector<server_id>* replica_storage,
-                          std::vector<replica_set>* replica_sets)
+                          const std::vector<server_id> &permutation,
+                          const std::vector<server_id> &servers,
+                          std::vector<server_id> *replica_storage,
+                          std::vector<replica_set> *replica_sets)
 {
-    for (size_t n = 0; n < permutation.size(); ++n)
-    {
-        for (size_t p = 1; p <= P; ++p)
-        {
-            if (n + p * (R - 1) >= permutation.size())
-            {
-                break;
-            }
-
-            size_t repls = 0;
-            size_t start = replica_storage->size();
-
-            for (size_t r = 0; r < R; ++r)
-            {
-                size_t idx = n + p * r;
-
-                if (std::binary_search(servers.begin(),
-                                       servers.end(),
-                                       permutation[idx]))
-                {
-                    replica_storage->push_back(permutation[idx]);
-                    ++repls;
-                }
-            }
-
-            replica_sets->push_back(replica_set(start, repls, replica_storage));
-        }
-    }
+	for (size_t n = 0; n < permutation.size(); ++n)
+	{
+		for (size_t p = 1; p <= P; ++p)
+		{
+			if (n + p * (R - 1) >= permutation.size())
+			{
+				break;
+			}
+			size_t repls = 0;
+			size_t start = replica_storage->size();
+			for (size_t r = 0; r < R; ++r)
+			{
+				size_t idx = n + p * r;
+				if (std::binary_search(servers.begin(),
+				                       servers.end(),
+				                       permutation[idx]))
+				{
+					replica_storage->push_back(permutation[idx]);
+					++repls;
+				}
+			}
+			replica_sets->push_back(replica_set(start, repls, replica_storage));
+		}
+	}
 }
 
 } // namespace
 
 replica_set :: replica_set()
-    : m_start(0)
-    , m_size(0)
-    , m_storage(NULL)
+	: m_start(0)
+	, m_size(0)
+	, m_storage(NULL)
 {
 }
 
 replica_set :: replica_set(size_t start, size_t sz,
-                           std::vector<server_id>* storage)
-    : m_start(start)
-    , m_size(sz)
-    , m_storage(storage)
+                           std::vector<server_id> *storage)
+	: m_start(start)
+	, m_size(sz)
+	, m_storage(storage)
 {
 }
 
-replica_set :: replica_set(const replica_set& other)
-    : m_start(other.m_start)
-    , m_size(other.m_size)
-    , m_storage(other.m_storage)
+replica_set :: replica_set(const replica_set &other)
+	: m_start(other.m_start)
+	, m_size(other.m_size)
+	, m_storage(other.m_storage)
 {
 }
 
 size_t
 replica_set :: size() const
 {
-    return m_size;
+	return m_size;
 }
 
 server_id
 replica_set :: operator [] (size_t idx) const
 {
-    assert(idx < m_size);
-    return (*m_storage)[m_start + idx];
+	assert(idx < m_size);
+	return (*m_storage)[m_start + idx];
 }
 
-replica_set&
-replica_set :: operator = (const replica_set& rhs)
+replica_set &
+replica_set :: operator = (const replica_set &rhs)
 {
-    m_start = rhs.m_start;
-    m_size = rhs.m_size;
-    m_storage = rhs.m_storage;
-    return *this;
+	m_start = rhs.m_start;
+	m_size = rhs.m_size;
+	m_storage = rhs.m_storage;
+	return *this;
 }
 
 void
 hyperdex :: compute_replica_sets(uint64_t R, uint64_t P,
-                                 const std::vector<server_id>& permutation,
-                                 const std::vector<server>& _servers,
-                                 std::vector<server_id>* replica_storage,
-                                 std::vector<replica_set>* replica_sets)
+                                 const std::vector<server_id> &permutation,
+                                 const std::vector<server> &_servers,
+                                 std::vector<server_id> *replica_storage,
+                                 std::vector<replica_set> *replica_sets)
 {
-    assert(R > 0);
-    replica_storage->clear();
-    replica_sets->clear();
-
-    std::vector<server_id> servers;
-
-    for (size_t i = 0; i < _servers.size(); ++i)
-    {
-        if (_servers[i].state == server::AVAILABLE)
-        {
-            servers.push_back(_servers[i].id);
-        }
-    }
-
-    std::sort(servers.begin(), servers.end());
-
-    if (permutation.size() <= R)
-    {
-        _small_replica_sets(R, P, permutation, servers, replica_storage, replica_sets);
-    }
-    else
-    {
-        _permutation_replica_sets(R, P, permutation, servers, replica_storage, replica_sets);
-    }
+	assert(R > 0);
+	replica_storage->clear();
+	replica_sets->clear();
+	std::vector<server_id> servers;
+	for (size_t i = 0; i < _servers.size(); ++i)
+	{
+		if (_servers[i].state == server::AVAILABLE)
+		{
+			servers.push_back(_servers[i].id);
+		}
+	}
+	std::sort(servers.begin(), servers.end());
+	if (permutation.size() <= R)
+	{
+		_small_replica_sets(R, P, permutation, servers, replica_storage, replica_sets);
+	}
+	else
+	{
+		_permutation_replica_sets(R, P, permutation, servers, replica_storage, replica_sets);
+	}
 }

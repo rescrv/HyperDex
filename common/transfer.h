@@ -39,39 +39,39 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class transfer
 {
-    public:
-        transfer();
-        transfer(const transfer_id& id,
-                 const region_id& rid,
-                 const server_id& src,
-                 const virtual_server_id& vsrc,
-                 const server_id& dst,
-                 const virtual_server_id& vdst);
-        transfer(const transfer&);
-        ~transfer() throw ();
+public:
+	transfer();
+	transfer(const transfer_id &id,
+	         const region_id &rid,
+	         const server_id &src,
+	         const virtual_server_id &vsrc,
+	         const server_id &dst,
+	         const virtual_server_id &vdst);
+	transfer(const transfer &);
+	~transfer() throw ();
 
-    public:
-        transfer& operator = (const transfer&);
-        bool operator < (const transfer&) const;
+public:
+	transfer &operator = (const transfer &);
+	bool operator < (const transfer &) const;
 
-    public:
-        transfer_id id;
-        region_id rid;
-        server_id src;
-        virtual_server_id vsrc;
-        server_id dst;
-        virtual_server_id vdst;
+public:
+	transfer_id id;
+	region_id rid;
+	server_id src;
+	virtual_server_id vsrc;
+	server_id dst;
+	virtual_server_id vdst;
 };
 
-std::ostream&
-operator << (std::ostream& lhs, const transfer& rhs);
+std::ostream &
+operator << (std::ostream &lhs, const transfer &rhs);
 
 e::packer
-operator << (e::packer, const transfer& t);
+operator << (e::packer, const transfer &t);
 e::unpacker
-operator >> (e::unpacker, transfer& t);
+operator >> (e::unpacker, transfer &t);
 size_t
-pack_size(const transfer& t);
+pack_size(const transfer &t);
 
 END_HYPERDEX_NAMESPACE
 

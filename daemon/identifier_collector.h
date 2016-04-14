@@ -41,35 +41,35 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class identifier_collector
 {
-    public:
-        identifier_collector(e::garbage_collector* gc);
-        ~identifier_collector() throw ();
+public:
+	identifier_collector(e::garbage_collector *gc);
+	~identifier_collector() throw ();
 
-    // concurrent methods
-    // these methods return "true" if ri is a managed region_id, else "false"
-    public:
-        // force the lower bound for "ri" to be "lb" or more
-        // equivalent to calling collect on 0 through lb - 1
-        void bump(const region_id& ri, uint64_t lb);
-        // mark the identifier as collected
-        void collect(const region_id& ri, uint64_t id);
-        // store a value in "*lb" such that ids "< *lb" have been collected
-        uint64_t lower_bound(const region_id& ri);
+	// concurrent methods
+	// these methods return "true" if ri is a managed region_id, else "false"
+public:
+	// force the lower bound for "ri" to be "lb" or more
+	// equivalent to calling collect on 0 through lb - 1
+	void bump(const region_id &ri, uint64_t lb);
+	// mark the identifier as collected
+	void collect(const region_id &ri, uint64_t id);
+	// store a value in "*lb" such that ids "< *lb" have been collected
+	uint64_t lower_bound(const region_id &ri);
 
-    // external synchronization required; nothing can call other methods
-    public:
-        void adopt(region_id* ris, size_t ris_sz);
+	// external synchronization required; nothing can call other methods
+public:
+	void adopt(region_id *ris, size_t ris_sz);
 
-    private:
-        identifier_collector(const identifier_collector&);
-        identifier_collector& operator = (const identifier_collector&);
-        static uint64_t id(region_id ri) { return ri.get(); }
+private:
+	identifier_collector(const identifier_collector &);
+	identifier_collector &operator = (const identifier_collector &);
+	static uint64_t id(region_id ri) { return ri.get(); }
 
-    private:
-        const static region_id defaultri;
-        typedef e::ao_hash_map<region_id, e::compat::shared_ptr<e::seqno_collector>, id, defaultri> collector_map_t;
-        e::garbage_collector* m_gc;
-        collector_map_t m_collectors;
+private:
+	const static region_id defaultri;
+	typedef e::ao_hash_map<region_id, e::compat::shared_ptr<e::seqno_collector>, id, defaultri> collector_map_t;
+	e::garbage_collector *m_gc;
+	collector_map_t m_collectors;
 };
 
 END_HYPERDEX_NAMESPACE

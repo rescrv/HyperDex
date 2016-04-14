@@ -39,50 +39,50 @@
 
 class hyperdex::datalayer::indexer_thread : public hyperdex::background_thread
 {
-    public:
-        indexer_thread(daemon* d, wiper_indexer_mediator* m);
-        ~indexer_thread() throw ();
+public:
+	indexer_thread(daemon *d, wiper_indexer_mediator *m);
+	~indexer_thread() throw ();
 
-    public:
-        virtual const char* thread_name();
-        virtual bool have_work();
-        virtual void copy_work();
-        virtual void do_work();
+public:
+	virtual const char *thread_name();
+	virtual bool have_work();
+	virtual void copy_work();
+	virtual void do_work();
 
-    public:
-        void debug_dump();
-        void kick();
-        bool mark_usable(const region_id& ri, const index_id& ii);
+public:
+	void debug_dump();
+	void kick();
+	bool mark_usable(const region_id &ri, const index_id &ii);
 
-    private:
-        bool interrupted();
-        region_iterator* play(const region_id& ri, const schema* sc);
-        replay_iterator* replay(const region_id& ri,
-                                const std::string& timestamp);
-        bool wipe(const region_id& ri, const index_id& ii);
-        bool wipe_common(uint8_t c, const region_id& ri, const index_id& ii);
-        bool index_from_iterator(region_iterator* it,
-                                 const schema* sc,
-                                 const region_id& ri,
-                                 const std::vector<const index*>& idxs);
-        bool index_from_replay_iterator(replay_iterator* rit,
-                                        const schema* sc,
-                                        const region_id& ri,
-                                        const std::vector<const index*>& idxs);
+private:
+	bool interrupted();
+	region_iterator *play(const region_id &ri, const schema *sc);
+	replay_iterator *replay(const region_id &ri,
+	                        const std::string &timestamp);
+	bool wipe(const region_id &ri, const index_id &ii);
+	bool wipe_common(uint8_t c, const region_id &ri, const index_id &ii);
+	bool index_from_iterator(region_iterator *it,
+	                         const schema *sc,
+	                         const region_id &ri,
+	                         const std::vector<const index *> &idxs);
+	bool index_from_replay_iterator(replay_iterator *rit,
+	                                const schema *sc,
+	                                const region_id &ri,
+	                                const std::vector<const index *> &idxs);
 
-    private:
-        daemon* m_daemon;
-        wiper_indexer_mediator* m_mediator;
-        configuration m_config;
-        bool m_have_current;
-        region_id m_current_region;
-        index_id m_current_index;
-        uint64_t m_interrupted_count;
-        bool m_interrupted;
+private:
+	daemon *m_daemon;
+	wiper_indexer_mediator *m_mediator;
+	configuration m_config;
+	bool m_have_current;
+	region_id m_current_region;
+	index_id m_current_index;
+	uint64_t m_interrupted_count;
+	bool m_interrupted;
 
-    private:
-        indexer_thread(const indexer_thread&);
-        indexer_thread& operator = (const indexer_thread&);
+private:
+	indexer_thread(const indexer_thread &);
+	indexer_thread &operator = (const indexer_thread &);
 };
 
 #endif // hyperdex_daemon_datalayer_indexer_h_

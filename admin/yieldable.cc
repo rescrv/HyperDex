@@ -31,11 +31,11 @@
 using hyperdex::yieldable;
 
 yieldable :: yieldable(uint64_t id,
-                       hyperdex_admin_returncode* s)
-    : m_ref(0)
-    , m_admin_visible_id(id)
-    , m_status(s)
-    , m_error()
+                       hyperdex_admin_returncode *s)
+	: m_ref(0)
+	, m_admin_visible_id(id)
+	, m_status(s)
+	, m_error()
 {
 }
 
@@ -43,15 +43,15 @@ yieldable :: ~yieldable() throw ()
 {
 }
 
-std::ostream&
-yieldable :: error(const char* file, size_t line)
+std::ostream &
+yieldable :: error(const char *file, size_t line)
 {
-    m_error.set_loc(file, line);
-    return m_error.set_msg();
+	m_error.set_loc(file, line);
+	return m_error.set_msg();
 }
 
 void
-yieldable :: set_error(const e::error& err)
+yieldable :: set_error(const e::error &err)
 {
-    m_error = err;
+	m_error = err;
 }

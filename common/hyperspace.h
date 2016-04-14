@@ -49,123 +49,123 @@ class replica;
 
 class space
 {
-    public:
-        space();
-        space(const char* name, const schema& sc);
-        space(const space&);
-        ~space() throw ();
+public:
+	space();
+	space(const char *name, const schema &sc);
+	space(const space &);
+	~space() throw ();
 
-    public:
-        bool validate() const;
-        void reestablish_backing();
+public:
+	bool validate() const;
+	void reestablish_backing();
 
-    public:
-        space& operator = (const space&);
+public:
+	space &operator = (const space &);
 
-    public:
-        space_id id;
-        const char* name;
-        uint64_t fault_tolerance;
-        uint64_t predecessor_width;
-        hyperdex::schema sc;
-        std::vector<subspace> subspaces;
-        std::vector<index> indices;
+public:
+	space_id id;
+	const char *name;
+	uint64_t fault_tolerance;
+	uint64_t predecessor_width;
+	hyperdex::schema sc;
+	std::vector<subspace> subspaces;
+	std::vector<index> indices;
 
-        const attribute& get_attribute(uint16_t index) const;
+	const attribute &get_attribute(uint16_t index) const;
 
-    private:
-        friend e::packer operator << (e::packer, const space& s);
-        friend e::unpacker operator >> (e::unpacker, space& s);
-        friend size_t pack_size(const space&);
+private:
+	friend e::packer operator << (e::packer, const space &s);
+	friend e::unpacker operator >> (e::unpacker, space &s);
+	friend size_t pack_size(const space &);
 
-    private:
-        e::array_ptr<char> m_c_strs;
-        e::array_ptr<attribute> m_attrs;
+private:
+	e::array_ptr<char> m_c_strs;
+	e::array_ptr<attribute> m_attrs;
 
 };
 
-inline const attribute& space::get_attribute(uint16_t index) const
+inline const attribute &space::get_attribute(uint16_t index) const
 {
-    return m_attrs[index];
+	return m_attrs[index];
 }
 
 e::packer
-operator << (e::packer, const space& s);
+operator << (e::packer, const space &s);
 e::unpacker
-operator >> (e::unpacker, space& s);
+operator >> (e::unpacker, space &s);
 size_t
-pack_size(const space& s);
+pack_size(const space &s);
 
 class subspace
 {
-    public:
-        subspace();
-        subspace(const subspace&);
-        ~subspace() throw ();
+public:
+	subspace();
+	subspace(const subspace &);
+	~subspace() throw ();
 
-    public:
-        subspace& operator = (const subspace&);
+public:
+	subspace &operator = (const subspace &);
 
-    public:
-        subspace_id id;
-        std::vector<uint16_t> attrs;
-        std::vector<region> regions;
+public:
+	subspace_id id;
+	std::vector<uint16_t> attrs;
+	std::vector<region> regions;
 };
 
 e::packer
-operator << (e::packer, const subspace& s);
+operator << (e::packer, const subspace &s);
 e::unpacker
-operator >> (e::unpacker, subspace& s);
+operator >> (e::unpacker, subspace &s);
 size_t
-pack_size(const subspace& s);
+pack_size(const subspace &s);
 
 class region
 {
-    public:
-        region();
-        region(const region&);
-        ~region() throw ();
+public:
+	region();
+	region(const region &);
+	~region() throw ();
 
-    public:
-        region& operator = (const region&);
+public:
+	region &operator = (const region &);
 
-    public:
-        region_id id;
-        std::vector<uint64_t> lower_coord;
-        std::vector<uint64_t> upper_coord;
-        std::vector<replica> replicas;
+public:
+	region_id id;
+	std::vector<uint64_t> lower_coord;
+	std::vector<uint64_t> upper_coord;
+	std::vector<replica> replicas;
 };
 
 e::packer
-operator << (e::packer, const region& r);
+operator << (e::packer, const region &r);
 e::unpacker
-operator >> (e::unpacker, region& r);
+operator >> (e::unpacker, region &r);
 size_t
-pack_size(const region& r);
+pack_size(const region &r);
 
 class replica
 {
-    public:
-        replica();
-        replica(const server_id& si,
-                const virtual_server_id& vsi);
-        replica(const replica&);
-        ~replica() throw ();
+public:
+	replica();
+	replica(const server_id &si,
+	        const virtual_server_id &vsi);
+	replica(const replica &);
+	~replica() throw ();
 
-    public:
-        replica& operator = (const replica&);
+public:
+	replica &operator = (const replica &);
 
-    public:
-        server_id si;
-        virtual_server_id vsi;
+public:
+	server_id si;
+	virtual_server_id vsi;
 };
 
 e::packer
-operator << (e::packer, const replica& r);
+operator << (e::packer, const replica &r);
 e::unpacker
-operator >> (e::unpacker, replica& r);
+operator >> (e::unpacker, replica &r);
 size_t
-pack_size(const replica& r);
+pack_size(const replica &r);
 
 END_HYPERDEX_NAMESPACE
 

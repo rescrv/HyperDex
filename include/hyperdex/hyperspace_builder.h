@@ -45,59 +45,59 @@ struct hyperspace;
 /* hyperspace_returncode occupies [8576, 8704) */
 enum hyperspace_returncode
 {
-    HYPERSPACE_SUCCESS       = 8576,
-    HYPERSPACE_INVALID_NAME  = 8577,
-    HYPERSPACE_INVALID_TYPE  = 8578,
-    HYPERSPACE_DUPLICATE     = 8579,
-    HYPERSPACE_IS_KEY        = 8580,
-    HYPERSPACE_UNKNOWN_ATTR  = 8581,
-    HYPERSPACE_NO_SUBSPACE   = 8582,
-    HYPERSPACE_OUT_OF_BOUNDS = 8583,
-    HYPERSPACE_UNINDEXABLE   = 8584,
+	HYPERSPACE_SUCCESS       = 8576,
+	HYPERSPACE_INVALID_NAME  = 8577,
+	HYPERSPACE_INVALID_TYPE  = 8578,
+	HYPERSPACE_DUPLICATE     = 8579,
+	HYPERSPACE_IS_KEY        = 8580,
+	HYPERSPACE_UNKNOWN_ATTR  = 8581,
+	HYPERSPACE_NO_SUBSPACE   = 8582,
+	HYPERSPACE_OUT_OF_BOUNDS = 8583,
+	HYPERSPACE_UNINDEXABLE   = 8584,
 
-    HYPERSPACE_GARBAGE       = 8703
+	HYPERSPACE_GARBAGE       = 8703
 };
 
-struct hyperspace*
+struct hyperspace *
 hyperspace_create();
-struct hyperspace*
-hyperspace_parse(const char* desc);
+struct hyperspace *
+hyperspace_parse(const char *desc);
 void
-hyperspace_destroy(struct hyperspace* space);
+hyperspace_destroy(struct hyperspace *space);
 
-const char*
-hyperspace_error(struct hyperspace* space);
-
-enum hyperspace_returncode
-hyperspace_set_name(struct hyperspace* space, const char* name);
+const char *
+hyperspace_error(struct hyperspace *space);
 
 enum hyperspace_returncode
-hyperspace_set_key(struct hyperspace* space,
-                   const char* attr,
+hyperspace_set_name(struct hyperspace *space, const char *name);
+
+enum hyperspace_returncode
+hyperspace_set_key(struct hyperspace *space,
+                   const char *attr,
                    enum hyperdatatype datatype);
 
 enum hyperspace_returncode
-hyperspace_add_attribute(struct hyperspace* space,
-                         const char* attr,
+hyperspace_add_attribute(struct hyperspace *space,
+                         const char *attr,
                          enum hyperdatatype datatype);
 
 enum hyperspace_returncode
-hyperspace_add_subspace(struct hyperspace* space);
+hyperspace_add_subspace(struct hyperspace *space);
 
 enum hyperspace_returncode
-hyperspace_add_subspace_attribute(struct hyperspace* space, const char* attr);
+hyperspace_add_subspace_attribute(struct hyperspace *space, const char *attr);
 
 enum hyperspace_returncode
-hyperspace_add_index(struct hyperspace* space, const char* attr);
+hyperspace_add_index(struct hyperspace *space, const char *attr);
 
 enum hyperspace_returncode
-hyperspace_set_fault_tolerance(struct hyperspace* space, uint64_t num);
+hyperspace_set_fault_tolerance(struct hyperspace *space, uint64_t num);
 
 enum hyperspace_returncode
-hyperspace_set_number_of_partitions(struct hyperspace* space, uint64_t num);
+hyperspace_set_number_of_partitions(struct hyperspace *space, uint64_t num);
 
 enum hyperspace_returncode
-hyperspace_use_authorization(struct hyperspace* space);
+hyperspace_use_authorization(struct hyperspace *space);
 
 #ifdef __cplusplus
 } /* extern "C" */

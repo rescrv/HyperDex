@@ -29,45 +29,45 @@
 #include "common/serialization.h"
 
 e::packer
-hyperdex :: operator << (e::packer lhs, const hyperdatatype& rhs)
+hyperdex :: operator << (e::packer lhs, const hyperdatatype &rhs)
 {
-    uint16_t r = static_cast<uint16_t>(rhs);
-    return lhs << r;
+	uint16_t r = static_cast<uint16_t>(rhs);
+	return lhs << r;
 }
 
 e::unpacker
-hyperdex :: operator >> (e::unpacker lhs, hyperdatatype& rhs)
+hyperdex :: operator >> (e::unpacker lhs, hyperdatatype &rhs)
 {
-    uint16_t r;
-    lhs = lhs >> r;
-    rhs = static_cast<hyperdatatype>(r);
-    return lhs;
+	uint16_t r;
+	lhs = lhs >> r;
+	rhs = static_cast<hyperdatatype>(r);
+	return lhs;
 }
 
 size_t
-hyperdex :: pack_size(const hyperdatatype&)
+hyperdex :: pack_size(const hyperdatatype &)
 {
-    return sizeof(uint16_t);
+	return sizeof(uint16_t);
 }
 
 e::packer
-hyperdex :: operator << (e::packer lhs, const hyperpredicate& rhs)
+hyperdex :: operator << (e::packer lhs, const hyperpredicate &rhs)
 {
-    uint16_t r = static_cast<uint16_t>(rhs);
-    return lhs << r;
+	uint16_t r = static_cast<uint16_t>(rhs);
+	return lhs << r;
 }
 
 e::unpacker
-hyperdex :: operator >> (e::unpacker lhs, hyperpredicate& rhs)
+hyperdex :: operator >> (e::unpacker lhs, hyperpredicate &rhs)
 {
-    uint16_t r;
-    lhs = lhs >> r;
-    rhs = static_cast<hyperpredicate>(r);
-    return lhs;
+	uint16_t r;
+	lhs = lhs >> r;
+	rhs = static_cast<hyperpredicate>(r);
+	return lhs;
 }
 
 size_t
-hyperdex :: pack_size(const hyperpredicate&)
+hyperdex :: pack_size(const hyperpredicate &)
 {
-    return sizeof(uint16_t);
+	return sizeof(uint16_t);
 }

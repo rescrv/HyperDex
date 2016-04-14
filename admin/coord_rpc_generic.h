@@ -35,30 +35,30 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class coord_rpc_generic : public coord_rpc
 {
-    public:
-        coord_rpc_generic(uint64_t admin_visible_id,
-                          hyperdex_admin_returncode* status,
-                          const char* opname);
-        virtual ~coord_rpc_generic() throw ();
+public:
+	coord_rpc_generic(uint64_t admin_visible_id,
+	                  hyperdex_admin_returncode *status,
+	                  const char *opname);
+	virtual ~coord_rpc_generic() throw ();
 
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_admin_returncode* status);
+public:
+	virtual bool can_yield();
+	virtual bool yield(hyperdex_admin_returncode *status);
 
-    public:
-        virtual bool handle_response(admin* adm,
-                                     hyperdex_admin_returncode* status);
+public:
+	virtual bool handle_response(admin *adm,
+	                             hyperdex_admin_returncode *status);
 
-    protected:
-        friend class e::intrusive_ptr<coord_rpc>;
+protected:
+	friend class e::intrusive_ptr<coord_rpc>;
 
-    private:
-        coord_rpc_generic(const coord_rpc_generic&);
-        coord_rpc_generic& operator = (const coord_rpc_generic&);
+private:
+	coord_rpc_generic(const coord_rpc_generic &);
+	coord_rpc_generic &operator = (const coord_rpc_generic &);
 
-    private:
-        const char* m_opname;
-        bool m_done;
+private:
+	const char *m_opname;
+	bool m_done;
 };
 
 END_HYPERDEX_NAMESPACE

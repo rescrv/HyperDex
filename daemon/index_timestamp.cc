@@ -38,10 +38,10 @@ using hyperdex::index_timestamp;
 using hyperdex::index_encoding_timestamp;
 
 index_timestamp :: index_timestamp(hyperdatatype t)
-    : index_primitive(index_encoding::lookup(t))
-    , m_type(t)
+	: index_primitive(index_encoding::lookup(t))
+	, m_type(t)
 {
-    assert(CONTAINER_TYPE(m_type) == HYPERDATATYPE_TIMESTAMP_GENERIC);
+	assert(CONTAINER_TYPE(m_type) == HYPERDATATYPE_TIMESTAMP_GENERIC);
 }
 
 index_timestamp :: ~index_timestamp() throw ()
@@ -51,11 +51,11 @@ index_timestamp :: ~index_timestamp() throw ()
 hyperdatatype
 index_timestamp :: datatype() const
 {
-    return m_type;
+	return m_type;
 }
 
 index_encoding_timestamp :: index_encoding_timestamp()
-    : m_iei()
+	: m_iei()
 {
 }
 
@@ -66,29 +66,29 @@ index_encoding_timestamp :: ~index_encoding_timestamp() throw ()
 bool
 index_encoding_timestamp :: encoding_fixed() const
 {
-    return m_iei.encoding_fixed();
+	return m_iei.encoding_fixed();
 }
 
 size_t
-index_encoding_timestamp :: encoded_size(const e::slice& x) const
+index_encoding_timestamp :: encoded_size(const e::slice &x) const
 {
-    return m_iei.encoded_size(x);
+	return m_iei.encoded_size(x);
 }
 
-char*
-index_encoding_timestamp :: encode(const e::slice& decoded, char* encoded) const
+char *
+index_encoding_timestamp :: encode(const e::slice &decoded, char *encoded) const
 {
-    return m_iei.encode(decoded, encoded);
+	return m_iei.encode(decoded, encoded);
 }
 
 size_t
-index_encoding_timestamp :: decoded_size(const e::slice& x) const
+index_encoding_timestamp :: decoded_size(const e::slice &x) const
 {
-    return m_iei.decoded_size(x);
+	return m_iei.decoded_size(x);
 }
 
-char*
-index_encoding_timestamp :: decode(const e::slice& encoded, char* decoded) const
+char *
+index_encoding_timestamp :: decode(const e::slice &encoded, char *decoded) const
 {
-    return m_iei.decode(encoded, decoded);
+	return m_iei.decode(encoded, decoded);
 }

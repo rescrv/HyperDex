@@ -38,52 +38,43 @@
 #include <hyperdex/hyperspace_builder.h>
 
 int
-main(int argc, const char* argv[])
+main(int argc, const char *argv[])
 {
-    e::argparser ap;
-    ap.autohelp();
-
-    if (!ap.parse(argc, argv))
-    {
-        return EXIT_FAILURE;
-    }
-
-    if (ap.args_sz() != 0)
-    {
-        std::cerr << "command takes no arguments" << std::endl;
-        ap.usage();
-        return EXIT_FAILURE;
-    }
-
-    std::string description;
-    std::string s;
-
-    while (std::cin >> s)
-    {
-        if (!description.empty())
-        {
-            description += " " + s;
-        }
-        else
-        {
-            description += s;
-        }
-    }
-
-    struct hyperspace* space = hyperspace_parse(description.c_str());
-
-    if (hyperspace_error(space))
-    {
-        std::cerr << "invalid hyperspace: " << hyperspace_error(space) << std::endl;
-
-        if (space)
-        {
-            hyperspace_destroy(space);
-        }
-
-        return EXIT_FAILURE;
-    }
-
-    hyperspace_destroy(space);
-    return EXIT_SUCCESS;
+	e::argparser ap;
+	ap.autohelp();
+	if (!ap.parse(argc, argv))
+	{
+		return EXIT_FAILURE;
+	}
+	if (ap.args_sz() != 0)
+	{
+		std::cerr << "command takes no arguments" << std::endl;
+		ap.usage();
+		return EXIT_FAILURE;
+	}
+	std::string description;
+	std::string s;
+	while (std::cin >> s)
+	{
+		if (!description.empty())
+		{
+			description += " " + s;
+		}
+		else
+		{
+			description += s;
+		}
+	}
+	struct hyperspace *space = hyperspace_parse(description.c_str());
+	if (hyperspace_error(space))
+	{
+		std::cerr << "invalid hyperspace: " << hyperspace_error(space) << std::endl;
+		if (space)
+		{
+			hyperspace_destroy(space);
+		}
+		return EXIT_FAILURE;
+	}
+	hyperspace_destroy(space);
+	return EXIT_SUCCESS;
 }

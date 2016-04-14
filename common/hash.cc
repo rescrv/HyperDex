@@ -32,37 +32,34 @@
 #include "common/hash.h"
 
 uint64_t
-hyperdex :: hash(hyperdatatype t, const e::slice& v)
+hyperdex :: hash(hyperdatatype t, const e::slice &v)
 {
-    datatype_info* di = datatype_info::lookup(t);
-    assert(di);
-
-    if (!di->hashable())
-    {
-        return 0;
-    }
-
-    return di->hash(v);
+	datatype_info *di = datatype_info::lookup(t);
+	assert(di);
+	if (!di->hashable())
+	{
+		return 0;
+	}
+	return di->hash(v);
 }
 
 void
-hyperdex :: hash(const schema& sc,
-                 const e::slice& key,
-                 uint64_t* h)
+hyperdex :: hash(const schema &sc,
+                 const e::slice &key,
+                 uint64_t *h)
 {
-    *h = hash(sc.attrs[0].type, key);
+	*h = hash(sc.attrs[0].type, key);
 }
 
 void
-hyperdex :: hash(const hyperdex::schema& sc,
-                 const e::slice& key,
-                 const std::vector<e::slice>& value,
-                 uint64_t* hs)
+hyperdex :: hash(const hyperdex::schema &sc,
+                 const e::slice &key,
+                 const std::vector<e::slice> &value,
+                 uint64_t *hs)
 {
-    hs[0] = hash(sc.attrs[0].type, key);
-
-    for (size_t i = 1; i < sc.attrs_sz; ++i)
-    {
-        hs[i] = hash(sc.attrs[i].type, value[i - 1]);
-    }
+	hs[0] = hash(sc.attrs[0].type, key);
+	for (size_t i = 1; i < sc.attrs_sz; ++i)
+	{
+		hs[i] = hash(sc.attrs[i].type, value[i - 1]);
+	}
 }

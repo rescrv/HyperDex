@@ -33,16 +33,16 @@
 using hyperdex::state_transfer_manager;
 
 state_transfer_manager :: state_transfer_manager :: pending :: pending()
-    : seq_no(0)
-    , has_value(false)
-    , version(0)
-    , key()
-    , value()
-    , acked(false)
-    , msg()
-    , kref()
-    , vref()
-    , m_ref(0)
+	: seq_no(0)
+	, has_value(false)
+	, version(0)
+	, key()
+	, value()
+	, acked(false)
+	, msg()
+	, kref()
+	, vref()
+	, m_ref(0)
 {
 }
 

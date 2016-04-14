@@ -37,31 +37,31 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class replica_set
 {
-    public:
-        replica_set();
-        replica_set(size_t start, size_t size,
-                    std::vector<server_id>* storage);
-        replica_set(const replica_set&);
+public:
+	replica_set();
+	replica_set(size_t start, size_t size,
+	            std::vector<server_id> *storage);
+	replica_set(const replica_set &);
 
-    public:
-        size_t size() const;
+public:
+	size_t size() const;
 
-    public:
-        server_id operator [] (size_t idx) const;
-        replica_set& operator = (const replica_set&);
+public:
+	server_id operator [] (size_t idx) const;
+	replica_set &operator = (const replica_set &);
 
-    private:
-        size_t m_start;
-        size_t m_size;
-        std::vector<server_id>* m_storage;
+private:
+	size_t m_start;
+	size_t m_size;
+	std::vector<server_id> *m_storage;
 };
 
 void
 compute_replica_sets(uint64_t R, uint64_t P,
-                     const std::vector<server_id>& permutation,
-                     const std::vector<server>& servers,
-                     std::vector<server_id>* replica_storage,
-                     std::vector<replica_set>* replica_sets);
+                     const std::vector<server_id> &permutation,
+                     const std::vector<server> &servers,
+                     std::vector<server_id> *replica_storage,
+                     std::vector<replica_set> *replica_sets);
 
 END_HYPERDEX_NAMESPACE
 

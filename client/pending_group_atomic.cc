@@ -32,13 +32,13 @@
 using hyperdex::pending_group_atomic;
 
 pending_group_atomic :: pending_group_atomic(uint64_t id,
-                                             hyperdex_client_returncode* status,
-                                             uint64_t* update_count)
-    : pending_aggregation(id, status)
-    , m_state(INITIALIZED)
-    , m_update_count(update_count)
+                                             hyperdex_client_returncode *status,
+                                             uint64_t *update_count)
+	: pending_aggregation(id, status)
+	, m_state(INITIALIZED)
+	, m_update_count(update_count)
 {
-    *m_update_count = 0;
+	*m_update_count = 0;
 }
 
 pending_group_atomic :: ~pending_group_atomic() throw ()
@@ -48,84 +48,76 @@ pending_group_atomic :: ~pending_group_atomic() throw ()
 bool
 pending_group_atomic :: can_yield()
 {
-    return m_state == DONE || m_state == FAILURE;
+	return m_state == DONE || m_state == FAILURE;
 }
 
 bool
-pending_group_atomic :: yield(hyperdex_client_returncode* status, e::error* err)
+pending_group_atomic :: yield(hyperdex_client_returncode *status, e::error *err)
 {
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
-    assert(this->can_yield());
-    m_state = YIELDED;
-    return true;
+	*status = HYPERDEX_CLIENT_SUCCESS;
+	*err = e::error();
+	assert(this->can_yield());
+	m_state = YIELDED;
+	return true;
 }
 
 void
-pending_group_atomic :: handle_sent_to(const server_id& sid,
-                                 const virtual_server_id& vid)
+pending_group_atomic :: handle_sent_to(const server_id &sid,
+                                       const virtual_server_id &vid)
 {
-    pending_aggregation::handle_sent_to(sid, vid);
-
-    // We could already have received something
-    if(m_state == INITIALIZED)
-    {
-        m_state = SENT;
-    }
+	pending_aggregation::handle_sent_to(sid, vid);
+	// We could already have received something
+	if (m_state == INITIALIZED)
+	{
+		m_state = SENT;
+	}
 }
 
 void
-pending_group_atomic :: handle_failure(const server_id& si,
-                                       const virtual_server_id& vsi)
+pending_group_atomic :: handle_failure(const server_id &si,
+                                       const virtual_server_id &vsi)
 {
-    pending_aggregation::handle_failure(si, vsi);
-
-    assert(m_state == SENT);
-    m_state = RECV;
-    PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
-                               << vsi << "/" << si;
+	pending_aggregation::handle_failure(si, vsi);
+	assert(m_state == SENT);
+	m_state = RECV;
+	PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
+	                           << vsi << "/" << si;
 }
 
 bool
-pending_group_atomic :: handle_message(client* cl,
-                                       const server_id& si,
-                                       const virtual_server_id& vsi,
+pending_group_atomic :: handle_message(client *cl,
+                                       const server_id &si,
+                                       const virtual_server_id &vsi,
                                        network_msgtype mt,
                                        std::auto_ptr<e::buffer> msg,
                                        e::unpacker up,
-                                       hyperdex_client_returncode* status,
-                                       e::error* err)
+                                       hyperdex_client_returncode *status,
+                                       e::error *err)
 {
-    bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
-    assert(handled);
-
-    if (mt != RESP_GROUP_ATOMIC)
-    {
-        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to GROUP_ATOMIC with " << mt;
-        return true;
-    }
-
-    uint64_t response;
-    up = up >> response;
-
-    // Remember how many fields we updated
-    *m_update_count += response;
-
-    if (up.error())
-    {
-        PENDING_ERROR(SERVERERROR) << "communication error: server "
-                                   << vsi << " sent corrupt message="
-                                   << msg->as_slice().hex()
-                                   << " in response to a GROUP_ATOMIC";
-        return true;
-    }
-
-    if(this->aggregation_done())
-    {
-        m_state = DONE;
-        set_status(HYPERDEX_CLIENT_SUCCESS);
-        set_error(e::error());
-    }
-
-    return true;
+	bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
+	assert(handled);
+	if (mt != RESP_GROUP_ATOMIC)
+	{
+		PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to GROUP_ATOMIC with " << mt;
+		return true;
+	}
+	uint64_t response;
+	up = up >> response;
+	// Remember how many fields we updated
+	*m_update_count += response;
+	if (up.error())
+	{
+		PENDING_ERROR(SERVERERROR) << "communication error: server "
+		                           << vsi << " sent corrupt message="
+		                           << msg->as_slice().hex()
+		                           << " in response to a GROUP_ATOMIC";
+		return true;
+	}
+	if (this->aggregation_done())
+	{
+		m_state = DONE;
+		set_status(HYPERDEX_CLIENT_SUCCESS);
+		set_error(e::error());
+	}
+	return true;
 }

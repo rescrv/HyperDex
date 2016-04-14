@@ -41,83 +41,77 @@ using hyperdex::ordered_encode_double;
 
 TEST(OrderedEncoding, EncodeInt64)
 {
-    ASSERT_EQ(0xffffffffffffffffULL, ordered_encode_int64(INT64_MAX));
-    ASSERT_EQ(0xfffffffffffffffeULL, ordered_encode_int64(INT64_MAX - 1));
-    ASSERT_EQ(0x8000000000000001ULL, ordered_encode_int64(1));
-    ASSERT_EQ(0x8000000000000000ULL, ordered_encode_int64(0));
-    ASSERT_EQ(0x7fffffffffffffffULL, ordered_encode_int64(-1));
-    ASSERT_EQ(0x0000000000000001ULL, ordered_encode_int64(INT64_MIN + 1));
-    ASSERT_EQ(0x0000000000000000ULL, ordered_encode_int64(INT64_MIN));
+	ASSERT_EQ(0xffffffffffffffffULL, ordered_encode_int64(INT64_MAX));
+	ASSERT_EQ(0xfffffffffffffffeULL, ordered_encode_int64(INT64_MAX - 1));
+	ASSERT_EQ(0x8000000000000001ULL, ordered_encode_int64(1));
+	ASSERT_EQ(0x8000000000000000ULL, ordered_encode_int64(0));
+	ASSERT_EQ(0x7fffffffffffffffULL, ordered_encode_int64(-1));
+	ASSERT_EQ(0x0000000000000001ULL, ordered_encode_int64(INT64_MIN + 1));
+	ASSERT_EQ(0x0000000000000000ULL, ordered_encode_int64(INT64_MIN));
 }
 
 TEST(OrderedEncoding, DecodeInt64)
 {
-    ASSERT_EQ(INT64_MAX,     ordered_decode_int64(0xffffffffffffffffULL));
-    ASSERT_EQ(INT64_MAX - 1, ordered_decode_int64(0xfffffffffffffffeULL));
-    ASSERT_EQ(1,             ordered_decode_int64(0x8000000000000001ULL));
-    ASSERT_EQ(0,             ordered_decode_int64(0x8000000000000000ULL));
-    ASSERT_EQ(-1,            ordered_decode_int64(0x7fffffffffffffffULL));
-    ASSERT_EQ(INT64_MIN + 1, ordered_decode_int64(0x0000000000000001ULL));
-    ASSERT_EQ(INT64_MIN,     ordered_decode_int64(0x0000000000000000ULL));
+	ASSERT_EQ(INT64_MAX,     ordered_decode_int64(0xffffffffffffffffULL));
+	ASSERT_EQ(INT64_MAX - 1, ordered_decode_int64(0xfffffffffffffffeULL));
+	ASSERT_EQ(1,             ordered_decode_int64(0x8000000000000001ULL));
+	ASSERT_EQ(0,             ordered_decode_int64(0x8000000000000000ULL));
+	ASSERT_EQ(-1,            ordered_decode_int64(0x7fffffffffffffffULL));
+	ASSERT_EQ(INT64_MIN + 1, ordered_decode_int64(0x0000000000000001ULL));
+	ASSERT_EQ(INT64_MIN,     ordered_decode_int64(0x0000000000000000ULL));
 }
 
 TEST(IndexEncode, Double)
 {
-    ASSERT_EQ(0x0000000000000000ULL, ordered_encode_double(-INFINITY));
-    ASSERT_EQ(0xfff0000000000002ULL, ordered_encode_double(INFINITY));
-    ASSERT_EQ(0xfff0000000000003ULL, ordered_encode_double(NAN));
-    ASSERT_EQ(0x8000000000000001ULL, ordered_encode_double(0.));
-
-    double old_d = -INFINITY;
-    uint64_t old_e = 0x0000000000000000ULL;
-
-    for (size_t i = 0; i < 1000000; ++i)
-    {
-        double d = drand48() * mrand48() * mrand48();
-        uint64_t e = ordered_encode_double(d);
-
-        if (isinf(d) && d < 0)
-        {
-            ASSERT_EQ(0x0000000000000000ULL, e);
-        }
-        else if (isinf(d) && d > 0)
-        {
-            ASSERT_EQ(0xfff0000000000002ULL, e);
-        }
-        else if (isnan(d))
-        {
-            ASSERT_EQ(0xfff0000000000003ULL, e);
-        }
-        else
-        {
-            ASSERT_TRUE(e > 0x0000000000000000ULL);
-            ASSERT_TRUE(e < 0xfff0000000000002ULL);
-            ASSERT_TRUE(e < 0xfff0000000000003ULL);
-
-            if (d < 0)
-            {
-                ASSERT_TRUE(e < 0x8000000000000001ULL);
-            }
-            if (d > 0)
-            {
-                ASSERT_TRUE(e > 0x8000000000000001ULL);
-            }
-
-            if (old_d < d)
-            {
-                ASSERT_TRUE(old_e < e);
-            }
-            else if (old_d > d)
-            {
-                ASSERT_TRUE(old_e > e);
-            }
-            else
-            {
-                ASSERT_TRUE(old_e == e);
-            }
-
-            old_d = d;
-            old_e = e;
-        }
-    }
+	ASSERT_EQ(0x0000000000000000ULL, ordered_encode_double(-INFINITY));
+	ASSERT_EQ(0xfff0000000000002ULL, ordered_encode_double(INFINITY));
+	ASSERT_EQ(0xfff0000000000003ULL, ordered_encode_double(NAN));
+	ASSERT_EQ(0x8000000000000001ULL, ordered_encode_double(0.));
+	double old_d = -INFINITY;
+	uint64_t old_e = 0x0000000000000000ULL;
+	for (size_t i = 0; i < 1000000; ++i)
+	{
+		double d = drand48() * mrand48() * mrand48();
+		uint64_t e = ordered_encode_double(d);
+		if (isinf(d) && d < 0)
+		{
+			ASSERT_EQ(0x0000000000000000ULL, e);
+		}
+		else if (isinf(d) && d > 0)
+		{
+			ASSERT_EQ(0xfff0000000000002ULL, e);
+		}
+		else if (isnan(d))
+		{
+			ASSERT_EQ(0xfff0000000000003ULL, e);
+		}
+		else
+		{
+			ASSERT_TRUE(e > 0x0000000000000000ULL);
+			ASSERT_TRUE(e < 0xfff0000000000002ULL);
+			ASSERT_TRUE(e < 0xfff0000000000003ULL);
+			if (d < 0)
+			{
+				ASSERT_TRUE(e < 0x8000000000000001ULL);
+			}
+			if (d > 0)
+			{
+				ASSERT_TRUE(e > 0x8000000000000001ULL);
+			}
+			if (old_d < d)
+			{
+				ASSERT_TRUE(old_e < e);
+			}
+			else if (old_d > d)
+			{
+				ASSERT_TRUE(old_e > e);
+			}
+			else
+			{
+				ASSERT_TRUE(old_e == e);
+			}
+			old_d = d;
+			old_e = e;
+		}
+	}
 }

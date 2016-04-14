@@ -36,17 +36,17 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class region_timestamp
 {
-    public:
-        region_timestamp() : rid(), checkpoint(), local_timestamp() {}
-        region_timestamp(const region_id& r,
-                         uint64_t c,
-                         const std::string& t)
-            : rid(r), checkpoint(c), local_timestamp(t) {}
+public:
+	region_timestamp() : rid(), checkpoint(), local_timestamp() {}
+	region_timestamp(const region_id &r,
+	                 uint64_t c,
+	                 const std::string &t)
+		: rid(r), checkpoint(c), local_timestamp(t) {}
 
-    public:
-        region_id rid;
-        uint64_t checkpoint;
-        std::string local_timestamp;
+public:
+	region_id rid;
+	uint64_t checkpoint;
+	std::string local_timestamp;
 };
 
 END_HYPERDEX_NAMESPACE

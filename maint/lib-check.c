@@ -31,27 +31,23 @@
 #include <dlfcn.h>
 
 int
-main(int argc, const char* argv[])
+main(int argc, const char *argv[])
 {
-    int i = 0;
-    void* ptr = NULL;
-
-    if (argc < 2)
-    {
-        fprintf(stderr, "specify a library\n");
-        return EXIT_FAILURE;
-    }
-
-    for (i = 1; i < argc; ++i)
-    {
-        ptr = dlopen(argv[i], RTLD_NOW|RTLD_GLOBAL);
-
-        if (!ptr)
-        {
-            fprintf(stderr, "%s\n", dlerror());
-            continue;
-        }
-    }
-
-    return EXIT_SUCCESS;
+	int i = 0;
+	void *ptr = NULL;
+	if (argc < 2)
+	{
+		fprintf(stderr, "specify a library\n");
+		return EXIT_FAILURE;
+	}
+	for (i = 1; i < argc; ++i)
+	{
+		ptr = dlopen(argv[i], RTLD_NOW | RTLD_GLOBAL);
+		if (!ptr)
+		{
+			fprintf(stderr, "%s\n", dlerror());
+			continue;
+		}
+	}
+	return EXIT_SUCCESS;
 }

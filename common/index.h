@@ -40,40 +40,40 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class index
 {
-    public:
-        enum index_t { NORMAL, DOCUMENT };
+public:
+	enum index_t { NORMAL, DOCUMENT };
 
-    public:
-        index();
-        index(index_t t, index_id i, uint16_t a, const e::slice& e);
-        ~index() throw ();
+public:
+	index();
+	index(index_t t, index_id i, uint16_t a, const e::slice &e);
+	~index() throw ();
 
-    public:
-        index& operator = (const index&);
+public:
+	index &operator = (const index &);
 
-    public:
-        index_t type;
-        index_id id;
-        uint16_t attr;
-        e::slice extra;
+public:
+	index_t type;
+	index_id id;
+	uint16_t attr;
+	e::slice extra;
 };
 
-std::ostream&
-operator << (std::ostream& lhs, const index& rhs);
+std::ostream &
+operator << (std::ostream &lhs, const index &rhs);
 
 e::packer
-operator << (e::packer, const index& t);
+operator << (e::packer, const index &t);
 e::unpacker
-operator >> (e::unpacker, index& t);
+operator >> (e::unpacker, index &t);
 size_t
-pack_size(const index& t);
+pack_size(const index &t);
 
 e::packer
-operator << (e::packer, const index::index_t& t);
+operator << (e::packer, const index::index_t &t);
 e::unpacker
-operator >> (e::unpacker, index::index_t& t);
+operator >> (e::unpacker, index::index_t &t);
 size_t
-pack_size(const index::index_t& t);
+pack_size(const index::index_t &t);
 
 END_HYPERDEX_NAMESPACE
 

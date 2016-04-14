@@ -39,36 +39,36 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class identifier_generator
 {
-    public:
-        identifier_generator();
-        ~identifier_generator() throw ();
+public:
+	identifier_generator();
+	~identifier_generator() throw ();
 
-    // concurrent methods
-    // these methods return "true" if ri is a managed region_id, else "false"
-    public:
-        // ensure that new identifiers are strictly greater than "id"
-        bool bump(const region_id& ri, uint64_t id);
-        // look at the next identifier, and store it in "id"
-        uint64_t peek(const region_id& ri) const;
-        // generate one unique identifier, and store it in "id"
-        uint64_t generate_id(const region_id& ri);
+	// concurrent methods
+	// these methods return "true" if ri is a managed region_id, else "false"
+public:
+	// ensure that new identifiers are strictly greater than "id"
+	bool bump(const region_id &ri, uint64_t id);
+	// look at the next identifier, and store it in "id"
+	uint64_t peek(const region_id &ri) const;
+	// generate one unique identifier, and store it in "id"
+	uint64_t generate_id(const region_id &ri);
 
-    // external synchronization required; nothing can call other methods during
-    // adopt; copy_from must be mutually exclusive with adopt on either
-    // generator, and mutually exclusive with all on this generator
-    public:
-        void adopt(region_id* ris, size_t ris_sz);
-        void copy_from(const identifier_generator&);
+	// external synchronization required; nothing can call other methods during
+	// adopt; copy_from must be mutually exclusive with adopt on either
+	// generator, and mutually exclusive with all on this generator
+public:
+	void adopt(region_id *ris, size_t ris_sz);
+	void copy_from(const identifier_generator &);
 
-    private:
-        identifier_generator(const identifier_generator&);
-        identifier_generator& operator = (const identifier_generator&);
-        static uint64_t hashid(region_id ri) { return ri.get(); }
+private:
+	identifier_generator(const identifier_generator &);
+	identifier_generator &operator = (const identifier_generator &);
+	static uint64_t hashid(region_id ri) { return ri.get(); }
 
-    private:
-        const static region_id defaultri;
-        typedef e::ao_hash_map<region_id, uint64_t, hashid, defaultri> generator_map_t;
-        generator_map_t m_generators;
+private:
+	const static region_id defaultri;
+	typedef e::ao_hash_map<region_id, uint64_t, hashid, defaultri> generator_map_t;
+	generator_map_t m_generators;
 };
 
 END_HYPERDEX_NAMESPACE

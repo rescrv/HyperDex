@@ -34,30 +34,30 @@
 
 class hyperdex::state_transfer_manager::pending
 {
-    public:
-        pending();
-        ~pending() throw ();
+public:
+	pending();
+	~pending() throw ();
 
-    public:
-        uint64_t seq_no;
-        bool has_value;
-        uint64_t version;
-        e::slice key;
-        std::vector<e::slice> value;
-        bool acked;
-        std::auto_ptr<e::buffer> msg;
-        std::string kref;
-        datalayer::reference vref;
+public:
+	uint64_t seq_no;
+	bool has_value;
+	uint64_t version;
+	e::slice key;
+	std::vector<e::slice> value;
+	bool acked;
+	std::auto_ptr<e::buffer> msg;
+	std::string kref;
+	datalayer::reference vref;
 
-    private:
-        friend class e::intrusive_ptr<pending>;
+private:
+	friend class e::intrusive_ptr<pending>;
 
-    private:
-        void inc() { ++m_ref; }
-        void dec() { --m_ref; if (m_ref == 0) delete this; }
+private:
+	void inc() { ++m_ref; }
+	void dec() { --m_ref; if (m_ref == 0) delete this; }
 
-    private:
-        size_t m_ref;
+private:
+	size_t m_ref;
 };
 
 #endif // hyperdex_daemon_state_transfer_manager_pending_h_

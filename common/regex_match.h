@@ -38,8 +38,8 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 bool
-regex_match(const uint8_t* regex, size_t regex_sz,
-            const uint8_t* text, size_t text_sz);
+regex_match(const uint8_t *regex, size_t regex_sz,
+            const uint8_t *text, size_t text_sz);
 
 END_HYPERDEX_NAMESPACE
 

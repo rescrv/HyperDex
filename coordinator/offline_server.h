@@ -35,52 +35,52 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class offline_server
 {
-    public:
-        offline_server();
-        offline_server(const region_id& id, const server_id& sid);
-        offline_server(const offline_server& other);
+public:
+	offline_server();
+	offline_server(const region_id &id, const server_id &sid);
+	offline_server(const offline_server &other);
 
-    public:
-        region_id id;
-        server_id sid;
+public:
+	region_id id;
+	server_id sid;
 };
 
 inline size_t
-pack_size(const offline_server& os)
+pack_size(const offline_server &os)
 {
-    return pack_size(os.id) + pack_size(os.sid);
+	return pack_size(os.id) + pack_size(os.sid);
 }
 
 inline e::packer
-operator << (e::packer pa, const offline_server& os)
+operator << (e::packer pa, const offline_server &os)
 {
-    return pa << os.id << os.sid;
+	return pa << os.id << os.sid;
 }
 
 inline e::unpacker
-operator >> (e::unpacker up, offline_server& os)
+operator >> (e::unpacker up, offline_server &os)
 {
-    return up >> os.id >> os.sid;
+	return up >> os.id >> os.sid;
 }
 
 inline
 offline_server :: offline_server()
-    : id()
-    , sid()
+	: id()
+	, sid()
 {
 }
 
 inline
-offline_server :: offline_server(const region_id& _id, const server_id& _sid)
-    : id(_id)
-    , sid(_sid)
+offline_server :: offline_server(const region_id &_id, const server_id &_sid)
+	: id(_id)
+	, sid(_sid)
 {
 }
 
 inline
-offline_server :: offline_server(const offline_server& other)
-    : id(other.id)
-    , sid(other.sid)
+offline_server :: offline_server(const offline_server &other)
+	: id(other.id)
+	, sid(other.sid)
 {
 }
 

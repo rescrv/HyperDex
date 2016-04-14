@@ -33,24 +33,24 @@
 using hyperdex::range;
 
 range :: range()
-    : attr(UINT16_MAX)
-    , type(HYPERDATATYPE_GARBAGE)
-    , start()
-    , end()
-    , has_start(false)
-    , has_end(false)
-    , invalid(true)
+	: attr(UINT16_MAX)
+	, type(HYPERDATATYPE_GARBAGE)
+	, start()
+	, end()
+	, has_start(false)
+	, has_end(false)
+	, invalid(true)
 {
 }
 
-range :: range(const range& other)
-    : attr(other.attr)
-    , type(other.type)
-    , start(other.start)
-    , end(other.end)
-    , has_start(other.has_start)
-    , has_end(other.has_end)
-    , invalid(other.invalid)
+range :: range(const range &other)
+	: attr(other.attr)
+	, type(other.type)
+	, start(other.start)
+	, end(other.end)
+	, has_start(other.has_start)
+	, has_end(other.has_end)
+	, invalid(other.invalid)
 {
 }
 
@@ -58,22 +58,22 @@ range :: ~range() throw ()
 {
 }
 
-range&
-range :: operator = (const range& rhs)
+range &
+range :: operator = (const range &rhs)
 {
-    attr = rhs.attr;
-    type = rhs.type;
-    start = rhs.start;
-    end = rhs.end;
-    has_start = rhs.has_start;
-    has_end = rhs.has_end;
-    invalid = rhs.invalid;
-    return *this;
+	attr = rhs.attr;
+	type = rhs.type;
+	start = rhs.start;
+	end = rhs.end;
+	has_start = rhs.has_start;
+	has_end = rhs.has_end;
+	invalid = rhs.invalid;
+	return *this;
 }
 
 bool
-range :: operator < (const range& rhs) const
+range :: operator < (const range &rhs) const
 {
-    const range& lhs(*this);
-    return lhs.attr < rhs.attr;
+	const range &lhs(*this);
+	return lhs.attr < rhs.attr;
 }

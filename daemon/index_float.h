@@ -36,26 +36,26 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class index_float : public index_primitive
 {
-    public:
-        index_float();
-        virtual ~index_float() throw ();
+public:
+	index_float();
+	virtual ~index_float() throw ();
 
-    public:
-        virtual hyperdatatype datatype() const;
+public:
+	virtual hyperdatatype datatype() const;
 };
 
 class index_encoding_float : public index_encoding
 {
-    public:
-        index_encoding_float();
-        virtual ~index_encoding_float() throw ();
+public:
+	index_encoding_float();
+	virtual ~index_encoding_float() throw ();
 
-    public:
-        virtual bool encoding_fixed() const;
-        virtual size_t encoded_size(const e::slice& decoded) const;
-        virtual char* encode(const e::slice& decoded, char* encoded) const;
-        virtual size_t decoded_size(const e::slice& encoded) const;
-        virtual char* decode(const e::slice& encoded, char* decoded) const;
+public:
+	virtual bool encoding_fixed() const;
+	virtual size_t encoded_size(const e::slice &decoded) const;
+	virtual char *encode(const e::slice &decoded, char *encoded) const;
+	virtual size_t decoded_size(const e::slice &encoded) const;
+	virtual char *decode(const e::slice &encoded, char *decoded) const;
 };
 
 END_HYPERDEX_NAMESPACE

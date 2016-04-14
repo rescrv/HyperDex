@@ -47,16 +47,16 @@ class admin;
 
 class multi_yieldable : public yieldable
 {
-    public:
-        multi_yieldable(uint64_t admin_visible_id,
-                        hyperdex_admin_returncode* status);
-        virtual ~multi_yieldable() throw ();
+public:
+	multi_yieldable(uint64_t admin_visible_id,
+	                hyperdex_admin_returncode *status);
+	virtual ~multi_yieldable() throw ();
 
-    public:
-        virtual bool callback(admin* adm, int64_t id, hyperdex_admin_returncode* status) = 0;
+public:
+	virtual bool callback(admin *adm, int64_t id, hyperdex_admin_returncode *status) = 0;
 
-    protected:
-        friend class e::intrusive_ptr<multi_yieldable>;
+protected:
+	friend class e::intrusive_ptr<multi_yieldable>;
 };
 
 END_HYPERDEX_NAMESPACE

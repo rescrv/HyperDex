@@ -37,29 +37,29 @@
 using hyperdex::key_change;
 
 key_change :: key_change()
-    : key()
-    , erase(false)
-    , fail_if_not_found(false)
-    , fail_if_found(false)
-    , checks()
-    , funcs()
-    , auth()
+	: key()
+	, erase(false)
+	, fail_if_not_found(false)
+	, fail_if_found(false)
+	, checks()
+	, funcs()
+	, auth()
 {
 }
 
-key_change :: key_change(const key_change& other)
-    : key(other.key)
-    , erase(other.erase)
-    , fail_if_not_found(other.fail_if_not_found)
-    , fail_if_found(other.fail_if_found)
-    , checks(other.checks)
-    , funcs(other.funcs)
-    , auth()
+key_change :: key_change(const key_change &other)
+	: key(other.key)
+	, erase(other.erase)
+	, fail_if_not_found(other.fail_if_not_found)
+	, fail_if_found(other.fail_if_found)
+	, checks(other.checks)
+	, funcs(other.funcs)
+	, auth()
 {
-    if (other.auth.get())
-    {
-        auth.reset(new auth_wallet(*other.auth));
-    }
+	if (other.auth.get())
+	{
+		auth.reset(new auth_wallet(*other.auth));
+	}
 }
 
 key_change :: ~key_change() throw ()
@@ -67,60 +67,56 @@ key_change :: ~key_change() throw ()
 }
 
 bool
-key_change :: validate(const schema& sc) const
+key_change :: validate(const schema &sc) const
 {
-    return datatype_info::lookup(sc.attrs[0].type)->validate(key) &&
-           validate_attribute_checks(sc, checks) == checks.size() &&
-           validate_funcs(sc, funcs) == funcs.size() &&
-           (!erase || funcs.empty());
+	return datatype_info::lookup(sc.attrs[0].type)->validate(key) &&
+	       validate_attribute_checks(sc, checks) == checks.size() &&
+	       validate_funcs(sc, funcs) == funcs.size() &&
+	       (!erase || funcs.empty());
 }
 
 hyperdex::network_returncode
-key_change :: check(const schema& sc,
+key_change :: check(const schema &sc,
                     bool has_old_value,
-                    const std::vector<e::slice>* old_value) const
+                    const std::vector<e::slice> *old_value) const
 {
-    const key_change* kc = this;
-
-    if (!has_old_value && kc->erase)
-    {
-        return NET_NOTFOUND;
-    }
-    else if (!has_old_value && kc->fail_if_not_found)
-    {
-        return NET_NOTFOUND;
-    }
-    else if (has_old_value && kc->fail_if_found)
-    {
-        return NET_CMPFAIL;
-    }
-    else if (has_old_value && passes_attribute_checks(sc, kc->checks, key, *old_value) < kc->checks.size())
-    {
-        return NET_CMPFAIL;
-    }
-
-    return NET_SUCCESS;
+	const key_change *kc = this;
+	if (!has_old_value && kc->erase)
+	{
+		return NET_NOTFOUND;
+	}
+	else if (!has_old_value && kc->fail_if_not_found)
+	{
+		return NET_NOTFOUND;
+	}
+	else if (has_old_value && kc->fail_if_found)
+	{
+		return NET_CMPFAIL;
+	}
+	else if (has_old_value && passes_attribute_checks(sc, kc->checks, key, *old_value) < kc->checks.size())
+	{
+		return NET_CMPFAIL;
+	}
+	return NET_SUCCESS;
 }
 
-key_change&
-key_change :: operator = (const key_change& rhs)
+key_change &
+key_change :: operator = (const key_change &rhs)
 {
-    if (this != &rhs)
-    {
-        key               = rhs.key;
-        erase             = rhs.erase;
-        fail_if_not_found = rhs.fail_if_not_found;
-        fail_if_found     = rhs.fail_if_found;
-        checks            = rhs.checks;
-        funcs             = rhs.funcs;
-
-        if (rhs.auth.get())
-        {
-            auth.reset(new auth_wallet(*rhs.auth));
-        }
-    }
-
-    return *this;
+	if (this != &rhs)
+	{
+		key               = rhs.key;
+		erase             = rhs.erase;
+		fail_if_not_found = rhs.fail_if_not_found;
+		fail_if_found     = rhs.fail_if_found;
+		checks            = rhs.checks;
+		funcs             = rhs.funcs;
+		if (rhs.auth.get())
+		{
+			auth.reset(new auth_wallet(*rhs.auth));
+		}
+	}
+	return *this;
 }
 
 #define FLAG_WRITE 128
@@ -129,46 +125,42 @@ key_change :: operator = (const key_change& rhs)
 #define FLAG_FIF 2
 
 e::packer
-hyperdex :: operator << (e::packer pa, const key_change& td)
+hyperdex :: operator << (e::packer pa, const key_change &td)
 {
-    uint8_t flags = (td.erase ? 0 : FLAG_WRITE)
-                  | (td.fail_if_not_found ? FLAG_FINF : 0)
-                  | (td.fail_if_found ? FLAG_FIF : 0)
-                  | (td.auth.get() ? FLAG_AUTH : 0);
-    pa = pa << td.key << flags << td.checks << td.funcs;
-
-    if (td.auth.get())
-    {
-        pa = pa << *td.auth;
-    }
-
-    return pa;
+	uint8_t flags = (td.erase ? 0 : FLAG_WRITE)
+	                | (td.fail_if_not_found ? FLAG_FINF : 0)
+	                | (td.fail_if_found ? FLAG_FIF : 0)
+	                | (td.auth.get() ? FLAG_AUTH : 0);
+	pa = pa << td.key << flags << td.checks << td.funcs;
+	if (td.auth.get())
+	{
+		pa = pa << *td.auth;
+	}
+	return pa;
 }
 
 e::unpacker
-hyperdex :: operator >> (e::unpacker up, key_change& td)
+hyperdex :: operator >> (e::unpacker up, key_change &td)
 {
-    uint8_t flags;
-    up = up >> td.key >> flags >> td.checks >> td.funcs;
-    td.erase = !(flags & FLAG_WRITE);
-    td.fail_if_not_found = flags & FLAG_FINF;
-    td.fail_if_found = flags & FLAG_FIF;
-
-    if ((flags & FLAG_AUTH))
-    {
-        td.auth.reset(new auth_wallet());
-        up = up >> *td.auth;
-    }
-
-    return up;
+	uint8_t flags;
+	up = up >> td.key >> flags >> td.checks >> td.funcs;
+	td.erase = !(flags & FLAG_WRITE);
+	td.fail_if_not_found = flags & FLAG_FINF;
+	td.fail_if_found = flags & FLAG_FIF;
+	if ((flags & FLAG_AUTH))
+	{
+		td.auth.reset(new auth_wallet());
+		up = up >> *td.auth;
+	}
+	return up;
 }
 
 size_t
-hyperdex :: pack_size(const key_change& td)
+hyperdex :: pack_size(const key_change &td)
 {
-    return pack_size(td.key)
-         + sizeof(uint8_t)
-         + pack_size(td.checks)
-         + pack_size(td.funcs)
-         + (td.auth.get() ? pack_size(*td.auth) : 0);
+	return pack_size(td.key)
+	       + sizeof(uint8_t)
+	       + pack_size(td.checks)
+	       + pack_size(td.funcs)
+	       + (td.auth.get() ? pack_size(*td.auth) : 0);
 }

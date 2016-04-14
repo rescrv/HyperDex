@@ -39,23 +39,23 @@ using hyperdex::pending_perf_counters;
 
 struct pending_perf_counters::perf_counter
 {
-    perf_counter(uint64_t i, uint64_t t, const std::string& p, uint64_t m)
-        : id(i), time(t), property(p), measurement(m) {}
-    uint64_t id;
-    uint64_t time;
-    std::string property;
-    uint64_t measurement;
+	perf_counter(uint64_t i, uint64_t t, const std::string &p, uint64_t m)
+		: id(i), time(t), property(p), measurement(m) {}
+	uint64_t id;
+	uint64_t time;
+	std::string property;
+	uint64_t measurement;
 };
 
 pending_perf_counters :: pending_perf_counters(uint64_t id,
-                                               hyperdex_admin_returncode* s,
-                                               hyperdex_admin_perf_counter* pc)
-    : pending(id, s)
-    , m_pc(pc)
-    , m_next_send(0)
-    , m_pcs()
-    , m_scratch()
-    , m_cutoffs()
+                                               hyperdex_admin_returncode *s,
+                                               hyperdex_admin_perf_counter *pc)
+	: pending(id, s)
+	, m_pc(pc)
+	, m_next_send(0)
+	, m_pcs()
+	, m_scratch()
+	, m_cutoffs()
 {
 }
 
@@ -64,174 +64,154 @@ pending_perf_counters :: ~pending_perf_counters() throw ()
 }
 
 void
-pending_perf_counters :: send_perf_reqs(admin* adm,
-                                        const configuration* config,
-                                        hyperdex_admin_returncode* status)
+pending_perf_counters :: send_perf_reqs(admin *adm,
+                                        const configuration *config,
+                                        hyperdex_admin_returncode *status)
 {
-    std::vector<std::pair<server_id, po6::net::location> > addrs;
-    config->get_all_addresses(&addrs);
-    uint64_t failed = 0;
-
-    for (size_t i = 0; i < addrs.size(); ++i)
-    {
-        uint64_t nonce = adm->m_next_server_nonce;
-        ++adm->m_next_server_nonce;
-        uint64_t when = 0;
-        std::map<server_id, uint64_t>::iterator it = m_cutoffs.find(addrs[i].first);
-
-        if (it == m_cutoffs.end())
-        {
-            m_cutoffs[addrs[i].first] = 0;
-        }
-        else
-        {
-            when = it->second;
-        }
-
-        size_t sz = HYPERDEX_ADMIN_HEADER_SIZE_REQ + sizeof(uint64_t);
-        std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-        msg->pack_at(HYPERDEX_ADMIN_HEADER_SIZE_REQ) << when;
-
-        if (!adm->send(PERF_COUNTERS, addrs[i].first, nonce, msg, this, status))
-        {
-            ++failed;
-        }
-    }
-
-    std::map<server_id, uint64_t>::iterator it = m_cutoffs.begin();
-
-    while (it != m_cutoffs.end())
-    {
-        bool found = false;
-
-        for (size_t i = 0; i < addrs.size(); ++i)
-        {
-            if (it->first == addrs[i].first)
-            {
-                found = true;
-                break;
-            }
-        }
-
-        if (found)
-        {
-            ++it;
-        }
-        else
-        {
-            m_cutoffs.erase(it);
-            it = m_cutoffs.begin();
-        }
-    }
+	std::vector<std::pair<server_id, po6::net::location> > addrs;
+	config->get_all_addresses(&addrs);
+	uint64_t failed = 0;
+	for (size_t i = 0; i < addrs.size(); ++i)
+	{
+		uint64_t nonce = adm->m_next_server_nonce;
+		++adm->m_next_server_nonce;
+		uint64_t when = 0;
+		std::map<server_id, uint64_t>::iterator it = m_cutoffs.find(addrs[i].first);
+		if (it == m_cutoffs.end())
+		{
+			m_cutoffs[addrs[i].first] = 0;
+		}
+		else
+		{
+			when = it->second;
+		}
+		size_t sz = HYPERDEX_ADMIN_HEADER_SIZE_REQ + sizeof(uint64_t);
+		std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+		msg->pack_at(HYPERDEX_ADMIN_HEADER_SIZE_REQ) << when;
+		if (!adm->send(PERF_COUNTERS, addrs[i].first, nonce, msg, this, status))
+		{
+			++failed;
+		}
+	}
+	std::map<server_id, uint64_t>::iterator it = m_cutoffs.begin();
+	while (it != m_cutoffs.end())
+	{
+		bool found = false;
+		for (size_t i = 0; i < addrs.size(); ++i)
+		{
+			if (it->first == addrs[i].first)
+			{
+				found = true;
+				break;
+			}
+		}
+		if (found)
+		{
+			++it;
+		}
+		else
+		{
+			m_cutoffs.erase(it);
+			it = m_cutoffs.begin();
+		}
+	}
 }
 
 int
 pending_perf_counters :: millis_to_next_send()
 {
-    const uint64_t one_second = 1000ULL * 1000ULL * 1000ULL;
-    uint64_t now = po6::monotonic_time();
-
-    if (now >= m_next_send)
-    {
-        m_next_send = now + one_second;
-        return 0;
-    }
-
-    return ((m_next_send - now) / one_second) + 1;
+	const uint64_t one_second = 1000ULL * 1000ULL * 1000ULL;
+	uint64_t now = po6::monotonic_time();
+	if (now >= m_next_send)
+	{
+		m_next_send = now + one_second;
+		return 0;
+	}
+	return ((m_next_send - now) / one_second) + 1;
 }
 
 bool
 pending_perf_counters :: can_yield()
 {
-    return !m_pcs.empty();
+	return !m_pcs.empty();
 }
 
 bool
-pending_perf_counters :: yield(hyperdex_admin_returncode* status)
+pending_perf_counters :: yield(hyperdex_admin_returncode *status)
 {
-    assert(can_yield());
-    m_scratch = m_pcs.front().property;
-    m_pc->id = m_pcs.front().id;
-    m_pc->time = m_pcs.front().time;
-    m_pc->property = m_scratch.c_str();
-    m_pc->measurement = m_pcs.front().measurement;
-    m_pcs.pop_front();
-    *status = HYPERDEX_ADMIN_SUCCESS;
-    return true;
+	assert(can_yield());
+	m_scratch = m_pcs.front().property;
+	m_pc->id = m_pcs.front().id;
+	m_pc->time = m_pcs.front().time;
+	m_pc->property = m_scratch.c_str();
+	m_pc->measurement = m_pcs.front().measurement;
+	m_pcs.pop_front();
+	*status = HYPERDEX_ADMIN_SUCCESS;
+	return true;
 }
 
 void
-pending_perf_counters :: handle_sent_to(const server_id&)
+pending_perf_counters :: handle_sent_to(const server_id &)
 {
 }
 
 void
-pending_perf_counters :: handle_failure(const server_id&)
+pending_perf_counters :: handle_failure(const server_id &)
 {
 }
 
 bool
-pending_perf_counters :: handle_message(admin*,
-                                        const server_id& si,
+pending_perf_counters :: handle_message(admin *,
+                                        const server_id &si,
                                         network_msgtype mt,
                                         std::auto_ptr<e::buffer>,
                                         e::unpacker up,
-                                        hyperdex_admin_returncode* status)
+                                        hyperdex_admin_returncode *status)
 {
-    *status = HYPERDEX_ADMIN_SUCCESS;
-    set_status(HYPERDEX_ADMIN_SUCCESS);
-
-    if (mt != PERF_COUNTERS)
-    {
-        YIELDING_ERROR(SERVERERROR) << "server " << si.get() << " responded to PERF_COUNTERS with wrong message type";
-        return true;
-    }
-
-    e::slice rem = up.remainder();
-    char* ptr = const_cast<char*>(reinterpret_cast<const char*>(rem.data()));
-    char* end = ptr + rem.size() - 1;
-    uint64_t max_time = 0;
-
-    // parse one line at a time
-    while (ptr < end)
-    {
-        char* eol = reinterpret_cast<char*>(memchr(ptr, '\n', end - ptr));
-        eol = eol ? eol : end;
-        *eol = '\0';
-        char* tmp = ptr;
-
-        // parse the time
-        tmp = strchr(ptr, ' ');
-        tmp = tmp ? tmp : eol;
-        *tmp = '\0';
-        uint64_t time = strtoull(ptr, NULL, 0);
-        max_time = std::max(time, max_time);
-        ptr = tmp + 1;
-
-        while (ptr < eol)
-        {
-            tmp = strchr(ptr, ' ');
-            tmp = tmp ? tmp : eol;
-            *tmp = '\0';
-
-            char* equals = strchr(ptr, '=');
-            equals = equals ? equals: tmp;
-            *equals = '\0';
-            uint64_t value = 0;
-
-            if (equals < tmp)
-            {
-                ++equals;
-                value = strtoull(equals, NULL, 0);
-            }
-
-            m_pcs.push_back(perf_counter(si.get(), time, ptr, value));
-            ptr = tmp + 1;
-        }
-
-        ptr = eol + 1;
-    }
-
-    m_cutoffs[si] = max_time;
-    return true;
+	*status = HYPERDEX_ADMIN_SUCCESS;
+	set_status(HYPERDEX_ADMIN_SUCCESS);
+	if (mt != PERF_COUNTERS)
+	{
+		YIELDING_ERROR(SERVERERROR) << "server " << si.get() << " responded to PERF_COUNTERS with wrong message type";
+		return true;
+	}
+	e::slice rem = up.remainder();
+	char *ptr = const_cast<char *>(reinterpret_cast<const char *>(rem.data()));
+	char *end = ptr + rem.size() - 1;
+	uint64_t max_time = 0;
+	// parse one line at a time
+	while (ptr < end)
+	{
+		char *eol = reinterpret_cast<char *>(memchr(ptr, '\n', end - ptr));
+		eol = eol ? eol : end;
+		*eol = '\0';
+		char *tmp = ptr;
+		// parse the time
+		tmp = strchr(ptr, ' ');
+		tmp = tmp ? tmp : eol;
+		*tmp = '\0';
+		uint64_t time = strtoull(ptr, NULL, 0);
+		max_time = std::max(time, max_time);
+		ptr = tmp + 1;
+		while (ptr < eol)
+		{
+			tmp = strchr(ptr, ' ');
+			tmp = tmp ? tmp : eol;
+			*tmp = '\0';
+			char *equals = strchr(ptr, '=');
+			equals = equals ? equals : tmp;
+			*equals = '\0';
+			uint64_t value = 0;
+			if (equals < tmp)
+			{
+				++equals;
+				value = strtoull(equals, NULL, 0);
+			}
+			m_pcs.push_back(perf_counter(si.get(), time, ptr, value));
+			ptr = tmp + 1;
+		}
+		ptr = eol + 1;
+	}
+	m_cutoffs[si] = max_time;
+	return true;
 }

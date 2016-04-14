@@ -35,37 +35,37 @@
 
 class hyperdex::datalayer::checkpointer_thread : public hyperdex::background_thread
 {
-    public:
-        checkpointer_thread(daemon* d);
-        ~checkpointer_thread() throw ();
+public:
+	checkpointer_thread(daemon *d);
+	~checkpointer_thread() throw ();
 
-    public:
-        virtual const char* thread_name();
-        virtual bool have_work();
-        virtual void copy_work();
-        virtual void do_work();
+public:
+	virtual const char *thread_name();
+	virtual bool have_work();
+	virtual void copy_work();
+	virtual void do_work();
 
-    public:
-        void debug_dump();
-        // these are different than pause/unpause, which should only ever be
-        // called by the main thread.
-        void inhibit_gc();
-        void permit_gc();
-        void set_checkpoint_gc(uint64_t checkpoint_gc);
+public:
+	void debug_dump();
+	// these are different than pause/unpause, which should only ever be
+	// called by the main thread.
+	void inhibit_gc();
+	void permit_gc();
+	void set_checkpoint_gc(uint64_t checkpoint_gc);
 
-    private:
-        void collect_lower_checkpoints(uint64_t checkpoint_gc);
+private:
+	void collect_lower_checkpoints(uint64_t checkpoint_gc);
 
-    private:
-        daemon* m_daemon;
-        uint64_t m_checkpoint_gc; // under lock
-        uint64_t m_checkpoint_gced;
-        uint64_t m_checkpoint_target; // do_work; no lock; copy of _gc
-        uint64_t m_gc_inhibit_permit_diff;
+private:
+	daemon *m_daemon;
+	uint64_t m_checkpoint_gc; // under lock
+	uint64_t m_checkpoint_gced;
+	uint64_t m_checkpoint_target; // do_work; no lock; copy of _gc
+	uint64_t m_gc_inhibit_permit_diff;
 
-    private:
-        checkpointer_thread(const checkpointer_thread&);
-        checkpointer_thread& operator = (const checkpointer_thread&);
+private:
+	checkpointer_thread(const checkpointer_thread &);
+	checkpointer_thread &operator = (const checkpointer_thread &);
 };
 
 #endif // hyperdex_daemon_datalayer_checkpointer_h_

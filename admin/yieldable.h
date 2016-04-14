@@ -47,47 +47,47 @@ class admin;
 
 class yieldable
 {
-    public:
-        yieldable(uint64_t admin_visible_id,
-                  hyperdex_admin_returncode* status);
-        virtual ~yieldable() throw ();
+public:
+	yieldable(uint64_t admin_visible_id,
+	          hyperdex_admin_returncode *status);
+	virtual ~yieldable() throw ();
 
-    public:
-        int64_t admin_visible_id() const { return m_admin_visible_id; }
-        void set_status(hyperdex_admin_returncode status) { *m_status = status; }
-        e::error error() const { return m_error; }
+public:
+	int64_t admin_visible_id() const { return m_admin_visible_id; }
+	void set_status(hyperdex_admin_returncode status) { *m_status = status; }
+	e::error error() const { return m_error; }
 
-    // return to admin
-    public:
-        virtual bool can_yield() = 0;
-        virtual bool yield(hyperdex_admin_returncode* status) = 0;
+	// return to admin
+public:
+	virtual bool can_yield() = 0;
+	virtual bool yield(hyperdex_admin_returncode *status) = 0;
 
-    // refcount
-    protected:
-        friend class e::intrusive_ptr<yieldable>;
-        void inc() { ++m_ref; }
-        void dec() { if (--m_ref == 0) delete this; }
-        size_t m_ref;
+	// refcount
+protected:
+	friend class e::intrusive_ptr<yieldable>;
+	void inc() { ++m_ref; }
+	void dec() { if (--m_ref == 0) delete this; }
+	size_t m_ref;
 
-    protected:
-        std::ostream& error(const char* file, size_t line);
-        void set_error(const e::error& err);
+protected:
+	std::ostream &error(const char *file, size_t line);
+	void set_error(const e::error &err);
 
-    // noncopyable
-    private:
-        yieldable(const yieldable& other);
-        yieldable& operator = (const yieldable& rhs);
+	// noncopyable
+private:
+	yieldable(const yieldable &other);
+	yieldable &operator = (const yieldable &rhs);
 
-    // operation state
-    private:
-        int64_t m_admin_visible_id;
-        hyperdex_admin_returncode* m_status;
-        e::error m_error;
+	// operation state
+private:
+	int64_t m_admin_visible_id;
+	hyperdex_admin_returncode *m_status;
+	e::error m_error;
 };
 
 #define YIELDING_ERROR(CODE) \
-    this->set_status(HYPERDEX_ADMIN_ ## CODE); \
-    this->error(__FILE__, __LINE__)
+	this->set_status(HYPERDEX_ADMIN_ ## CODE); \
+	this->error(__FILE__, __LINE__)
 
 END_HYPERDEX_NAMESPACE
 

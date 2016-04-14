@@ -43,2317 +43,2314 @@
 #define FAKE_STATUS     hyperdex_client_returncode _status;     hyperdex_client_returncode* status = &_status
 
 #define SIGNAL_PROTECT_ERR(X) \
-    sigset_t old_sigs; \
-    sigset_t all_sigs; \
-    sigfillset(&all_sigs); \
-    if (pthread_sigmask(SIG_BLOCK, &all_sigs, &old_sigs) < 0) \
-    { \
-        *status = HYPERDEX_CLIENT_INTERNAL; \
-        return (X); \
-    } \
-    e::guard g = e::makeguard(pthread_sigmask, SIG_SETMASK, (sigset_t*)&old_sigs, (sigset_t*)NULL)
+	sigset_t old_sigs; \
+	sigset_t all_sigs; \
+	sigfillset(&all_sigs); \
+	if (pthread_sigmask(SIG_BLOCK, &all_sigs, &old_sigs) < 0) \
+	{ \
+		*status = HYPERDEX_CLIENT_INTERNAL; \
+		return (X); \
+	} \
+	e::guard g = e::makeguard(pthread_sigmask, SIG_SETMASK, (sigset_t*)&old_sigs, (sigset_t*)NULL)
 
 #define SIGNAL_PROTECT SIGNAL_PROTECT_ERR(-1);
 inline void return_void() {}
 #define SIGNAL_PROTECT_VOID SIGNAL_PROTECT_ERR(return_void());
 
 #define C_WRAP_EXCEPT(X) \
-    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl); \
-    SIGNAL_PROTECT; \
-    try \
-    { \
-        X \
-    } \
-    catch (std::bad_alloc& ba) \
-    { \
-        errno = ENOMEM; \
-        *status = HYPERDEX_CLIENT_NOMEM; \
-        cl->set_error_message("out of memory"); \
-        return -1; \
-    } \
-    catch (...) \
-    { \
-        *status = HYPERDEX_CLIENT_EXCEPTION; \
-        cl->set_error_message("unhandled exception was thrown"); \
-        return -1; \
-    } \
+	hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl); \
+	SIGNAL_PROTECT; \
+	try \
+	{ \
+		X \
+	} \
+	catch (std::bad_alloc& ba) \
+	{ \
+		errno = ENOMEM; \
+		*status = HYPERDEX_CLIENT_NOMEM; \
+		cl->set_error_message("out of memory"); \
+		return -1; \
+	} \
+	catch (...) \
+	{ \
+		*status = HYPERDEX_CLIENT_EXCEPTION; \
+		cl->set_error_message("unhandled exception was thrown"); \
+		return -1; \
+	} \
 
 #ifdef __cplusplus
-extern "C"
-{
+	extern "C"
+	{
 #endif // __cplusplus
 
-HYPERDEX_API hyperdex_client*
-hyperdex_client_create(const char* coordinator, uint16_t port)
-{
-    FAKE_STATUS;
-    SIGNAL_PROTECT_ERR(NULL);
-    try
-    {
-        return reinterpret_cast<hyperdex_client*>(new hyperdex::client(coordinator, port));
-    }
-    catch (std::bad_alloc& ba)
-    {
-        errno = ENOMEM;
-        return NULL;
-    }
-    catch (...)
-    {
-        return NULL;
-    }
-}
-
-HYPERDEX_API hyperdex_client*
-hyperdex_client_create_conn_str(const char* conn_str)
-{
-    FAKE_STATUS;
-    SIGNAL_PROTECT_ERR(NULL);
-    try
-    {
-        return reinterpret_cast<hyperdex_client*>(new hyperdex::client(conn_str));
-    }
-    catch (std::bad_alloc& ba)
-    {
-        errno = ENOMEM;
-        return NULL;
-    }
-    catch (...)
-    {
-        return NULL;
-    }
-}
-
-HYPERDEX_API void
-hyperdex_client_destroy(hyperdex_client* client)
-{
-    delete reinterpret_cast<hyperdex::client*>(client);
-}
-
-HYPERDEX_API const char*
-hyperdex_client_error_message(hyperdex_client* _cl)
-{
-    FAKE_STATUS;
-    SIGNAL_PROTECT_ERR(NULL);
-    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
-    return cl->error_message();
-}
-
-HYPERDEX_API const char*
-hyperdex_client_error_location(hyperdex_client* _cl)
-{
-    FAKE_STATUS;
-    SIGNAL_PROTECT_ERR(NULL);
-    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
-    return cl->error_location();
-}
-
-HYPERDEX_API const char*
-hyperdex_client_returncode_to_string(enum hyperdex_client_returncode stat)
-{
-    FAKE_STATUS;
-    SIGNAL_PROTECT_ERR(NULL);
-    switch (stat)
-    {
-        CSTRINGIFY(HYPERDEX_CLIENT_SUCCESS);
-        CSTRINGIFY(HYPERDEX_CLIENT_NOTFOUND);
-        CSTRINGIFY(HYPERDEX_CLIENT_SEARCHDONE);
-        CSTRINGIFY(HYPERDEX_CLIENT_CMPFAIL);
-        CSTRINGIFY(HYPERDEX_CLIENT_READONLY);
-        CSTRINGIFY(HYPERDEX_CLIENT_UNKNOWNSPACE);
-        CSTRINGIFY(HYPERDEX_CLIENT_COORDFAIL);
-        CSTRINGIFY(HYPERDEX_CLIENT_SERVERERROR);
-        CSTRINGIFY(HYPERDEX_CLIENT_POLLFAILED);
-        CSTRINGIFY(HYPERDEX_CLIENT_OVERFLOW);
-        CSTRINGIFY(HYPERDEX_CLIENT_RECONFIGURE);
-        CSTRINGIFY(HYPERDEX_CLIENT_TIMEOUT);
-        CSTRINGIFY(HYPERDEX_CLIENT_UNKNOWNATTR);
-        CSTRINGIFY(HYPERDEX_CLIENT_DUPEATTR);
-        CSTRINGIFY(HYPERDEX_CLIENT_NONEPENDING);
-        CSTRINGIFY(HYPERDEX_CLIENT_DONTUSEKEY);
-        CSTRINGIFY(HYPERDEX_CLIENT_WRONGTYPE);
-        CSTRINGIFY(HYPERDEX_CLIENT_NOMEM);
-        CSTRINGIFY(HYPERDEX_CLIENT_INTERRUPTED);
-        CSTRINGIFY(HYPERDEX_CLIENT_CLUSTER_JUMP);
-        CSTRINGIFY(HYPERDEX_CLIENT_OFFLINE);
-        CSTRINGIFY(HYPERDEX_CLIENT_UNAUTHORIZED);
-        CSTRINGIFY(HYPERDEX_CLIENT_INTERNAL);
-        CSTRINGIFY(HYPERDEX_CLIENT_EXCEPTION);
-        CSTRINGIFY(HYPERDEX_CLIENT_GARBAGE);
-        default:
-            return "unknown hyperdex_client_returncode";
-    }
-}
-
-HYPERDEX_API enum hyperdatatype
-hyperdex_client_attribute_type(hyperdex_client* _cl,
-                               const char* space, const char* name,
-                               enum hyperdex_client_returncode* status)
-{
-    SIGNAL_PROTECT_ERR(HYPERDATATYPE_GARBAGE);
-    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl); \
-
-    try
-    {
-        return cl->attribute_type(space, name, status);
-    }
-    catch (std::bad_alloc& ba)
-    {
-        errno = ENOMEM;
-        *status = HYPERDEX_CLIENT_NOMEM;
-        cl->set_error_message("out of memory");
-        return HYPERDATATYPE_GARBAGE;
-    }
-    catch (...)
-    {
-        *status = HYPERDEX_CLIENT_EXCEPTION;
-        cl->set_error_message("unhandled exception was thrown");
-        return HYPERDATATYPE_GARBAGE;
-    }
-}
-
-HYPERDEX_API void
-hyperdex_client_destroy_attrs(const hyperdex_client_attribute* attrs, size_t /*attrs_sz*/)
-{
-    FAKE_STATUS;
-    SIGNAL_PROTECT_VOID;
-	if (attrs) {
-		free(const_cast<hyperdex_client_attribute*>(attrs));
-		attrs = NULL;
+	HYPERDEX_API hyperdex_client *
+	hyperdex_client_create(const char *coordinator, uint16_t port)
+	{
+		FAKE_STATUS;
+		SIGNAL_PROTECT_ERR(NULL);
+		try
+		{
+			return reinterpret_cast<hyperdex_client *>(new hyperdex::client(coordinator, port));
+		}
+		catch (std::bad_alloc &ba)
+		{
+			errno = ENOMEM;
+			return NULL;
+		}
+		catch (...)
+		{
+			return NULL;
+		}
 	}
-}
-
-HYPERDEX_API void
-hyperdex_client_clear_auth_context(struct hyperdex_client* _cl)
-{
-    FAKE_STATUS;
-    SIGNAL_PROTECT_VOID;
-    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
-    cl->clear_auth_context();
-}
-
-HYPERDEX_API void
-hyperdex_client_set_auth_context(struct hyperdex_client* _cl,
-                                 const char** macaroons, size_t macaroons_sz)
-{
-    FAKE_STATUS;
-    SIGNAL_PROTECT_VOID;
-    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
-    cl->set_auth_context(macaroons, macaroons_sz);
-}
-
-HYPERDEX_API struct hyperdex_client_microtransaction*
-hyperdex_client_uxact_init(struct hyperdex_client* _cl,
-                      const char* space,
-                      enum hyperdex_client_returncode *status)
-{
-
-    SIGNAL_PROTECT_ERR(NULL);
-    hyperdex::client *cl = reinterpret_cast<hyperdex::client*>(_cl);
-    hyperdex::microtransaction *tx = cl->uxact_init(space, status);
-
-    return reinterpret_cast<struct hyperdex_client_microtransaction*>(tx);
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_commit(struct hyperdex_client* _cl,
-                                struct hyperdex_client_microtransaction *transaction,
-                                const char* key, size_t key_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
-    hyperdex_client_returncode *status = tx->status;
-
-    C_WRAP_EXCEPT(
-    return cl->uxact_commit(tx, key, key_sz);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_group_commit(struct hyperdex_client* _cl,
-                                struct hyperdex_client_microtransaction *transaction,
-                                const hyperdex_client_attribute_check *chks, size_t chks_sz,
-                                uint64_t *count)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
-    hyperdex_client_returncode *status = tx->status;
-
-    C_WRAP_EXCEPT(
-    return cl->uxact_group_commit(tx, chks, chks_sz, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_cond_commit(struct hyperdex_client* _cl,
-                                struct hyperdex_client_microtransaction *transaction,
-                                const char* key, size_t key_sz,
-                                const hyperdex_client_attribute_check *chks, size_t chks_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(transaction);
-    hyperdex_client_returncode *status = tx->status;
-
-    C_WRAP_EXCEPT(
-    return cl->uxact_cond_commit(tx, key, key_sz, chks, chks_sz);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_get(struct hyperdex_client* _cl,
-                    const char* space,
-                    const char* key, size_t key_sz,
-                    enum hyperdex_client_returncode* status,
-                    const struct hyperdex_client_attribute** attrs, size_t* attrs_sz)
-{
-    C_WRAP_EXCEPT(
-    return cl->get(space, key, key_sz, status, attrs, attrs_sz);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_get_partial(struct hyperdex_client* _cl,
-                            const char* space,
-                            const char* key, size_t key_sz,
-                            const char** attrnames, size_t attrnames_sz,
-                            enum hyperdex_client_returncode* status,
-                            const struct hyperdex_client_attribute** attrs, size_t* attrs_sz)
-{
-    C_WRAP_EXCEPT(
-    return cl->get_partial(space, key, key_sz, attrnames, attrnames_sz, status, attrs, attrs_sz);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_put(struct hyperdex_client* _cl,
-                    const char* space,
-                    const char* key, size_t key_sz,
-                    const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(put), strlen(XSTR(put)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_put(struct hyperdex_client* _cl,
-                          struct hyperdex_client_microtransaction* microtransaction,
-                          const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(put), strlen(XSTR(put)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_put(struct hyperdex_client* _cl,
-                         const char* space,
-                         const char* key, size_t key_sz,
-                         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                         enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_put), strlen(XSTR(cond_put)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_put_or_create(struct hyperdex_client* _cl,
-                                   const char* space,
-                                   const char* key, size_t key_sz,
-                                   const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                   const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                   enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_put_or_create), strlen(XSTR(cond_put_or_create)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_put(struct hyperdex_client* _cl,
-                          const char* space,
-                          const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                          const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                          enum hyperdex_client_returncode* status,
-                          uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_put), strlen(XSTR(group_put)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_put_if_not_exist(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const char* key, size_t key_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(put_if_not_exist), strlen(XSTR(put_if_not_exist)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_del(struct hyperdex_client* _cl,
-                    const char* space,
-                    const char* key, size_t key_sz,
-                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(del), strlen(XSTR(del)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_del(struct hyperdex_client* _cl,
-                         const char* space,
-                         const char* key, size_t key_sz,
-                         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                         enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_del), strlen(XSTR(cond_del)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_del(struct hyperdex_client* _cl,
-                          const char* space,
-                          const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                          enum hyperdex_client_returncode* status,
-                          uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_del), strlen(XSTR(group_del)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_atomic_add(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_add), strlen(XSTR(atomic_add)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_atomic_add(struct hyperdex_client* _cl,
-                                 struct hyperdex_client_microtransaction* microtransaction,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_add), strlen(XSTR(atomic_add)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_add(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_add), strlen(XSTR(cond_atomic_add)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_atomic_add(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_add), strlen(XSTR(group_atomic_add)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_atomic_sub(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_sub), strlen(XSTR(atomic_sub)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_atomic_sub(struct hyperdex_client* _cl,
-                                 struct hyperdex_client_microtransaction* microtransaction,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_sub), strlen(XSTR(atomic_sub)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_sub(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_sub), strlen(XSTR(cond_atomic_sub)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_atomic_sub(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_sub), strlen(XSTR(group_atomic_sub)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_atomic_mul(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_mul), strlen(XSTR(atomic_mul)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_atomic_mul(struct hyperdex_client* _cl,
-                                 struct hyperdex_client_microtransaction* microtransaction,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_mul), strlen(XSTR(atomic_mul)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_mul(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_mul), strlen(XSTR(cond_atomic_mul)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_atomic_mul(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_mul), strlen(XSTR(group_atomic_mul)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_atomic_div(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_div), strlen(XSTR(atomic_div)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_atomic_div(struct hyperdex_client* _cl,
-                                 struct hyperdex_client_microtransaction* microtransaction,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_div), strlen(XSTR(atomic_div)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_div(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_div), strlen(XSTR(cond_atomic_div)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_atomic_div(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_div), strlen(XSTR(group_atomic_div)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_atomic_mod(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_mod), strlen(XSTR(atomic_mod)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_mod(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_mod), strlen(XSTR(cond_atomic_mod)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_atomic_mod(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_mod), strlen(XSTR(group_atomic_mod)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_atomic_and(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_and), strlen(XSTR(atomic_and)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_atomic_and(struct hyperdex_client* _cl,
-                                 struct hyperdex_client_microtransaction* microtransaction,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_and), strlen(XSTR(atomic_and)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_and(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_and), strlen(XSTR(cond_atomic_and)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_atomic_and(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_and), strlen(XSTR(group_atomic_and)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_atomic_or(struct hyperdex_client* _cl,
-                          const char* space,
-                          const char* key, size_t key_sz,
-                          const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                          enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_or), strlen(XSTR(atomic_or)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_atomic_or(struct hyperdex_client* _cl,
-                                struct hyperdex_client_microtransaction* microtransaction,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_or), strlen(XSTR(atomic_or)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_or(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                               const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_or), strlen(XSTR(cond_atomic_or)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_atomic_or(struct hyperdex_client* _cl,
-                                const char* space,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status,
-                                uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_or), strlen(XSTR(group_atomic_or)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_atomic_xor(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_xor), strlen(XSTR(atomic_xor)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_xor(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_xor), strlen(XSTR(cond_atomic_xor)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_atomic_xor(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_xor), strlen(XSTR(group_atomic_xor)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_atomic_min(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_min), strlen(XSTR(atomic_min)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_min(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_min), strlen(XSTR(cond_atomic_min)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_atomic_min(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_min), strlen(XSTR(group_atomic_min)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_atomic_max(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_max), strlen(XSTR(atomic_max)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_max(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_max), strlen(XSTR(cond_atomic_max)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_atomic_max(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_max), strlen(XSTR(group_atomic_max)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_string_prepend(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_prepend), strlen(XSTR(string_prepend)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_string_prepend(struct hyperdex_client* _cl,
-                                     struct hyperdex_client_microtransaction* microtransaction,
-                                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_prepend), strlen(XSTR(string_prepend)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_string_prepend(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_string_prepend), strlen(XSTR(cond_string_prepend)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_string_prepend(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                     enum hyperdex_client_returncode* status,
-                                     uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_string_prepend), strlen(XSTR(group_string_prepend)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_string_append(struct hyperdex_client* _cl,
-                              const char* space,
-                              const char* key, size_t key_sz,
-                              const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                              enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_append), strlen(XSTR(string_append)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_string_append(struct hyperdex_client* _cl,
-                                    struct hyperdex_client_microtransaction* microtransaction,
-                                    const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_append), strlen(XSTR(string_append)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_string_append(struct hyperdex_client* _cl,
-                                   const char* space,
-                                   const char* key, size_t key_sz,
-                                   const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                   const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                   enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_string_append), strlen(XSTR(cond_string_append)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_string_append(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                    enum hyperdex_client_returncode* status,
-                                    uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_string_append), strlen(XSTR(group_string_append)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_string_ltrim(struct hyperdex_client* _cl,
-                             const char* space,
-                             const char* key, size_t key_sz,
-                             const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                             enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_ltrim), strlen(XSTR(string_ltrim)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_string_ltrim(struct hyperdex_client* _cl,
-                                   struct hyperdex_client_microtransaction* microtransaction,
-                                   const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_ltrim), strlen(XSTR(string_ltrim)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_string_ltrim(struct hyperdex_client* _cl,
-                                  const char* space,
-                                  const char* key, size_t key_sz,
-                                  const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                  const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                  enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_string_ltrim), strlen(XSTR(cond_string_ltrim)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_string_ltrim(struct hyperdex_client* _cl,
-                                   const char* space,
-                                   const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                   const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                   enum hyperdex_client_returncode* status,
-                                   uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_string_ltrim), strlen(XSTR(group_string_ltrim)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_string_rtrim(struct hyperdex_client* _cl,
-                             const char* space,
-                             const char* key, size_t key_sz,
-                             const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                             enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_rtrim), strlen(XSTR(string_rtrim)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_string_rtrim(struct hyperdex_client* _cl,
-                                   struct hyperdex_client_microtransaction* microtransaction,
-                                   const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_rtrim), strlen(XSTR(string_rtrim)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_string_rtrim(struct hyperdex_client* _cl,
-                                  const char* space,
-                                  const char* key, size_t key_sz,
-                                  const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                  const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                  enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_string_rtrim), strlen(XSTR(cond_string_rtrim)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_string_rtrim(struct hyperdex_client* _cl,
-                                   const char* space,
-                                   const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                   const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                   enum hyperdex_client_returncode* status,
-                                   uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_string_rtrim), strlen(XSTR(group_string_rtrim)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_list_lpush(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(list_lpush), strlen(XSTR(list_lpush)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_list_lpush(struct hyperdex_client* _cl,
-                                 struct hyperdex_client_microtransaction* microtransaction,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(list_lpush), strlen(XSTR(list_lpush)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_list_lpush(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_list_lpush), strlen(XSTR(cond_list_lpush)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_list_lpush(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_list_lpush), strlen(XSTR(group_list_lpush)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_list_rpush(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(list_rpush), strlen(XSTR(list_rpush)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_list_rpush(struct hyperdex_client* _cl,
-                                 struct hyperdex_client_microtransaction* microtransaction,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(list_rpush), strlen(XSTR(list_rpush)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_list_rpush(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_list_rpush), strlen(XSTR(cond_list_rpush)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_list_rpush(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_list_rpush), strlen(XSTR(group_list_rpush)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_set_add(struct hyperdex_client* _cl,
-                        const char* space,
-                        const char* key, size_t key_sz,
-                        const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                        enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(set_add), strlen(XSTR(set_add)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_set_add(struct hyperdex_client* _cl,
-                             const char* space,
-                             const char* key, size_t key_sz,
-                             const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                             const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                             enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_set_add), strlen(XSTR(cond_set_add)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_set_add(struct hyperdex_client* _cl,
-                              const char* space,
-                              const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                              const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                              enum hyperdex_client_returncode* status,
-                              uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_set_add), strlen(XSTR(group_set_add)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_set_remove(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(set_remove), strlen(XSTR(set_remove)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_set_remove(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_set_remove), strlen(XSTR(cond_set_remove)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_set_remove(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_set_remove), strlen(XSTR(group_set_remove)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_set_intersect(struct hyperdex_client* _cl,
-                              const char* space,
-                              const char* key, size_t key_sz,
-                              const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                              enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(set_intersect), strlen(XSTR(set_intersect)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_set_intersect(struct hyperdex_client* _cl,
-                                   const char* space,
-                                   const char* key, size_t key_sz,
-                                   const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                   const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                   enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_set_intersect), strlen(XSTR(cond_set_intersect)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_set_intersect(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                    enum hyperdex_client_returncode* status,
-                                    uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_set_intersect), strlen(XSTR(group_set_intersect)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_set_union(struct hyperdex_client* _cl,
-                          const char* space,
-                          const char* key, size_t key_sz,
-                          const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                          enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(set_union), strlen(XSTR(set_union)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_set_union(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                               const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_set_union), strlen(XSTR(cond_set_union)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_set_union(struct hyperdex_client* _cl,
-                                const char* space,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status,
-                                uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_set_union), strlen(XSTR(group_set_union)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_document_rename(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_rename), strlen(XSTR(document_rename)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_document_rename(struct hyperdex_client* _cl,
-                                      struct hyperdex_client_microtransaction* microtransaction,
-                                      const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_rename), strlen(XSTR(document_rename)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_document_rename(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const char* key, size_t key_sz,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                     enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_document_rename), strlen(XSTR(cond_document_rename)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_document_rename(struct hyperdex_client* _cl,
-                                      const char* space,
-                                      const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                      const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                      enum hyperdex_client_returncode* status,
-                                      uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_document_rename), strlen(XSTR(group_document_rename)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_document_unset(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_unset), strlen(XSTR(document_unset)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_document_unset(struct hyperdex_client* _cl,
-                                     struct hyperdex_client_microtransaction* microtransaction,
-                                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_unset), strlen(XSTR(document_unset)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_document_unset(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_document_unset), strlen(XSTR(cond_document_unset)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_document_unset(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                     enum hyperdex_client_returncode* status,
-                                     uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_document_unset), strlen(XSTR(group_document_unset)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_add(struct hyperdex_client* _cl,
-                        const char* space,
-                        const char* key, size_t key_sz,
-                        const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                        enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_add), strlen(XSTR(map_add)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_add(struct hyperdex_client* _cl,
-                             const char* space,
-                             const char* key, size_t key_sz,
-                             const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                             const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                             enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_add), strlen(XSTR(cond_map_add)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_add(struct hyperdex_client* _cl,
-                              const char* space,
-                              const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                              const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                              enum hyperdex_client_returncode* status,
-                              uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_add), strlen(XSTR(group_map_add)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_remove(struct hyperdex_client* _cl,
-                           const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                           enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_remove), strlen(XSTR(map_remove)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_remove(struct hyperdex_client* _cl,
-                                const char* space,
-                                const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_remove), strlen(XSTR(cond_map_remove)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_remove(struct hyperdex_client* _cl,
-                                 const char* space,
-                                 const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                                 enum hyperdex_client_returncode* status,
-                                 uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_remove), strlen(XSTR(group_map_remove)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_atomic_add(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_add), strlen(XSTR(map_atomic_add)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_add(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_add), strlen(XSTR(cond_map_atomic_add)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_atomic_add(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                     enum hyperdex_client_returncode* status,
-                                     uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_add), strlen(XSTR(group_map_atomic_add)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_atomic_sub(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_sub), strlen(XSTR(map_atomic_sub)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_sub(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_sub), strlen(XSTR(cond_map_atomic_sub)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_atomic_sub(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                     enum hyperdex_client_returncode* status,
-                                     uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_sub), strlen(XSTR(group_map_atomic_sub)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_atomic_mul(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_mul), strlen(XSTR(map_atomic_mul)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_mul(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_mul), strlen(XSTR(cond_map_atomic_mul)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_atomic_mul(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                     enum hyperdex_client_returncode* status,
-                                     uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_mul), strlen(XSTR(group_map_atomic_mul)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_atomic_div(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_div), strlen(XSTR(map_atomic_div)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_div(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_div), strlen(XSTR(cond_map_atomic_div)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_atomic_div(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                     enum hyperdex_client_returncode* status,
-                                     uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_div), strlen(XSTR(group_map_atomic_div)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_atomic_mod(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_mod), strlen(XSTR(map_atomic_mod)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_mod(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_mod), strlen(XSTR(cond_map_atomic_mod)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_atomic_mod(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                     enum hyperdex_client_returncode* status,
-                                     uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_mod), strlen(XSTR(group_map_atomic_mod)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_atomic_and(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_and), strlen(XSTR(map_atomic_and)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_and(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_and), strlen(XSTR(cond_map_atomic_and)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_atomic_and(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                     enum hyperdex_client_returncode* status,
-                                     uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_and), strlen(XSTR(group_map_atomic_and)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_atomic_or(struct hyperdex_client* _cl,
-                              const char* space,
-                              const char* key, size_t key_sz,
-                              const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                              enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_or), strlen(XSTR(map_atomic_or)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_or(struct hyperdex_client* _cl,
-                                   const char* space,
-                                   const char* key, size_t key_sz,
-                                   const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                   const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                   enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_or), strlen(XSTR(cond_map_atomic_or)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_atomic_or(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                    enum hyperdex_client_returncode* status,
-                                    uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_or), strlen(XSTR(group_map_atomic_or)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_atomic_xor(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_xor), strlen(XSTR(map_atomic_xor)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_xor(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_xor), strlen(XSTR(cond_map_atomic_xor)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_atomic_xor(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                     enum hyperdex_client_returncode* status,
-                                     uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_xor), strlen(XSTR(group_map_atomic_xor)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_string_prepend(struct hyperdex_client* _cl,
-                                   const char* space,
-                                   const char* key, size_t key_sz,
-                                   const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                   enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_string_prepend), strlen(XSTR(map_string_prepend)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_string_prepend(struct hyperdex_client* _cl,
-                                        const char* space,
-                                        const char* key, size_t key_sz,
-                                        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                        const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                        enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_string_prepend), strlen(XSTR(cond_map_string_prepend)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_string_prepend(struct hyperdex_client* _cl,
-                                         const char* space,
-                                         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                         const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                         enum hyperdex_client_returncode* status,
-                                         uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_string_prepend), strlen(XSTR(group_map_string_prepend)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_string_append(struct hyperdex_client* _cl,
-                                  const char* space,
-                                  const char* key, size_t key_sz,
-                                  const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                  enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_string_append), strlen(XSTR(map_string_append)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_string_append(struct hyperdex_client* _cl,
-                                       const char* space,
-                                       const char* key, size_t key_sz,
-                                       const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                       const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                       enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_string_append), strlen(XSTR(cond_map_string_append)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_string_append(struct hyperdex_client* _cl,
-                                        const char* space,
-                                        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                        const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                        enum hyperdex_client_returncode* status,
-                                        uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_string_append), strlen(XSTR(group_map_string_append)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_atomic_min(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_min), strlen(XSTR(map_atomic_min)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_min(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_min), strlen(XSTR(cond_map_atomic_min)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_atomic_min(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                     enum hyperdex_client_returncode* status,
-                                     uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_min), strlen(XSTR(group_map_atomic_min)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_atomic_min(struct hyperdex_client* _cl,
-                                 struct hyperdex_client_microtransaction* microtransaction,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_min), strlen(XSTR(atomic_min)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_map_atomic_max(struct hyperdex_client* _cl,
-                               const char* space,
-                               const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                               enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_max), strlen(XSTR(map_atomic_max)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_max(struct hyperdex_client* _cl,
-                                    const char* space,
-                                    const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                    enum hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_max), strlen(XSTR(cond_map_atomic_max)));
-    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_group_map_atomic_max(struct hyperdex_client* _cl,
-                                     const char* space,
-                                     const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                     const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
-                                     enum hyperdex_client_returncode* status,
-                                     uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_max), strlen(XSTR(group_map_atomic_max)));
-    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_uxact_atomic_max(struct hyperdex_client* _cl,
-                                 struct hyperdex_client_microtransaction* microtransaction,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz)
-{
-    hyperdex::microtransaction* tx = reinterpret_cast<hyperdex::microtransaction*>(microtransaction);
-    hyperdex_client_returncode *status = tx->status;
-    C_WRAP_EXCEPT(
-    const hyperdex_client_keyop_info* opinfo;
-    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_max), strlen(XSTR(atomic_max)));
-    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_search(struct hyperdex_client* _cl,
-                       const char* space,
-                       const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                       enum hyperdex_client_returncode* status,
-                       const struct hyperdex_client_attribute** attrs, size_t* attrs_sz)
-{
-    C_WRAP_EXCEPT(
-    return cl->search(space, checks, checks_sz, status, attrs, attrs_sz);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_search_describe(struct hyperdex_client* _cl,
-                                const char* space,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                enum hyperdex_client_returncode* status,
-                                const char** description)
-{
-    C_WRAP_EXCEPT(
-    return cl->search_describe(space, checks, checks_sz, status, description);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_sorted_search(struct hyperdex_client* _cl,
-                              const char* space,
-                              const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                              const char* sort_by,
-                              uint64_t limit,
-                              int maxmin,
-                              enum hyperdex_client_returncode* status,
-                              const struct hyperdex_client_attribute** attrs, size_t* attrs_sz)
-{
-    C_WRAP_EXCEPT(
-    return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maxmin, status, attrs, attrs_sz);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_count(struct hyperdex_client* _cl,
-                      const char* space,
-                      const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                      enum hyperdex_client_returncode* status,
-                      uint64_t* count)
-{
-    C_WRAP_EXCEPT(
-    return cl->count(space, checks, checks_sz, status, count);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_sum(struct hyperdex_client* _cl,
-                      const char* space,
-                      const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                      const char* sum_key, 
-                      enum hyperdex_client_returncode* status,
-                      uint64_t* total)
-{
-    C_WRAP_EXCEPT(
-    return cl->sum(space, checks, checks_sz, sum_key, status, total);
-    );
-}
-
-HYPERDEX_API int64_t
-hyperdex_client_loop(hyperdex_client* _cl, int timeout,
-                     hyperdex_client_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    return cl->loop(timeout, status);
-    );
-}
-
-HYPERDEX_API int
-hyperdex_client_poll_fd(hyperdex_client* _cl)
-{
-    FAKE_STATUS;
-    C_WRAP_EXCEPT(
-    return cl->poll_fd();
-    );
-}
-
-HYPERDEX_API int
-hyperdex_client_block(hyperdex_client* _cl, int timeout)
-{
-    FAKE_STATUS;
-    C_WRAP_EXCEPT(
-    return cl->block(timeout);
-    );
-}
-
-HYPERDEX_API void
-hyperdex_client_set_type_conversion(hyperdex_client* _cl, bool enabled)
-{
-    hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
-    cl->set_type_conversion(enabled);
-}
+
+	HYPERDEX_API hyperdex_client *
+	hyperdex_client_create_conn_str(const char *conn_str)
+	{
+		FAKE_STATUS;
+		SIGNAL_PROTECT_ERR(NULL);
+		try
+		{
+			return reinterpret_cast<hyperdex_client *>(new hyperdex::client(conn_str));
+		}
+		catch (std::bad_alloc &ba)
+		{
+			errno = ENOMEM;
+			return NULL;
+		}
+		catch (...)
+		{
+			return NULL;
+		}
+	}
+
+	HYPERDEX_API void
+	hyperdex_client_destroy(hyperdex_client *client)
+	{
+		delete reinterpret_cast<hyperdex::client *>(client);
+	}
+
+	HYPERDEX_API const char *
+	hyperdex_client_error_message(hyperdex_client *_cl)
+	{
+		FAKE_STATUS;
+		SIGNAL_PROTECT_ERR(NULL);
+		hyperdex::client *cl = reinterpret_cast<hyperdex::client *>(_cl);
+		return cl->error_message();
+	}
+
+	HYPERDEX_API const char *
+	hyperdex_client_error_location(hyperdex_client *_cl)
+	{
+		FAKE_STATUS;
+		SIGNAL_PROTECT_ERR(NULL);
+		hyperdex::client *cl = reinterpret_cast<hyperdex::client *>(_cl);
+		return cl->error_location();
+	}
+
+	HYPERDEX_API const char *
+	hyperdex_client_returncode_to_string(enum hyperdex_client_returncode stat)
+	{
+		FAKE_STATUS;
+		SIGNAL_PROTECT_ERR(NULL);
+		switch (stat)
+		{
+			CSTRINGIFY(HYPERDEX_CLIENT_SUCCESS);
+			CSTRINGIFY(HYPERDEX_CLIENT_NOTFOUND);
+			CSTRINGIFY(HYPERDEX_CLIENT_SEARCHDONE);
+			CSTRINGIFY(HYPERDEX_CLIENT_CMPFAIL);
+			CSTRINGIFY(HYPERDEX_CLIENT_READONLY);
+			CSTRINGIFY(HYPERDEX_CLIENT_UNKNOWNSPACE);
+			CSTRINGIFY(HYPERDEX_CLIENT_COORDFAIL);
+			CSTRINGIFY(HYPERDEX_CLIENT_SERVERERROR);
+			CSTRINGIFY(HYPERDEX_CLIENT_POLLFAILED);
+			CSTRINGIFY(HYPERDEX_CLIENT_OVERFLOW);
+			CSTRINGIFY(HYPERDEX_CLIENT_RECONFIGURE);
+			CSTRINGIFY(HYPERDEX_CLIENT_TIMEOUT);
+			CSTRINGIFY(HYPERDEX_CLIENT_UNKNOWNATTR);
+			CSTRINGIFY(HYPERDEX_CLIENT_DUPEATTR);
+			CSTRINGIFY(HYPERDEX_CLIENT_NONEPENDING);
+			CSTRINGIFY(HYPERDEX_CLIENT_DONTUSEKEY);
+			CSTRINGIFY(HYPERDEX_CLIENT_WRONGTYPE);
+			CSTRINGIFY(HYPERDEX_CLIENT_NOMEM);
+			CSTRINGIFY(HYPERDEX_CLIENT_INTERRUPTED);
+			CSTRINGIFY(HYPERDEX_CLIENT_CLUSTER_JUMP);
+			CSTRINGIFY(HYPERDEX_CLIENT_OFFLINE);
+			CSTRINGIFY(HYPERDEX_CLIENT_UNAUTHORIZED);
+			CSTRINGIFY(HYPERDEX_CLIENT_INTERNAL);
+			CSTRINGIFY(HYPERDEX_CLIENT_EXCEPTION);
+			CSTRINGIFY(HYPERDEX_CLIENT_GARBAGE);
+		default:
+			return "unknown hyperdex_client_returncode";
+		}
+	}
+
+	HYPERDEX_API enum hyperdatatype
+	hyperdex_client_attribute_type(hyperdex_client *_cl,
+	                               const char *space, const char *name,
+	                               enum hyperdex_client_returncode *status)
+	{
+		SIGNAL_PROTECT_ERR(HYPERDATATYPE_GARBAGE);
+		hyperdex::client *cl = reinterpret_cast<hyperdex::client *>(_cl);
+		\
+
+		try
+		{
+			return cl->attribute_type(space, name, status);
+		}
+		catch (std::bad_alloc &ba)
+		{
+			errno = ENOMEM;
+			*status = HYPERDEX_CLIENT_NOMEM;
+			cl->set_error_message("out of memory");
+			return HYPERDATATYPE_GARBAGE;
+		}
+		catch (...)
+		{
+			*status = HYPERDEX_CLIENT_EXCEPTION;
+			cl->set_error_message("unhandled exception was thrown");
+			return HYPERDATATYPE_GARBAGE;
+		}
+	}
+
+	HYPERDEX_API void
+	hyperdex_client_destroy_attrs(const hyperdex_client_attribute *attrs, size_t /*attrs_sz*/)
+	{
+		FAKE_STATUS;
+		SIGNAL_PROTECT_VOID;
+		if (attrs)
+		{
+			free(const_cast<hyperdex_client_attribute *>(attrs));
+			attrs = NULL;
+		}
+	}
+
+	HYPERDEX_API void
+	hyperdex_client_clear_auth_context(struct hyperdex_client *_cl)
+	{
+		FAKE_STATUS;
+		SIGNAL_PROTECT_VOID;
+		hyperdex::client *cl = reinterpret_cast<hyperdex::client *>(_cl);
+		cl->clear_auth_context();
+	}
+
+	HYPERDEX_API void
+	hyperdex_client_set_auth_context(struct hyperdex_client *_cl,
+	                                 const char **macaroons, size_t macaroons_sz)
+	{
+		FAKE_STATUS;
+		SIGNAL_PROTECT_VOID;
+		hyperdex::client *cl = reinterpret_cast<hyperdex::client *>(_cl);
+		cl->set_auth_context(macaroons, macaroons_sz);
+	}
+
+	HYPERDEX_API struct hyperdex_client_microtransaction *
+	hyperdex_client_uxact_init(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           enum hyperdex_client_returncode *status)
+	{
+		SIGNAL_PROTECT_ERR(NULL);
+		hyperdex::client *cl = reinterpret_cast<hyperdex::client *>(_cl);
+		hyperdex::microtransaction *tx = cl->uxact_init(space, status);
+		return reinterpret_cast<struct hyperdex_client_microtransaction *>(tx);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_commit(struct hyperdex_client *_cl,
+	                             struct hyperdex_client_microtransaction *transaction,
+	                             const char *key, size_t key_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(transaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    return cl->uxact_commit(tx, key, key_sz);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_group_commit(struct hyperdex_client *_cl,
+	                                   struct hyperdex_client_microtransaction *transaction,
+	                                   const hyperdex_client_attribute_check *chks, size_t chks_sz,
+	                                   uint64_t *count)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(transaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    return cl->uxact_group_commit(tx, chks, chks_sz, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_cond_commit(struct hyperdex_client *_cl,
+	                                  struct hyperdex_client_microtransaction *transaction,
+	                                  const char *key, size_t key_sz,
+	                                  const hyperdex_client_attribute_check *chks, size_t chks_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(transaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    return cl->uxact_cond_commit(tx, key, key_sz, chks, chks_sz);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_get(struct hyperdex_client *_cl,
+	                    const char *space,
+	                    const char *key, size_t key_sz,
+	                    enum hyperdex_client_returncode *status,
+	                    const struct hyperdex_client_attribute **attrs, size_t *attrs_sz)
+	{
+		C_WRAP_EXCEPT(
+		    return cl->get(space, key, key_sz, status, attrs, attrs_sz);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_get_partial(struct hyperdex_client *_cl,
+	                            const char *space,
+	                            const char *key, size_t key_sz,
+	                            const char **attrnames, size_t attrnames_sz,
+	                            enum hyperdex_client_returncode *status,
+	                            const struct hyperdex_client_attribute **attrs, size_t *attrs_sz)
+	{
+		C_WRAP_EXCEPT(
+		    return cl->get_partial(space, key, key_sz, attrnames, attrnames_sz, status, attrs, attrs_sz);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_put(struct hyperdex_client *_cl,
+	                    const char *space,
+	                    const char *key, size_t key_sz,
+	                    const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(put), strlen(XSTR(put)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_put(struct hyperdex_client *_cl,
+	                          struct hyperdex_client_microtransaction *microtransaction,
+	                          const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(put), strlen(XSTR(put)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_put(struct hyperdex_client *_cl,
+	                         const char *space,
+	                         const char *key, size_t key_sz,
+	                         const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                         const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                         enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_put), strlen(XSTR(cond_put)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_put_or_create(struct hyperdex_client *_cl,
+	                                   const char *space,
+	                                   const char *key, size_t key_sz,
+	                                   const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                   const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                   enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_put_or_create), strlen(XSTR(cond_put_or_create)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_put(struct hyperdex_client *_cl,
+	                          const char *space,
+	                          const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                          const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                          enum hyperdex_client_returncode *status,
+	                          uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_put), strlen(XSTR(group_put)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_put_if_not_exist(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const char *key, size_t key_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(put_if_not_exist), strlen(XSTR(put_if_not_exist)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_del(struct hyperdex_client *_cl,
+	                    const char *space,
+	                    const char *key, size_t key_sz,
+	                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(del), strlen(XSTR(del)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_del(struct hyperdex_client *_cl,
+	                         const char *space,
+	                         const char *key, size_t key_sz,
+	                         const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                         enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_del), strlen(XSTR(cond_del)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_del(struct hyperdex_client *_cl,
+	                          const char *space,
+	                          const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                          enum hyperdex_client_returncode *status,
+	                          uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_del), strlen(XSTR(group_del)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_atomic_add(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_add), strlen(XSTR(atomic_add)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_atomic_add(struct hyperdex_client *_cl,
+	                                 struct hyperdex_client_microtransaction *microtransaction,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_add), strlen(XSTR(atomic_add)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_atomic_add(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_add), strlen(XSTR(cond_atomic_add)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_atomic_add(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_add), strlen(XSTR(group_atomic_add)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_atomic_sub(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_sub), strlen(XSTR(atomic_sub)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_atomic_sub(struct hyperdex_client *_cl,
+	                                 struct hyperdex_client_microtransaction *microtransaction,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_sub), strlen(XSTR(atomic_sub)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_atomic_sub(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_sub), strlen(XSTR(cond_atomic_sub)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_atomic_sub(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_sub), strlen(XSTR(group_atomic_sub)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_atomic_mul(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_mul), strlen(XSTR(atomic_mul)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_atomic_mul(struct hyperdex_client *_cl,
+	                                 struct hyperdex_client_microtransaction *microtransaction,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_mul), strlen(XSTR(atomic_mul)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_atomic_mul(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_mul), strlen(XSTR(cond_atomic_mul)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_atomic_mul(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_mul), strlen(XSTR(group_atomic_mul)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_atomic_div(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_div), strlen(XSTR(atomic_div)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_atomic_div(struct hyperdex_client *_cl,
+	                                 struct hyperdex_client_microtransaction *microtransaction,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_div), strlen(XSTR(atomic_div)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_atomic_div(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_div), strlen(XSTR(cond_atomic_div)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_atomic_div(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_div), strlen(XSTR(group_atomic_div)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_atomic_mod(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_mod), strlen(XSTR(atomic_mod)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_atomic_mod(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_mod), strlen(XSTR(cond_atomic_mod)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_atomic_mod(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_mod), strlen(XSTR(group_atomic_mod)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_atomic_and(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_and), strlen(XSTR(atomic_and)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_atomic_and(struct hyperdex_client *_cl,
+	                                 struct hyperdex_client_microtransaction *microtransaction,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_and), strlen(XSTR(atomic_and)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_atomic_and(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_and), strlen(XSTR(cond_atomic_and)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_atomic_and(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_and), strlen(XSTR(group_atomic_and)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_atomic_or(struct hyperdex_client *_cl,
+	                          const char *space,
+	                          const char *key, size_t key_sz,
+	                          const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                          enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_or), strlen(XSTR(atomic_or)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_atomic_or(struct hyperdex_client *_cl,
+	                                struct hyperdex_client_microtransaction *microtransaction,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_or), strlen(XSTR(atomic_or)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_atomic_or(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                               const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_or), strlen(XSTR(cond_atomic_or)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_atomic_or(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status,
+	                                uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_or), strlen(XSTR(group_atomic_or)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_atomic_xor(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_xor), strlen(XSTR(atomic_xor)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_atomic_xor(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_xor), strlen(XSTR(cond_atomic_xor)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_atomic_xor(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_xor), strlen(XSTR(group_atomic_xor)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_atomic_min(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_min), strlen(XSTR(atomic_min)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_atomic_min(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_min), strlen(XSTR(cond_atomic_min)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_atomic_min(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_min), strlen(XSTR(group_atomic_min)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_atomic_max(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_max), strlen(XSTR(atomic_max)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_atomic_max(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_atomic_max), strlen(XSTR(cond_atomic_max)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_atomic_max(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_atomic_max), strlen(XSTR(group_atomic_max)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_string_prepend(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_prepend), strlen(XSTR(string_prepend)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_string_prepend(struct hyperdex_client *_cl,
+	                                     struct hyperdex_client_microtransaction *microtransaction,
+	                                     const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_prepend), strlen(XSTR(string_prepend)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_string_prepend(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const char *key, size_t key_sz,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_string_prepend), strlen(XSTR(cond_string_prepend)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_string_prepend(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                     enum hyperdex_client_returncode *status,
+	                                     uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_string_prepend), strlen(XSTR(group_string_prepend)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_string_append(struct hyperdex_client *_cl,
+	                              const char *space,
+	                              const char *key, size_t key_sz,
+	                              const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                              enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_append), strlen(XSTR(string_append)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_string_append(struct hyperdex_client *_cl,
+	                                    struct hyperdex_client_microtransaction *microtransaction,
+	                                    const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_append), strlen(XSTR(string_append)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_string_append(struct hyperdex_client *_cl,
+	                                   const char *space,
+	                                   const char *key, size_t key_sz,
+	                                   const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                   const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                   enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_string_append), strlen(XSTR(cond_string_append)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_string_append(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                    enum hyperdex_client_returncode *status,
+	                                    uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_string_append), strlen(XSTR(group_string_append)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_string_ltrim(struct hyperdex_client *_cl,
+	                             const char *space,
+	                             const char *key, size_t key_sz,
+	                             const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                             enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_ltrim), strlen(XSTR(string_ltrim)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_string_ltrim(struct hyperdex_client *_cl,
+	                                   struct hyperdex_client_microtransaction *microtransaction,
+	                                   const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_ltrim), strlen(XSTR(string_ltrim)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_string_ltrim(struct hyperdex_client *_cl,
+	                                  const char *space,
+	                                  const char *key, size_t key_sz,
+	                                  const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                  const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                  enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_string_ltrim), strlen(XSTR(cond_string_ltrim)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_string_ltrim(struct hyperdex_client *_cl,
+	                                   const char *space,
+	                                   const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                   const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                   enum hyperdex_client_returncode *status,
+	                                   uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_string_ltrim), strlen(XSTR(group_string_ltrim)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_string_rtrim(struct hyperdex_client *_cl,
+	                             const char *space,
+	                             const char *key, size_t key_sz,
+	                             const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                             enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_rtrim), strlen(XSTR(string_rtrim)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_string_rtrim(struct hyperdex_client *_cl,
+	                                   struct hyperdex_client_microtransaction *microtransaction,
+	                                   const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(string_rtrim), strlen(XSTR(string_rtrim)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_string_rtrim(struct hyperdex_client *_cl,
+	                                  const char *space,
+	                                  const char *key, size_t key_sz,
+	                                  const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                  const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                  enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_string_rtrim), strlen(XSTR(cond_string_rtrim)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_string_rtrim(struct hyperdex_client *_cl,
+	                                   const char *space,
+	                                   const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                   const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                   enum hyperdex_client_returncode *status,
+	                                   uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_string_rtrim), strlen(XSTR(group_string_rtrim)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_list_lpush(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(list_lpush), strlen(XSTR(list_lpush)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_list_lpush(struct hyperdex_client *_cl,
+	                                 struct hyperdex_client_microtransaction *microtransaction,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(list_lpush), strlen(XSTR(list_lpush)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_list_lpush(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_list_lpush), strlen(XSTR(cond_list_lpush)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_list_lpush(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_list_lpush), strlen(XSTR(group_list_lpush)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_list_rpush(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(list_rpush), strlen(XSTR(list_rpush)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_list_rpush(struct hyperdex_client *_cl,
+	                                 struct hyperdex_client_microtransaction *microtransaction,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(list_rpush), strlen(XSTR(list_rpush)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_list_rpush(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_list_rpush), strlen(XSTR(cond_list_rpush)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_list_rpush(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_list_rpush), strlen(XSTR(group_list_rpush)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_set_add(struct hyperdex_client *_cl,
+	                        const char *space,
+	                        const char *key, size_t key_sz,
+	                        const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                        enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(set_add), strlen(XSTR(set_add)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_set_add(struct hyperdex_client *_cl,
+	                             const char *space,
+	                             const char *key, size_t key_sz,
+	                             const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                             const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                             enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_set_add), strlen(XSTR(cond_set_add)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_set_add(struct hyperdex_client *_cl,
+	                              const char *space,
+	                              const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                              const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                              enum hyperdex_client_returncode *status,
+	                              uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_set_add), strlen(XSTR(group_set_add)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_set_remove(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(set_remove), strlen(XSTR(set_remove)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_set_remove(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_set_remove), strlen(XSTR(cond_set_remove)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_set_remove(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_set_remove), strlen(XSTR(group_set_remove)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_set_intersect(struct hyperdex_client *_cl,
+	                              const char *space,
+	                              const char *key, size_t key_sz,
+	                              const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                              enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(set_intersect), strlen(XSTR(set_intersect)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_set_intersect(struct hyperdex_client *_cl,
+	                                   const char *space,
+	                                   const char *key, size_t key_sz,
+	                                   const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                   const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                   enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_set_intersect), strlen(XSTR(cond_set_intersect)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_set_intersect(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                    enum hyperdex_client_returncode *status,
+	                                    uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_set_intersect), strlen(XSTR(group_set_intersect)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_set_union(struct hyperdex_client *_cl,
+	                          const char *space,
+	                          const char *key, size_t key_sz,
+	                          const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                          enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(set_union), strlen(XSTR(set_union)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_set_union(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                               const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_set_union), strlen(XSTR(cond_set_union)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_set_union(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status,
+	                                uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_set_union), strlen(XSTR(group_set_union)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_document_rename(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_rename), strlen(XSTR(document_rename)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_document_rename(struct hyperdex_client *_cl,
+	                                      struct hyperdex_client_microtransaction *microtransaction,
+	                                      const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_rename), strlen(XSTR(document_rename)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_document_rename(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const char *key, size_t key_sz,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                     enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_document_rename), strlen(XSTR(cond_document_rename)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_document_rename(struct hyperdex_client *_cl,
+	                                      const char *space,
+	                                      const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                      const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                      enum hyperdex_client_returncode *status,
+	                                      uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_document_rename), strlen(XSTR(group_document_rename)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_document_unset(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_unset), strlen(XSTR(document_unset)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_document_unset(struct hyperdex_client *_cl,
+	                                     struct hyperdex_client_microtransaction *microtransaction,
+	                                     const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(document_unset), strlen(XSTR(document_unset)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_document_unset(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const char *key, size_t key_sz,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_document_unset), strlen(XSTR(cond_document_unset)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_document_unset(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                     enum hyperdex_client_returncode *status,
+	                                     uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_document_unset), strlen(XSTR(group_document_unset)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_add(struct hyperdex_client *_cl,
+	                        const char *space,
+	                        const char *key, size_t key_sz,
+	                        const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                        enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_add), strlen(XSTR(map_add)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_add(struct hyperdex_client *_cl,
+	                             const char *space,
+	                             const char *key, size_t key_sz,
+	                             const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                             const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                             enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_add), strlen(XSTR(cond_map_add)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_add(struct hyperdex_client *_cl,
+	                              const char *space,
+	                              const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                              const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                              enum hyperdex_client_returncode *status,
+	                              uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_add), strlen(XSTR(group_map_add)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_remove(struct hyperdex_client *_cl,
+	                           const char *space,
+	                           const char *key, size_t key_sz,
+	                           const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                           enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_remove), strlen(XSTR(map_remove)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_remove(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const char *key, size_t key_sz,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_remove), strlen(XSTR(cond_map_remove)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, NULL, 0, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_remove(struct hyperdex_client *_cl,
+	                                 const char *space,
+	                                 const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz,
+	                                 enum hyperdex_client_returncode *status,
+	                                 uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_remove), strlen(XSTR(group_map_remove)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, attrs, attrs_sz, NULL, 0, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_atomic_add(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_add), strlen(XSTR(map_atomic_add)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_atomic_add(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const char *key, size_t key_sz,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_add), strlen(XSTR(cond_map_atomic_add)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_atomic_add(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                     enum hyperdex_client_returncode *status,
+	                                     uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_add), strlen(XSTR(group_map_atomic_add)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_atomic_sub(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_sub), strlen(XSTR(map_atomic_sub)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_atomic_sub(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const char *key, size_t key_sz,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_sub), strlen(XSTR(cond_map_atomic_sub)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_atomic_sub(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                     enum hyperdex_client_returncode *status,
+	                                     uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_sub), strlen(XSTR(group_map_atomic_sub)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_atomic_mul(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_mul), strlen(XSTR(map_atomic_mul)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_atomic_mul(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const char *key, size_t key_sz,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_mul), strlen(XSTR(cond_map_atomic_mul)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_atomic_mul(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                     enum hyperdex_client_returncode *status,
+	                                     uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_mul), strlen(XSTR(group_map_atomic_mul)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_atomic_div(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_div), strlen(XSTR(map_atomic_div)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_atomic_div(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const char *key, size_t key_sz,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_div), strlen(XSTR(cond_map_atomic_div)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_atomic_div(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                     enum hyperdex_client_returncode *status,
+	                                     uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_div), strlen(XSTR(group_map_atomic_div)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_atomic_mod(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_mod), strlen(XSTR(map_atomic_mod)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_atomic_mod(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const char *key, size_t key_sz,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_mod), strlen(XSTR(cond_map_atomic_mod)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_atomic_mod(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                     enum hyperdex_client_returncode *status,
+	                                     uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_mod), strlen(XSTR(group_map_atomic_mod)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_atomic_and(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_and), strlen(XSTR(map_atomic_and)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_atomic_and(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const char *key, size_t key_sz,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_and), strlen(XSTR(cond_map_atomic_and)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_atomic_and(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                     enum hyperdex_client_returncode *status,
+	                                     uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_and), strlen(XSTR(group_map_atomic_and)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_atomic_or(struct hyperdex_client *_cl,
+	                              const char *space,
+	                              const char *key, size_t key_sz,
+	                              const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                              enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_or), strlen(XSTR(map_atomic_or)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_atomic_or(struct hyperdex_client *_cl,
+	                                   const char *space,
+	                                   const char *key, size_t key_sz,
+	                                   const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                   const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                   enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_or), strlen(XSTR(cond_map_atomic_or)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_atomic_or(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                    enum hyperdex_client_returncode *status,
+	                                    uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_or), strlen(XSTR(group_map_atomic_or)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_atomic_xor(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_xor), strlen(XSTR(map_atomic_xor)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_atomic_xor(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const char *key, size_t key_sz,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_xor), strlen(XSTR(cond_map_atomic_xor)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_atomic_xor(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                     enum hyperdex_client_returncode *status,
+	                                     uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_xor), strlen(XSTR(group_map_atomic_xor)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_string_prepend(struct hyperdex_client *_cl,
+	                                   const char *space,
+	                                   const char *key, size_t key_sz,
+	                                   const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                   enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_string_prepend), strlen(XSTR(map_string_prepend)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_string_prepend(struct hyperdex_client *_cl,
+	                                        const char *space,
+	                                        const char *key, size_t key_sz,
+	                                        const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                        const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                        enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_string_prepend), strlen(XSTR(cond_map_string_prepend)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_string_prepend(struct hyperdex_client *_cl,
+	                                         const char *space,
+	                                         const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                         const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                         enum hyperdex_client_returncode *status,
+	                                         uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_string_prepend), strlen(XSTR(group_map_string_prepend)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_string_append(struct hyperdex_client *_cl,
+	                                  const char *space,
+	                                  const char *key, size_t key_sz,
+	                                  const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                  enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_string_append), strlen(XSTR(map_string_append)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_string_append(struct hyperdex_client *_cl,
+	                                       const char *space,
+	                                       const char *key, size_t key_sz,
+	                                       const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                       const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                       enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_string_append), strlen(XSTR(cond_map_string_append)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_string_append(struct hyperdex_client *_cl,
+	                                        const char *space,
+	                                        const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                        const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                        enum hyperdex_client_returncode *status,
+	                                        uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_string_append), strlen(XSTR(group_map_string_append)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_atomic_min(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_min), strlen(XSTR(map_atomic_min)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_atomic_min(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const char *key, size_t key_sz,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_min), strlen(XSTR(cond_map_atomic_min)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_atomic_min(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                     enum hyperdex_client_returncode *status,
+	                                     uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_min), strlen(XSTR(group_map_atomic_min)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_atomic_min(struct hyperdex_client *_cl,
+	                                 struct hyperdex_client_microtransaction *microtransaction,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_min), strlen(XSTR(atomic_min)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_map_atomic_max(struct hyperdex_client *_cl,
+	                               const char *space,
+	                               const char *key, size_t key_sz,
+	                               const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                               enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(map_atomic_max), strlen(XSTR(map_atomic_max)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, NULL, 0, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_cond_map_atomic_max(struct hyperdex_client *_cl,
+	                                    const char *space,
+	                                    const char *key, size_t key_sz,
+	                                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                    const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                    enum hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(cond_map_atomic_max), strlen(XSTR(cond_map_atomic_max)));
+		    return cl->perform_funcall(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_group_map_atomic_max(struct hyperdex_client *_cl,
+	                                     const char *space,
+	                                     const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                     const struct hyperdex_client_map_attribute *mapattrs, size_t mapattrs_sz,
+	                                     enum hyperdex_client_returncode *status,
+	                                     uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(group_map_atomic_max), strlen(XSTR(group_map_atomic_max)));
+		    return cl->perform_group_funcall(opinfo, space, checks, checks_sz, NULL, 0, mapattrs, mapattrs_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_uxact_atomic_max(struct hyperdex_client *_cl,
+	                                 struct hyperdex_client_microtransaction *microtransaction,
+	                                 const struct hyperdex_client_attribute *attrs, size_t attrs_sz)
+	{
+		hyperdex::microtransaction *tx = reinterpret_cast<hyperdex::microtransaction *>(microtransaction);
+		hyperdex_client_returncode *status = tx->status;
+		C_WRAP_EXCEPT(
+		    const hyperdex_client_keyop_info * opinfo;
+		    opinfo = hyperdex_client_keyop_info_lookup(XSTR(atomic_max), strlen(XSTR(atomic_max)));
+		    return cl->uxact_add_funcall(tx, opinfo, attrs, attrs_sz, NULL, 0);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_search(struct hyperdex_client *_cl,
+	                       const char *space,
+	                       const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                       enum hyperdex_client_returncode *status,
+	                       const struct hyperdex_client_attribute **attrs, size_t *attrs_sz)
+	{
+		C_WRAP_EXCEPT(
+		    return cl->search(space, checks, checks_sz, status, attrs, attrs_sz);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_search_describe(struct hyperdex_client *_cl,
+	                                const char *space,
+	                                const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                                enum hyperdex_client_returncode *status,
+	                                const char **description)
+	{
+		C_WRAP_EXCEPT(
+		    return cl->search_describe(space, checks, checks_sz, status, description);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_sorted_search(struct hyperdex_client *_cl,
+	                              const char *space,
+	                              const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                              const char *sort_by,
+	                              uint64_t limit,
+	                              int maxmin,
+	                              enum hyperdex_client_returncode *status,
+	                              const struct hyperdex_client_attribute **attrs, size_t *attrs_sz)
+	{
+		C_WRAP_EXCEPT(
+		    return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maxmin, status, attrs, attrs_sz);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_count(struct hyperdex_client *_cl,
+	                      const char *space,
+	                      const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                      enum hyperdex_client_returncode *status,
+	                      uint64_t *count)
+	{
+		C_WRAP_EXCEPT(
+		    return cl->count(space, checks, checks_sz, status, count);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_sum(struct hyperdex_client *_cl,
+	                    const char *space,
+	                    const struct hyperdex_client_attribute_check *checks, size_t checks_sz,
+	                    const char *sum_key,
+	                    enum hyperdex_client_returncode *status,
+	                    uint64_t *total)
+	{
+		C_WRAP_EXCEPT(
+		    return cl->sum(space, checks, checks_sz, sum_key, status, total);
+		);
+	}
+
+	HYPERDEX_API int64_t
+	hyperdex_client_loop(hyperdex_client *_cl, int timeout,
+	                     hyperdex_client_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    return cl->loop(timeout, status);
+		);
+	}
+
+	HYPERDEX_API int
+	hyperdex_client_poll_fd(hyperdex_client *_cl)
+	{
+		FAKE_STATUS;
+		C_WRAP_EXCEPT(
+		    return cl->poll_fd();
+		);
+	}
+
+	HYPERDEX_API int
+	hyperdex_client_block(hyperdex_client *_cl, int timeout)
+	{
+		FAKE_STATUS;
+		C_WRAP_EXCEPT(
+		    return cl->block(timeout);
+		);
+	}
+
+	HYPERDEX_API void
+	hyperdex_client_set_type_conversion(hyperdex_client *_cl, bool enabled)
+	{
+		hyperdex::client *cl = reinterpret_cast<hyperdex::client *>(_cl);
+		cl->set_type_conversion(enabled);
+	}
 
 #ifdef __cplusplus
-} // extern "C"
+	} // extern "C"
 #endif // __cplusplus

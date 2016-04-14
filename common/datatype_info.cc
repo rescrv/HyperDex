@@ -69,75 +69,75 @@ static hyperdex::datatype_timestamp d_timestamp_week(HYPERDATATYPE_TIMESTAMP_WEE
 static hyperdex::datatype_timestamp d_timestamp_month(HYPERDATATYPE_TIMESTAMP_MONTH);
 static hyperdex::datatype_macaroon_secret d_macaroon_secret;
 
-datatype_info*
+datatype_info *
 datatype_info :: lookup(hyperdatatype datatype)
 {
-    switch (datatype)
-    {
-        case HYPERDATATYPE_STRING:
-            return &d_string;
-        case HYPERDATATYPE_INT64:
-            return &d_int64;
-        case HYPERDATATYPE_FLOAT:
-            return &d_float;
-        case HYPERDATATYPE_DOCUMENT:
-            return &d_document;
-        case HYPERDATATYPE_LIST_STRING:
-            return &d_list_string;
-        case HYPERDATATYPE_LIST_INT64:
-            return &d_list_int64;
-        case HYPERDATATYPE_LIST_FLOAT:
-            return &d_list_float;
-        case HYPERDATATYPE_SET_STRING:
-            return &d_set_string;
-        case HYPERDATATYPE_SET_INT64:
-            return &d_set_int64;
-        case HYPERDATATYPE_SET_FLOAT:
-            return &d_set_float;
-        case HYPERDATATYPE_MAP_STRING_STRING:
-            return &d_map_string_string;
-        case HYPERDATATYPE_MAP_STRING_INT64:
-            return &d_map_string_int64;
-        case HYPERDATATYPE_MAP_STRING_FLOAT:
-            return &d_map_string_float;
-        case HYPERDATATYPE_MAP_INT64_STRING:
-            return &d_map_int64_string;
-        case HYPERDATATYPE_MAP_INT64_INT64:
-            return &d_map_int64_int64;
-        case HYPERDATATYPE_MAP_INT64_FLOAT:
-            return &d_map_int64_float;
-        case HYPERDATATYPE_MAP_FLOAT_STRING:
-            return &d_map_float_string;
-        case HYPERDATATYPE_MAP_FLOAT_INT64:
-            return &d_map_float_int64;
-        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
-            return &d_map_float_float;
-        case HYPERDATATYPE_TIMESTAMP_SECOND:
-          return &d_timestamp_second;
-        case HYPERDATATYPE_TIMESTAMP_MINUTE:
-          return &d_timestamp_minute;
-        case HYPERDATATYPE_TIMESTAMP_HOUR:
-          return &d_timestamp_hour;
-        case HYPERDATATYPE_TIMESTAMP_DAY:
-          return &d_timestamp_day;
-        case HYPERDATATYPE_TIMESTAMP_WEEK:
-          return &d_timestamp_week;
-        case HYPERDATATYPE_TIMESTAMP_MONTH:
-          return &d_timestamp_month;
-        case HYPERDATATYPE_MACAROON_SECRET:
-            return &d_macaroon_secret;
-        case HYPERDATATYPE_GENERIC:
-        case HYPERDATATYPE_TIMESTAMP_GENERIC:
-        case HYPERDATATYPE_LIST_GENERIC:
-        case HYPERDATATYPE_SET_GENERIC:
-        case HYPERDATATYPE_MAP_GENERIC:
-        case HYPERDATATYPE_MAP_STRING_KEYONLY:
-        case HYPERDATATYPE_MAP_INT64_KEYONLY:
-        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
-        case HYPERDATATYPE_GARBAGE:
-        default:
-            return NULL;
-    }
+	switch (datatype)
+	{
+	case HYPERDATATYPE_STRING:
+		return &d_string;
+	case HYPERDATATYPE_INT64:
+		return &d_int64;
+	case HYPERDATATYPE_FLOAT:
+		return &d_float;
+	case HYPERDATATYPE_DOCUMENT:
+		return &d_document;
+	case HYPERDATATYPE_LIST_STRING:
+		return &d_list_string;
+	case HYPERDATATYPE_LIST_INT64:
+		return &d_list_int64;
+	case HYPERDATATYPE_LIST_FLOAT:
+		return &d_list_float;
+	case HYPERDATATYPE_SET_STRING:
+		return &d_set_string;
+	case HYPERDATATYPE_SET_INT64:
+		return &d_set_int64;
+	case HYPERDATATYPE_SET_FLOAT:
+		return &d_set_float;
+	case HYPERDATATYPE_MAP_STRING_STRING:
+		return &d_map_string_string;
+	case HYPERDATATYPE_MAP_STRING_INT64:
+		return &d_map_string_int64;
+	case HYPERDATATYPE_MAP_STRING_FLOAT:
+		return &d_map_string_float;
+	case HYPERDATATYPE_MAP_INT64_STRING:
+		return &d_map_int64_string;
+	case HYPERDATATYPE_MAP_INT64_INT64:
+		return &d_map_int64_int64;
+	case HYPERDATATYPE_MAP_INT64_FLOAT:
+		return &d_map_int64_float;
+	case HYPERDATATYPE_MAP_FLOAT_STRING:
+		return &d_map_float_string;
+	case HYPERDATATYPE_MAP_FLOAT_INT64:
+		return &d_map_float_int64;
+	case HYPERDATATYPE_MAP_FLOAT_FLOAT:
+		return &d_map_float_float;
+	case HYPERDATATYPE_TIMESTAMP_SECOND:
+		return &d_timestamp_second;
+	case HYPERDATATYPE_TIMESTAMP_MINUTE:
+		return &d_timestamp_minute;
+	case HYPERDATATYPE_TIMESTAMP_HOUR:
+		return &d_timestamp_hour;
+	case HYPERDATATYPE_TIMESTAMP_DAY:
+		return &d_timestamp_day;
+	case HYPERDATATYPE_TIMESTAMP_WEEK:
+		return &d_timestamp_week;
+	case HYPERDATATYPE_TIMESTAMP_MONTH:
+		return &d_timestamp_month;
+	case HYPERDATATYPE_MACAROON_SECRET:
+		return &d_macaroon_secret;
+	case HYPERDATATYPE_GENERIC:
+	case HYPERDATATYPE_TIMESTAMP_GENERIC:
+	case HYPERDATATYPE_LIST_GENERIC:
+	case HYPERDATATYPE_SET_GENERIC:
+	case HYPERDATATYPE_MAP_GENERIC:
+	case HYPERDATATYPE_MAP_STRING_KEYONLY:
+	case HYPERDATATYPE_MAP_INT64_KEYONLY:
+	case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+	case HYPERDATATYPE_GARBAGE:
+	default:
+		return NULL;
+	}
 }
 
 datatype_info :: datatype_info()
@@ -149,154 +149,154 @@ datatype_info :: ~datatype_info() throw ()
 }
 
 bool
-datatype_info :: client_to_server(const e::slice& client,
-                                  e::arena*,
-                                  e::slice* server) const
+datatype_info :: client_to_server(const e::slice &client,
+                                  e::arena *,
+                                  e::slice *server) const
 {
-    *server = client;
-    return true;
+	*server = client;
+	return true;
 }
 
 bool
-datatype_info :: server_to_client(const e::slice& server,
-                                  e::arena*,
-                                  e::slice* client) const
+datatype_info :: server_to_client(const e::slice &server,
+                                  e::arena *,
+                                  e::slice *client) const
 {
-    *client = server;
-    return true;
+	*client = server;
+	return true;
 }
 
 bool
 datatype_info :: hashable() const
 {
-    return false;
+	return false;
 }
 
 uint64_t
-datatype_info :: hash(const e::slice&) const
+datatype_info :: hash(const e::slice &) const
 {
-    // if you see an abort here, you overrode "hashable", but not this method
-    abort();
+	// if you see an abort here, you overrode "hashable", but not this method
+	abort();
 }
 
 bool
 datatype_info :: indexable() const
 {
-    return false;
+	return false;
 }
 
 bool
 datatype_info :: has_length() const
 {
-    return false;
+	return false;
 }
 
 uint64_t
-datatype_info :: length(const e::slice&) const
+datatype_info :: length(const e::slice &) const
 {
-    // if you see an abort here, you overrode "has_length", but not this method
-    abort();
+	// if you see an abort here, you overrode "has_length", but not this method
+	abort();
 }
 
 bool
 datatype_info :: has_regex() const
 {
-    return false;
+	return false;
 }
 
 bool
-datatype_info :: regex(const e::slice&,
-                       const e::slice&) const
+datatype_info :: regex(const e::slice &,
+                       const e::slice &) const
 {
-    // if you see an abort here, you overrode "has_regex", but not this method
-    abort();
+	// if you see an abort here, you overrode "has_regex", but not this method
+	abort();
 }
 
 bool
 datatype_info :: has_contains() const
 {
-    return false;
+	return false;
 }
 
 hyperdatatype
 datatype_info :: contains_datatype() const
 {
-    // if you see an abort here, you overrode "has_contains", but not this method
-    abort();
+	// if you see an abort here, you overrode "has_contains", but not this method
+	abort();
 }
 
 bool
-datatype_info :: contains(const e::slice&, const e::slice&) const
+datatype_info :: contains(const e::slice &, const e::slice &) const
 {
-    // if you see an abort here, you overrode "has_contains", but not this method
-    abort();
+	// if you see an abort here, you overrode "has_contains", but not this method
+	abort();
 }
 
 bool
 datatype_info :: containable() const
 {
-    return false;
+	return false;
 }
 
 bool
-datatype_info :: step(const uint8_t**,
-                      const uint8_t*,
-                      e::slice*) const
+datatype_info :: step(const uint8_t **,
+                      const uint8_t *,
+                      e::slice *) const
 {
-    // if you see an abort here, you overrode "containable", but not this
-    // method
-    abort();
+	// if you see an abort here, you overrode "containable", but not this
+	// method
+	abort();
 }
 
 uint64_t
-datatype_info :: write_sz(const e::slice&) const
+datatype_info :: write_sz(const e::slice &) const
 {
-    // if you see an abort here, you overrode "containable", but not this
-    // method
-    abort();
+	// if you see an abort here, you overrode "containable", but not this
+	// method
+	abort();
 }
 
-uint8_t*
-datatype_info :: write(const e::slice&, uint8_t*) const
+uint8_t *
+datatype_info :: write(const e::slice &, uint8_t *) const
 {
-    // if you see an abort here, you overrode "containable", but not this
-    // method
-    abort();
+	// if you see an abort here, you overrode "containable", but not this
+	// method
+	abort();
 }
 
 bool
 datatype_info :: comparable() const
 {
-    return false;
+	return false;
 }
 
 int
-datatype_info :: compare(const e::slice&, const e::slice&) const
+datatype_info :: compare(const e::slice &, const e::slice &) const
 {
-    // if you see an abort here, you overrode "comparable", but not this
-    // method
-    abort();
+	// if you see an abort here, you overrode "comparable", but not this
+	// method
+	abort();
 }
 
 datatype_info::compares_less
 datatype_info :: compare_less() const
 {
-    // if you see an abort here, you overrode "comparable", but not this
-    // method
-    abort();
+	// if you see an abort here, you overrode "comparable", but not this
+	// method
+	abort();
 }
 
 bool
 datatype_info :: document() const
 {
-    return false;
+	return false;
 }
 
 bool
-datatype_info :: document_check(const attribute_check&,
-                                const e::slice&) const
+datatype_info :: document_check(const attribute_check &,
+                                const e::slice &) const
 {
-    // if you see an abort here, you overrode "document", but not this
-    // method
-    abort();
+	// if you see an abort here, you overrode "document", but not this
+	// method
+	abort();
 }

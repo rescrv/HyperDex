@@ -39,36 +39,36 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class server
 {
-    public:
-        enum state_t
-        {
-            ASSIGNED = 1,
-            NOT_AVAILABLE = 2,
-            AVAILABLE = 3,
-            SHUTDOWN = 4,
-            KILLED = 5
-        };
-        static const char* to_string(state_t state);
+public:
+	enum state_t
+	{
+		ASSIGNED = 1,
+		NOT_AVAILABLE = 2,
+		AVAILABLE = 3,
+		SHUTDOWN = 4,
+		KILLED = 5
+	};
+	static const char *to_string(state_t state);
 
-    public:
-        server();
-        explicit server(const server_id&);
+public:
+	server();
+	explicit server(const server_id &);
 
-    public:
-        state_t state;
-        server_id id;
-        po6::net::location bind_to;
+public:
+	state_t state;
+	server_id id;
+	po6::net::location bind_to;
 };
 
 bool
-operator < (const server& lhs, const server& rhs);
+operator < (const server &lhs, const server &rhs);
 
 e::packer
-operator << (e::packer lhs, const server& rhs);
+operator << (e::packer lhs, const server &rhs);
 e::unpacker
-operator >> (e::unpacker lhs, server& rhs);
+operator >> (e::unpacker lhs, server &rhs);
 size_t
-pack_size(const server& p);
+pack_size(const server &p);
 
 END_HYPERDEX_NAMESPACE
 

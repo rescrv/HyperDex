@@ -35,85 +35,78 @@
 using hyperdex::auth_wallet;
 
 auth_wallet :: auth_wallet()
-    : m_macaroons()
+	: m_macaroons()
 {
 }
 
-auth_wallet :: auth_wallet(const char** macaroons, size_t macaroons_sz)
-    : m_macaroons()
+auth_wallet :: auth_wallet(const char **macaroons, size_t macaroons_sz)
+	: m_macaroons()
 {
-    m_macaroons.reserve(macaroons_sz);
-
-    for (size_t i = 0; i < macaroons_sz; ++i)
-    {
-        m_macaroons.push_back(std::string(macaroons[i], strlen(macaroons[i])));
-    }
+	m_macaroons.reserve(macaroons_sz);
+	for (size_t i = 0; i < macaroons_sz; ++i)
+	{
+		m_macaroons.push_back(std::string(macaroons[i], strlen(macaroons[i])));
+	}
 }
 
-auth_wallet :: auth_wallet(const auth_wallet& other)
-    : m_macaroons(other.m_macaroons)
+auth_wallet :: auth_wallet(const auth_wallet &other)
+	: m_macaroons(other.m_macaroons)
 {
 }
 
 bool
-auth_wallet :: get_macaroons(std::vector<macaroon*>* macaroons)
+auth_wallet :: get_macaroons(std::vector<macaroon *> *macaroons)
 {
-    for (size_t i = 0; i < m_macaroons.size(); ++i)
-    {
-        macaroon_returncode err;
-        macaroon* M = macaroon_deserialize(m_macaroons[i].c_str(), &err);
-
-        if (!M)
-        {
-            return false;
-        }
-
-        macaroons->push_back(M);
-    }
-
-    return true;
+	for (size_t i = 0; i < m_macaroons.size(); ++i)
+	{
+		macaroon_returncode err;
+		macaroon *M = macaroon_deserialize(m_macaroons[i].c_str(), &err);
+		if (!M)
+		{
+			return false;
+		}
+		macaroons->push_back(M);
+	}
+	return true;
 }
 
 static void
-build_macaroons(const std::vector<std::string>& in,
-                std::vector<e::slice>* out)
+build_macaroons(const std::vector<std::string> &in,
+                std::vector<e::slice> *out)
 {
-    out->clear();
-    out->reserve(in.size());
-
-    for (size_t i = 0; i < in.size(); ++i)
-    {
-        out->push_back(e::slice(in[i]));
-    }
+	out->clear();
+	out->reserve(in.size());
+	for (size_t i = 0; i < in.size(); ++i)
+	{
+		out->push_back(e::slice(in[i]));
+	}
 }
 
 e::packer
-hyperdex :: operator << (e::packer lhs, const auth_wallet& rhs)
+hyperdex :: operator << (e::packer lhs, const auth_wallet &rhs)
 {
-    std::vector<e::slice> macaroons;
-    build_macaroons(rhs.m_macaroons, &macaroons);
-    return lhs << macaroons;
+	std::vector<e::slice> macaroons;
+	build_macaroons(rhs.m_macaroons, &macaroons);
+	return lhs << macaroons;
 }
 
 e::unpacker
-hyperdex :: operator >> (e::unpacker lhs, auth_wallet& rhs)
+hyperdex :: operator >> (e::unpacker lhs, auth_wallet &rhs)
 {
-    std::vector<e::slice> macaroons;
-    lhs = lhs >> macaroons;
-    rhs.m_macaroons.resize(macaroons.size());
-
-    for (size_t i = 0; i < macaroons.size(); ++i)
-    {
-        rhs.m_macaroons[i].assign(macaroons[i].cdata(), macaroons[i].size());
-    }
-
-    return lhs;
+	std::vector<e::slice> macaroons;
+	lhs = lhs >> macaroons;
+	rhs.m_macaroons.resize(macaroons.size());
+	for (size_t i = 0; i < macaroons.size(); ++i)
+	{
+		rhs.m_macaroons[i].assign(macaroons[i].cdata(), macaroons[i].size());
+	}
+	return lhs;
 }
 
 size_t
-hyperdex :: pack_size(const auth_wallet& aw)
+hyperdex :: pack_size(const auth_wallet &aw)
 {
-    std::vector<e::slice> macaroons;
-    build_macaroons(aw.m_macaroons, &macaroons);
-    return pack_size(macaroons);
+	std::vector<e::slice> macaroons;
+	build_macaroons(aw.m_macaroons, &macaroons);
+	return pack_size(macaroons);
 }

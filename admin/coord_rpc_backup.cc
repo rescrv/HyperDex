@@ -42,11 +42,11 @@
 using hyperdex::coord_rpc_backup;
 
 coord_rpc_backup :: coord_rpc_backup(uint64_t id,
-                                     hyperdex_admin_returncode* status,
-                                     const char* path)
-    : coord_rpc(id, status)
-    , m_path(path)
-    , m_done(false)
+                                     hyperdex_admin_returncode *status,
+                                     const char *path)
+	: coord_rpc(id, status)
+	, m_path(path)
+	, m_done(false)
 {
 }
 
@@ -57,49 +57,44 @@ coord_rpc_backup :: ~coord_rpc_backup() throw ()
 bool
 coord_rpc_backup :: can_yield()
 {
-    return !m_done;
+	return !m_done;
 }
 
 bool
-coord_rpc_backup :: yield(hyperdex_admin_returncode* status)
+coord_rpc_backup :: yield(hyperdex_admin_returncode *status)
 {
-    assert(this->can_yield());
-    m_done = true;
-    *status = HYPERDEX_ADMIN_SUCCESS;
-    return true;
+	assert(this->can_yield());
+	m_done = true;
+	*status = HYPERDEX_ADMIN_SUCCESS;
+	return true;
 }
 
 bool
-coord_rpc_backup :: handle_response(admin* adm,
-                                    hyperdex_admin_returncode* status)
+coord_rpc_backup :: handle_response(admin *adm,
+                                    hyperdex_admin_returncode *status)
 {
-    *status = HYPERDEX_ADMIN_SUCCESS;
-    hyperdex_admin_returncode resp_status;
-    e::error err;
-    adm->interpret_replicant_returncode(repl_status, &resp_status, &err);
-    set_status(resp_status);
-    set_error(err);
-
-    if (resp_status != HYPERDEX_ADMIN_SUCCESS)
-    {
-        return true;
-    }
-
-    po6::io::fd fd(open(m_path.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR));
-
-    if (fd.get() < 0)
-    {
-        YIELDING_ERROR(LOCALERROR) << "could not open coordinator backup file \""
-                                   << e::strescape(m_path) << "\": " << strerror(errno);
-        return true;
-    }
-
-    if (fd.xwrite(repl_output, repl_output_sz) != static_cast<ssize_t>(repl_output_sz))
-    {
-        YIELDING_ERROR(LOCALERROR) << "could not write coordinator backup file \""
-                                   << e::strescape(m_path) << "\": " << strerror(errno);
-        return true;
-    }
-
-    return true;
+	*status = HYPERDEX_ADMIN_SUCCESS;
+	hyperdex_admin_returncode resp_status;
+	e::error err;
+	adm->interpret_replicant_returncode(repl_status, &resp_status, &err);
+	set_status(resp_status);
+	set_error(err);
+	if (resp_status != HYPERDEX_ADMIN_SUCCESS)
+	{
+		return true;
+	}
+	po6::io::fd fd(open(m_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR));
+	if (fd.get() < 0)
+	{
+		YIELDING_ERROR(LOCALERROR) << "could not open coordinator backup file \""
+		                           << e::strescape(m_path) << "\": " << strerror(errno);
+		return true;
+	}
+	if (fd.xwrite(repl_output, repl_output_sz) != static_cast<ssize_t>(repl_output_sz))
+	{
+		YIELDING_ERROR(LOCALERROR) << "could not write coordinator backup file \""
+		                           << e::strescape(m_path) << "\": " << strerror(errno);
+		return true;
+	}
+	return true;
 }

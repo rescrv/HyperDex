@@ -47,23 +47,23 @@ class admin;
 
 class pending : public yieldable
 {
-    public:
-        pending(uint64_t admin_visible_id,
-                hyperdex_admin_returncode* status);
-        virtual ~pending() throw ();
+public:
+	pending(uint64_t admin_visible_id,
+	        hyperdex_admin_returncode *status);
+	virtual ~pending() throw ();
 
-    public:
-        virtual void handle_sent_to(const server_id& si) = 0;
-        virtual void handle_failure(const server_id& si) = 0;
-        virtual bool handle_message(admin* cl,
-                                    const server_id& si,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_admin_returncode* status) = 0;
+public:
+	virtual void handle_sent_to(const server_id &si) = 0;
+	virtual void handle_failure(const server_id &si) = 0;
+	virtual bool handle_message(admin *cl,
+	                            const server_id &si,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_admin_returncode *status) = 0;
 
-    protected:
-        friend class e::intrusive_ptr<pending>;
+protected:
+	friend class e::intrusive_ptr<pending>;
 };
 
 END_HYPERDEX_NAMESPACE

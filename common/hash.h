@@ -41,18 +41,18 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 uint64_t
-hash(hyperdatatype t, const e::slice& v);
+hash(hyperdatatype t, const e::slice &v);
 
 void
-hash(const schema& sc,
-     const e::slice& key,
-     uint64_t* h);
+hash(const schema &sc,
+     const e::slice &key,
+     uint64_t *h);
 
 void
-hash(const schema& sc,
-     const e::slice& key,
-     const std::vector<e::slice>& value,
-     uint64_t* hs);
+hash(const schema &sc,
+     const e::slice &key,
+     const std::vector<e::slice> &value,
+     uint64_t *hs);
 
 END_HYPERDEX_NAMESPACE
 

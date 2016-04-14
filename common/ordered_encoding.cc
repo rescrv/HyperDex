@@ -43,17 +43,17 @@
 uint64_t
 hyperdex :: ordered_encode_int64(int64_t x)
 {
-    uint64_t out = static_cast<uint64_t>(x);
-    out += x >= 0 ? 0x8000000000000000ULL : INT64_MIN;
-    return out;
+	uint64_t out = static_cast<uint64_t>(x);
+	out += x >= 0 ? 0x8000000000000000ULL : INT64_MIN;
+	return out;
 }
 
 int64_t
 hyperdex :: ordered_decode_int64(uint64_t x)
 {
-    uint64_t out = static_cast<uint64_t>(x);
-    out -= x >= 0x8000000000000000ULL ? 0x8000000000000000ULL : INT64_MIN;
-    return out;
+	uint64_t out = static_cast<uint64_t>(x);
+	out -= x >= 0x8000000000000000ULL ? 0x8000000000000000ULL : INT64_MIN;
+	return out;
 }
 
 // A little reminder about IEEE 754 doubles.  Source Patterson&Hennessy 3ed.
@@ -114,48 +114,44 @@ hyperdex :: ordered_decode_int64(uint64_t x)
 uint64_t
 hyperdex :: ordered_encode_double(double x)
 {
-    uint64_t out = 0xffffffffffffffffULL;
-
-    if (std::isinf(x))
-    {
-        if (x > 0)
-        {
-            out = 0xfff0000000000000ULL + 2;
-        }
-        else
-        {
-            out = 0;
-        }
-    }
-    else if (std::isnan(x))
-    {
-        out = 0xfff0000000000000ULL + 3;
-    }
-    else if (x == 0)
-    {
-        out = 0x8000000000000000ULL + 1;
-    }
-    else
-    {
-        union { double d; ieee_double ieee; } d;
-        d.d = x;
-        uint64_t sign = d.ieee.dbl_sign ^ 0x1;
-        uint64_t exp  = d.ieee.dbl_exp;
-        uint64_t frac = d.ieee.dbl_frach;
-        frac <<= 32;
-        frac |= d.ieee.dbl_fracl;
-        uint64_t shift = 2;
-
-        if (x < 0)
-        {
-            exp  ^= 0x7ffULL;
-            frac ^= 0xfffffffffffffULL;
-            shift = 1;
-        }
-
-        out = (sign << 63) | (exp << 52) | (frac);
-        out += shift;
-    }
-
-    return out;
+	uint64_t out = 0xffffffffffffffffULL;
+	if (std::isinf(x))
+	{
+		if (x > 0)
+		{
+			out = 0xfff0000000000000ULL + 2;
+		}
+		else
+		{
+			out = 0;
+		}
+	}
+	else if (std::isnan(x))
+	{
+		out = 0xfff0000000000000ULL + 3;
+	}
+	else if (x == 0)
+	{
+		out = 0x8000000000000000ULL + 1;
+	}
+	else
+	{
+		union { double d; ieee_double ieee; } d;
+		d.d = x;
+		uint64_t sign = d.ieee.dbl_sign ^ 0x1;
+		uint64_t exp  = d.ieee.dbl_exp;
+		uint64_t frac = d.ieee.dbl_frach;
+		frac <<= 32;
+		frac |= d.ieee.dbl_fracl;
+		uint64_t shift = 2;
+		if (x < 0)
+		{
+			exp  ^= 0x7ffULL;
+			frac ^= 0xfffffffffffffULL;
+			shift = 1;
+		}
+		out = (sign << 63) | (exp << 52) | (frac);
+		out += shift;
+	}
+	return out;
 }

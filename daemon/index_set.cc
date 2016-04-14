@@ -36,7 +36,7 @@ using hyperdex::index_info;
 using hyperdex::index_set;
 
 index_set :: index_set(hyperdatatype dt)
-    : m_datatype(dt)
+	: m_datatype(dt)
 {
 }
 
@@ -47,36 +47,34 @@ index_set :: ~index_set() throw ()
 hyperdatatype
 index_set :: datatype() const
 {
-    return CREATE_CONTAINER(HYPERDATATYPE_SET_GENERIC, m_datatype);
+	return CREATE_CONTAINER(HYPERDATATYPE_SET_GENERIC, m_datatype);
 }
 
 void
-index_set :: extract_elements(const e::slice& set,
-                              std::vector<e::slice>* elems) const
+index_set :: extract_elements(const e::slice &set,
+                              std::vector<e::slice> *elems) const
 {
-    datatype_info* elem = datatype_info::lookup(m_datatype);
-    const uint8_t* ptr = set.data();
-    const uint8_t* end = set.data() + set.size();
-    e::slice e;
-
-    while (ptr < end)
-    {
-        bool stepped = elem->step(&ptr, end, &e);
-        assert(stepped);
-        elems->push_back(e);
-    }
-
-    assert(ptr == end);
+	datatype_info *elem = datatype_info::lookup(m_datatype);
+	const uint8_t *ptr = set.data();
+	const uint8_t *end = set.data() + set.size();
+	e::slice e;
+	while (ptr < end)
+	{
+		bool stepped = elem->step(&ptr, end, &e);
+		assert(stepped);
+		elems->push_back(e);
+	}
+	assert(ptr == end);
 }
 
-const datatype_info*
+const datatype_info *
 index_set :: element_datatype_info() const
 {
-    return datatype_info::lookup(m_datatype);
+	return datatype_info::lookup(m_datatype);
 }
 
-const index_info*
+const index_info *
 index_set :: element_index_info() const
 {
-    return index_info::lookup(m_datatype);
+	return index_info::lookup(m_datatype);
 }

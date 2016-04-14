@@ -41,47 +41,47 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class attribute_check
 {
-    public:
-        attribute_check();
-        ~attribute_check() throw ();
+public:
+	attribute_check();
+	~attribute_check() throw ();
 
-    public:
-        uint16_t attr;
-        e::slice value;
-        hyperdatatype datatype;
-        hyperpredicate predicate;
+public:
+	uint16_t attr;
+	e::slice value;
+	hyperdatatype datatype;
+	hyperpredicate predicate;
 };
 
 bool
 validate_attribute_check(hyperdatatype type,
-                         const attribute_check& check);
+                         const attribute_check &check);
 
 size_t
-validate_attribute_checks(const schema& sc,
-                          const std::vector<hyperdex::attribute_check>& checks);
+validate_attribute_checks(const schema &sc,
+                          const std::vector<hyperdex::attribute_check> &checks);
 bool
 passes_attribute_check(hyperdatatype type,
-                       const attribute_check& chk,
-                       const e::slice& value);
+                       const attribute_check &chk,
+                       const e::slice &value);
 
 // Does several calls of passes_attribute_check at once
 // Returns point of failure in the vector or checks.size() on success
 size_t
-passes_attribute_checks(const schema& sc,
-                        const std::vector<hyperdex::attribute_check>& checks,
-                        const e::slice& key,
-                        const std::vector<e::slice>& values);
+passes_attribute_checks(const schema &sc,
+                        const std::vector<hyperdex::attribute_check> &checks,
+                        const e::slice &key,
+                        const std::vector<e::slice> &values);
 
 bool
-operator < (const attribute_check& lhs,
-            const attribute_check& rhs);
+operator < (const attribute_check &lhs,
+            const attribute_check &rhs);
 
 e::packer
-operator << (e::packer lhs, const attribute_check& rhs);
+operator << (e::packer lhs, const attribute_check &rhs);
 e::unpacker
-operator >> (e::unpacker lhs, attribute_check& rhs);
+operator >> (e::unpacker lhs, attribute_check &rhs);
 size_t
-pack_size(const attribute_check& rhs);
+pack_size(const attribute_check &rhs);
 
 END_HYPERDEX_NAMESPACE
 

@@ -36,17 +36,17 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class attribute
 {
-    public:
-        attribute();
-        attribute(const char* name, hyperdatatype type);
-        attribute(const attribute& other);
+public:
+	attribute();
+	attribute(const char *name, hyperdatatype type);
+	attribute(const attribute &other);
 
-    public:
-        attribute& operator = (const attribute& rhs);
+public:
+	attribute &operator = (const attribute &rhs);
 
-    public:
-        const char* name;
-        hyperdatatype type;
+public:
+	const char *name;
+	hyperdatatype type;
 };
 
 END_HYPERDEX_NAMESPACE

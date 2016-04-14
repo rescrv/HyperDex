@@ -39,19 +39,19 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class mapper : public ::busybee_mapper
 {
-    public:
-        mapper(const configuration* config);
-        ~mapper() throw ();
+public:
+	mapper(const configuration *config);
+	~mapper() throw ();
 
-    public:
-        virtual bool lookup(uint64_t id, po6::net::location* addr);
+public:
+	virtual bool lookup(uint64_t id, po6::net::location *addr);
 
-    private:
-        mapper(const mapper&);
-        mapper& operator = (const mapper&);
+private:
+	mapper(const mapper &);
+	mapper &operator = (const mapper &);
 
-    private:
-        const configuration* m_config;
+private:
+	const configuration *m_config;
 };
 
 END_HYPERDEX_NAMESPACE

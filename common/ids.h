@@ -45,40 +45,40 @@
 // accidently using one type of ID as another.
 
 #define OPERATOR(TYPE, OP) \
-    inline bool \
-    operator OP (const TYPE ## _id& lhs, const TYPE ## _id& rhs) \
-    { \
-        return lhs.get() OP rhs.get(); \
-    }
+	inline bool \
+	operator OP (const TYPE ## _id& lhs, const TYPE ## _id& rhs) \
+	{ \
+		return lhs.get() OP rhs.get(); \
+	}
 #define CREATE_ID(TYPE) \
-    class TYPE ## _id \
-    { \
-        public: \
-            static uint64_t hash(const TYPE ## _id& x) { return x.get(); } \
-            TYPE ## _id() : m_id(0) {} \
-            explicit TYPE ## _id(uint64_t id) : m_id(id) {} \
-        public: \
-            uint64_t get() const { return m_id; } \
-        private: \
-            uint64_t m_id; \
-    }; \
-    std::ostream& \
-    operator << (std::ostream& lhs, const TYPE ## _id& rhs); \
-    inline size_t \
-    pack_size(const TYPE ## _id&) \
-    { \
-        return sizeof(uint64_t); \
-    } \
-    e::packer \
-    operator << (e::packer pa, const TYPE ## _id& rhs); \
-    e::unpacker \
-    operator >> (e::unpacker up, TYPE ## _id& rhs); \
-    OPERATOR(TYPE, <) \
-    OPERATOR(TYPE, <=) \
-    OPERATOR(TYPE, ==) \
-    OPERATOR(TYPE, !=) \
-    OPERATOR(TYPE, >=) \
-    OPERATOR(TYPE, >)
+	class TYPE ## _id \
+	{ \
+	public: \
+		static uint64_t hash(const TYPE ## _id& x) { return x.get(); } \
+		TYPE ## _id() : m_id(0) {} \
+		explicit TYPE ## _id(uint64_t id) : m_id(id) {} \
+	public: \
+		uint64_t get() const { return m_id; } \
+	private: \
+		uint64_t m_id; \
+	}; \
+	std::ostream& \
+	operator << (std::ostream& lhs, const TYPE ## _id& rhs); \
+	inline size_t \
+	pack_size(const TYPE ## _id&) \
+	{ \
+		return sizeof(uint64_t); \
+	} \
+	e::packer \
+	operator << (e::packer pa, const TYPE ## _id& rhs); \
+	e::unpacker \
+	operator >> (e::unpacker up, TYPE ## _id& rhs); \
+	OPERATOR(TYPE, <) \
+	OPERATOR(TYPE, <=) \
+	OPERATOR(TYPE, ==) \
+	OPERATOR(TYPE, !=) \
+	OPERATOR(TYPE, >=) \
+	OPERATOR(TYPE, >)
 
 BEGIN_HYPERDEX_NAMESPACE
 

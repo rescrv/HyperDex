@@ -36,29 +36,29 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class index_container : public index_info
 {
-    protected:
-        index_container();
-        virtual ~index_container() throw ();
+protected:
+	index_container();
+	virtual ~index_container() throw ();
 
-    public:
-        virtual void index_changes(const index* idx,
-                                   const region_id& ri,
-                                   const index_encoding* key_ie,
-                                   const e::slice& key,
-                                   const e::slice* old_value,
-                                   const e::slice* new_value,
-                                   leveldb::WriteBatch* updates) const;
-        virtual datalayer::index_iterator* iterator_from_check(leveldb_snapshot_ptr snap,
-                                                               const region_id& ri,
-                                                               const index_id& ii,
-                                                               const attribute_check& c,
-                                                               const index_encoding* key_ie) const;
+public:
+	virtual void index_changes(const index *idx,
+	                           const region_id &ri,
+	                           const index_encoding *key_ie,
+	                           const e::slice &key,
+	                           const e::slice *old_value,
+	                           const e::slice *new_value,
+	                           leveldb::WriteBatch *updates) const;
+	virtual datalayer::index_iterator *iterator_from_check(leveldb_snapshot_ptr snap,
+	        const region_id &ri,
+	        const index_id &ii,
+	        const attribute_check &c,
+	        const index_encoding *key_ie) const;
 
-    private:
-        virtual void extract_elements(const e::slice& container,
-                                      std::vector<e::slice>* elems) const = 0;
-        virtual const datatype_info* element_datatype_info() const = 0;
-        virtual const index_info* element_index_info() const = 0;
+private:
+	virtual void extract_elements(const e::slice &container,
+	                              std::vector<e::slice> *elems) const = 0;
+	virtual const datatype_info *element_datatype_info() const = 0;
+	virtual const index_info *element_index_info() const = 0;
 };
 
 END_HYPERDEX_NAMESPACE

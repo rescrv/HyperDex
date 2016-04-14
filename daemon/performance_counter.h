@@ -36,23 +36,23 @@ BEGIN_HYPERDEX_NAMESPACE
 // a threadsafe counter
 class performance_counter
 {
-    public:
-        performance_counter() : m_count(0) {}
-        ~performance_counter() throw () {}
+public:
+	performance_counter() : m_count(0) {}
+	~performance_counter() throw () {}
 
-    public:
-        // increment the counter
-        // any number of threads can tap simultaneously
-        void tap() { e::atomic::increment_64_nobarrier(&m_count, 1); }
-        // any number of threads can call "read" simultaneously
-        uint64_t read() const { return e::atomic::load_64_nobarrier(&m_count); }
+public:
+	// increment the counter
+	// any number of threads can tap simultaneously
+	void tap() { e::atomic::increment_64_nobarrier(&m_count, 1); }
+	// any number of threads can call "read" simultaneously
+	uint64_t read() const { return e::atomic::load_64_nobarrier(&m_count); }
 
-    private:
-        performance_counter(const performance_counter&);
-        performance_counter& operator = (const performance_counter&);
+private:
+	performance_counter(const performance_counter &);
+	performance_counter &operator = (const performance_counter &);
 
-    private:
-        uint64_t m_count;
+private:
+	uint64_t m_count;
 };
 
 END_HYPERDEX_NAMESPACE

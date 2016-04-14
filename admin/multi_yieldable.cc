@@ -31,8 +31,8 @@
 using hyperdex::multi_yieldable;
 
 multi_yieldable :: multi_yieldable(uint64_t id,
-                                   hyperdex_admin_returncode* s)
-    : yieldable(id, s)
+                                   hyperdex_admin_returncode *s)
+	: yieldable(id, s)
 {
 }
 

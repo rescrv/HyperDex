@@ -36,43 +36,43 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class datatype_int64 : public datatype_info
 {
-    public:
-        static int64_t unpack(const e::slice& value);
-        static int64_t unpack(const funcall& func);
-        static void pack(int64_t num, std::vector<char>* scratch, e::slice* value);
-        static bool static_validate(const e::slice& value);
+public:
+	static int64_t unpack(const e::slice &value);
+	static int64_t unpack(const funcall &func);
+	static void pack(int64_t num, std::vector<char> *scratch, e::slice *value);
+	static bool static_validate(const e::slice &value);
 
-    public:
-        datatype_int64();
-        virtual ~datatype_int64() throw ();
+public:
+	datatype_int64();
+	virtual ~datatype_int64() throw ();
 
-    public:
-        virtual hyperdatatype datatype() const;
-        virtual bool validate(const e::slice& value) const;
-        virtual bool check_args(const funcall& func) const;
-        virtual bool apply(const e::slice& old_value,
-                           const funcall* funcs, size_t funcs_sz,
-                           e::arena* new_memory,
-                           e::slice* new_value) const;
+public:
+	virtual hyperdatatype datatype() const;
+	virtual bool validate(const e::slice &value) const;
+	virtual bool check_args(const funcall &func) const;
+	virtual bool apply(const e::slice &old_value,
+	                   const funcall *funcs, size_t funcs_sz,
+	                   e::arena *new_memory,
+	                   e::slice *new_value) const;
 
-    public:
-        virtual bool hashable() const;
-        virtual uint64_t hash(const e::slice& value) const;
-        virtual bool indexable() const;
+public:
+	virtual bool hashable() const;
+	virtual uint64_t hash(const e::slice &value) const;
+	virtual bool indexable() const;
 
-    public:
-        virtual bool containable() const;
-        virtual bool step(const uint8_t** ptr,
-                          const uint8_t* end,
-                          e::slice* elem) const;
-        virtual uint64_t write_sz(const e::slice& elem) const;
-        virtual uint8_t* write(const e::slice& elem,
-                               uint8_t* write_to) const;
+public:
+	virtual bool containable() const;
+	virtual bool step(const uint8_t **ptr,
+	                  const uint8_t *end,
+	                  e::slice *elem) const;
+	virtual uint64_t write_sz(const e::slice &elem) const;
+	virtual uint8_t *write(const e::slice &elem,
+	                       uint8_t *write_to) const;
 
-    public:
-        virtual bool comparable() const;
-        virtual int compare(const e::slice& lhs, const e::slice& rhs) const;
-        virtual compares_less compare_less() const;
+public:
+	virtual bool comparable() const;
+	virtual int compare(const e::slice &lhs, const e::slice &rhs) const;
+	virtual compares_less compare_less() const;
 };
 
 END_HYPERDEX_NAMESPACE

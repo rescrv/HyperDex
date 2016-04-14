@@ -39,89 +39,89 @@ namespace hyperdex
 
 class Admin
 {
-    public:
-        Admin(const char* coordinator, uint16_t port)
-            : m_adm(hyperdex_admin_create(coordinator, port))
-        {
-            if (!m_adm)
-            {
-                throw std::bad_alloc();
-            }
-        }
-        ~Admin() throw ()
-        {
-            hyperdex_admin_destroy(m_adm);
-        }
+public:
+	Admin(const char *coordinator, uint16_t port)
+		: m_adm(hyperdex_admin_create(coordinator, port))
+	{
+		if (!m_adm)
+		{
+			throw std::bad_alloc();
+		}
+	}
+	~Admin() throw ()
+	{
+		hyperdex_admin_destroy(m_adm);
+	}
 
-    public:
-        int64_t dump_config(enum hyperdex_admin_returncode* status,
-                            const char** config)
-            { return hyperdex_admin_dump_config(m_adm, status, config); }
-        int64_t read_only(int ro, enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_read_only(m_adm, ro, status); }
-        int64_t wait_until_stable(enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_wait_until_stable(m_adm, status); }
-        int64_t fault_tolerance(const char* space, uint64_t ft,
-                                enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_fault_tolerance(m_adm, space, ft, status); }
-        int validate_space(const char* description,
-                           enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_validate_space(m_adm, description, status); }
-        int64_t add_space(const char* description,
-                          enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_add_space(m_adm, description, status); }
-        int64_t rm_space(const char* name,
-                         enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_rm_space(m_adm, name, status); }
-        int64_t mv_space(const char* source, const char* target,
-                         enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_mv_space(m_adm, source, target, status); }
-        int64_t list_spaces(enum hyperdex_admin_returncode* status,
-                            const char** spaces)
-            { return hyperdex_admin_list_spaces(m_adm, status, spaces); }
-        int64_t add_index(const char* space, const char* attr,
-                          enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_add_index(m_adm, space, attr, status); }
-        int64_t rm_index(uint64_t idxid, enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_rm_index(m_adm, idxid, status); }
-        int64_t server_register(uint64_t token, const char* address,
-                                enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_server_register(m_adm, token, address, status); }
-        int64_t server_online(uint64_t token, enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_server_online(m_adm, token, status); }
-        int64_t server_offline(uint64_t token, enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_server_offline(m_adm, token, status); }
-        int64_t server_forget(uint64_t token, enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_server_forget(m_adm, token, status); }
-        int64_t server_kill(uint64_t token, enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_server_kill(m_adm, token, status); }
-        int64_t backup(const char* name, enum hyperdex_admin_returncode* status, const char** backups)
-            { return hyperdex_admin_backup(m_adm, name, status, backups); }
-        int64_t enable_perf_counters(enum hyperdex_admin_returncode* status,
-                                     struct hyperdex_admin_perf_counter* pc)
-            { return hyperdex_admin_enable_perf_counters(m_adm, status, pc); }
-        void disable_perf_counters()
-            { return hyperdex_admin_disable_perf_counters(m_adm); }
+public:
+	int64_t dump_config(enum hyperdex_admin_returncode *status,
+	                    const char **config)
+	{ return hyperdex_admin_dump_config(m_adm, status, config); }
+	int64_t read_only(int ro, enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_read_only(m_adm, ro, status); }
+	int64_t wait_until_stable(enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_wait_until_stable(m_adm, status); }
+	int64_t fault_tolerance(const char *space, uint64_t ft,
+	                        enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_fault_tolerance(m_adm, space, ft, status); }
+	int validate_space(const char *description,
+	                   enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_validate_space(m_adm, description, status); }
+	int64_t add_space(const char *description,
+	                  enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_add_space(m_adm, description, status); }
+	int64_t rm_space(const char *name,
+	                 enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_rm_space(m_adm, name, status); }
+	int64_t mv_space(const char *source, const char *target,
+	                 enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_mv_space(m_adm, source, target, status); }
+	int64_t list_spaces(enum hyperdex_admin_returncode *status,
+	                    const char **spaces)
+	{ return hyperdex_admin_list_spaces(m_adm, status, spaces); }
+	int64_t add_index(const char *space, const char *attr,
+	                  enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_add_index(m_adm, space, attr, status); }
+	int64_t rm_index(uint64_t idxid, enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_rm_index(m_adm, idxid, status); }
+	int64_t server_register(uint64_t token, const char *address,
+	                        enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_server_register(m_adm, token, address, status); }
+	int64_t server_online(uint64_t token, enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_server_online(m_adm, token, status); }
+	int64_t server_offline(uint64_t token, enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_server_offline(m_adm, token, status); }
+	int64_t server_forget(uint64_t token, enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_server_forget(m_adm, token, status); }
+	int64_t server_kill(uint64_t token, enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_server_kill(m_adm, token, status); }
+	int64_t backup(const char *name, enum hyperdex_admin_returncode *status, const char **backups)
+	{ return hyperdex_admin_backup(m_adm, name, status, backups); }
+	int64_t enable_perf_counters(enum hyperdex_admin_returncode *status,
+	                             struct hyperdex_admin_perf_counter *pc)
+	{ return hyperdex_admin_enable_perf_counters(m_adm, status, pc); }
+	void disable_perf_counters()
+	{ return hyperdex_admin_disable_perf_counters(m_adm); }
 
-    public:
-        int64_t loop(int timeout, enum hyperdex_admin_returncode* status)
-            { return hyperdex_admin_loop(m_adm, timeout, status); }
-        std::string error_message()
-            { return hyperdex_admin_error_message(m_adm); }
-        std::string error_location()
-            { return hyperdex_admin_error_location(m_adm); }
+public:
+	int64_t loop(int timeout, enum hyperdex_admin_returncode *status)
+	{ return hyperdex_admin_loop(m_adm, timeout, status); }
+	std::string error_message()
+	{ return hyperdex_admin_error_message(m_adm); }
+	std::string error_location()
+	{ return hyperdex_admin_error_location(m_adm); }
 
-    private:
-        Admin(const Admin&);
-        Admin& operator = (const Admin&);
+private:
+	Admin(const Admin &);
+	Admin &operator = (const Admin &);
 
-    private:
-        hyperdex_admin* m_adm;
+private:
+	hyperdex_admin *m_adm;
 };
 
 } // namespace hyperdex
 
-std::ostream&
-operator << (std::ostream& lhs, hyperdex_admin_returncode rhs);
+std::ostream &
+operator << (std::ostream &lhs, hyperdex_admin_returncode rhs);
 
 #endif // hyperdex_admin_hpp_

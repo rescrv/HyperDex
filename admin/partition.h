@@ -35,7 +35,7 @@
 BEGIN_HYPERDEX_NAMESPACE
 
 void
-partition(uint16_t num_attrs, uint32_t num_servers, std::vector<region>* regions);
+partition(uint16_t num_attrs, uint32_t num_servers, std::vector<region> *regions);
 
 END_HYPERDEX_NAMESPACE
 

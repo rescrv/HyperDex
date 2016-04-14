@@ -29,21 +29,20 @@
 #include "common/coordinator_returncode.h"
 #include "common/macros.h"
 
-std::ostream&
-hyperdex :: operator << (std::ostream& lhs, coordinator_returncode rhs)
+std::ostream &
+hyperdex :: operator << (std::ostream &lhs, coordinator_returncode rhs)
 {
-    switch (rhs)
-    {
-        STRINGIFY(COORD_SUCCESS);
-        STRINGIFY(COORD_MALFORMED);
-        STRINGIFY(COORD_DUPLICATE);
-        STRINGIFY(COORD_NOT_FOUND);
-        STRINGIFY(COORD_UNINITIALIZED);
-        STRINGIFY(COORD_NO_CAN_DO);
-        default:
-            lhs << "unknown coordinator_returncode";
-            break;
-    }
-
-    return lhs;
+	switch (rhs)
+	{
+		STRINGIFY(COORD_SUCCESS);
+		STRINGIFY(COORD_MALFORMED);
+		STRINGIFY(COORD_DUPLICATE);
+		STRINGIFY(COORD_NOT_FOUND);
+		STRINGIFY(COORD_UNINITIALIZED);
+		STRINGIFY(COORD_NO_CAN_DO);
+	default:
+		lhs << "unknown coordinator_returncode";
+		break;
+	}
+	return lhs;
 }

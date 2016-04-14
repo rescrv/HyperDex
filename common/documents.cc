@@ -32,30 +32,29 @@
 #include "common/documents.h"
 
 bool
-hyperdex :: is_document_path(const e::slice& p)
+hyperdex :: is_document_path(const e::slice &p)
 {
-    std::string path(p.cdata(), p.size());
-    return treadstone_validate_path(path.c_str()) == 0;
+	std::string path(p.cdata(), p.size());
+	return treadstone_validate_path(path.c_str()) == 0;
 }
 
 void
-hyperdex :: parse_document_path(const char* attr_path,
-                                const char** attr,
-                                const char** path,
-                                std::string* scratch)
+hyperdex :: parse_document_path(const char *attr_path,
+                                const char **attr,
+                                const char **path,
+                                std::string *scratch)
 {
-    *attr = attr_path;
-    *path = NULL;
-
-    for (size_t i = 0; attr_path[i] != '\0'; ++i)
-    {
-        if (attr_path[i] == '[' ||
-            attr_path[i] == '.')
-        {
-            scratch->assign(attr_path, attr_path + i);
-            *attr = scratch->c_str();
-            *path = attr_path + i + 1;
-            break;
-        }
-    }
+	*attr = attr_path;
+	*path = NULL;
+	for (size_t i = 0; attr_path[i] != '\0'; ++i)
+	{
+		if (attr_path[i] == '[' ||
+		    attr_path[i] == '.')
+		{
+			scratch->assign(attr_path, attr_path + i);
+			*attr = scratch->c_str();
+			*path = attr_path + i + 1;
+			break;
+		}
+	}
 }

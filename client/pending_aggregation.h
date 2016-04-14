@@ -40,46 +40,46 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class pending_aggregation : public pending
 {
-    public:
-        pending_aggregation(uint64_t client_visible_id,
-                            hyperdex_client_returncode* status);
-        virtual ~pending_aggregation() throw ();
+public:
+	pending_aggregation(uint64_t client_visible_id,
+	                    hyperdex_client_returncode *status);
+	virtual ~pending_aggregation() throw ();
 
-    // handle aggregation across servers; must call handle_* messages from
-    // subclasses for this to work
-    public:
-        bool aggregation_done();
+	// handle aggregation across servers; must call handle_* messages from
+	// subclasses for this to work
+public:
+	bool aggregation_done();
 
-    // events
-    public:
-        virtual void handle_sent_to(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        // pass NULL for msg; we don't need it
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode* status,
-                                    e::error* error);
+	// events
+public:
+	virtual void handle_sent_to(const server_id &si,
+	                            const virtual_server_id &vsi);
+	virtual void handle_failure(const server_id &si,
+	                            const virtual_server_id &vsi);
+	// pass NULL for msg; we don't need it
+	virtual bool handle_message(client *,
+	                            const server_id &si,
+	                            const virtual_server_id &vsi,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_client_returncode *status,
+	                            e::error *error);
 
-    // refcount
-    protected:
-        friend class e::intrusive_ptr<pending_aggregation>;
+	// refcount
+protected:
+	friend class e::intrusive_ptr<pending_aggregation>;
 
-    // noncopyable
-    private:
-        pending_aggregation(const pending_aggregation& other);
-        pending_aggregation& operator = (const pending_aggregation& rhs);
+	// noncopyable
+private:
+	pending_aggregation(const pending_aggregation &other);
+	pending_aggregation &operator = (const pending_aggregation &rhs);
 
-    private:
-        virtual void remove(const server_id& si, const virtual_server_id& vsi);
+private:
+	virtual void remove(const server_id &si, const virtual_server_id &vsi);
 
-    private:
-        std::vector<std::pair<server_id, virtual_server_id> > m_outstanding;
+private:
+	std::vector<std::pair<server_id, virtual_server_id> > m_outstanding;
 };
 
 END_HYPERDEX_NAMESPACE

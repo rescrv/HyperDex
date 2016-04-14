@@ -36,89 +36,81 @@
 
 class connect_opts
 {
-    public:
-        connect_opts()
-            : m_ap() , m_host("127.0.0.1") , m_port(2012)
-        {
-            m_ap.arg().name('h', "host")
-                      .description("connect to the daemon on an IP address or hostname (default: 127.0.0.1)")
-                      .metavar("addr").as_string(&m_host);
-            m_ap.arg().name('p', "port")
-                      .description("connect to the daemon on an alternative port (default: 2012)")
-                      .metavar("port").as_long(&m_port);
-        }
-        ~connect_opts() throw () {}
+public:
+	connect_opts()
+		: m_ap() , m_host("127.0.0.1") , m_port(2012)
+	{
+		m_ap.arg().name('h', "host")
+		.description("connect to the daemon on an IP address or hostname (default: 127.0.0.1)")
+		.metavar("addr").as_string(&m_host);
+		m_ap.arg().name('p', "port")
+		.description("connect to the daemon on an alternative port (default: 2012)")
+		.metavar("port").as_long(&m_port);
+	}
+	~connect_opts() throw () {}
 
-    public:
-        const e::argparser& parser() { return m_ap; }
-        const char* host() { return m_host; }
-        uint16_t port() { return m_port; }
-        bool validate()
-        {
-            if (m_port <= 0 || m_port >= (1 << 16))
-            {
-                std::cerr << "port number to connect to is out of range" << std::endl;
-                return false;
-            }
+public:
+	const e::argparser &parser() { return m_ap; }
+	const char *host() { return m_host; }
+	uint16_t port() { return m_port; }
+	bool validate()
+	{
+		if (m_port <= 0 || m_port >= (1 << 16))
+		{
+			std::cerr << "port number to connect to is out of range" << std::endl;
+			return false;
+		}
+		return true;
+	}
 
-            return true;
-        }
+private:
+	connect_opts(const connect_opts &);
+	connect_opts &operator = (const connect_opts &);
 
-        private:
-            connect_opts(const connect_opts&);
-            connect_opts& operator = (const connect_opts&);
-
-    private:
-        e::argparser m_ap;
-        const char* m_host;
-        long m_port;
+private:
+	e::argparser m_ap;
+	const char *m_host;
+	long m_port;
 };
 
 int
-main(int argc, const char* argv[])
+main(int argc, const char *argv[])
 {
-    connect_opts conn;
-    e::argparser ap;
-    ap.autohelp();
-    ap.option_string("[OPTIONS] <backup-name>");
-    ap.add("Connect to a daemon:", conn.parser());
-
-    if (!ap.parse(argc, argv))
-    {
-        return EXIT_FAILURE;
-    }
-
-    if (!conn.validate())
-    {
-        std::cerr << "invalid host:port specification\n" << std::endl;
-        ap.usage();
-        return EXIT_FAILURE;
-    }
-
-    if (ap.args_sz() != 1)
-    {
-        std::cerr << "please specify a name for the backup" << std::endl;
-        ap.usage();
-        return EXIT_FAILURE;
-    }
-
-    const char* name = ap.args()[0];
-
-    try
-    {
-        hyperdex_admin_returncode rc;
-
-        if (hyperdex_admin_raw_backup(conn.host(), conn.port(), name, &rc) < 0)
-        {
-            std::cerr << "could not take raw backup: " << rc << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        return EXIT_SUCCESS;
-    }
-    catch (std::exception& e)
-    {
-        std::cerr << "error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
+	connect_opts conn;
+	e::argparser ap;
+	ap.autohelp();
+	ap.option_string("[OPTIONS] <backup-name>");
+	ap.add("Connect to a daemon:", conn.parser());
+	if (!ap.parse(argc, argv))
+	{
+		return EXIT_FAILURE;
+	}
+	if (!conn.validate())
+	{
+		std::cerr << "invalid host:port specification\n" << std::endl;
+		ap.usage();
+		return EXIT_FAILURE;
+	}
+	if (ap.args_sz() != 1)
+	{
+		std::cerr << "please specify a name for the backup" << std::endl;
+		ap.usage();
+		return EXIT_FAILURE;
+	}
+	const char *name = ap.args()[0];
+	try
+	{
+		hyperdex_admin_returncode rc;
+		if (hyperdex_admin_raw_backup(conn.host(), conn.port(), name, &rc) < 0)
+		{
+			std::cerr << "could not take raw backup: " << rc << std::endl;
+			return EXIT_FAILURE;
+		}
+		return EXIT_SUCCESS;
+	}
+	catch (std::exception &e)
+	{
+		std::cerr << "error: " << e.what() << std::endl;
+		return EXIT_FAILURE;
+	}
 }

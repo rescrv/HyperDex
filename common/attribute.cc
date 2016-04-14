@@ -31,27 +31,27 @@
 using hyperdex::attribute;
 
 attribute :: attribute()
-    : name("")
-    , type(HYPERDATATYPE_GARBAGE)
+	: name("")
+	, type(HYPERDATATYPE_GARBAGE)
 {
 }
 
-attribute :: attribute(const char* _name, hyperdatatype _type)
-    : name(_name)
-    , type(_type)
+attribute :: attribute(const char *_name, hyperdatatype _type)
+	: name(_name)
+	, type(_type)
 {
 }
 
-attribute :: attribute(const attribute& other)
-    : name(other.name)
-    , type(other.type)
+attribute :: attribute(const attribute &other)
+	: name(other.name)
+	, type(other.type)
 {
 }
 
-attribute&
-attribute :: operator = (const attribute& rhs)
+attribute &
+attribute :: operator = (const attribute &rhs)
 {
-    name = rhs.name;
-    type = rhs.type;
-    return *this;
+	name = rhs.name;
+	type = rhs.type;
+	return *this;
 }

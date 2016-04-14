@@ -48,87 +48,87 @@ BEGIN_HYPERDEX_NAMESPACE
 
 enum funcall_t
 {
-    FUNC_FAIL = 0,
+	FUNC_FAIL = 0,
 
-    FUNC_SET = 1,
+	FUNC_SET = 1,
 
-    FUNC_STRING_APPEND  = 2,
-    FUNC_STRING_PREPEND = 3,
-    FUNC_STRING_LTRIM   = 24,
-    FUNC_STRING_RTRIM   = 25,
+	FUNC_STRING_APPEND  = 2,
+	FUNC_STRING_PREPEND = 3,
+	FUNC_STRING_LTRIM   = 24,
+	FUNC_STRING_RTRIM   = 25,
 
-    FUNC_NUM_ADD = 4,
-    FUNC_NUM_SUB = 5,
-    FUNC_NUM_MUL = 6,
-    FUNC_NUM_DIV = 7,
-    FUNC_NUM_MOD = 8,
-    FUNC_NUM_AND = 9,
-    FUNC_NUM_OR  = 10,
-    FUNC_NUM_XOR = 11,
-    FUNC_NUM_MAX = 12,
-    FUNC_NUM_MIN = 13,
+	FUNC_NUM_ADD = 4,
+	FUNC_NUM_SUB = 5,
+	FUNC_NUM_MUL = 6,
+	FUNC_NUM_DIV = 7,
+	FUNC_NUM_MOD = 8,
+	FUNC_NUM_AND = 9,
+	FUNC_NUM_OR  = 10,
+	FUNC_NUM_XOR = 11,
+	FUNC_NUM_MAX = 12,
+	FUNC_NUM_MIN = 13,
 
-    FUNC_LIST_LPUSH = 14,
-    FUNC_LIST_RPUSH = 15,
+	FUNC_LIST_LPUSH = 14,
+	FUNC_LIST_RPUSH = 15,
 
-    FUNC_SET_ADD       = 16,
-    FUNC_SET_REMOVE    = 17,
-    FUNC_SET_INTERSECT = 18,
-    FUNC_SET_UNION     = 19,
+	FUNC_SET_ADD       = 16,
+	FUNC_SET_REMOVE    = 17,
+	FUNC_SET_INTERSECT = 18,
+	FUNC_SET_UNION     = 19,
 
-    FUNC_MAP_ADD    = 20,
-    FUNC_MAP_REMOVE = 21,
+	FUNC_MAP_ADD    = 20,
+	FUNC_MAP_REMOVE = 21,
 
-    FUNC_DOC_RENAME = 22,
-    FUNC_DOC_UNSET  = 23
+	FUNC_DOC_RENAME = 22,
+	FUNC_DOC_UNSET  = 23
 };
 
 class funcall
 {
-    public:
-        funcall();
-        ~funcall() throw ();
+public:
+	funcall();
+	~funcall() throw ();
 
-    public:
-        uint16_t attr;
-        funcall_t name;
-        e::slice arg1;
-        hyperdatatype arg1_datatype;
-        e::slice arg2;
-        hyperdatatype arg2_datatype;
+public:
+	uint16_t attr;
+	funcall_t name;
+	e::slice arg1;
+	hyperdatatype arg1_datatype;
+	e::slice arg2;
+	hyperdatatype arg2_datatype;
 };
 
 bool
-validate_func(const schema& sc, const funcall& func);
+validate_func(const schema &sc, const funcall &func);
 
 size_t
-validate_funcs(const schema& sc,
-               const std::vector<funcall>& funcs);
+validate_funcs(const schema &sc,
+               const std::vector<funcall> &funcs);
 
 size_t
-apply_funcs(const schema& sc,
-            const std::vector<funcall>& funcs,
-            const e::slice& key,
-            const std::vector<e::slice>& old_value,
-            e::arena* new_memory,
-            std::vector<e::slice>* new_value);
+apply_funcs(const schema &sc,
+            const std::vector<funcall> &funcs,
+            const e::slice &key,
+            const std::vector<e::slice> &old_value,
+            e::arena *new_memory,
+            std::vector<e::slice> *new_value);
 
 bool
-operator < (const funcall& lhs, const funcall& rhs);
+operator < (const funcall &lhs, const funcall &rhs);
 
 e::packer
-operator << (e::packer lhs, const funcall_t& rhs);
+operator << (e::packer lhs, const funcall_t &rhs);
 e::unpacker
-operator >> (e::unpacker lhs, funcall_t& rhs);
+operator >> (e::unpacker lhs, funcall_t &rhs);
 size_t
-pack_size(const funcall_t& f);
+pack_size(const funcall_t &f);
 
 e::packer
-operator << (e::packer lhs, const funcall& rhs);
+operator << (e::packer lhs, const funcall &rhs);
 e::unpacker
-operator >> (e::unpacker lhs, funcall& rhs);
+operator >> (e::unpacker lhs, funcall &rhs);
 size_t
-pack_size(const funcall& f);
+pack_size(const funcall &f);
 
 END_HYPERDEX_NAMESPACE
 

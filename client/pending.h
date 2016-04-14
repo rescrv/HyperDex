@@ -47,62 +47,62 @@ class client;
 
 class pending
 {
-    public:
-        pending(uint64_t client_visible_id,
-                hyperdex_client_returncode* status);
-        virtual ~pending() throw ();
+public:
+	pending(uint64_t client_visible_id,
+	        hyperdex_client_returncode *status);
+	virtual ~pending() throw ();
 
-    public:
-        int64_t client_visible_id() const { return m_client_visible_id; }
-        void set_status(hyperdex_client_returncode status) { *m_status = status; }
-        e::error error() const { return m_error; }
+public:
+	int64_t client_visible_id() const { return m_client_visible_id; }
+	void set_status(hyperdex_client_returncode status) { *m_status = status; }
+	e::error error() const { return m_error; }
 
-    // return to client
-    public:
-        virtual bool can_yield() = 0;
-        virtual bool yield(hyperdex_client_returncode* status, e::error* error) = 0;
+	// return to client
+public:
+	virtual bool can_yield() = 0;
+	virtual bool yield(hyperdex_client_returncode *status, e::error *error) = 0;
 
-    // events
-    public:
-        virtual void handle_sent_to(const server_id& si,
-                                    const virtual_server_id& vsi) = 0;
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi) = 0;
-        virtual bool handle_message(client* cl,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode* status,
-                                    e::error* error) = 0;
+	// events
+public:
+	virtual void handle_sent_to(const server_id &si,
+	                            const virtual_server_id &vsi) = 0;
+	virtual void handle_failure(const server_id &si,
+	                            const virtual_server_id &vsi) = 0;
+	virtual bool handle_message(client *cl,
+	                            const server_id &si,
+	                            const virtual_server_id &vsi,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_client_returncode *status,
+	                            e::error *error) = 0;
 
-    // refcount
-    protected:
-        friend class e::intrusive_ptr<pending>;
-        void inc() { ++m_ref; }
-        void dec() { if (--m_ref == 0) delete this; }
-        size_t m_ref;
+	// refcount
+protected:
+	friend class e::intrusive_ptr<pending>;
+	void inc() { ++m_ref; }
+	void dec() { if (--m_ref == 0) delete this; }
+	size_t m_ref;
 
-    protected:
-        std::ostream& error(const char* file, size_t line);
-        void set_error(const e::error& err);
+protected:
+	std::ostream &error(const char *file, size_t line);
+	void set_error(const e::error &err);
 
-    // noncopyable
-    private:
-        pending(const pending& other);
-        pending& operator = (const pending& rhs);
+	// noncopyable
+private:
+	pending(const pending &other);
+	pending &operator = (const pending &rhs);
 
-    // operation state
-    private:
-        int64_t m_client_visible_id;
-        hyperdex_client_returncode* m_status;
-        e::error m_error;
+	// operation state
+private:
+	int64_t m_client_visible_id;
+	hyperdex_client_returncode *m_status;
+	e::error m_error;
 };
 
 #define PENDING_ERROR(CODE) \
-    this->set_status(HYPERDEX_CLIENT_ ## CODE); \
-    this->error(__FILE__, __LINE__)
+	this->set_status(HYPERDEX_CLIENT_ ## CODE); \
+	this->error(__FILE__, __LINE__)
 
 END_HYPERDEX_NAMESPACE
 

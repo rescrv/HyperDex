@@ -31,48 +31,46 @@
 using hyperdex::key_region;
 
 key_region :: key_region()
-    : region()
-    , key()
+	: region()
+	, key()
 {
 }
 
-key_region :: key_region(const region_id& r, const e::slice& k)
-    : region(r)
-    , key(reinterpret_cast<const char*>(k.data()), k.size())
+key_region :: key_region(const region_id &r, const e::slice &k)
+	: region(r)
+	, key(reinterpret_cast<const char *>(k.data()), k.size())
 {
 }
 
-key_region :: key_region(const key_region& other)
-    : region(other.region)
-    , key(other.key)
+key_region :: key_region(const key_region &other)
+	: region(other.region)
+	, key(other.key)
 {
-}
-
-bool
-key_region :: operator < (const key_region& rhs) const
-{
-    if (region == rhs.region)
-    {
-        return key < rhs.key;
-    }
-
-    return region < rhs.region;
 }
 
 bool
-key_region :: operator == (const key_region& rhs) const
+key_region :: operator < (const key_region &rhs) const
 {
-    return region == rhs.region && key == rhs.key;
+	if (region == rhs.region)
+	{
+		return key < rhs.key;
+	}
+	return region < rhs.region;
 }
 
-key_region&
-key_region :: operator = (const key_region& rhs)
+bool
+key_region :: operator == (const key_region &rhs) const
 {
-    if (this != &rhs)
-    {
-        region = rhs.region;
-        key = rhs.key;
-    }
+	return region == rhs.region && key == rhs.key;
+}
 
-    return *this;
+key_region &
+key_region :: operator = (const key_region &rhs)
+{
+	if (this != &rhs)
+	{
+		region = rhs.region;
+		key = rhs.key;
+	}
+	return *this;
 }

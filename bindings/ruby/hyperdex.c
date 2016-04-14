@@ -43,12 +43,11 @@ Init_hyperdex_admin();
 HYPERDEX_API void
 Init_hyperdex()
 {
-    mod_hyperdex = rb_define_module("HyperDex");
-
+	mod_hyperdex = rb_define_module("HyperDex");
 #ifdef HYPERDEX_CLIENT
-    Init_hyperdex_client();
+	Init_hyperdex_client();
 #endif
 #ifdef HYPERDEX_ADMIN
-    Init_hyperdex_admin();
+	Init_hyperdex_admin();
 #endif
 };

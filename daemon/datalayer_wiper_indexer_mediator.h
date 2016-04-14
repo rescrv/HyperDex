@@ -32,34 +32,34 @@ using hyperdex::datalayer;
 
 class datalayer::wiper_indexer_mediator
 {
-    public:
-        wiper_indexer_mediator();
-        ~wiper_indexer_mediator() throw ();
+public:
+	wiper_indexer_mediator();
+	~wiper_indexer_mediator() throw ();
 
-    public:
-        void debug_dump();
-        bool region_conflicts_with_wiper(const region_id& ri);
-        bool region_conflicts_with_indexer(const region_id& ri);
-        bool set_wiper_region(const region_id& ri);
-        bool set_indexer_region(const region_id& ri);
-        void clear_wiper_region();
-        void clear_indexer_region();
+public:
+	void debug_dump();
+	bool region_conflicts_with_wiper(const region_id &ri);
+	bool region_conflicts_with_indexer(const region_id &ri);
+	bool set_wiper_region(const region_id &ri);
+	bool set_indexer_region(const region_id &ri);
+	void clear_wiper_region();
+	void clear_indexer_region();
 
-    private:
-        wiper_indexer_mediator(const wiper_indexer_mediator&);
-        wiper_indexer_mediator& operator = (const wiper_indexer_mediator&);
+private:
+	wiper_indexer_mediator(const wiper_indexer_mediator &);
+	wiper_indexer_mediator &operator = (const wiper_indexer_mediator &);
 
-    private:
-        po6::threads::mutex m_protect;
-        region_id m_wiper;
-        region_id m_indexer;
+private:
+	po6::threads::mutex m_protect;
+	region_id m_wiper;
+	region_id m_indexer;
 };
 
 inline
 datalayer :: wiper_indexer_mediator :: wiper_indexer_mediator()
-    : m_protect()
-    , m_wiper()
-    , m_indexer()
+	: m_protect()
+	, m_wiper()
+	, m_indexer()
 {
 }
 
@@ -71,66 +71,62 @@ datalayer :: wiper_indexer_mediator :: ~wiper_indexer_mediator() throw ()
 inline void
 datalayer :: wiper_indexer_mediator :: debug_dump()
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    LOG(INFO) << "wiper-indexer mediator ========================================================";
-    LOG(INFO) << "wiper=" << m_wiper;
-    LOG(INFO) << "indexer=" << m_indexer;
+	po6::threads::mutex::hold hold(&m_protect);
+	LOG(INFO) << "wiper-indexer mediator ========================================================";
+	LOG(INFO) << "wiper=" << m_wiper;
+	LOG(INFO) << "indexer=" << m_indexer;
 }
 
 inline bool
-datalayer :: wiper_indexer_mediator :: region_conflicts_with_wiper(const region_id& ri)
+datalayer :: wiper_indexer_mediator :: region_conflicts_with_wiper(const region_id &ri)
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    return m_wiper == ri;
+	po6::threads::mutex::hold hold(&m_protect);
+	return m_wiper == ri;
 }
 
 inline bool
-datalayer :: wiper_indexer_mediator :: region_conflicts_with_indexer(const region_id& ri)
+datalayer :: wiper_indexer_mediator :: region_conflicts_with_indexer(const region_id &ri)
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    return m_indexer == ri;
+	po6::threads::mutex::hold hold(&m_protect);
+	return m_indexer == ri;
 }
 
 inline bool
-datalayer :: wiper_indexer_mediator :: set_wiper_region(const region_id& ri)
+datalayer :: wiper_indexer_mediator :: set_wiper_region(const region_id &ri)
 {
-    po6::threads::mutex::hold hold(&m_protect);
-
-    if (m_indexer != ri)
-    {
-        m_wiper = ri;
-        return true;
-    }
-
-    return false;
+	po6::threads::mutex::hold hold(&m_protect);
+	if (m_indexer != ri)
+	{
+		m_wiper = ri;
+		return true;
+	}
+	return false;
 }
 
 inline bool
-datalayer :: wiper_indexer_mediator :: set_indexer_region(const region_id& ri)
+datalayer :: wiper_indexer_mediator :: set_indexer_region(const region_id &ri)
 {
-    po6::threads::mutex::hold hold(&m_protect);
-
-    if (m_wiper != ri)
-    {
-        m_indexer = ri;
-        return true;
-    }
-
-    return false;
+	po6::threads::mutex::hold hold(&m_protect);
+	if (m_wiper != ri)
+	{
+		m_indexer = ri;
+		return true;
+	}
+	return false;
 }
 
 inline void
 datalayer :: wiper_indexer_mediator :: clear_wiper_region()
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    m_wiper = region_id();
+	po6::threads::mutex::hold hold(&m_protect);
+	m_wiper = region_id();
 }
 
 inline void
 datalayer :: wiper_indexer_mediator :: clear_indexer_region()
 {
-    po6::threads::mutex::hold hold(&m_protect);
-    m_indexer = region_id();
+	po6::threads::mutex::hold hold(&m_protect);
+	m_indexer = region_id();
 }
 
 #endif // hyperdex_daemon_datalayer_wiper_indexer_mediator_h_

@@ -31,9 +31,9 @@
 using hyperdex::server_barrier;
 
 server_barrier :: server_barrier()
-    : m_versions()
+	: m_versions()
 {
-    m_versions.push_back(std::make_pair(uint64_t(0), std::vector<server_id>()));
+	m_versions.push_back(std::make_pair(uint64_t(0), std::vector<server_id>()));
 }
 
 server_barrier :: ~server_barrier() throw ()
@@ -43,122 +43,111 @@ server_barrier :: ~server_barrier() throw ()
 uint64_t
 server_barrier :: min_version() const
 {
-    return m_versions.front().first;
+	return m_versions.front().first;
 }
 
 void
 server_barrier :: new_version(uint64_t version,
-                              const std::vector<server_id>& servers)
+                              const std::vector<server_id> &servers)
 {
-    assert(!m_versions.empty());
-    assert(version > 0);
-    assert(m_versions.back().first < version);
-    m_versions.push_back(std::make_pair(version, servers));
-    maybe_clear_prefix();
+	assert(!m_versions.empty());
+	assert(version > 0);
+	assert(m_versions.back().first < version);
+	m_versions.push_back(std::make_pair(version, servers));
+	maybe_clear_prefix();
 }
 
 void
-server_barrier :: pass(uint64_t version, const server_id& sid)
+server_barrier :: pass(uint64_t version, const server_id &sid)
 {
-    for (version_list_t::iterator it = m_versions.begin();
-            it != m_versions.end(); ++it)
-    {
-        if (it->first < version)
-        {
-            continue;
-        }
-        else if (it->first > version)
-        {
-            break;
-        }
-
-        assert(it->first == version);
-
-        for (size_t i = 0; i < it->second.size(); )
-        {
-            if (it->second[i] == sid)
-            {
-                it->second[i] = it->second.back();
-                it->second.pop_back();
-            }
-            else
-            {
-                ++i;
-            }
-        }
-
-        maybe_clear_prefix();
-        return;
-    }
+	for (version_list_t::iterator it = m_versions.begin();
+	     it != m_versions.end(); ++it)
+	{
+		if (it->first < version)
+		{
+			continue;
+		}
+		else if (it->first > version)
+		{
+			break;
+		}
+		assert(it->first == version);
+		for (size_t i = 0; i < it->second.size(); )
+		{
+			if (it->second[i] == sid)
+			{
+				it->second[i] = it->second.back();
+				it->second.pop_back();
+			}
+			else
+			{
+				++i;
+			}
+		}
+		maybe_clear_prefix();
+		return;
+	}
 }
 
 void
 server_barrier :: maybe_clear_prefix()
 {
-    version_list_t::iterator last_empty = m_versions.end();
-
-    for (version_list_t::iterator it = m_versions.begin();
-            it != m_versions.end(); ++it)
-    {
-        if (it->second.empty())
-        {
-            last_empty = it;
-        }
-    }
-
-    if (last_empty != m_versions.end())
-    {
-        while (m_versions.begin() != last_empty)
-        {
-            m_versions.pop_front();
-        }
-    }
+	version_list_t::iterator last_empty = m_versions.end();
+	for (version_list_t::iterator it = m_versions.begin();
+	     it != m_versions.end(); ++it)
+	{
+		if (it->second.empty())
+		{
+			last_empty = it;
+		}
+	}
+	if (last_empty != m_versions.end())
+	{
+		while (m_versions.begin() != last_empty)
+		{
+			m_versions.pop_front();
+		}
+	}
 }
 
 size_t
-hyperdex :: pack_size(const server_barrier& ri)
+hyperdex :: pack_size(const server_barrier &ri)
 {
-    typedef server_barrier::version_list_t version_list_t;
-    size_t sz = sizeof(uint32_t);
-
-    for (version_list_t::const_iterator it = ri.m_versions.begin();
-            it != ri.m_versions.end(); ++it)
-    {
-        sz += sizeof(uint64_t) + pack_size(it->second);
-    }
-
-    return sz;
+	typedef server_barrier::version_list_t version_list_t;
+	size_t sz = sizeof(uint32_t);
+	for (version_list_t::const_iterator it = ri.m_versions.begin();
+	     it != ri.m_versions.end(); ++it)
+	{
+		sz += sizeof(uint64_t) + pack_size(it->second);
+	}
+	return sz;
 }
 
 e::packer
-hyperdex :: operator << (e::packer pa, const server_barrier& ri)
+hyperdex :: operator << (e::packer pa, const server_barrier &ri)
 {
-    typedef server_barrier::version_list_t version_list_t;
-    uint32_t x = ri.m_versions.size();
-    pa = pa << x;
-
-    for (version_list_t::const_iterator it = ri.m_versions.begin();
-            it != ri.m_versions.end(); ++it)
-    {
-        pa = pa << it->first << it->second;
-    }
-
-    return pa;
+	typedef server_barrier::version_list_t version_list_t;
+	uint32_t x = ri.m_versions.size();
+	pa = pa << x;
+	for (version_list_t::const_iterator it = ri.m_versions.begin();
+	     it != ri.m_versions.end(); ++it)
+	{
+		pa = pa << it->first << it->second;
+	}
+	return pa;
 }
 
 e::unpacker
-hyperdex :: operator >> (e::unpacker up, server_barrier& ri)
+hyperdex :: operator >> (e::unpacker up, server_barrier &ri)
 {
-    typedef server_barrier::version_t version_t;
-    uint32_t x = 0;
-    up = up >> x;
-
-    for (size_t i = 0; i < x && !up.error(); ++i)
-    {
-        ri.m_versions.push_back(version_t());
-        version_t& v(ri.m_versions.back());
-        up = up >> v.first >> v.second;
-    }
-
-    return up;
+	typedef server_barrier::version_t version_t;
+	uint32_t x = 0;
+	up = up >> x;
+	for (size_t i = 0; i < x && !up.error(); ++i)
+	{
+		ri.m_versions.push_back(version_t());
+		version_t &v(ri.m_versions.back());
+		up = up >> v.first >> v.second;
+	}
+	return up;
 }

@@ -37,42 +37,42 @@ BEGIN_HYPERDEX_NAMESPACE
 class datatype_info;
 class pending_sum : public pending_aggregation
 {
-    public:
-        pending_sum(uint64_t client_visible_id,
-                      uint16_t sum_idx,
-					  datatype_info* sum_di,
-                      hyperdex_client_returncode* status,
-                      uint64_t* count);
-        virtual ~pending_sum() throw ();
+public:
+	pending_sum(uint64_t client_visible_id,
+	            uint16_t sum_idx,
+	            datatype_info *sum_di,
+	            hyperdex_client_returncode *status,
+	            uint64_t *count);
+	virtual ~pending_sum() throw ();
 
-    // return to client
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
+	// return to client
+public:
+	virtual bool can_yield();
+	virtual bool yield(hyperdex_client_returncode *status, e::error *error);
 
-    // events
-    public:
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode* status,
-                                    e::error* error);
+	// events
+public:
+	virtual void handle_failure(const server_id &si,
+	                            const virtual_server_id &vsi);
+	virtual bool handle_message(client *,
+	                            const server_id &si,
+	                            const virtual_server_id &vsi,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_client_returncode *status,
+	                            e::error *error);
 
-    // noncopyable
-    private:
-        pending_sum(const pending_sum& other);
-        pending_sum& operator = (const pending_sum& rhs);
+	// noncopyable
+private:
+	pending_sum(const pending_sum &other);
+	pending_sum &operator = (const pending_sum &rhs);
 
-    private:
-		const uint16_t m_sum_idx;
-		datatype_info *m_sum_di;
-        uint64_t* m_sum;
-        bool m_done;
+private:
+	const uint16_t m_sum_idx;
+	datatype_info *m_sum_di;
+	uint64_t *m_sum;
+	bool m_done;
 };
 
 END_HYPERDEX_NAMESPACE

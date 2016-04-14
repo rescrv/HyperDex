@@ -35,54 +35,54 @@
 #include <hyperdex/client.h>
 #include <hyperdex/datastructures.h>
 
-const char*
-hyperdex_java_client_convert_cstring(JNIEnv* env,
-                                     struct hyperdex_ds_arena* arena,
+const char *
+hyperdex_java_client_convert_cstring(JNIEnv *env,
+                                     struct hyperdex_ds_arena *arena,
                                      jobject str);
 
 int
-hyperdex_java_client_convert_attributes(JNIEnv* env, jobject client,
-                                        struct hyperdex_ds_arena* arena,
+hyperdex_java_client_convert_attributes(JNIEnv *env, jobject client,
+                                        struct hyperdex_ds_arena *arena,
                                         jobject x,
-                                        const struct hyperdex_client_attribute** _attrs,
-                                        size_t* _attrs_sz);
+                                        const struct hyperdex_client_attribute **_attrs,
+                                        size_t *_attrs_sz);
 
 int
-hyperdex_java_client_convert_key(JNIEnv* env, jobject client,
-                                 struct hyperdex_ds_arena* arena,
+hyperdex_java_client_convert_key(JNIEnv *env, jobject client,
+                                 struct hyperdex_ds_arena *arena,
                                  jobject x,
-                                 const char** key,
-                                 size_t* key_sz);
+                                 const char **key,
+                                 size_t *key_sz);
 
 int
-hyperdex_java_client_convert_predicates(JNIEnv* env, jobject client,
-                                        struct hyperdex_ds_arena* arena,
+hyperdex_java_client_convert_predicates(JNIEnv *env, jobject client,
+                                        struct hyperdex_ds_arena *arena,
                                         jobject x,
-                                        const struct hyperdex_client_attribute_check** _checks,
-                                        size_t* _checks_sz);
+                                        const struct hyperdex_client_attribute_check **_checks,
+                                        size_t *_checks_sz);
 
 int
-hyperdex_java_client_throw_exception(JNIEnv* env,
+hyperdex_java_client_throw_exception(JNIEnv *env,
                                      enum hyperdex_client_returncode _rc,
-                                     const char* message);
+                                     const char *message);
 
 struct hyperdex_java_client_deferred
 {
-    struct hyperdex_ds_arena* arena;
-    int64_t reqid;
-    enum hyperdex_client_returncode status;
-    const struct hyperdex_client_attribute* attrs;
-    size_t attrs_sz;
-    const char* description;
-    uint64_t count;
-    int finished;
-    jobject (*encode_return)(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d);
+	struct hyperdex_ds_arena *arena;
+	int64_t reqid;
+	enum hyperdex_client_returncode status;
+	const struct hyperdex_client_attribute *attrs;
+	size_t attrs_sz;
+	const char *description;
+	uint64_t count;
+	int finished;
+	jobject (*encode_return)(JNIEnv *env, jobject obj, struct hyperdex_java_client_deferred *d);
 };
 
 jobject
-hyperdex_java_client_deferred_encode_status_count(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d);
+hyperdex_java_client_deferred_encode_status_count(JNIEnv *env, jobject obj, struct hyperdex_java_client_deferred *d);
 
 jobject
-hyperdex_java_client_deferred_encode_status(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d);
+hyperdex_java_client_deferred_encode_status(JNIEnv *env, jobject obj, struct hyperdex_java_client_deferred *d);
 
 #endif

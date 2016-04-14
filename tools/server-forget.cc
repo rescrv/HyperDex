@@ -33,77 +33,65 @@
 #include "tools/common.h"
 
 int
-main(int argc, const char* argv[])
+main(int argc, const char *argv[])
 {
-    hyperdex::connect_opts conn;
-    e::argparser ap;
-    ap.autohelp();
-    ap.option_string("[OPTIONS] <server-id>");
-    ap.add("Connect to a cluster:", conn.parser());
-
-    if (!ap.parse(argc, argv))
-    {
-        return EXIT_FAILURE;
-    }
-
-    if (!conn.validate())
-    {
-        std::cerr << "invalid host:port specification\n" << std::endl;
-        ap.usage();
-        return EXIT_FAILURE;
-    }
-
-    if (ap.args_sz() != 1)
-    {
-        std::cerr << "please specify the server id" << std::endl;
-        ap.usage();
-        return EXIT_FAILURE;
-    }
-
-    char* end = NULL;
-    uint64_t token = strtoull(ap.args()[0], &end, 0);
-
-    if (*end != '\0' || ap.args()[0] == end)
-    {
-        std::cerr << "server id must be a number" << std::endl;
-        ap.usage();
-        return EXIT_FAILURE;
-    }
-
-    try
-    {
-        hyperdex::Admin h(conn.host(), conn.port());
-        hyperdex_admin_returncode rrc;
-        int64_t rid = h.server_forget(token, &rrc);
-
-        if (rid < 0)
-        {
-            std::cerr << "could not forget server: " << rrc << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        hyperdex_admin_returncode lrc;
-        int64_t lid = h.loop(-1, &lrc);
-
-        if (lid < 0)
-        {
-            std::cerr << "could not forget server: " << lrc << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        assert(rid == lid);
-
-        if (rrc != HYPERDEX_ADMIN_SUCCESS)
-        {
-            std::cerr << "could not forget server: " << rrc << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        return EXIT_SUCCESS;
-    }
-    catch (std::exception& e)
-    {
-        std::cerr << "error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
+	hyperdex::connect_opts conn;
+	e::argparser ap;
+	ap.autohelp();
+	ap.option_string("[OPTIONS] <server-id>");
+	ap.add("Connect to a cluster:", conn.parser());
+	if (!ap.parse(argc, argv))
+	{
+		return EXIT_FAILURE;
+	}
+	if (!conn.validate())
+	{
+		std::cerr << "invalid host:port specification\n" << std::endl;
+		ap.usage();
+		return EXIT_FAILURE;
+	}
+	if (ap.args_sz() != 1)
+	{
+		std::cerr << "please specify the server id" << std::endl;
+		ap.usage();
+		return EXIT_FAILURE;
+	}
+	char *end = NULL;
+	uint64_t token = strtoull(ap.args()[0], &end, 0);
+	if (*end != '\0' || ap.args()[0] == end)
+	{
+		std::cerr << "server id must be a number" << std::endl;
+		ap.usage();
+		return EXIT_FAILURE;
+	}
+	try
+	{
+		hyperdex::Admin h(conn.host(), conn.port());
+		hyperdex_admin_returncode rrc;
+		int64_t rid = h.server_forget(token, &rrc);
+		if (rid < 0)
+		{
+			std::cerr << "could not forget server: " << rrc << std::endl;
+			return EXIT_FAILURE;
+		}
+		hyperdex_admin_returncode lrc;
+		int64_t lid = h.loop(-1, &lrc);
+		if (lid < 0)
+		{
+			std::cerr << "could not forget server: " << lrc << std::endl;
+			return EXIT_FAILURE;
+		}
+		assert(rid == lid);
+		if (rrc != HYPERDEX_ADMIN_SUCCESS)
+		{
+			std::cerr << "could not forget server: " << rrc << std::endl;
+			return EXIT_FAILURE;
+		}
+		return EXIT_SUCCESS;
+	}
+	catch (std::exception &e)
+	{
+		std::cerr << "error: " << e.what() << std::endl;
+		return EXIT_FAILURE;
+	}
 }

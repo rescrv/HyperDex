@@ -41,7 +41,7 @@ using hyperdex::region_id;
 const region_id identifier_generator::defaultri;
 
 identifier_generator :: identifier_generator()
-    : m_generators()
+	: m_generators()
 {
 }
 
@@ -50,74 +50,62 @@ identifier_generator :: ~identifier_generator() throw ()
 }
 
 bool
-identifier_generator :: bump(const region_id& ri, uint64_t id)
+identifier_generator :: bump(const region_id &ri, uint64_t id)
 {
-    uint64_t* val = NULL;
-
-    if (!m_generators.mod(ri, &val))
-    {
-        return false;
-    }
-
-    uint64_t count = load_64_nobarrier(val);
-
-    while (count <= id)
-    {
-        count = e::atomic::compare_and_swap_64_nobarrier(val, count, id + 1);
-    }
-
-    return true;
+	uint64_t *val = NULL;
+	if (!m_generators.mod(ri, &val))
+	{
+		return false;
+	}
+	uint64_t count = load_64_nobarrier(val);
+	while (count <= id)
+	{
+		count = e::atomic::compare_and_swap_64_nobarrier(val, count, id + 1);
+	}
+	return true;
 }
 
 uint64_t
-identifier_generator :: peek(const region_id& ri) const
+identifier_generator :: peek(const region_id &ri) const
 {
-    e::atomic::memory_barrier();
-    uint64_t val = 0;
-
-    if (!m_generators.get(ri, &val))
-    {
-        abort();
-    }
-
-    return val;
+	e::atomic::memory_barrier();
+	uint64_t val = 0;
+	if (!m_generators.get(ri, &val))
+	{
+		abort();
+	}
+	return val;
 }
 
 uint64_t
-identifier_generator :: generate_id(const region_id& ri)
+identifier_generator :: generate_id(const region_id &ri)
 {
-    uint64_t* val = NULL;
-
-    if (!m_generators.mod(ri, &val))
-    {
-        abort();
-    }
-
-    return e::atomic::increment_64_nobarrier(val, 1) - 1;
+	uint64_t *val = NULL;
+	if (!m_generators.mod(ri, &val))
+	{
+		abort();
+	}
+	return e::atomic::increment_64_nobarrier(val, 1) - 1;
 }
 
 void
-identifier_generator :: adopt(region_id* ris, size_t ris_sz)
+identifier_generator :: adopt(region_id *ris, size_t ris_sz)
 {
-    generator_map_t new_generators;
-
-    for (size_t i = 0; i < ris_sz; ++i)
-    {
-        uint64_t count = 0;
-
-        if (!m_generators.get(ris[i], &count))
-        {
-            count = 1;
-        }
-
-        new_generators.put(ris[i], count);
-    }
-
-    m_generators.swap(&new_generators);
+	generator_map_t new_generators;
+	for (size_t i = 0; i < ris_sz; ++i)
+	{
+		uint64_t count = 0;
+		if (!m_generators.get(ris[i], &count))
+		{
+			count = 1;
+		}
+		new_generators.put(ris[i], count);
+	}
+	m_generators.swap(&new_generators);
 }
 
 void
-identifier_generator :: copy_from(const identifier_generator& ig)
+identifier_generator :: copy_from(const identifier_generator &ig)
 {
-    m_generators.copy_from(ig.m_generators);
+	m_generators.copy_from(ig.m_generators);
 }

@@ -53,131 +53,131 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class admin
 {
-    public:
-        admin(const char* coordinator, uint16_t port);
-        ~admin() throw ();
+public:
+	admin(const char *coordinator, uint16_t port);
+	~admin() throw ();
 
-    public:
-        // introspect the config
-        int64_t dump_config(enum hyperdex_admin_returncode* status,
-                            const char** config);
-        // cluster
-        int64_t read_only(int ro,
-                          enum hyperdex_admin_returncode* status);
-        int64_t wait_until_stable(enum hyperdex_admin_returncode* status);
-        int64_t fault_tolerance(const char* space, uint64_t ft,
-                                enum hyperdex_admin_returncode* status);
-        // manage spaces
-        int validate_space(const char* description,
-                           enum hyperdex_admin_returncode* status);
-        int64_t add_space(const char* description,
-                          enum hyperdex_admin_returncode* status);
-        int64_t rm_space(const char* name,
-                         enum hyperdex_admin_returncode* status);
-        int64_t mv_space(const char* source, const char* target,
-                         enum hyperdex_admin_returncode* status);
-        int64_t add_index(const char* space, const char* attr,
-                          enum hyperdex_admin_returncode* status);
-        int64_t list_indices(const char* space, enum hyperdex_admin_returncode* status,
-                            const char** spaces);
-        int64_t rm_index(uint64_t idxid,
-                         enum hyperdex_admin_returncode* status);
-        int64_t list_spaces(enum hyperdex_admin_returncode* status,
-                            const char** spaces);
-        int64_t list_subspaces(const char* space,
-                            enum hyperdex_admin_returncode* status,
-                            const char** subspaces);
-        // manage servers
-        int64_t server_register(uint64_t token, const char* address,
-                                enum hyperdex_admin_returncode* status);
-        int64_t server_online(uint64_t token, enum hyperdex_admin_returncode* status);
-        int64_t server_offline(uint64_t token, enum hyperdex_admin_returncode* status);
-        int64_t server_forget(uint64_t token, enum hyperdex_admin_returncode* status);
-        int64_t server_kill(uint64_t token, enum hyperdex_admin_returncode* status);
-        // backups
-        int64_t backup(const char* name, enum hyperdex_admin_returncode* status, const char** backups);
-        int64_t coord_backup(const char* path,
-                             enum hyperdex_admin_returncode* status);
-        int64_t raw_backup(const server_id& sid, const char* name,
-                           enum hyperdex_admin_returncode* status,
-                           const char** path);
-        // read performance counters
-        int64_t enable_perf_counters(hyperdex_admin_returncode* status,
-                                     hyperdex_admin_perf_counter* pc);
-        void disable_perf_counters();
-        // looping/polling
-        int64_t loop(int timeout, hyperdex_admin_returncode* status);
-        // error handling
-        const char* error_message();
-        const char* error_location();
-        void set_error_message(const char* msg);
-        void interpret_replicant_returncode(replicant_returncode rstatus,
-                                            hyperdex_admin_returncode* status,
-                                            e::error* err);
+public:
+	// introspect the config
+	int64_t dump_config(enum hyperdex_admin_returncode *status,
+	                    const char **config);
+	// cluster
+	int64_t read_only(int ro,
+	                  enum hyperdex_admin_returncode *status);
+	int64_t wait_until_stable(enum hyperdex_admin_returncode *status);
+	int64_t fault_tolerance(const char *space, uint64_t ft,
+	                        enum hyperdex_admin_returncode *status);
+	// manage spaces
+	int validate_space(const char *description,
+	                   enum hyperdex_admin_returncode *status);
+	int64_t add_space(const char *description,
+	                  enum hyperdex_admin_returncode *status);
+	int64_t rm_space(const char *name,
+	                 enum hyperdex_admin_returncode *status);
+	int64_t mv_space(const char *source, const char *target,
+	                 enum hyperdex_admin_returncode *status);
+	int64_t add_index(const char *space, const char *attr,
+	                  enum hyperdex_admin_returncode *status);
+	int64_t list_indices(const char *space, enum hyperdex_admin_returncode *status,
+	                     const char **spaces);
+	int64_t rm_index(uint64_t idxid,
+	                 enum hyperdex_admin_returncode *status);
+	int64_t list_spaces(enum hyperdex_admin_returncode *status,
+	                    const char **spaces);
+	int64_t list_subspaces(const char *space,
+	                       enum hyperdex_admin_returncode *status,
+	                       const char **subspaces);
+	// manage servers
+	int64_t server_register(uint64_t token, const char *address,
+	                        enum hyperdex_admin_returncode *status);
+	int64_t server_online(uint64_t token, enum hyperdex_admin_returncode *status);
+	int64_t server_offline(uint64_t token, enum hyperdex_admin_returncode *status);
+	int64_t server_forget(uint64_t token, enum hyperdex_admin_returncode *status);
+	int64_t server_kill(uint64_t token, enum hyperdex_admin_returncode *status);
+	// backups
+	int64_t backup(const char *name, enum hyperdex_admin_returncode *status, const char **backups);
+	int64_t coord_backup(const char *path,
+	                     enum hyperdex_admin_returncode *status);
+	int64_t raw_backup(const server_id &sid, const char *name,
+	                   enum hyperdex_admin_returncode *status,
+	                   const char **path);
+	// read performance counters
+	int64_t enable_perf_counters(hyperdex_admin_returncode *status,
+	                             hyperdex_admin_perf_counter *pc);
+	void disable_perf_counters();
+	// looping/polling
+	int64_t loop(int timeout, hyperdex_admin_returncode *status);
+	// error handling
+	const char *error_message();
+	const char *error_location();
+	void set_error_message(const char *msg);
+	void interpret_replicant_returncode(replicant_returncode rstatus,
+	                                    hyperdex_admin_returncode *status,
+	                                    e::error *err);
 
-    private:
-        struct pending_server_pair
-        {
-            pending_server_pair()
-                : si(), op() {}
-            pending_server_pair(const server_id& s,
-                                const e::intrusive_ptr<pending>& o)
-                : si(s), op(o) {}
-            ~pending_server_pair() throw () {}
-            server_id si;
-            e::intrusive_ptr<pending> op;
-        };
-        typedef std::map<uint64_t, pending_server_pair> pending_map_t;
-        typedef std::map<int64_t, e::intrusive_ptr<coord_rpc> > coord_rpc_map_t;
-        typedef std::map<int64_t, e::intrusive_ptr<multi_yieldable> > multi_yieldable_map_t;
-        typedef std::list<pending_server_pair> pending_queue_t;
-        friend class backup_state_machine;
-        friend class pending_perf_counters;
+private:
+	struct pending_server_pair
+	{
+		pending_server_pair()
+			: si(), op() {}
+		pending_server_pair(const server_id &s,
+		                    const e::intrusive_ptr<pending> &o)
+			: si(s), op(o) {}
+		~pending_server_pair() throw () {}
+		server_id si;
+		e::intrusive_ptr<pending> op;
+	};
+	typedef std::map<uint64_t, pending_server_pair> pending_map_t;
+	typedef std::map<int64_t, e::intrusive_ptr<coord_rpc> > coord_rpc_map_t;
+	typedef std::map<int64_t, e::intrusive_ptr<multi_yieldable> > multi_yieldable_map_t;
+	typedef std::list<pending_server_pair> pending_queue_t;
+	friend class backup_state_machine;
+	friend class pending_perf_counters;
 
-    private:
-        bool maintain_coord_connection(hyperdex_admin_returncode* status);
-        int64_t rpc(const char* func,
-                    const char* data, size_t data_sz,
-                    replicant_returncode* status,
-                    char** output, size_t* output_sz);
-        bool send(network_msgtype mt,
-                  server_id id,
-                  uint64_t nonce,
-                  std::auto_ptr<e::buffer> msg,
-                  e::intrusive_ptr<pending> op,
-                  hyperdex_admin_returncode* status);
-        void handle_disruption(const server_id& si);
+private:
+	bool maintain_coord_connection(hyperdex_admin_returncode *status);
+	int64_t rpc(const char *func,
+	            const char *data, size_t data_sz,
+	            replicant_returncode *status,
+	            char **output, size_t *output_sz);
+	bool send(network_msgtype mt,
+	          server_id id,
+	          uint64_t nonce,
+	          std::auto_ptr<e::buffer> msg,
+	          e::intrusive_ptr<pending> op,
+	          hyperdex_admin_returncode *status);
+	void handle_disruption(const server_id &si);
 
-    private:
-        replicant_client* m_coord;
-        mapper m_busybee_mapper;
-        busybee_st m_busybee;
-        // configuration
-        configuration m_config;
-        int64_t m_config_id;
-        replicant_returncode m_config_status;
-        uint64_t m_config_state;
-        char* m_config_data;
-        size_t m_config_data_sz;
-        // nonces
-        int64_t m_next_admin_id;
-        uint64_t m_next_server_nonce;
-        // operations
-        bool m_handle_coord_ops;
-        coord_rpc_map_t m_coord_ops;
-        pending_map_t m_server_ops;
-        multi_yieldable_map_t m_multi_ops;
-        pending_queue_t m_failed;
-        std::list<e::intrusive_ptr<yieldable> > m_yieldable;
-        e::intrusive_ptr<yieldable> m_yielding;
-        e::intrusive_ptr<yieldable> m_yielded;
-        e::intrusive_ptr<pending_perf_counters> m_pcs;
-        // misc
-        e::error m_last_error;
+private:
+	replicant_client *m_coord;
+	mapper m_busybee_mapper;
+	busybee_st m_busybee;
+	// configuration
+	configuration m_config;
+	int64_t m_config_id;
+	replicant_returncode m_config_status;
+	uint64_t m_config_state;
+	char *m_config_data;
+	size_t m_config_data_sz;
+	// nonces
+	int64_t m_next_admin_id;
+	uint64_t m_next_server_nonce;
+	// operations
+	bool m_handle_coord_ops;
+	coord_rpc_map_t m_coord_ops;
+	pending_map_t m_server_ops;
+	multi_yieldable_map_t m_multi_ops;
+	pending_queue_t m_failed;
+	std::list<e::intrusive_ptr<yieldable> > m_yieldable;
+	e::intrusive_ptr<yieldable> m_yielding;
+	e::intrusive_ptr<yieldable> m_yielded;
+	e::intrusive_ptr<pending_perf_counters> m_pcs;
+	// misc
+	e::error m_last_error;
 
-    private:
-        admin(const admin&);
-        admin& operator = (const admin&);
+private:
+	admin(const admin &);
+	admin &operator = (const admin &);
 };
 
 END_HYPERDEX_NAMESPACE

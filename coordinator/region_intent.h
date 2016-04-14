@@ -35,73 +35,72 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class region_intent
 {
-    public:
-        region_intent();
-        region_intent(const region_id& id);
-        region_intent(const region_intent&);
+public:
+	region_intent();
+	region_intent(const region_id &id);
+	region_intent(const region_intent &);
 
-    public:
-        region_intent& operator = (const region_intent&);
+public:
+	region_intent &operator = (const region_intent &);
 
-    public:
-        region_id id;
-        std::vector<server_id> replicas;
-        uint64_t checkpoint;
+public:
+	region_id id;
+	std::vector<server_id> replicas;
+	uint64_t checkpoint;
 };
 
 inline size_t
-pack_size(const region_intent& ri)
+pack_size(const region_intent &ri)
 {
-    return pack_size(ri.id) + pack_size(ri.replicas) + sizeof(ri.checkpoint);
+	return pack_size(ri.id) + pack_size(ri.replicas) + sizeof(ri.checkpoint);
 }
 
 inline e::packer
-operator << (e::packer pa, const region_intent& ri)
+operator << (e::packer pa, const region_intent &ri)
 {
-    return pa << ri.id << ri.replicas << ri.checkpoint;
+	return pa << ri.id << ri.replicas << ri.checkpoint;
 }
 
 inline e::unpacker
-operator >> (e::unpacker up, region_intent& ri)
+operator >> (e::unpacker up, region_intent &ri)
 {
-    return up >> ri.id >> ri.replicas >> ri.checkpoint;
+	return up >> ri.id >> ri.replicas >> ri.checkpoint;
 }
 
 inline
 region_intent :: region_intent()
-    : id()
-    , replicas()
-    , checkpoint(0)
+	: id()
+	, replicas()
+	, checkpoint(0)
 {
 }
 
 inline
-region_intent :: region_intent(const region_id& ri)
-    : id(ri)
-    , replicas()
-    , checkpoint(0)
+region_intent :: region_intent(const region_id &ri)
+	: id(ri)
+	, replicas()
+	, checkpoint(0)
 {
 }
 
 inline
-region_intent :: region_intent(const region_intent& other)
-    : id(other.id)
-    , replicas(other.replicas)
-    , checkpoint(other.checkpoint)
+region_intent :: region_intent(const region_intent &other)
+	: id(other.id)
+	, replicas(other.replicas)
+	, checkpoint(other.checkpoint)
 {
 }
 
-inline region_intent&
-region_intent :: operator = (const region_intent& rhs)
+inline region_intent &
+region_intent :: operator = (const region_intent &rhs)
 {
-    if (this != &rhs)
-    {
-        id = rhs.id;
-        replicas = rhs.replicas;
-        checkpoint = rhs.checkpoint;
-    }
-
-    return *this;
+	if (this != &rhs)
+	{
+		id = rhs.id;
+		replicas = rhs.replicas;
+		checkpoint = rhs.checkpoint;
+	}
+	return *this;
 }
 
 END_HYPERDEX_NAMESPACE

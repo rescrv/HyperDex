@@ -38,7 +38,7 @@ using hyperdex::index_float;
 using hyperdex::index_encoding_float;
 
 index_float :: index_float()
-    : index_primitive(index_encoding::lookup(HYPERDATATYPE_FLOAT))
+	: index_primitive(index_encoding::lookup(HYPERDATATYPE_FLOAT))
 {
 }
 
@@ -49,7 +49,7 @@ index_float :: ~index_float() throw ()
 hyperdatatype
 index_float :: datatype() const
 {
-    return HYPERDATATYPE_FLOAT;
+	return HYPERDATATYPE_FLOAT;
 }
 
 index_encoding_float :: index_encoding_float()
@@ -63,48 +63,44 @@ index_encoding_float :: ~index_encoding_float() throw ()
 bool
 index_encoding_float :: encoding_fixed() const
 {
-    return true;
+	return true;
 }
 
 size_t
-index_encoding_float :: encoded_size(const e::slice&) const
+index_encoding_float :: encoded_size(const e::slice &) const
 {
-    // why?
-    return 2 * sizeof(double);
+	// why?
+	return 2 * sizeof(double);
 }
 
-char*
-index_encoding_float :: encode(const e::slice& decoded, char* encoded) const
+char *
+index_encoding_float :: encode(const e::slice &decoded, char *encoded) const
 {
-    datatype_info* di = datatype_info::lookup(HYPERDATATYPE_FLOAT);
-    double number = 0;
-
-    if (di->validate(decoded) && decoded.size() == sizeof(double))
-    {
-        e::unpackdoublele(decoded.data(), &number);
-    }
-
-    char* ptr = encoded;
-    ptr = e::pack64be(di->hash(decoded), ptr);
-    ptr = e::packdoublele(number, ptr);
-    return ptr;
+	datatype_info *di = datatype_info::lookup(HYPERDATATYPE_FLOAT);
+	double number = 0;
+	if (di->validate(decoded) && decoded.size() == sizeof(double))
+	{
+		e::unpackdoublele(decoded.data(), &number);
+	}
+	char *ptr = encoded;
+	ptr = e::pack64be(di->hash(decoded), ptr);
+	ptr = e::packdoublele(number, ptr);
+	return ptr;
 }
 
 size_t
-index_encoding_float :: decoded_size(const e::slice&) const
+index_encoding_float :: decoded_size(const e::slice &) const
 {
-    return sizeof(double);
+	return sizeof(double);
 }
 
-char*
-index_encoding_float :: decode(const e::slice& encoded, char* decoded) const
+char *
+index_encoding_float :: decode(const e::slice &encoded, char *decoded) const
 {
-    double number = 0;
-
-    if (encoded.size() == 2 * sizeof(double))
-    {
-        e::unpackdoublele(decoded + sizeof(double), &number);
-    }
-
-    return e::packdoublele(number, decoded);
+	double number = 0;
+	if (encoded.size() == 2 * sizeof(double))
+	{
+		e::unpackdoublele(decoded + sizeof(double), &number);
+	}
+	return e::packdoublele(number, decoded);
 }

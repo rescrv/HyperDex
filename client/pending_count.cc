@@ -31,14 +31,14 @@
 using hyperdex::pending_count;
 
 pending_count :: pending_count(uint64_t id,
-                               hyperdex_client_returncode* status,
-                               uint64_t* count)
-    : pending_aggregation(id, status)
-    , m_count(count)
-    , m_done(false)
+                               hyperdex_client_returncode *status,
+                               uint64_t *count)
+	: pending_aggregation(id, status)
+	, m_count(count)
+	, m_done(false)
 {
-    set_status(HYPERDEX_CLIENT_SUCCESS);
-    set_error(e::error());
+	set_status(HYPERDEX_CLIENT_SUCCESS);
+	set_error(e::error());
 }
 
 pending_count :: ~pending_count() throw ()
@@ -48,64 +48,59 @@ pending_count :: ~pending_count() throw ()
 bool
 pending_count :: can_yield()
 {
-    return this->aggregation_done() && !m_done;
+	return this->aggregation_done() && !m_done;
 }
 
 bool
-pending_count :: yield(hyperdex_client_returncode* status, e::error* err)
+pending_count :: yield(hyperdex_client_returncode *status, e::error *err)
 {
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
-    assert(this->can_yield());
-    m_done = true;
-    return true;
+	*status = HYPERDEX_CLIENT_SUCCESS;
+	*err = e::error();
+	assert(this->can_yield());
+	m_done = true;
+	return true;
 }
 
 void
-pending_count :: handle_failure(const server_id& si,
-                                const virtual_server_id& vsi)
+pending_count :: handle_failure(const server_id &si,
+                                const virtual_server_id &vsi)
 {
-    PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
-                               << vsi << "/" << si;
-    return pending_aggregation::handle_failure(si, vsi);
+	PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
+	                           << vsi << "/" << si;
+	return pending_aggregation::handle_failure(si, vsi);
 }
 
 bool
-pending_count :: handle_message(client* cl,
-                                const server_id& si,
-                                const virtual_server_id& vsi,
+pending_count :: handle_message(client *cl,
+                                const server_id &si,
+                                const virtual_server_id &vsi,
                                 network_msgtype mt,
                                 std::auto_ptr<e::buffer> msg,
                                 e::unpacker up,
-                                hyperdex_client_returncode* status,
-                                e::error* err)
+                                hyperdex_client_returncode *status,
+                                e::error *err)
 {
-    bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
-    assert(handled);
-
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
-
-    if (mt != RESP_COUNT)
-    {
-        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to COUNT with " << mt;
-        return true;
-    }
-
-    uint64_t local_count;
-    up = up >> local_count;
-
-    if (up.error())
-    {
-        PENDING_ERROR(SERVERERROR) << "communication error: server "
-                                   << vsi << " sent corrupt message="
-                                   << msg->as_slice().hex()
-                                   << " in response to a COUNT";
-        return true;
-    }
-
-    *m_count += local_count;
-    // Don't set the status or error so that errors will carry through.  It was
-    // set to the success state in the constructor
-    return true;
+	bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
+	assert(handled);
+	*status = HYPERDEX_CLIENT_SUCCESS;
+	*err = e::error();
+	if (mt != RESP_COUNT)
+	{
+		PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to COUNT with " << mt;
+		return true;
+	}
+	uint64_t local_count;
+	up = up >> local_count;
+	if (up.error())
+	{
+		PENDING_ERROR(SERVERERROR) << "communication error: server "
+		                           << vsi << " sent corrupt message="
+		                           << msg->as_slice().hex()
+		                           << " in response to a COUNT";
+		return true;
+	}
+	*m_count += local_count;
+	// Don't set the status or error so that errors will carry through.  It was
+	// set to the success state in the constructor
+	return true;
 }

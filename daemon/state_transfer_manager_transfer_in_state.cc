@@ -38,15 +38,15 @@
 
 using hyperdex::state_transfer_manager;
 
-state_transfer_manager :: transfer_in_state :: transfer_in_state(const transfer& _xfer)
-    : xfer(_xfer)
-    , mtx()
-    , upper_bound_acked(1)
-    , queued()
-    , handshake_complete(false)
-    , wipe(false)
-    , wiped(false)
-    , m_ref(0)
+state_transfer_manager :: transfer_in_state :: transfer_in_state(const transfer &_xfer)
+	: xfer(_xfer)
+	, mtx()
+	, upper_bound_acked(1)
+	, queued()
+	, handshake_complete(false)
+	, wipe(false)
+	, wiped(false)
+	, m_ref(0)
 {
 }
 
@@ -57,9 +57,9 @@ state_transfer_manager :: transfer_in_state :: ~transfer_in_state() throw ()
 void
 state_transfer_manager :: transfer_in_state :: debug_dump()
 {
-    po6::threads::mutex::hold hold(&mtx);
-    LOG(INFO) << "  transfer=" << xfer;
-    LOG(INFO) << "    upper_bound_acked=" << upper_bound_acked;
-    LOG(INFO) << "    wipe=" << wipe;
-    LOG(INFO) << "    wiped=" << wiped;
+	po6::threads::mutex::hold hold(&mtx);
+	LOG(INFO) << "  transfer=" << xfer;
+	LOG(INFO) << "    upper_bound_acked=" << upper_bound_acked;
+	LOG(INFO) << "    wipe=" << wipe;
+	LOG(INFO) << "    wiped=" << wiped;
 }

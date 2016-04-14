@@ -38,173 +38,159 @@
 // th
 #include "th.h"
 
-static std::vector<th::test_base*>* _th_tests = NULL;
+static std::vector<th::test_base *> *_th_tests = NULL;
 
 class escape_from_test_failure
 {
-    public:
-        escape_from_test_failure() {}
+public:
+	escape_from_test_failure() {}
 };
 
-th :: test_base :: test_base(const char* group,
-                             const char* name,
-                             const char* file,
+th :: test_base :: test_base(const char *group,
+                             const char *name,
+                             const char *file,
                              size_t line)
-    : m_group(group)
-    , m_name(name)
-    , m_file(file)
-    , m_line(line)
+	: m_group(group)
+	, m_name(name)
+	, m_file(file)
+	, m_line(line)
 {
-    if (_th_tests == NULL)
-    {
-        _th_tests = new std::vector<th::test_base*>();
-    }
-
-    _th_tests->push_back(this);
+	if (_th_tests == NULL)
+	{
+		_th_tests = new std::vector<th::test_base *>();
+	}
+	_th_tests->push_back(this);
 }
 
 void
-th :: test_base :: run(bool quiet, bool* failed)
+th :: test_base :: run(bool quiet, bool *failed)
 {
-    if (!quiet) std::cerr << "===== Test " << m_group << "::" << m_name << " @ " << m_file << ":" << m_line << std::endl;
-
-    try
-    {
-        this->_run();
-        *failed = false;
-    }
-    catch (escape_from_test_failure& ttotf)
-    {
-        *failed = true;
-    }
+	if (!quiet) std::cerr << "===== Test " << m_group << "::" << m_name << " @ " << m_file << ":" << m_line << std::endl;
+	try
+	{
+		this->_run();
+		*failed = false;
+	}
+	catch (escape_from_test_failure &ttotf)
+	{
+		*failed = true;
+	}
 }
 
 bool
-th :: test_base :: operator < (const test_base& rhs) const
+th :: test_base :: operator < (const test_base &rhs) const
 {
-    return compare(rhs) < 0;
+	return compare(rhs) < 0;
 }
 
 int
-th :: test_base :: compare(const test_base& rhs) const
+th :: test_base :: compare(const test_base &rhs) const
 {
-    const test_base& lhs(*this);
-    int cmp;
-
-    // Compare file
-    cmp = strcmp(lhs.m_file, rhs.m_file);
-
-    if (cmp < 0)
-    {
-        return -1;
-    }
-    if (cmp > 0)
-    {
-        return 1;
-    }
-
-    // Compare line
-    if (lhs.m_line < rhs.m_line)
-    {
-        return -1;
-    }
-    if (lhs.m_line > rhs.m_line)
-    {
-        return 1;
-    }
-
-    // Compare group
-    cmp = strcmp(lhs.m_group, rhs.m_group);
-
-    if (cmp < 0)
-    {
-        return -1;
-    }
-    if (cmp > 0)
-    {
-        return 1;
-    }
-
-    // Compare name
-    cmp = strcmp(lhs.m_name, rhs.m_name);
-
-    if (cmp < 0)
-    {
-        return -1;
-    }
-    if (cmp > 0)
-    {
-        return 1;
-    }
-
-    return 0;
+	const test_base &lhs(*this);
+	int cmp;
+	// Compare file
+	cmp = strcmp(lhs.m_file, rhs.m_file);
+	if (cmp < 0)
+	{
+		return -1;
+	}
+	if (cmp > 0)
+	{
+		return 1;
+	}
+	// Compare line
+	if (lhs.m_line < rhs.m_line)
+	{
+		return -1;
+	}
+	if (lhs.m_line > rhs.m_line)
+	{
+		return 1;
+	}
+	// Compare group
+	cmp = strcmp(lhs.m_group, rhs.m_group);
+	if (cmp < 0)
+	{
+		return -1;
+	}
+	if (cmp > 0)
+	{
+		return 1;
+	}
+	// Compare name
+	cmp = strcmp(lhs.m_name, rhs.m_name);
+	if (cmp < 0)
+	{
+		return -1;
+	}
+	if (cmp > 0)
+	{
+		return 1;
+	}
+	return 0;
 }
 
-th :: predicate :: predicate(const char* file, size_t line, const char* a, const char* b)
-    : m_file(file)
-    , m_line(line)
-    , m_a(a)
-    , m_b(b)
+th :: predicate :: predicate(const char *file, size_t line, const char *a, const char *b)
+	: m_file(file)
+	, m_line(line)
+	, m_a(a)
+	, m_b(b)
 {
 }
 
 void
 th :: predicate :: assert_true(bool T)
 {
-    if (!T)
-    {
-        std::cerr << "FAIL @ " << m_file << ":" << m_line << ": tested " << m_a << "; expected true, but got false" << std::endl;
-        th::fail();
-    }
+	if (!T)
+	{
+		std::cerr << "FAIL @ " << m_file << ":" << m_line << ": tested " << m_a << "; expected true, but got false" << std::endl;
+		th::fail();
+	}
 }
 
 void
 th :: predicate :: assert_false(bool F)
 {
-    if (F)
-    {
-        std::cerr << "FAIL @ " << m_file << ":" << m_line << ": tested " << m_a << "; expected false, but got true" << std::endl;
-        th::fail();
-    }
+	if (F)
+	{
+		std::cerr << "FAIL @ " << m_file << ":" << m_line << ": tested " << m_a << "; expected false, but got true" << std::endl;
+		th::fail();
+	}
 }
 
 void
 th :: predicate :: fail()
 {
-    std::cerr << "FAIL @ " << m_file << ":" << m_line << ": forced fail" << std::endl;
-    th::fail();
+	std::cerr << "FAIL @ " << m_file << ":" << m_line << ": forced fail" << std::endl;
+	th::fail();
 }
 
 static bool
-compare_test_base_ptrs(const th::test_base* lhs, const th::test_base* rhs)
+compare_test_base_ptrs(const th::test_base *lhs, const th::test_base *rhs)
 {
-    return *lhs < *rhs;
+	return *lhs < *rhs;
 }
 
 int
 th :: run_tests(bool quiet)
 {
-    if (!_th_tests)
-    {
-        return 0;
-    }
-
-    std::sort(_th_tests->begin(), _th_tests->end(), compare_test_base_ptrs);
-    const std::vector<th::test_base*>& th_tests(*_th_tests);
-    int failures = 0;
-
-    for (size_t i = 0; i < th_tests.size(); ++i)
-    {
-        bool fail = false;
-        th_tests[i]->run(quiet, &fail);
-
-        if (fail)
-        {
-            ++failures;
-        }
-    }
-
-    return failures;
+	if (!_th_tests)
+	{
+		return 0;
+	}
+	std::sort(_th_tests->begin(), _th_tests->end(), compare_test_base_ptrs);
+	const std::vector<th::test_base *> &th_tests(*_th_tests);
+	int failures = 0;
+	for (size_t i = 0; i < th_tests.size(); ++i)
+	{
+		bool fail = false;
+		th_tests[i]->run(quiet, &fail);
+		if (fail)
+		{
+			++failures;
+		}
+	}
+	return failures;
 }
 
 #pragma GCC diagnostic ignored "-Wsuggest-attribute=noreturn"
@@ -212,6 +198,6 @@ th :: run_tests(bool quiet)
 void
 th :: fail()
 {
-    escape_from_test_failure eftf;
-    throw eftf;
+	escape_from_test_failure eftf;
+	throw eftf;
 }

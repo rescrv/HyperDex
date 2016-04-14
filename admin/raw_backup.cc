@@ -48,117 +48,112 @@
 extern "C"
 {
 
-using namespace hyperdex;
+	using namespace hyperdex;
 
-HYPERDEX_API int
-hyperdex_admin_raw_backup(const char* host, uint16_t port,
-                          const char* name,
-                          enum hyperdex_admin_returncode* status)
-{
-    try
-    {
-		po6::net::location loc;
-		if (!loc.set(host, port)) {
+	HYPERDEX_API int
+	hyperdex_admin_raw_backup(const char *host, uint16_t port,
+	                          const char *name,
+	                          enum hyperdex_admin_returncode *status)
+	{
+		try
+		{
+			po6::net::location loc;
+			if (!loc.set(host, port))
+			{
+				return -1;
+			}
+			busybee_single bbs(loc);
+			const uint8_t type = static_cast<uint8_t>(BACKUP);
+			const uint8_t flags = 0;
+			const uint64_t version = 0;
+			virtual_server_id to(UINT64_MAX);
+			const uint64_t nonce = 0xdeadbeefcafebabe;
+			size_t name_sz = strlen(name) + 1;
+			e::slice name_s(name, name_sz);
+			size_t sz = BUSYBEE_HEADER_SIZE
+			            + sizeof(uint8_t) /*mt*/
+			            + sizeof(uint8_t) /*flags*/
+			            + sizeof(uint64_t) /*version*/
+			            + sizeof(uint64_t) /*vidt*/
+			            + sizeof(uint64_t) /*nonce*/
+			            + pack_size(name_s);
+			std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+			e::packer pa = msg->pack_at(BUSYBEE_HEADER_SIZE);
+			pa = pa << type << flags << version << to << nonce << name_s;
+			bbs.set_timeout(-1);
+			switch (bbs.send(msg))
+			{
+			case BUSYBEE_SUCCESS:
+				break;
+			case BUSYBEE_TIMEOUT:
+				*status = HYPERDEX_ADMIN_TIMEOUT;
+				return -1;
+			case BUSYBEE_INTERRUPTED:
+				*status = HYPERDEX_ADMIN_INTERRUPTED;
+				return -1;
+			case BUSYBEE_SHUTDOWN:
+			case BUSYBEE_POLLFAILED:
+			case BUSYBEE_DISRUPTED:
+			case BUSYBEE_ADDFDFAIL:
+			case BUSYBEE_EXTERNAL:
+				*status = HYPERDEX_ADMIN_SERVERERROR;
+				return -1;
+			default:
+				abort();
+			}
+			switch (bbs.recv(&msg))
+			{
+			case BUSYBEE_SUCCESS:
+				break;
+			case BUSYBEE_TIMEOUT:
+				*status = HYPERDEX_ADMIN_TIMEOUT;
+				return -1;
+			case BUSYBEE_INTERRUPTED:
+				*status = HYPERDEX_ADMIN_INTERRUPTED;
+				return -1;
+			case BUSYBEE_SHUTDOWN:
+			case BUSYBEE_POLLFAILED:
+			case BUSYBEE_DISRUPTED:
+			case BUSYBEE_ADDFDFAIL:
+			case BUSYBEE_EXTERNAL:
+				*status = HYPERDEX_ADMIN_SERVERERROR;
+				return -1;
+			default:
+				abort();
+			}
+			e::unpacker up = msg->unpack_from(BUSYBEE_HEADER_SIZE
+			                                  + sizeof(uint8_t) /*mt*/
+			                                  + sizeof(uint64_t) /*vidt*/
+			                                  + sizeof(uint64_t) /*nonce*/);
+			uint16_t rt;
+			if ((up >> rt).error())
+			{
+				*status = HYPERDEX_ADMIN_SERVERERROR;
+				return -1;
+			}
+			network_returncode rc = static_cast<network_returncode>(rt);
+			if (rc == NET_SUCCESS)
+			{
+				*status = HYPERDEX_ADMIN_SUCCESS;
+				return 0;
+			}
+			else
+			{
+				*status = HYPERDEX_ADMIN_SERVERERROR;
+				return -1;
+			}
+		}
+		catch (std::bad_alloc &ba)
+		{
+			errno = ENOMEM;
+			*status = HYPERDEX_ADMIN_NOMEM;
 			return -1;
 		}
-		busybee_single bbs(loc);
-        const uint8_t type = static_cast<uint8_t>(BACKUP);
-        const uint8_t flags = 0;
-        const uint64_t version = 0;
-        virtual_server_id to(UINT64_MAX);
-        const uint64_t nonce = 0xdeadbeefcafebabe;
-        size_t name_sz = strlen(name) + 1;
-        e::slice name_s(name, name_sz);
-        size_t sz = BUSYBEE_HEADER_SIZE
-                  + sizeof(uint8_t) /*mt*/
-                  + sizeof(uint8_t) /*flags*/
-                  + sizeof(uint64_t) /*version*/
-                  + sizeof(uint64_t) /*vidt*/
-                  + sizeof(uint64_t) /*nonce*/
-                  + pack_size(name_s);
-        std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-        e::packer pa = msg->pack_at(BUSYBEE_HEADER_SIZE);
-        pa = pa << type << flags << version << to << nonce << name_s;
-        bbs.set_timeout(-1);
-
-        switch (bbs.send(msg))
-        {
-            case BUSYBEE_SUCCESS:
-                break;
-            case BUSYBEE_TIMEOUT:
-                *status = HYPERDEX_ADMIN_TIMEOUT;
-                return -1;
-            case BUSYBEE_INTERRUPTED:
-                *status = HYPERDEX_ADMIN_INTERRUPTED;
-                return -1;
-            case BUSYBEE_SHUTDOWN:
-            case BUSYBEE_POLLFAILED:
-            case BUSYBEE_DISRUPTED:
-            case BUSYBEE_ADDFDFAIL:
-            case BUSYBEE_EXTERNAL:
-                *status = HYPERDEX_ADMIN_SERVERERROR;
-                return -1;
-            default:
-                abort();
-        }
-
-        switch (bbs.recv(&msg))
-        {
-            case BUSYBEE_SUCCESS:
-                break;
-            case BUSYBEE_TIMEOUT:
-                *status = HYPERDEX_ADMIN_TIMEOUT;
-                return -1;
-            case BUSYBEE_INTERRUPTED:
-                *status = HYPERDEX_ADMIN_INTERRUPTED;
-                return -1;
-            case BUSYBEE_SHUTDOWN:
-            case BUSYBEE_POLLFAILED:
-            case BUSYBEE_DISRUPTED:
-            case BUSYBEE_ADDFDFAIL:
-            case BUSYBEE_EXTERNAL:
-                *status = HYPERDEX_ADMIN_SERVERERROR;
-                return -1;
-            default:
-                abort();
-        }
-
-        e::unpacker up = msg->unpack_from(BUSYBEE_HEADER_SIZE
-                                          + sizeof(uint8_t) /*mt*/
-                                          + sizeof(uint64_t) /*vidt*/
-                                          + sizeof(uint64_t) /*nonce*/);
-        uint16_t rt;
-
-        if ((up >> rt).error())
-        {
-            *status = HYPERDEX_ADMIN_SERVERERROR;
-            return -1;
-        }
-
-        network_returncode rc = static_cast<network_returncode>(rt);
-
-        if (rc == NET_SUCCESS)
-        {
-            *status = HYPERDEX_ADMIN_SUCCESS;
-            return 0;
-        }
-        else
-        {
-            *status = HYPERDEX_ADMIN_SERVERERROR;
-            return -1;
-        }
-    }
-    catch (std::bad_alloc& ba)
-    {
-        errno = ENOMEM;
-        *status = HYPERDEX_ADMIN_NOMEM;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERDEX_ADMIN_EXCEPTION;
-        return -1;
-    }
-}
+		catch (...)
+		{
+			*status = HYPERDEX_ADMIN_EXCEPTION;
+			return -1;
+		}
+	}
 
 } // extern "C"

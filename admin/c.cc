@@ -41,349 +41,349 @@
 #include "admin/admin.h"
 
 #define SIGNAL_PROTECT_ERR(X) \
-    do \
-    { \
-        sigset_t old_sigs; \
-        sigset_t all_sigs; \
-        sigfillset(&all_sigs); \
-        if (pthread_sigmask(SIG_BLOCK, &all_sigs, &old_sigs) < 0) \
-        { \
-            *status = HYPERDEX_ADMIN_INTERNAL; \
-            return (X); \
-        } \
-        e::guard g = e::makeguard(pthread_sigmask, SIG_SETMASK, (sigset_t*)&old_sigs, (sigset_t*)NULL); \
-        g.use_variable(); \
-    } \
-    while (0)
+	do \
+	{ \
+		sigset_t old_sigs; \
+		sigset_t all_sigs; \
+		sigfillset(&all_sigs); \
+		if (pthread_sigmask(SIG_BLOCK, &all_sigs, &old_sigs) < 0) \
+		{ \
+			*status = HYPERDEX_ADMIN_INTERNAL; \
+			return (X); \
+		} \
+		e::guard g = e::makeguard(pthread_sigmask, SIG_SETMASK, (sigset_t*)&old_sigs, (sigset_t*)NULL); \
+		g.use_variable(); \
+	} \
+	while (0)
 
 #define SIGNAL_PROTECT SIGNAL_PROTECT_ERR(-1);
 inline void return_void() {}
 #define SIGNAL_PROTECT_VOID SIGNAL_PROTECT_ERR(return_void());
 
 #define C_WRAP_EXCEPT(X) \
-    SIGNAL_PROTECT; \
-    try \
-    { \
-        X \
-    } \
-    catch (std::bad_alloc& ba) \
-    { \
-        errno = ENOMEM; \
-        *status = HYPERDEX_ADMIN_NOMEM; \
-        return -1; \
-    } \
-    catch (...) \
-    { \
-        *status = HYPERDEX_ADMIN_EXCEPTION; \
-        return -1; \
-    }
+	SIGNAL_PROTECT; \
+	try \
+	{ \
+		X \
+	} \
+	catch (std::bad_alloc& ba) \
+	{ \
+		errno = ENOMEM; \
+		*status = HYPERDEX_ADMIN_NOMEM; \
+		return -1; \
+	} \
+	catch (...) \
+	{ \
+		*status = HYPERDEX_ADMIN_EXCEPTION; \
+		return -1; \
+	}
 
 extern "C"
 {
 
-HYPERDEX_API struct hyperdex_admin*
-hyperdex_admin_create(const char* coordinator, uint16_t port)
-{
-    try
-    {
-        return reinterpret_cast<struct hyperdex_admin*>(new hyperdex::admin(coordinator, port));
-    }
-    catch (std::bad_alloc& ba)
-    {
-        errno = ENOMEM;
-        return NULL;
-    }
-    catch (...)
-    {
-        return NULL;
-    }
-}
+	HYPERDEX_API struct hyperdex_admin *
+	hyperdex_admin_create(const char *coordinator, uint16_t port)
+	{
+		try
+		{
+			return reinterpret_cast<struct hyperdex_admin *>(new hyperdex::admin(coordinator, port));
+		}
+		catch (std::bad_alloc &ba)
+		{
+			errno = ENOMEM;
+			return NULL;
+		}
+		catch (...)
+		{
+			return NULL;
+		}
+	}
 
-HYPERDEX_API void
-hyperdex_admin_destroy(struct hyperdex_admin* admin)
-{
-    delete reinterpret_cast<hyperdex::admin*>(admin);
-}
+	HYPERDEX_API void
+	hyperdex_admin_destroy(struct hyperdex_admin *admin)
+	{
+		delete reinterpret_cast<hyperdex::admin *>(admin);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_dump_config(struct hyperdex_admin* _adm,
-                           hyperdex_admin_returncode* status,
-                           const char** config)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->dump_config(status, config);
-    );
-}
-HYPERDEX_API int64_t
-hyperdex_admin_read_only(struct hyperdex_admin* _adm,
-                         int ro,
-                         enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->read_only(ro, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_dump_config(struct hyperdex_admin *_adm,
+	                           hyperdex_admin_returncode *status,
+	                           const char **config)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->dump_config(status, config);
+		);
+	}
+	HYPERDEX_API int64_t
+	hyperdex_admin_read_only(struct hyperdex_admin *_adm,
+	                         int ro,
+	                         enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->read_only(ro, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_wait_until_stable(struct hyperdex_admin* _adm,
-                                 enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->wait_until_stable(status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_wait_until_stable(struct hyperdex_admin *_adm,
+	                                 enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->wait_until_stable(status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_fault_tolerance(struct hyperdex_admin* _adm,
-                               const char* space,
-                               uint64_t ft,
-                               enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->fault_tolerance(space, ft, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_fault_tolerance(struct hyperdex_admin *_adm,
+	                               const char *space,
+	                               uint64_t ft,
+	                               enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->fault_tolerance(space, ft, status);
+		);
+	}
 
-HYPERDEX_API int
-hyperdex_admin_validate_space(struct hyperdex_admin* _adm,
-                              const char* description,
-                              enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->validate_space(description, status);
-    );
-}
+	HYPERDEX_API int
+	hyperdex_admin_validate_space(struct hyperdex_admin *_adm,
+	                              const char *description,
+	                              enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->validate_space(description, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_add_space(struct hyperdex_admin* _adm,
-                         const char* description,
-                         enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->add_space(description, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_add_space(struct hyperdex_admin *_adm,
+	                         const char *description,
+	                         enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->add_space(description, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_rm_space(struct hyperdex_admin* _adm,
-                        const char* space,
-                        enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->rm_space(space, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_rm_space(struct hyperdex_admin *_adm,
+	                        const char *space,
+	                        enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->rm_space(space, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_mv_space(struct hyperdex_admin* _adm,
-                        const char* source,
-                        const char* target,
-                        enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->mv_space(source, target, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_mv_space(struct hyperdex_admin *_adm,
+	                        const char *source,
+	                        const char *target,
+	                        enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->mv_space(source, target, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_list_spaces(struct hyperdex_admin* _adm,
-                           enum hyperdex_admin_returncode* status,
-                           const char** spaces)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->list_spaces(status, spaces);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_list_spaces(struct hyperdex_admin *_adm,
+	                           enum hyperdex_admin_returncode *status,
+	                           const char **spaces)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->list_spaces(status, spaces);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_list_indices(struct hyperdex_admin* _adm,
-                            const char* space,
-                            enum hyperdex_admin_returncode* status,
-                            const char** indexes)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->list_indices(space, status, indexes);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_list_indices(struct hyperdex_admin *_adm,
+	                            const char *space,
+	                            enum hyperdex_admin_returncode *status,
+	                            const char **indexes)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->list_indices(space, status, indexes);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_list_subspaces(struct hyperdex_admin* _adm,
-                              const char* space,
-                              enum hyperdex_admin_returncode* status,
-                              const char** subspaces)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->list_subspaces(space, status, subspaces);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_list_subspaces(struct hyperdex_admin *_adm,
+	                              const char *space,
+	                              enum hyperdex_admin_returncode *status,
+	                              const char **subspaces)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->list_subspaces(space, status, subspaces);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_add_index(struct hyperdex_admin* _adm,
-                         const char* space,
-                         const char* attribute,
-                         enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->add_index(space, attribute, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_add_index(struct hyperdex_admin *_adm,
+	                         const char *space,
+	                         const char *attribute,
+	                         enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->add_index(space, attribute, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_rm_index(struct hyperdex_admin* _adm,
-                        uint64_t idxid,
-                        enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->rm_index(idxid, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_rm_index(struct hyperdex_admin *_adm,
+	                        uint64_t idxid,
+	                        enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->rm_index(idxid, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_server_register(struct hyperdex_admin* _adm,
-                               uint64_t token,
-                               const char* address,
-                               enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->server_register(token, address, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_server_register(struct hyperdex_admin *_adm,
+	                               uint64_t token,
+	                               const char *address,
+	                               enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->server_register(token, address, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_server_online(struct hyperdex_admin* _adm,
-                             uint64_t token,
-                             enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->server_online(token, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_server_online(struct hyperdex_admin *_adm,
+	                             uint64_t token,
+	                             enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->server_online(token, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_server_offline(struct hyperdex_admin* _adm,
-                              uint64_t token,
-                              enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->server_offline(token, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_server_offline(struct hyperdex_admin *_adm,
+	                              uint64_t token,
+	                              enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->server_offline(token, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_server_forget(struct hyperdex_admin* _adm,
-                             uint64_t token,
-                             enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->server_forget(token, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_server_forget(struct hyperdex_admin *_adm,
+	                             uint64_t token,
+	                             enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->server_forget(token, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_server_kill(struct hyperdex_admin* _adm,
-                           uint64_t token,
-                           enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->server_kill(token, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_server_kill(struct hyperdex_admin *_adm,
+	                           uint64_t token,
+	                           enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->server_kill(token, status);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_backup(struct hyperdex_admin* _adm,
-                      const char* backup,
-                      enum hyperdex_admin_returncode* status,
-                      const char** backups)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->backup(backup, status, backups);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_backup(struct hyperdex_admin *_adm,
+	                      const char *backup,
+	                      enum hyperdex_admin_returncode *status,
+	                      const char **backups)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->backup(backup, status, backups);
+		);
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_enable_perf_counters(struct hyperdex_admin* _adm,
-                                    enum hyperdex_admin_returncode* status,
-                                    struct hyperdex_admin_perf_counter* pc)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->enable_perf_counters(status, pc);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_enable_perf_counters(struct hyperdex_admin *_adm,
+	                                    enum hyperdex_admin_returncode *status,
+	                                    struct hyperdex_admin_perf_counter *pc)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->enable_perf_counters(status, pc);
+		);
+	}
 
-HYPERDEX_API void
-hyperdex_admin_disable_perf_counters(struct hyperdex_admin* _adm)
-{
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->disable_perf_counters();
-}
+	HYPERDEX_API void
+	hyperdex_admin_disable_perf_counters(struct hyperdex_admin *_adm)
+	{
+		hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		return adm->disable_perf_counters();
+	}
 
-HYPERDEX_API int64_t
-hyperdex_admin_loop(struct hyperdex_admin* _adm, int timeout,
-                    enum hyperdex_admin_returncode* status)
-{
-    C_WRAP_EXCEPT(
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->loop(timeout, status);
-    );
-}
+	HYPERDEX_API int64_t
+	hyperdex_admin_loop(struct hyperdex_admin *_adm, int timeout,
+	                    enum hyperdex_admin_returncode *status)
+	{
+		C_WRAP_EXCEPT(
+		    hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		    return adm->loop(timeout, status);
+		);
+	}
 
-HYPERDEX_API const char*
-hyperdex_admin_error_message(struct hyperdex_admin* _adm)
-{
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->error_message();
-}
+	HYPERDEX_API const char *
+	hyperdex_admin_error_message(struct hyperdex_admin *_adm)
+	{
+		hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		return adm->error_message();
+	}
 
-HYPERDEX_API const char*
-hyperdex_admin_error_location(struct hyperdex_admin* _adm)
-{
-    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
-    return adm->error_location();
-}
+	HYPERDEX_API const char *
+	hyperdex_admin_error_location(struct hyperdex_admin *_adm)
+	{
+		hyperdex::admin *adm = reinterpret_cast<hyperdex::admin *>(_adm);
+		return adm->error_location();
+	}
 
-HYPERDEX_API const char*
-hyperdex_admin_returncode_to_string(enum hyperdex_admin_returncode status)
-{
-    switch (status)
-    {
-        CSTRINGIFY(HYPERDEX_ADMIN_SUCCESS);
-        CSTRINGIFY(HYPERDEX_ADMIN_NOMEM);
-        CSTRINGIFY(HYPERDEX_ADMIN_NONEPENDING);
-        CSTRINGIFY(HYPERDEX_ADMIN_POLLFAILED);
-        CSTRINGIFY(HYPERDEX_ADMIN_TIMEOUT);
-        CSTRINGIFY(HYPERDEX_ADMIN_INTERRUPTED);
-        CSTRINGIFY(HYPERDEX_ADMIN_SERVERERROR);
-        CSTRINGIFY(HYPERDEX_ADMIN_COORDFAIL);
-        CSTRINGIFY(HYPERDEX_ADMIN_BADSPACE);
-        CSTRINGIFY(HYPERDEX_ADMIN_DUPLICATE);
-        CSTRINGIFY(HYPERDEX_ADMIN_NOTFOUND);
-        CSTRINGIFY(HYPERDEX_ADMIN_LOCALERROR);
-        CSTRINGIFY(HYPERDEX_ADMIN_INTERNAL);
-        CSTRINGIFY(HYPERDEX_ADMIN_EXCEPTION);
-        CSTRINGIFY(HYPERDEX_ADMIN_GARBAGE);
-        default:
-            return "unknown hyperdex_admin_returncode";
-    }
-}
+	HYPERDEX_API const char *
+	hyperdex_admin_returncode_to_string(enum hyperdex_admin_returncode status)
+	{
+		switch (status)
+		{
+			CSTRINGIFY(HYPERDEX_ADMIN_SUCCESS);
+			CSTRINGIFY(HYPERDEX_ADMIN_NOMEM);
+			CSTRINGIFY(HYPERDEX_ADMIN_NONEPENDING);
+			CSTRINGIFY(HYPERDEX_ADMIN_POLLFAILED);
+			CSTRINGIFY(HYPERDEX_ADMIN_TIMEOUT);
+			CSTRINGIFY(HYPERDEX_ADMIN_INTERRUPTED);
+			CSTRINGIFY(HYPERDEX_ADMIN_SERVERERROR);
+			CSTRINGIFY(HYPERDEX_ADMIN_COORDFAIL);
+			CSTRINGIFY(HYPERDEX_ADMIN_BADSPACE);
+			CSTRINGIFY(HYPERDEX_ADMIN_DUPLICATE);
+			CSTRINGIFY(HYPERDEX_ADMIN_NOTFOUND);
+			CSTRINGIFY(HYPERDEX_ADMIN_LOCALERROR);
+			CSTRINGIFY(HYPERDEX_ADMIN_INTERNAL);
+			CSTRINGIFY(HYPERDEX_ADMIN_EXCEPTION);
+			CSTRINGIFY(HYPERDEX_ADMIN_GARBAGE);
+		default:
+			return "unknown hyperdex_admin_returncode";
+		}
+	}
 
 } // extern "C"

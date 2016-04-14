@@ -39,22 +39,22 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class key_region
 {
-    public:
-        key_region();
-        key_region(const region_id& r, const e::slice& k);
-        key_region(const key_region& other);
+public:
+	key_region();
+	key_region(const region_id &r, const e::slice &k);
+	key_region(const key_region &other);
 
-    public:
-        bool operator < (const key_region& rhs) const;
-        bool operator == (const key_region& rhs) const;
-        key_region& operator = (const key_region& rhs);
+public:
+	bool operator < (const key_region &rhs) const;
+	bool operator == (const key_region &rhs) const;
+	key_region &operator = (const key_region &rhs);
 
-    public:
-        region_id region;
-        std::string key;
+public:
+	region_id region;
+	std::string key;
 
-    private:
-        friend class e::compat::hash<key_region>;
+private:
+	friend class e::compat::hash<key_region>;
 };
 
 END_HYPERDEX_NAMESPACE
@@ -64,12 +64,12 @@ BEGIN_E_COMPAT_NAMESPACE
 template <>
 struct hash<hyperdex::key_region>
 {
-    size_t operator()(const hyperdex::key_region& kr) const
-    {
-        return CityHash64WithSeed(reinterpret_cast<const char*>(kr.key.data()),
-                                  kr.key.size(),
-                                  e::compat::hash<uint64_t>()(kr.region.get()));
-    }
+	size_t operator()(const hyperdex::key_region &kr) const
+	{
+		return CityHash64WithSeed(reinterpret_cast<const char *>(kr.key.data()),
+		                          kr.key.size(),
+		                          e::compat::hash<uint64_t>()(kr.region.get()));
+	}
 };
 
 END_E_COMPAT_NAMESPACE

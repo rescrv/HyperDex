@@ -33,74 +33,63 @@
 #include "tools/common.h"
 
 int
-main(int argc, const char* argv[])
+main(int argc, const char *argv[])
 {
-    hyperdex::connect_opts conn;
-    e::argparser ap;
-    ap.autohelp();
-    ap.add("Connect to a cluster:", conn.parser());
-
-    if (!ap.parse(argc, argv))
-    {
-        return EXIT_FAILURE;
-    }
-
-    if (!conn.validate())
-    {
-        std::cerr << "invalid host:port specification\n" << std::endl;
-        ap.usage();
-        return EXIT_FAILURE;
-    }
-
-    if (ap.args_sz() != 1)
-    {
-        std::cerr << "please specify the backup name" << std::endl;
-        ap.usage();
-        return EXIT_FAILURE;
-    }
-
-    try
-    {
-        hyperdex::Admin h(conn.host(), conn.port());
-        hyperdex_admin_returncode rrc;
-        const char* backups = NULL;
-        int64_t rid = h.backup(ap.args()[0], &rrc, &backups);
-
-        if (rid < 0)
-        {
-            std::cerr << "Backup failed.\n"
-                      << "Please read the above messages for the cause and potential solutions\n";
-            return EXIT_FAILURE;
-        }
-
-        hyperdex_admin_returncode lrc;
-        int64_t lid = h.loop(-1, &lrc);
-
-        if (lid < 0)
-        {
-            std::cerr << "Backup failed.\n"
-                      << "Please read the above messages for the cause and potential solutions\n";
-            return EXIT_FAILURE;
-        }
-
-        assert(rid == lid);
-
-        if (rrc != HYPERDEX_ADMIN_SUCCESS)
-        {
-            std::cerr << "backup failed: " << h.error_message() << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        if (backups)
-        {
-            std::cout << backups;
-        }
-
-        return EXIT_SUCCESS;
-    }
-    catch (std::exception& e)
-    {
-        std::cerr << "error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
+	hyperdex::connect_opts conn;
+	e::argparser ap;
+	ap.autohelp();
+	ap.add("Connect to a cluster:", conn.parser());
+	if (!ap.parse(argc, argv))
+	{
+		return EXIT_FAILURE;
+	}
+	if (!conn.validate())
+	{
+		std::cerr << "invalid host:port specification\n" << std::endl;
+		ap.usage();
+		return EXIT_FAILURE;
+	}
+	if (ap.args_sz() != 1)
+	{
+		std::cerr << "please specify the backup name" << std::endl;
+		ap.usage();
+		return EXIT_FAILURE;
+	}
+	try
+	{
+		hyperdex::Admin h(conn.host(), conn.port());
+		hyperdex_admin_returncode rrc;
+		const char *backups = NULL;
+		int64_t rid = h.backup(ap.args()[0], &rrc, &backups);
+		if (rid < 0)
+		{
+			std::cerr << "Backup failed.\n"
+			          << "Please read the above messages for the cause and potential solutions\n";
+			return EXIT_FAILURE;
+		}
+		hyperdex_admin_returncode lrc;
+		int64_t lid = h.loop(-1, &lrc);
+		if (lid < 0)
+		{
+			std::cerr << "Backup failed.\n"
+			          << "Please read the above messages for the cause and potential solutions\n";
+			return EXIT_FAILURE;
+		}
+		assert(rid == lid);
+		if (rrc != HYPERDEX_ADMIN_SUCCESS)
+		{
+			std::cerr << "backup failed: " << h.error_message() << std::endl;
+			return EXIT_FAILURE;
+		}
+		if (backups)
+		{
+			std::cout << backups;
+		}
+		return EXIT_SUCCESS;
+	}
+	catch (std::exception &e)
+	{
+		std::cerr << "error: " << e.what() << std::endl;
+		return EXIT_FAILURE;
+	}
 }

@@ -44,52 +44,52 @@ class daemon;
 
 class background_thread
 {
-    public:
-        background_thread(daemon* d);
-        virtual ~background_thread() throw ();
+public:
+	background_thread(daemon *d);
+	virtual ~background_thread() throw ();
 
-    public:
-        void start();
-        void initiate_pause();
-        void wait_until_paused();
-        void unpause();
-        void shutdown();
+public:
+	void start();
+	void initiate_pause();
+	void wait_until_paused();
+	void unpause();
+	void shutdown();
 
-    protected:
-        virtual const char* thread_name() = 0;
-        virtual bool have_work() = 0;
-        virtual void copy_work() = 0;
-        virtual void do_work() = 0;
+protected:
+	virtual const char *thread_name() = 0;
+	virtual bool have_work() = 0;
+	virtual void copy_work() = 0;
+	virtual void do_work() = 0;
 
-    protected:
-        // take the thread offline.  pause will appear to work right away
-        void offline();
-        // bring the thread back online.  will block if paused
-        void online();
-        bool is_paused() { return m_paused; } // call with lock()
-        bool is_shutdown() { return m_shutdown; } // call with lock()
-        void lock() { m_protect.lock(); }
-        void unlock() { m_protect.unlock(); }
-        void wakeup() { m_wakeup_thread.broadcast(); }
+protected:
+	// take the thread offline.  pause will appear to work right away
+	void offline();
+	// bring the thread back online.  will block if paused
+	void online();
+	bool is_paused() { return m_paused; } // call with lock()
+	bool is_shutdown() { return m_shutdown; } // call with lock()
+	void lock() { m_protect.lock(); }
+	void unlock() { m_protect.unlock(); }
+	void wakeup() { m_wakeup_thread.broadcast(); }
 
-    private:
-        void run();
-        void block_signals();
+private:
+	void run();
+	void block_signals();
 
-    private:
-        background_thread(const background_thread&);
-        background_thread& operator = (const background_thread&);
+private:
+	background_thread(const background_thread &);
+	background_thread &operator = (const background_thread &);
 
-    private:
-        po6::threads::thread m_thread;
-        e::garbage_collector* m_gc;
-        po6::threads::mutex m_protect;
-        po6::threads::cond m_wakeup_thread;
-        po6::threads::cond m_wakeup_pauser;
-        bool m_shutdown;
-        int m_pause_count;
-        bool m_paused;
-        bool m_offline;
+private:
+	po6::threads::thread m_thread;
+	e::garbage_collector *m_gc;
+	po6::threads::mutex m_protect;
+	po6::threads::cond m_wakeup_thread;
+	po6::threads::cond m_wakeup_pauser;
+	bool m_shutdown;
+	int m_pause_count;
+	bool m_paused;
+	bool m_offline;
 };
 
 END_HYPERDEX_NAMESPACE

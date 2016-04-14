@@ -32,9 +32,9 @@
 #endif
 
 int
-main(int argc, const char* argv[])
+main(int argc, const char *argv[])
 {
-    argc = argc;
-    argv = argv;
-    return 0;
+	argc = argc;
+	argv = argv;
+	return 0;
 }

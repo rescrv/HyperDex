@@ -43,39 +43,37 @@ datatype_macaroon_secret :: ~datatype_macaroon_secret() throw ()
 hyperdatatype
 datatype_macaroon_secret :: datatype() const
 {
-    return HYPERDATATYPE_STRING;
+	return HYPERDATATYPE_STRING;
 }
 
 bool
-datatype_macaroon_secret :: validate(const e::slice&) const
+datatype_macaroon_secret :: validate(const e::slice &) const
 {
-    return true;
+	return true;
 }
 
 bool
-datatype_macaroon_secret :: check_args(const funcall& func) const
+datatype_macaroon_secret :: check_args(const funcall &func) const
 {
-    return func.arg1_datatype == HYPERDATATYPE_MACAROON_SECRET &&
-           validate(func.arg1) && func.name == FUNC_SET;
+	return func.arg1_datatype == HYPERDATATYPE_MACAROON_SECRET &&
+	       validate(func.arg1) && func.name == FUNC_SET;
 }
 
 bool
-datatype_macaroon_secret :: apply(const e::slice& old_value,
-                                  const funcall* funcs, size_t funcs_sz,
-                                  e::arena* new_memory,
-                                  e::slice* new_value) const
+datatype_macaroon_secret :: apply(const e::slice &old_value,
+                                  const funcall *funcs, size_t funcs_sz,
+                                  e::arena *new_memory,
+                                  e::slice *new_value) const
 {
-    *new_value = old_value;
-
-    if (funcs_sz > 0)
-    {
-        assert(funcs[funcs_sz - 1].name == FUNC_SET);
-        *new_value = funcs[funcs_sz - 1].arg1;
-    }
-
-    uint8_t* ptr = NULL;
-    new_memory->allocate(new_value->size(), &ptr);
-    memmove(ptr, new_value->data(), new_value->size());
-    *new_value = e::slice(ptr, new_value->size());
-    return true;
+	*new_value = old_value;
+	if (funcs_sz > 0)
+	{
+		assert(funcs[funcs_sz - 1].name == FUNC_SET);
+		*new_value = funcs[funcs_sz - 1].arg1;
+	}
+	uint8_t *ptr = NULL;
+	new_memory->allocate(new_value->size(), &ptr);
+	memmove(ptr, new_value->data(), new_value->size());
+	*new_value = e::slice(ptr, new_value->size());
+	return true;
 }

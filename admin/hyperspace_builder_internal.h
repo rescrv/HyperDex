@@ -33,14 +33,14 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-char*
-hyperspace_buffer(struct hyperspace* space);
+char *
+hyperspace_buffer(struct hyperspace *space);
 
 size_t
-hyperspace_buffer_sz(struct hyperspace* space);
+hyperspace_buffer_sz(struct hyperspace *space);
 
 void
-hyperspace_set_error(struct hyperspace* space, const char* msg);
+hyperspace_set_error(struct hyperspace *space, const char *msg);
 
 #ifdef __cplusplus
 } /* extern "C" */
@@ -53,7 +53,7 @@ BEGIN_HYPERDEX_NAMESPACE
 class space;
 
 bool
-space_to_space(hyperspace* in, hyperdex::space* out);
+space_to_space(hyperspace *in, hyperdex::space *out);
 
 END_HYPERDEX_NAMESPACE
 

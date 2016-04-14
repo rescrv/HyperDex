@@ -38,51 +38,51 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class pending_perf_counters : public pending
 {
-    public:
-        pending_perf_counters(uint64_t admin_visible_id,
-                              hyperdex_admin_returncode* status,
-                              hyperdex_admin_perf_counter* pc);
-        virtual ~pending_perf_counters() throw ();
+public:
+	pending_perf_counters(uint64_t admin_visible_id,
+	                      hyperdex_admin_returncode *status,
+	                      hyperdex_admin_perf_counter *pc);
+	virtual ~pending_perf_counters() throw ();
 
-    // manipulate perf counters
-    public:
-        void send_perf_reqs(admin* adm,
-                            const configuration* config,
-                            hyperdex_admin_returncode* status);
-        int millis_to_next_send();
+	// manipulate perf counters
+public:
+	void send_perf_reqs(admin *adm,
+	                    const configuration *config,
+	                    hyperdex_admin_returncode *status);
+	int millis_to_next_send();
 
-    // return to admin
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_admin_returncode* status);
+	// return to admin
+public:
+	virtual bool can_yield();
+	virtual bool yield(hyperdex_admin_returncode *status);
 
-    // events
-    public:
-        virtual void handle_sent_to(const server_id& si);
-        virtual void handle_failure(const server_id& si);
-        virtual bool handle_message(admin* adm,
-                                    const server_id& si,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_admin_returncode* status);
+	// events
+public:
+	virtual void handle_sent_to(const server_id &si);
+	virtual void handle_failure(const server_id &si);
+	virtual bool handle_message(admin *adm,
+	                            const server_id &si,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_admin_returncode *status);
 
-    protected:
-        friend class e::intrusive_ptr<pending_perf_counters>;
+protected:
+	friend class e::intrusive_ptr<pending_perf_counters>;
 
-    private:
-        class perf_counter;
+private:
+	class perf_counter;
 
-    private:
-        pending_perf_counters(const pending_perf_counters& other);
-        pending_perf_counters& operator = (const pending_perf_counters& rhs);
+private:
+	pending_perf_counters(const pending_perf_counters &other);
+	pending_perf_counters &operator = (const pending_perf_counters &rhs);
 
-    private:
-        hyperdex_admin_perf_counter* m_pc;
-        uint64_t m_next_send;
-        std::list<perf_counter> m_pcs;
-        std::string m_scratch;
-        std::map<server_id, uint64_t> m_cutoffs;
+private:
+	hyperdex_admin_perf_counter *m_pc;
+	uint64_t m_next_send;
+	std::list<perf_counter> m_pcs;
+	std::string m_scratch;
+	std::map<server_id, uint64_t> m_cutoffs;
 };
 
 END_HYPERDEX_NAMESPACE

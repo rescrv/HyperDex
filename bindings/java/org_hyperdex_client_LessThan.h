@@ -13,7 +13,7 @@ extern "C" {
  * Signature: ()J
  */
 JNIEXPORT HYPERDEX_API jlong JNICALL Java_org_hyperdex_client_LessThan_checksSize
-  (JNIEnv *, jobject);
+(JNIEnv *, jobject);
 
 /*
  * Class:     org_hyperdex_client_LessThan
@@ -21,7 +21,7 @@ JNIEXPORT HYPERDEX_API jlong JNICALL Java_org_hyperdex_client_LessThan_checksSiz
  * Signature: (JJJ)J
  */
 JNIEXPORT HYPERDEX_API jlong JNICALL Java_org_hyperdex_client_LessThan_convertChecks
-  (JNIEnv *, jobject, jlong, jlong, jlong);
+(JNIEnv *, jobject, jlong, jlong, jlong);
 
 #ifdef __cplusplus
 }

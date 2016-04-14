@@ -54,79 +54,78 @@ typedef e::compat::shared_ptr<leveldb::DB> leveldb_db_ptr;
 template<class T>
 struct leveldb_dtor
 {
-    typedef void (leveldb::DB::*func)(T* t);
-    static func get_func();
+	typedef void (leveldb::DB::*func)(T *t);
+	static func get_func();
 };
 
 template <>
 inline leveldb_dtor<const leveldb::Snapshot>::func
 leveldb_dtor<const leveldb::Snapshot> :: get_func()
 {
-    return &leveldb::DB::ReleaseSnapshot;
+	return &leveldb::DB::ReleaseSnapshot;
 }
 
 template <>
 inline leveldb_dtor<leveldb::ReplayIterator>::func
 leveldb_dtor<leveldb::ReplayIterator> :: get_func()
 {
-    return &leveldb::DB::ReleaseReplayIterator;
+	return &leveldb::DB::ReleaseReplayIterator;
 }
 
 template<class T>
 class leveldb_release_ptr
 {
-    public:
-        leveldb_release_ptr()
-            : m_db(), m_resource() {}
-        leveldb_release_ptr(leveldb_db_ptr d, T* t)
-            : m_db(), m_resource() { reset(d, t); }
-        leveldb_release_ptr(const leveldb_release_ptr& other)
-            : m_db(other.m_db), m_resource(other.m_resource) {}
-        ~leveldb_release_ptr() throw () {}
+public:
+	leveldb_release_ptr()
+		: m_db(), m_resource() {}
+	leveldb_release_ptr(leveldb_db_ptr d, T *t)
+		: m_db(), m_resource() { reset(d, t); }
+	leveldb_release_ptr(const leveldb_release_ptr &other)
+		: m_db(other.m_db), m_resource(other.m_resource) {}
+	~leveldb_release_ptr() throw () {}
 
-    public:
-        T* get() const { return m_resource->ptr; }
-        leveldb::DB* db() const { return m_db.get(); }
-        void reset(leveldb_db_ptr d, T* t)
-        { m_db = d; m_resource.reset(new wrapper(d, t)); }
+public:
+	T *get() const { return m_resource->ptr; }
+	leveldb::DB *db() const { return m_db.get(); }
+	void reset(leveldb_db_ptr d, T *t)
+	{ m_db = d; m_resource.reset(new wrapper(d, t)); }
 
-    public:
-        T* operator * () const throw () { return get(); }
-        T* operator -> () const throw () { return get(); }
-        leveldb_release_ptr& operator = (const leveldb_release_ptr& rhs)
-        {
-            if (this != &rhs)
-            {
-                m_resource = rhs.m_resource;
-                m_db = rhs.m_db;
-            }
+public:
+	T *operator * () const throw () { return get(); }
+	T *operator -> () const throw () { return get(); }
+	leveldb_release_ptr &operator = (const leveldb_release_ptr &rhs)
+	{
+		if (this != &rhs)
+		{
+			m_resource = rhs.m_resource;
+			m_db = rhs.m_db;
+		}
+		return *this;
+	}
 
-            return *this;
-        }
+private:
+	struct wrapper
+	{
+		wrapper(leveldb_db_ptr d, T *t) : db(d), ptr(t) {}
+		~wrapper() throw ()
+		{
+			if (ptr)
+			{
+				(*db.*leveldb_dtor<T>::get_func())(ptr);
+			}
+		}
 
-    private:
-        struct wrapper
-        {
-            wrapper(leveldb_db_ptr d, T* t) : db(d), ptr(t) {}
-            ~wrapper() throw ()
-            {
-                if (ptr)
-                {
-                    (*db.*leveldb_dtor<T>::get_func())(ptr);
-                }
-            }
+		leveldb_db_ptr db;
+		T *ptr;
 
-            leveldb_db_ptr db;
-            T* ptr;
+	private:
+		wrapper(const wrapper &);
+		wrapper &operator = (const wrapper &);
+	};
 
-            private:
-                wrapper(const wrapper&);
-                wrapper& operator = (const wrapper&);
-        };
-
-    private:
-        leveldb_db_ptr m_db;
-        e::compat::shared_ptr<wrapper> m_resource;
+private:
+	leveldb_db_ptr m_db;
+	e::compat::shared_ptr<wrapper> m_resource;
 };
 
 typedef leveldb_release_ptr<const leveldb::Snapshot> leveldb_snapshot_ptr;
@@ -134,22 +133,22 @@ typedef leveldb_release_ptr<leveldb::ReplayIterator> leveldb_replay_iterator_ptr
 
 class leveldb_iterator_ptr
 {
-    public:
-        leveldb_iterator_ptr() : m_snap(), m_iter() {}
-        ~leveldb_iterator_ptr() {}
+public:
+	leveldb_iterator_ptr() : m_snap(), m_iter() {}
+	~leveldb_iterator_ptr() {}
 
-    public:
-        void reset(leveldb_snapshot_ptr s, leveldb::Iterator* iter)
-        { m_iter.reset(iter); m_snap = s; }
-        leveldb::Iterator* get() const { return m_iter.get(); }
-        leveldb_snapshot_ptr snap() const { return m_snap; }
+public:
+	void reset(leveldb_snapshot_ptr s, leveldb::Iterator *iter)
+	{ m_iter.reset(iter); m_snap = s; }
+	leveldb::Iterator *get() const { return m_iter.get(); }
+	leveldb_snapshot_ptr snap() const { return m_snap; }
 
-    public:
-        leveldb::Iterator* operator -> () const throw () { return get(); }
+public:
+	leveldb::Iterator *operator -> () const throw () { return get(); }
 
-    private:
-        leveldb_snapshot_ptr m_snap;
-        e::compat::shared_ptr<leveldb::Iterator> m_iter;
+private:
+	leveldb_snapshot_ptr m_snap;
+	e::compat::shared_ptr<leveldb::Iterator> m_iter;
 };
 
 END_HYPERDEX_NAMESPACE

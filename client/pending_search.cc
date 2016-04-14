@@ -34,16 +34,16 @@
 using hyperdex::pending_search;
 
 pending_search :: pending_search(uint64_t id,
-                                 hyperdex_client_returncode* status,
-                                 const hyperdex_client_attribute** attrs, size_t* attrs_sz)
-    : pending_aggregation(id, status)
-    , m_attrs(attrs)
-    , m_attrs_sz(attrs_sz)
-    , m_yield(false)
-    , m_done(false)
+                                 hyperdex_client_returncode *status,
+                                 const hyperdex_client_attribute **attrs, size_t *attrs_sz)
+	: pending_aggregation(id, status)
+	, m_attrs(attrs)
+	, m_attrs_sz(attrs_sz)
+	, m_yield(false)
+	, m_done(false)
 {
-    *m_attrs = NULL;
-    *m_attrs_sz = 0;
+	*m_attrs = NULL;
+	*m_attrs_sz = 0;
 }
 
 pending_search :: ~pending_search() throw ()
@@ -53,112 +53,100 @@ pending_search :: ~pending_search() throw ()
 bool
 pending_search :: can_yield()
 {
-    return m_yield;
+	return m_yield;
 }
 
 bool
-pending_search :: yield(hyperdex_client_returncode* status, e::error* err)
+pending_search :: yield(hyperdex_client_returncode *status, e::error *err)
 {
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
-    m_yield = false;
-
-    if (this->aggregation_done() && !m_done)
-    {
-        m_yield = true;
-        m_done = true;
-    }
-    else if (m_done)
-    {
-        set_status(HYPERDEX_CLIENT_SEARCHDONE);
-    }
-
-    return true;
+	*status = HYPERDEX_CLIENT_SUCCESS;
+	*err = e::error();
+	m_yield = false;
+	if (this->aggregation_done() && !m_done)
+	{
+		m_yield = true;
+		m_done = true;
+	}
+	else if (m_done)
+	{
+		set_status(HYPERDEX_CLIENT_SEARCHDONE);
+	}
+	return true;
 }
 
 void
-pending_search :: handle_failure(const server_id& si,
-                                 const virtual_server_id& vsi)
+pending_search :: handle_failure(const server_id &si,
+                                 const virtual_server_id &vsi)
 {
-    m_yield = true;
-    PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
-                               << vsi << "/" << si;
-    return pending_aggregation::handle_failure(si, vsi);
+	m_yield = true;
+	PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
+	                           << vsi << "/" << si;
+	return pending_aggregation::handle_failure(si, vsi);
 }
 
 bool
-pending_search :: handle_message(client* cl,
-                                 const server_id& si,
-                                 const virtual_server_id& vsi,
+pending_search :: handle_message(client *cl,
+                                 const server_id &si,
+                                 const virtual_server_id &vsi,
                                  network_msgtype mt,
                                  std::auto_ptr<e::buffer> msg,
                                  e::unpacker up,
-                                 hyperdex_client_returncode* status,
-                                 e::error* err)
+                                 hyperdex_client_returncode *status,
+                                 e::error *err)
 {
-    bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
-    assert(handled);
-
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
-
-    if (mt == RESP_SEARCH_DONE)
-    {
-        if (this->aggregation_done())
-        {
-            m_yield = true;
-            m_done = true;
-        }
-
-        return true;
-    }
-    else if (mt != RESP_SEARCH_ITEM)
-    {
-        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to SEARCH with " << mt;
-        m_yield = true;
-        return true;
-    }
-
-    e::slice key;
-    std::vector<e::slice> value;
-    up = up >> key >> value;
-
-    if (up.error())
-    {
-        PENDING_ERROR(SERVERERROR) << "communication error: server "
-                                   << vsi << " sent corrupt message="
-                                   << msg->as_slice().hex()
-                                   << " in response to a SEARCH";
-        m_yield = true;
-        return true;
-    }
-
-    hyperdex_client_returncode op_status;
-    e::error op_error;
-
-    if (!value_to_attributes(cl->m_config,
-                             cl->m_config.get_region_id(vsi),
-                             key.data(), key.size(), value,
-                             &op_status, &op_error, m_attrs, m_attrs_sz, cl->m_convert_types))
-    {
-        set_status(op_status);
-        set_error(op_error);
-        m_yield = true;
-        return true;
-    }
-
-    std::auto_ptr<e::buffer> smsg(e::buffer::create(HYPERDEX_CLIENT_HEADER_SIZE_REQ + sizeof(uint64_t)));
-    smsg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << static_cast<uint64_t>(client_visible_id());
-
-    if (!cl->send(REQ_SEARCH_NEXT, vsi, cl->m_next_server_nonce++, smsg, this, status))
-    {
-        PENDING_ERROR(RECONFIGURE) << "could not send SEARCH_NEXT to " << vsi;
-        m_yield = true;
-        return true;
-    }
-
-    set_status(HYPERDEX_CLIENT_SUCCESS);
-    set_error(e::error());
-    m_yield = true;
-    return true;
+	bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
+	assert(handled);
+	*status = HYPERDEX_CLIENT_SUCCESS;
+	*err = e::error();
+	if (mt == RESP_SEARCH_DONE)
+	{
+		if (this->aggregation_done())
+		{
+			m_yield = true;
+			m_done = true;
+		}
+		return true;
+	}
+	else if (mt != RESP_SEARCH_ITEM)
+	{
+		PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to SEARCH with " << mt;
+		m_yield = true;
+		return true;
+	}
+	e::slice key;
+	std::vector<e::slice> value;
+	up = up >> key >> value;
+	if (up.error())
+	{
+		PENDING_ERROR(SERVERERROR) << "communication error: server "
+		                           << vsi << " sent corrupt message="
+		                           << msg->as_slice().hex()
+		                           << " in response to a SEARCH";
+		m_yield = true;
+		return true;
+	}
+	hyperdex_client_returncode op_status;
+	e::error op_error;
+	if (!value_to_attributes(cl->m_config,
+	                         cl->m_config.get_region_id(vsi),
+	                         key.data(), key.size(), value,
+	                         &op_status, &op_error, m_attrs, m_attrs_sz, cl->m_convert_types))
+	{
+		set_status(op_status);
+		set_error(op_error);
+		m_yield = true;
+		return true;
+	}
+	std::auto_ptr<e::buffer> smsg(e::buffer::create(HYPERDEX_CLIENT_HEADER_SIZE_REQ + sizeof(uint64_t)));
+	smsg->pack_at(HYPERDEX_CLIENT_HEADER_SIZE_REQ) << static_cast<uint64_t>(client_visible_id());
+	if (!cl->send(REQ_SEARCH_NEXT, vsi, cl->m_next_server_nonce++, smsg, this, status))
+	{
+		PENDING_ERROR(RECONFIGURE) << "could not send SEARCH_NEXT to " << vsi;
+		m_yield = true;
+		return true;
+	}
+	set_status(HYPERDEX_CLIENT_SUCCESS);
+	set_error(e::error());
+	m_yield = true;
+	return true;
 }

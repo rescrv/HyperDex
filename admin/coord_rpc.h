@@ -52,26 +52,26 @@ class admin;
 
 class coord_rpc : public yieldable
 {
-    public:
-        coord_rpc(uint64_t admin_visible_id,
-                  hyperdex_admin_returncode* status);
-        virtual ~coord_rpc() throw ();
+public:
+	coord_rpc(uint64_t admin_visible_id,
+	          hyperdex_admin_returncode *status);
+	virtual ~coord_rpc() throw ();
 
-    public:
-        virtual bool handle_response(admin* adm,
-                                     hyperdex_admin_returncode* status) = 0;
+public:
+	virtual bool handle_response(admin *adm,
+	                             hyperdex_admin_returncode *status) = 0;
 
-    public:
-        replicant_returncode repl_status;
-        char* repl_output;
-        size_t repl_output_sz;
+public:
+	replicant_returncode repl_status;
+	char *repl_output;
+	size_t repl_output_sz;
 
-    protected:
-        friend class e::intrusive_ptr<coord_rpc>;
+protected:
+	friend class e::intrusive_ptr<coord_rpc>;
 
-    private:
-        coord_rpc(const coord_rpc&);
-        coord_rpc& operator = (const coord_rpc&);
+private:
+	coord_rpc(const coord_rpc &);
+	coord_rpc &operator = (const coord_rpc &);
 };
 
 END_HYPERDEX_NAMESPACE

@@ -40,50 +40,49 @@ using hyperdex::region_id;
 
 TEST(IdentifierCollector, Test)
 {
-    e::garbage_collector gc;
-    identifier_collector ic(&gc);
-    uint64_t id;
-    // adopt a region
-    region_id ri(1);
-    ic.adopt(&ri, 1);
-    // first try, nothing collected
-    id = ic.lower_bound(ri);
-    ASSERT_EQ(id, 1U);
-    // collect one
-    ic.collect(ri, 1);
-    id = ic.lower_bound(ri);
-    ASSERT_EQ(id, 2U);
-    // collect three
-    ic.collect(ri, 3);
-    id = ic.lower_bound(ri);
-    ASSERT_EQ(id, 2U);
-    // collect three again
-    ic.collect(ri, 3);
-    id = ic.lower_bound(ri);
-    ASSERT_EQ(id, 2U);
-    // collect two
-    ic.collect(ri, 2);
-    id = ic.lower_bound(ri);
-    ASSERT_EQ(id, 4U);
-    // resize
-    region_id ris[2];
-    ris[0] = region_id(2);
-    ris[1] = region_id(1);
-    ic.adopt(ris, 2);
-    // check lower bound
-    id = ic.lower_bound(ri);
-    ASSERT_EQ(id, 4U);
-    // bump!
-    ic.bump(ri, 9);
-    id = ic.lower_bound(ri);
-    ASSERT_EQ(id, 9U);
-    id = ic.lower_bound(ri);
-    ASSERT_EQ(id, 9U);
-
-    for (uint64_t i = 9; i < 65536; ++i)
-    {
-        ic.collect(ri, i);
-        id = ic.lower_bound(ri);
-        ASSERT_EQ(id, i + 1);
-    }
+	e::garbage_collector gc;
+	identifier_collector ic(&gc);
+	uint64_t id;
+	// adopt a region
+	region_id ri(1);
+	ic.adopt(&ri, 1);
+	// first try, nothing collected
+	id = ic.lower_bound(ri);
+	ASSERT_EQ(id, 1U);
+	// collect one
+	ic.collect(ri, 1);
+	id = ic.lower_bound(ri);
+	ASSERT_EQ(id, 2U);
+	// collect three
+	ic.collect(ri, 3);
+	id = ic.lower_bound(ri);
+	ASSERT_EQ(id, 2U);
+	// collect three again
+	ic.collect(ri, 3);
+	id = ic.lower_bound(ri);
+	ASSERT_EQ(id, 2U);
+	// collect two
+	ic.collect(ri, 2);
+	id = ic.lower_bound(ri);
+	ASSERT_EQ(id, 4U);
+	// resize
+	region_id ris[2];
+	ris[0] = region_id(2);
+	ris[1] = region_id(1);
+	ic.adopt(ris, 2);
+	// check lower bound
+	id = ic.lower_bound(ri);
+	ASSERT_EQ(id, 4U);
+	// bump!
+	ic.bump(ri, 9);
+	id = ic.lower_bound(ri);
+	ASSERT_EQ(id, 9U);
+	id = ic.lower_bound(ri);
+	ASSERT_EQ(id, 9U);
+	for (uint64_t i = 9; i < 65536; ++i)
+	{
+		ic.collect(ri, i);
+		id = ic.lower_bound(ri);
+		ASSERT_EQ(id, i + 1);
+	}
 }

@@ -31,9 +31,9 @@
 using hyperdex::pending_aggregation;
 
 pending_aggregation :: pending_aggregation(uint64_t id,
-                                           hyperdex_client_returncode* status)
-    : pending(id, status)
-    , m_outstanding()
+                                           hyperdex_client_returncode *status)
+	: pending(id, status)
+	, m_outstanding()
 {
 }
 
@@ -44,55 +44,53 @@ pending_aggregation :: ~pending_aggregation() throw ()
 bool
 pending_aggregation :: aggregation_done()
 {
-    return m_outstanding.empty();
+	return m_outstanding.empty();
 }
 
 void
-pending_aggregation :: handle_sent_to(const server_id& si,
-                                      const virtual_server_id& vsi)
+pending_aggregation :: handle_sent_to(const server_id &si,
+                                      const virtual_server_id &vsi)
 {
-    m_outstanding.push_back(std::make_pair(si, vsi));
+	m_outstanding.push_back(std::make_pair(si, vsi));
 }
 
 void
-pending_aggregation :: handle_failure(const server_id& si,
-                                      const virtual_server_id& vsi)
+pending_aggregation :: handle_failure(const server_id &si,
+                                      const virtual_server_id &vsi)
 {
-    remove(si, vsi);
+	remove(si, vsi);
 }
 
 bool
-pending_aggregation :: handle_message(client*,
-                                      const server_id& si,
-                                      const virtual_server_id& vsi,
+pending_aggregation :: handle_message(client *,
+                                      const server_id &si,
+                                      const virtual_server_id &vsi,
                                       network_msgtype,
                                       std::auto_ptr<e::buffer>,
                                       e::unpacker,
-                                      hyperdex_client_returncode*,
-                                      e::error*)
+                                      hyperdex_client_returncode *,
+                                      e::error *)
 {
-    remove(si, vsi);
-    return true;
+	remove(si, vsi);
+	return true;
 }
 
 void
-pending_aggregation :: remove(const server_id& si,
-                              const virtual_server_id& vsi)
+pending_aggregation :: remove(const server_id &si,
+                              const virtual_server_id &vsi)
 {
-    for (size_t i = 0; i < m_outstanding.size(); ++i)
-    {
-        if (m_outstanding[i].first != si ||
-            m_outstanding[i].second != vsi)
-        {
-            continue;
-        }
-
-        for (size_t j = i; j + 1 < m_outstanding.size(); ++j)
-        {
-            m_outstanding[j] = m_outstanding[j + 1];
-        }
-
-        m_outstanding.pop_back();
-        return;
-    }
+	for (size_t i = 0; i < m_outstanding.size(); ++i)
+	{
+		if (m_outstanding[i].first != si ||
+		    m_outstanding[i].second != vsi)
+		{
+			continue;
+		}
+		for (size_t j = i; j + 1 < m_outstanding.size(); ++j)
+		{
+			m_outstanding[j] = m_outstanding[j + 1];
+		}
+		m_outstanding.pop_back();
+		return;
+	}
 }

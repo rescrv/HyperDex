@@ -42,18 +42,18 @@ using ::pack_size;
 using e::pack_size;
 
 e::packer
-operator << (e::packer lhs, const hyperdatatype& rhs);
+operator << (e::packer lhs, const hyperdatatype &rhs);
 e::unpacker
-operator >> (e::unpacker lhs, hyperdatatype& rhs);
+operator >> (e::unpacker lhs, hyperdatatype &rhs);
 size_t
-pack_size(const hyperdatatype& h);
+pack_size(const hyperdatatype &h);
 
 e::packer
-operator << (e::packer lhs, const hyperpredicate& rhs);
+operator << (e::packer lhs, const hyperpredicate &rhs);
 e::unpacker
-operator >> (e::unpacker lhs, hyperpredicate& rhs);
+operator >> (e::unpacker lhs, hyperpredicate &rhs);
 size_t
-pack_size(const hyperpredicate& p);
+pack_size(const hyperpredicate &p);
 
 END_HYPERDEX_NAMESPACE
 

@@ -35,53 +35,53 @@
 
 class hyperdex::datalayer::wiper_thread : public hyperdex::background_thread
 {
-    public:
-        wiper_thread(daemon* d, wiper_indexer_mediator* m);
-        ~wiper_thread() throw ();
+public:
+	wiper_thread(daemon *d, wiper_indexer_mediator *m);
+	~wiper_thread() throw ();
 
-    public:
-        virtual const char* thread_name();
-        virtual bool have_work();
-        virtual void copy_work();
-        virtual void do_work();
+public:
+	virtual const char *thread_name();
+	virtual bool have_work();
+	virtual void copy_work();
+	virtual void do_work();
 
-    public:
-        void debug_dump();
-        // These are different than pause/unpause, which should only ever be
-        // called by the main thread.  They guarantee that after the wiper is
-        // done with the current region, it will not make progress to the next
-        // region.  Thus, between pairs of inhibit/permit,
-        // "region_will_be_wiped" is guaranteed not to go from true->false.
-        void inhibit_wiping();
-        void permit_wiping();
-        bool region_will_be_wiped(region_id rid);
-        void request_wipe(transfer_id xid,
-                          region_id ri);
-        void kick();
+public:
+	void debug_dump();
+	// These are different than pause/unpause, which should only ever be
+	// called by the main thread.  They guarantee that after the wiper is
+	// done with the current region, it will not make progress to the next
+	// region.  Thus, between pairs of inhibit/permit,
+	// "region_will_be_wiped" is guaranteed not to go from true->false.
+	void inhibit_wiping();
+	void permit_wiping();
+	bool region_will_be_wiped(region_id rid);
+	void request_wipe(transfer_id xid,
+	                  region_id ri);
+	void kick();
 
-    private:
-        bool interrupted();
-        void wipe(transfer_id xid, region_id rid);
-        void wipe_checkpoints(region_id rid);
-        void wipe_indices(region_id rid);
-        void wipe_objects(region_id rid);
-        void wipe_common(uint8_t c, region_id rid);
+private:
+	bool interrupted();
+	void wipe(transfer_id xid, region_id rid);
+	void wipe_checkpoints(region_id rid);
+	void wipe_indices(region_id rid);
+	void wipe_objects(region_id rid);
+	void wipe_common(uint8_t c, region_id rid);
 
-    private:
-        daemon* m_daemon;
-        wiper_indexer_mediator* m_mediator;
-        typedef std::list<std::pair<transfer_id, region_id> > wipe_list_t;
-        wipe_list_t m_wiping;
-        bool m_have_current;
-        transfer_id m_wipe_current_xid;
-        region_id m_wipe_current_rid;
-        uint64_t m_wiping_inhibit_permit_diff;
-        uint64_t m_interrupted_count;
-        bool m_interrupted;
+private:
+	daemon *m_daemon;
+	wiper_indexer_mediator *m_mediator;
+	typedef std::list<std::pair<transfer_id, region_id> > wipe_list_t;
+	wipe_list_t m_wiping;
+	bool m_have_current;
+	transfer_id m_wipe_current_xid;
+	region_id m_wipe_current_rid;
+	uint64_t m_wiping_inhibit_permit_diff;
+	uint64_t m_interrupted_count;
+	bool m_interrupted;
 
-    private:
-        wiper_thread(const wiper_thread&);
-        wiper_thread& operator = (const wiper_thread&);
+private:
+	wiper_thread(const wiper_thread &);
+	wiper_thread &operator = (const wiper_thread &);
 };
 
 #endif // hyperdex_daemon_datalayer_wiper_thread_h_

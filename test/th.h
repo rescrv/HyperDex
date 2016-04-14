@@ -50,68 +50,68 @@ fail();
 
 class test_base
 {
-    public:
-        test_base(const char* group,
-             const char* name,
-             const char* file,
-             size_t line);
-        virtual ~test_base() throw () {}
+public:
+	test_base(const char *group,
+	          const char *name,
+	          const char *file,
+	          size_t line);
+	virtual ~test_base() throw () {}
 
-    public:
-        void run(bool quiet, bool* failed);
+public:
+	void run(bool quiet, bool *failed);
 
-    public:
-        bool operator < (const test_base& rhs) const;
+public:
+	bool operator < (const test_base &rhs) const;
 
-    private:
-        virtual void _run() = 0;
-        int compare(const test_base& rhs) const;
+private:
+	virtual void _run() = 0;
+	int compare(const test_base &rhs) const;
 
-    private:
-        test_base(const test_base&);
-        test_base& operator = (const test_base&);
+private:
+	test_base(const test_base &);
+	test_base &operator = (const test_base &);
 
-    private:
-        const char* m_group;
-        const char* m_name;
-        const char* m_file;
-        size_t m_line;
+private:
+	const char *m_group;
+	const char *m_name;
+	const char *m_file;
+	size_t m_line;
 };
 
 #define BINARY_PREDICATE(english, compiler) \
-    template <typename A, typename B> \
-    void \
-    assert_ ## english(const A& a, const B& b) \
-    { \
-        if (!(a compiler b)) \
-        { \
-            std::cerr << "FAIL @ " << m_file << ":" << m_line << ": tested " << m_a << " " TH_XSTR(compiler) " " << m_b << "; got " << a << " " TH_XSTR(compiler) " " << b << std::endl; \
-            th::fail(); \
-        } \
-    }
+	template <typename A, typename B> \
+	void \
+	assert_ ## english(const A& a, const B& b) \
+	{ \
+		if (!(a compiler b)) \
+		{ \
+			std::cerr << "FAIL @ " << m_file << ":" << m_line << ": tested " << m_a << " " TH_XSTR(compiler) " " << m_b << "; got " << a << " " TH_XSTR(compiler) " " << b << std::endl; \
+			th::fail(); \
+		} \
+	}
 
 class predicate
 {
-    public:
-        predicate(const char* file,
-                  size_t line,
-                  const char* a,
-                  const char* b);
-        void assert_true(bool T);
-        void assert_false(bool F);
-        BINARY_PREDICATE(lt, <)
-        BINARY_PREDICATE(le, <=)
-        BINARY_PREDICATE(eq, ==)
-        BINARY_PREDICATE(ne, !=)
-        BINARY_PREDICATE(ge, >=)
-        BINARY_PREDICATE(gt, >)
-        void fail();
+public:
+	predicate(const char *file,
+	          size_t line,
+	          const char *a,
+	          const char *b);
+	void assert_true(bool T);
+	void assert_false(bool F);
+	BINARY_PREDICATE(lt, < )
+	BINARY_PREDICATE(le, <= )
+	BINARY_PREDICATE(eq, == )
+	BINARY_PREDICATE(ne, != )
+	BINARY_PREDICATE(ge, >= )
+	BINARY_PREDICATE(gt, > )
+	void fail();
 
-    private:
-        const char* m_file;
-        size_t m_line;
-        const char* m_a;
-        const char* m_b;
+private:
+	const char *m_file;
+	size_t m_line;
+	const char *m_a;
+	const char *m_b;
 };
 
 #undef BINARY_PREDICATE
@@ -119,17 +119,17 @@ class predicate
 } // namespace th
 
 #define TEST(GROUP, NAME) \
-    class TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__)))) : public th::test_base \
-    { \
-        public: \
-            TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__))))() \
-                : test_base(TH_STR(GROUP), TH_STR(NAME), __FILE__, __LINE__) {} \
-        protected: \
-            virtual void _run(); \
-    }; \
-    TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__)))) \
-        TH_CONCAT(_test_instance_, TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__))))); \
-    void TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__)))) :: _run()
+	class TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__)))) : public th::test_base \
+	{ \
+	public: \
+		TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__))))() \
+			: test_base(TH_STR(GROUP), TH_STR(NAME), __FILE__, __LINE__) {} \
+	protected: \
+		virtual void _run(); \
+	}; \
+	TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__)))) \
+	TH_CONCAT(_test_instance_, TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__))))); \
+	void TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__)))) :: _run()
 
 #define ASSERT_TRUE(P)  th::predicate(__FILE__, __LINE__, TH_STR(P), NULL).assert_true(P)
 #define ASSERT_FALSE(P) th::predicate(__FILE__, __LINE__, TH_STR(P), NULL).assert_false(P)

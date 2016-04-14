@@ -39,9 +39,9 @@ using hyperdex::region_id;
 
 const region_id identifier_collector::defaultri;
 
-identifier_collector :: identifier_collector(e::garbage_collector* gc)
-    : m_gc(gc)
-    , m_collectors()
+identifier_collector :: identifier_collector(e::garbage_collector *gc)
+	: m_gc(gc)
+	, m_collectors()
 {
 }
 
@@ -50,64 +50,54 @@ identifier_collector :: ~identifier_collector() throw ()
 }
 
 void
-identifier_collector :: bump(const region_id& ri, uint64_t lb)
+identifier_collector :: bump(const region_id &ri, uint64_t lb)
 {
-    e::compat::shared_ptr<e::seqno_collector> sc;
-
-    if (!m_collectors.get(ri, &sc))
-    {
-        abort();
-    }
-
-    sc->collect_up_to(lb);
+	e::compat::shared_ptr<e::seqno_collector> sc;
+	if (!m_collectors.get(ri, &sc))
+	{
+		abort();
+	}
+	sc->collect_up_to(lb);
 }
 
 void
-identifier_collector :: collect(const region_id& ri, uint64_t seqno)
+identifier_collector :: collect(const region_id &ri, uint64_t seqno)
 {
-    e::compat::shared_ptr<e::seqno_collector> sc;
-
-    if (!m_collectors.get(ri, &sc))
-    {
-        abort();
-    }
-
-    sc->collect(seqno);
+	e::compat::shared_ptr<e::seqno_collector> sc;
+	if (!m_collectors.get(ri, &sc))
+	{
+		abort();
+	}
+	sc->collect(seqno);
 }
 
 uint64_t
-identifier_collector :: lower_bound(const region_id& ri)
+identifier_collector :: lower_bound(const region_id &ri)
 {
-    e::compat::shared_ptr<e::seqno_collector> sc;
-
-    if (!m_collectors.get(ri, &sc))
-    {
-        abort();
-    }
-
-    uint64_t lb;
-    sc->lower_bound(&lb);
-    return lb;
+	e::compat::shared_ptr<e::seqno_collector> sc;
+	if (!m_collectors.get(ri, &sc))
+	{
+		abort();
+	}
+	uint64_t lb;
+	sc->lower_bound(&lb);
+	return lb;
 }
 
 void
-identifier_collector :: adopt(region_id* ris, size_t ris_sz)
+identifier_collector :: adopt(region_id *ris, size_t ris_sz)
 {
-    collector_map_t new_collectors;
-
-    for (size_t i = 0; i < ris_sz; ++i)
-    {
-        e::compat::shared_ptr<e::seqno_collector> sc;
-
-        if (!m_collectors.get(ris[i], &sc))
-        {
-            sc = e::compat::shared_ptr<e::seqno_collector>(new e::seqno_collector(m_gc));
-            sc->collect(0);
-        }
-
-        assert(sc);
-        new_collectors.put(ris[i], sc);
-    }
-
-    m_collectors.swap(&new_collectors);
+	collector_map_t new_collectors;
+	for (size_t i = 0; i < ris_sz; ++i)
+	{
+		e::compat::shared_ptr<e::seqno_collector> sc;
+		if (!m_collectors.get(ris[i], &sc))
+		{
+			sc = e::compat::shared_ptr<e::seqno_collector>(new e::seqno_collector(m_gc));
+			sc->collect(0);
+		}
+		assert(sc);
+		new_collectors.put(ris[i], sc);
+	}
+	m_collectors.swap(&new_collectors);
 }

@@ -39,16 +39,16 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class schema
 {
-    public:
-        schema();
+public:
+	schema();
 
-    public:
-        uint16_t lookup_attr(const char* name) const;
+public:
+	uint16_t lookup_attr(const char *name) const;
 
-    public:
-        uint16_t attrs_sz;
-        const attribute* attrs;
-        bool authorization;
+public:
+	uint16_t attrs_sz;
+	const attribute *attrs;
+	bool authorization;
 };
 
 END_HYPERDEX_NAMESPACE

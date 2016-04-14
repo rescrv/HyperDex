@@ -32,14 +32,12 @@
 #include "th.h"
 
 int
-main(int argc, char* argv[])
+main(int argc, char *argv[])
 {
-    bool quiet = false;
-
-    for (int i = 1; i < argc; ++i)
-    {
-        quiet = quiet || strcmp(argv[i], "--quiet") == 0;
-    }
-
-    return th::run_tests(quiet);
+	bool quiet = false;
+	for (int i = 1; i < argc; ++i)
+	{
+		quiet = quiet || strcmp(argv[i], "--quiet") == 0;
+	}
+	return th::run_tests(quiet);
 }

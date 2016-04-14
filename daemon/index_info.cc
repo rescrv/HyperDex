@@ -73,54 +73,54 @@ static const hyperdex::index_timestamp i_timestamp_day(HYPERDATATYPE_TIMESTAMP_D
 static const hyperdex::index_timestamp i_timestamp_week(HYPERDATATYPE_TIMESTAMP_WEEK);
 static const hyperdex::index_timestamp i_timestamp_month(HYPERDATATYPE_TIMESTAMP_MONTH);
 
-const index_encoding*
+const index_encoding *
 index_encoding :: lookup(hyperdatatype datatype)
 {
-    switch (datatype)
-    {
-        case HYPERDATATYPE_STRING:
-            return &e_string;
-        case HYPERDATATYPE_INT64:
-            return &e_int64;
-        case HYPERDATATYPE_FLOAT:
-            return &e_float;
-        case HYPERDATATYPE_TIMESTAMP_SECOND:
-        case HYPERDATATYPE_TIMESTAMP_MINUTE:
-        case HYPERDATATYPE_TIMESTAMP_HOUR:
-        case HYPERDATATYPE_TIMESTAMP_DAY:
-        case HYPERDATATYPE_TIMESTAMP_WEEK:
-        case HYPERDATATYPE_TIMESTAMP_MONTH:
-            return &e_timestamp;
-        case HYPERDATATYPE_DOCUMENT:
-            return &e_document;
-        case HYPERDATATYPE_GENERIC:
-        case HYPERDATATYPE_LIST_GENERIC:
-        case HYPERDATATYPE_LIST_STRING:
-        case HYPERDATATYPE_LIST_INT64:
-        case HYPERDATATYPE_LIST_FLOAT:
-        case HYPERDATATYPE_SET_GENERIC:
-        case HYPERDATATYPE_SET_STRING:
-        case HYPERDATATYPE_SET_INT64:
-        case HYPERDATATYPE_SET_FLOAT:
-        case HYPERDATATYPE_MAP_GENERIC:
-        case HYPERDATATYPE_TIMESTAMP_GENERIC:
-        case HYPERDATATYPE_MAP_STRING_KEYONLY:
-        case HYPERDATATYPE_MAP_STRING_STRING:
-        case HYPERDATATYPE_MAP_STRING_INT64:
-        case HYPERDATATYPE_MAP_STRING_FLOAT:
-        case HYPERDATATYPE_MAP_INT64_KEYONLY:
-        case HYPERDATATYPE_MAP_INT64_STRING:
-        case HYPERDATATYPE_MAP_INT64_INT64:
-        case HYPERDATATYPE_MAP_INT64_FLOAT:
-        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
-        case HYPERDATATYPE_MAP_FLOAT_STRING:
-        case HYPERDATATYPE_MAP_FLOAT_INT64:
-        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
-        case HYPERDATATYPE_MACAROON_SECRET:
-        case HYPERDATATYPE_GARBAGE:
-        default:
-            abort();
-    }
+	switch (datatype)
+	{
+	case HYPERDATATYPE_STRING:
+		return &e_string;
+	case HYPERDATATYPE_INT64:
+		return &e_int64;
+	case HYPERDATATYPE_FLOAT:
+		return &e_float;
+	case HYPERDATATYPE_TIMESTAMP_SECOND:
+	case HYPERDATATYPE_TIMESTAMP_MINUTE:
+	case HYPERDATATYPE_TIMESTAMP_HOUR:
+	case HYPERDATATYPE_TIMESTAMP_DAY:
+	case HYPERDATATYPE_TIMESTAMP_WEEK:
+	case HYPERDATATYPE_TIMESTAMP_MONTH:
+		return &e_timestamp;
+	case HYPERDATATYPE_DOCUMENT:
+		return &e_document;
+	case HYPERDATATYPE_GENERIC:
+	case HYPERDATATYPE_LIST_GENERIC:
+	case HYPERDATATYPE_LIST_STRING:
+	case HYPERDATATYPE_LIST_INT64:
+	case HYPERDATATYPE_LIST_FLOAT:
+	case HYPERDATATYPE_SET_GENERIC:
+	case HYPERDATATYPE_SET_STRING:
+	case HYPERDATATYPE_SET_INT64:
+	case HYPERDATATYPE_SET_FLOAT:
+	case HYPERDATATYPE_MAP_GENERIC:
+	case HYPERDATATYPE_TIMESTAMP_GENERIC:
+	case HYPERDATATYPE_MAP_STRING_KEYONLY:
+	case HYPERDATATYPE_MAP_STRING_STRING:
+	case HYPERDATATYPE_MAP_STRING_INT64:
+	case HYPERDATATYPE_MAP_STRING_FLOAT:
+	case HYPERDATATYPE_MAP_INT64_KEYONLY:
+	case HYPERDATATYPE_MAP_INT64_STRING:
+	case HYPERDATATYPE_MAP_INT64_INT64:
+	case HYPERDATATYPE_MAP_INT64_FLOAT:
+	case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+	case HYPERDATATYPE_MAP_FLOAT_STRING:
+	case HYPERDATATYPE_MAP_FLOAT_INT64:
+	case HYPERDATATYPE_MAP_FLOAT_FLOAT:
+	case HYPERDATATYPE_MACAROON_SECRET:
+	case HYPERDATATYPE_GARBAGE:
+	default:
+		abort();
+	}
 }
 
 index_encoding :: index_encoding()
@@ -131,74 +131,74 @@ index_encoding :: ~index_encoding() throw ()
 {
 }
 
-const index_info*
+const index_info *
 index_info :: lookup(hyperdatatype datatype)
 {
-    switch (datatype)
-    {
-        case HYPERDATATYPE_STRING:
-            return &i_string;
-        case HYPERDATATYPE_INT64:
-            return &i_int64;
-        case HYPERDATATYPE_FLOAT:
-            return &i_float;
-        case HYPERDATATYPE_TIMESTAMP_SECOND:
-            return &i_timestamp_second;
-        case HYPERDATATYPE_TIMESTAMP_MINUTE:
-            return &i_timestamp_minute;
-        case HYPERDATATYPE_TIMESTAMP_HOUR:
-            return &i_timestamp_hour;
-        case HYPERDATATYPE_TIMESTAMP_DAY:
-            return &i_timestamp_day;
-        case HYPERDATATYPE_TIMESTAMP_WEEK:
-            return &i_timestamp_week;
-        case HYPERDATATYPE_TIMESTAMP_MONTH:
-            return &i_timestamp_month;
-        case HYPERDATATYPE_DOCUMENT:
-            return &i_document;
-        case HYPERDATATYPE_LIST_STRING:
-            return &i_list_string;
-        case HYPERDATATYPE_LIST_INT64:
-            return &i_list_int64;
-        case HYPERDATATYPE_LIST_FLOAT:
-            return &i_list_float;
-        case HYPERDATATYPE_SET_STRING:
-            return &i_set_string;
-        case HYPERDATATYPE_SET_INT64:
-            return &i_set_int64;
-        case HYPERDATATYPE_SET_FLOAT:
-            return &i_set_float;
-        case HYPERDATATYPE_MAP_STRING_STRING:
-            return &i_map_string_string;
-        case HYPERDATATYPE_MAP_STRING_INT64:
-            return &i_map_string_int64;
-        case HYPERDATATYPE_MAP_STRING_FLOAT:
-            return &i_map_string_float;
-        case HYPERDATATYPE_MAP_INT64_STRING:
-            return &i_map_int64_string;
-        case HYPERDATATYPE_MAP_INT64_INT64:
-            return &i_map_int64_int64;
-        case HYPERDATATYPE_MAP_INT64_FLOAT:
-            return &i_map_int64_float;
-        case HYPERDATATYPE_MAP_FLOAT_STRING:
-            return &i_map_float_string;
-        case HYPERDATATYPE_MAP_FLOAT_INT64:
-            return &i_map_float_int64;
-        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
-            return &i_map_float_float;
-        case HYPERDATATYPE_GENERIC:
-        case HYPERDATATYPE_LIST_GENERIC:
-        case HYPERDATATYPE_SET_GENERIC:
-        case HYPERDATATYPE_MAP_GENERIC:
-        case HYPERDATATYPE_MAP_STRING_KEYONLY:
-        case HYPERDATATYPE_MAP_INT64_KEYONLY:
-        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
-        case HYPERDATATYPE_TIMESTAMP_GENERIC:
-        case HYPERDATATYPE_MACAROON_SECRET:
-        case HYPERDATATYPE_GARBAGE:
-        default:
-            abort();
-    }
+	switch (datatype)
+	{
+	case HYPERDATATYPE_STRING:
+		return &i_string;
+	case HYPERDATATYPE_INT64:
+		return &i_int64;
+	case HYPERDATATYPE_FLOAT:
+		return &i_float;
+	case HYPERDATATYPE_TIMESTAMP_SECOND:
+		return &i_timestamp_second;
+	case HYPERDATATYPE_TIMESTAMP_MINUTE:
+		return &i_timestamp_minute;
+	case HYPERDATATYPE_TIMESTAMP_HOUR:
+		return &i_timestamp_hour;
+	case HYPERDATATYPE_TIMESTAMP_DAY:
+		return &i_timestamp_day;
+	case HYPERDATATYPE_TIMESTAMP_WEEK:
+		return &i_timestamp_week;
+	case HYPERDATATYPE_TIMESTAMP_MONTH:
+		return &i_timestamp_month;
+	case HYPERDATATYPE_DOCUMENT:
+		return &i_document;
+	case HYPERDATATYPE_LIST_STRING:
+		return &i_list_string;
+	case HYPERDATATYPE_LIST_INT64:
+		return &i_list_int64;
+	case HYPERDATATYPE_LIST_FLOAT:
+		return &i_list_float;
+	case HYPERDATATYPE_SET_STRING:
+		return &i_set_string;
+	case HYPERDATATYPE_SET_INT64:
+		return &i_set_int64;
+	case HYPERDATATYPE_SET_FLOAT:
+		return &i_set_float;
+	case HYPERDATATYPE_MAP_STRING_STRING:
+		return &i_map_string_string;
+	case HYPERDATATYPE_MAP_STRING_INT64:
+		return &i_map_string_int64;
+	case HYPERDATATYPE_MAP_STRING_FLOAT:
+		return &i_map_string_float;
+	case HYPERDATATYPE_MAP_INT64_STRING:
+		return &i_map_int64_string;
+	case HYPERDATATYPE_MAP_INT64_INT64:
+		return &i_map_int64_int64;
+	case HYPERDATATYPE_MAP_INT64_FLOAT:
+		return &i_map_int64_float;
+	case HYPERDATATYPE_MAP_FLOAT_STRING:
+		return &i_map_float_string;
+	case HYPERDATATYPE_MAP_FLOAT_INT64:
+		return &i_map_float_int64;
+	case HYPERDATATYPE_MAP_FLOAT_FLOAT:
+		return &i_map_float_float;
+	case HYPERDATATYPE_GENERIC:
+	case HYPERDATATYPE_LIST_GENERIC:
+	case HYPERDATATYPE_SET_GENERIC:
+	case HYPERDATATYPE_MAP_GENERIC:
+	case HYPERDATATYPE_MAP_STRING_KEYONLY:
+	case HYPERDATATYPE_MAP_INT64_KEYONLY:
+	case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+	case HYPERDATATYPE_TIMESTAMP_GENERIC:
+	case HYPERDATATYPE_MACAROON_SECRET:
+	case HYPERDATATYPE_GARBAGE:
+	default:
+		abort();
+	}
 }
 
 index_info :: index_info()
@@ -209,29 +209,29 @@ index_info :: ~index_info() throw ()
 {
 }
 
-datalayer::index_iterator*
+datalayer::index_iterator *
 index_info :: iterator_for_keys(leveldb_snapshot_ptr,
-                                const region_id&) const
+                                const region_id &) const
 {
-    return NULL;
+	return NULL;
 }
 
-datalayer::index_iterator*
+datalayer::index_iterator *
 index_info :: iterator_from_range(leveldb_snapshot_ptr,
-                                  const region_id&,
-                                  const index_id&,
-                                  const range&,
-                                  const index_encoding*) const
+                                  const region_id &,
+                                  const index_id &,
+                                  const range &,
+                                  const index_encoding *) const
 {
-    return NULL;
+	return NULL;
 }
 
-datalayer::index_iterator*
+datalayer::index_iterator *
 index_info :: iterator_from_check(leveldb_snapshot_ptr,
-                                  const region_id&,
-                                  const index_id&,
-                                  const attribute_check&,
-                                  const index_encoding*) const
+                                  const region_id &,
+                                  const index_id &,
+                                  const attribute_check &,
+                                  const index_encoding *) const
 {
-    return NULL;
+	return NULL;
 }

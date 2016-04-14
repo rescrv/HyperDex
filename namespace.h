@@ -29,7 +29,7 @@
 #define hyperdex_namespace_h_
 
 #define BEGIN_HYPERDEX_NAMESPACE \
-    namespace hyperdex __attribute__ ((visibility ("hidden"))) {
+	namespace hyperdex __attribute__ ((visibility ("hidden"))) {
 
 #define END_HYPERDEX_NAMESPACE }
 

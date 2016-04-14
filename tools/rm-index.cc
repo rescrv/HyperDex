@@ -33,76 +33,64 @@
 #include "tools/common.h"
 
 int
-main(int argc, const char* argv[])
+main(int argc, const char *argv[])
 {
-    hyperdex::connect_opts conn;
-    e::argparser ap;
-    ap.autohelp();
-    ap.add("Connect to a cluster:", conn.parser());
-
-    if (!ap.parse(argc, argv))
-    {
-        return EXIT_FAILURE;
-    }
-
-    if (ap.args_sz() != 1)
-    {
-        std::cerr << "please specify the id of the index to remove\n" << std::endl;
-        ap.usage();
-        return EXIT_FAILURE;
-    }
-
-    if (!conn.validate())
-    {
-        std::cerr << "invalid host:port specification\n" << std::endl;
-        ap.usage();
-        return EXIT_FAILURE;
-    }
-
-    char* endptr = NULL;
-    uint64_t id = strtoull(ap.args()[0], &endptr, 10);
-
-    if (id == 0 || *endptr != '\0')
-    {
-        std::cerr << "invalid index id\n" << std::endl;
-        ap.usage();
-        return EXIT_FAILURE;
-    }
-
-    try
-    {
-        hyperdex::Admin h(conn.host(), conn.port());
-        hyperdex_admin_returncode rrc;
-        int64_t rid = h.rm_index(id, &rrc);
-
-        if (rid < 0)
-        {
-            std::cerr << "could not rm index: " << rrc << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        hyperdex_admin_returncode lrc;
-        int64_t lid = h.loop(-1, &lrc);
-
-        if (lid < 0)
-        {
-            std::cerr << "could not rm index: " << lrc << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        assert(rid == lid);
-
-        if (rrc != HYPERDEX_ADMIN_SUCCESS)
-        {
-            std::cerr << "could not rm index: " << rrc << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        return EXIT_SUCCESS;
-    }
-    catch (std::exception& e)
-    {
-        std::cerr << "error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
+	hyperdex::connect_opts conn;
+	e::argparser ap;
+	ap.autohelp();
+	ap.add("Connect to a cluster:", conn.parser());
+	if (!ap.parse(argc, argv))
+	{
+		return EXIT_FAILURE;
+	}
+	if (ap.args_sz() != 1)
+	{
+		std::cerr << "please specify the id of the index to remove\n" << std::endl;
+		ap.usage();
+		return EXIT_FAILURE;
+	}
+	if (!conn.validate())
+	{
+		std::cerr << "invalid host:port specification\n" << std::endl;
+		ap.usage();
+		return EXIT_FAILURE;
+	}
+	char *endptr = NULL;
+	uint64_t id = strtoull(ap.args()[0], &endptr, 10);
+	if (id == 0 || *endptr != '\0')
+	{
+		std::cerr << "invalid index id\n" << std::endl;
+		ap.usage();
+		return EXIT_FAILURE;
+	}
+	try
+	{
+		hyperdex::Admin h(conn.host(), conn.port());
+		hyperdex_admin_returncode rrc;
+		int64_t rid = h.rm_index(id, &rrc);
+		if (rid < 0)
+		{
+			std::cerr << "could not rm index: " << rrc << std::endl;
+			return EXIT_FAILURE;
+		}
+		hyperdex_admin_returncode lrc;
+		int64_t lid = h.loop(-1, &lrc);
+		if (lid < 0)
+		{
+			std::cerr << "could not rm index: " << lrc << std::endl;
+			return EXIT_FAILURE;
+		}
+		assert(rid == lid);
+		if (rrc != HYPERDEX_ADMIN_SUCCESS)
+		{
+			std::cerr << "could not rm index: " << rrc << std::endl;
+			return EXIT_FAILURE;
+		}
+		return EXIT_SUCCESS;
+	}
+	catch (std::exception &e)
+	{
+		std::cerr << "error: " << e.what() << std::endl;
+		return EXIT_FAILURE;
+	}
 }

@@ -37,19 +37,19 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class index_list : public index_container
 {
-    public:
-        index_list(hyperdatatype datatype);
-        virtual ~index_list() throw ();
+public:
+	index_list(hyperdatatype datatype);
+	virtual ~index_list() throw ();
 
-    private:
-        virtual hyperdatatype datatype() const;
-        virtual void extract_elements(const e::slice& container,
-                                      std::vector<e::slice>* elems) const;
-        virtual const datatype_info* element_datatype_info() const;
-        virtual const index_info* element_index_info() const;
+private:
+	virtual hyperdatatype datatype() const;
+	virtual void extract_elements(const e::slice &container,
+	                              std::vector<e::slice> *elems) const;
+	virtual const datatype_info *element_datatype_info() const;
+	virtual const index_info *element_index_info() const;
 
-    private:
-        hyperdatatype m_datatype;
+private:
+	hyperdatatype m_datatype;
 };
 
 END_HYPERDEX_NAMESPACE

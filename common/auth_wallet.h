@@ -42,34 +42,34 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class auth_wallet
 {
-    public:
-        auth_wallet();
-        auth_wallet(const char** macaroons, size_t macaroons_sz);
-        auth_wallet(const auth_wallet&);
+public:
+	auth_wallet();
+	auth_wallet(const char **macaroons, size_t macaroons_sz);
+	auth_wallet(const auth_wallet &);
 
-    public:
-        bool get_macaroons(std::vector<macaroon*>* macaroons);
+public:
+	bool get_macaroons(std::vector<macaroon *> *macaroons);
 
-    private:
-        friend e::packer operator << (e::packer lhs, const auth_wallet& rhs);
-        friend e::unpacker operator >> (e::unpacker lhs, auth_wallet& rhs);
-        friend size_t pack_size(const auth_wallet& aw);
+private:
+	friend e::packer operator << (e::packer lhs, const auth_wallet &rhs);
+	friend e::unpacker operator >> (e::unpacker lhs, auth_wallet &rhs);
+	friend size_t pack_size(const auth_wallet &aw);
 
-        friend std::ostream& operator << (std::ostream& lhs, const auth_wallet& rhs); // XXX
+	friend std::ostream &operator << (std::ostream &lhs, const auth_wallet &rhs); // XXX
 
-    private:
-        auth_wallet& operator = (const auth_wallet&);
+private:
+	auth_wallet &operator = (const auth_wallet &);
 
-    private:
-        std::vector<std::string> m_macaroons;
+private:
+	std::vector<std::string> m_macaroons;
 };
 
 e::packer
-operator << (e::packer lhs, const auth_wallet& rhs);
+operator << (e::packer lhs, const auth_wallet &rhs);
 e::unpacker
-operator >> (e::unpacker lhs, auth_wallet& rhs);
+operator >> (e::unpacker lhs, auth_wallet &rhs);
 size_t
-pack_size(const auth_wallet& aw);
+pack_size(const auth_wallet &aw);
 
 END_HYPERDEX_NAMESPACE
 

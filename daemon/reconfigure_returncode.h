@@ -39,14 +39,14 @@ BEGIN_HYPERDEX_NAMESPACE
 // reconfigure_returncode occupies [8704, 8832)
 enum reconfigure_returncode
 {
-    RECONFIGURE_SUCCESS = 8704,
-    RECONFIGURE_WARNING = 8705,
-    RECONFIGURE_FAIL    = 8706,
-    RECONFIGURE_FATAL   = 8707
+	RECONFIGURE_SUCCESS = 8704,
+	RECONFIGURE_WARNING = 8705,
+	RECONFIGURE_FAIL    = 8706,
+	RECONFIGURE_FATAL   = 8707
 };
 
-std::ostream&
-operator << (std::ostream& lhs, reconfigure_returncode rhs);
+std::ostream &
+operator << (std::ostream &lhs, reconfigure_returncode rhs);
 
 END_HYPERDEX_NAMESPACE
 

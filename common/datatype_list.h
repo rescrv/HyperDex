@@ -39,37 +39,37 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class datatype_list : public datatype_info
 {
-    public:
-        datatype_list(datatype_info* elem);
-        virtual ~datatype_list() throw ();
+public:
+	datatype_list(datatype_info *elem);
+	virtual ~datatype_list() throw ();
 
-    public:
-        virtual hyperdatatype datatype() const;
-        virtual bool validate(const e::slice& value) const;
-        virtual bool check_args(const funcall& func) const;
-        virtual bool apply(const e::slice& old_value,
-                           const funcall* funcs, size_t funcs_sz,
-                           e::arena* new_memory,
-                           e::slice* new_value) const;
+public:
+	virtual hyperdatatype datatype() const;
+	virtual bool validate(const e::slice &value) const;
+	virtual bool check_args(const funcall &func) const;
+	virtual bool apply(const e::slice &old_value,
+	                   const funcall *funcs, size_t funcs_sz,
+	                   e::arena *new_memory,
+	                   e::slice *new_value) const;
 
-    public:
-        virtual bool indexable() const;
+public:
+	virtual bool indexable() const;
 
-    public:
-        virtual bool has_length() const;
-        virtual uint64_t length(const e::slice& value) const;
+public:
+	virtual bool has_length() const;
+	virtual uint64_t length(const e::slice &value) const;
 
-    public:
-        virtual bool has_contains() const;
-        virtual hyperdatatype contains_datatype() const;
-        virtual bool contains(const e::slice& value, const e::slice& needle) const;
+public:
+	virtual bool has_contains() const;
+	virtual hyperdatatype contains_datatype() const;
+	virtual bool contains(const e::slice &value, const e::slice &needle) const;
 
-    private:
-        datatype_list(const datatype_list&);
-        datatype_list& operator = (const datatype_list&);
+private:
+	datatype_list(const datatype_list &);
+	datatype_list &operator = (const datatype_list &);
 
-    private:
-        datatype_info* m_elem;
+private:
+	datatype_info *m_elem;
 };
 
 END_HYPERDEX_NAMESPACE

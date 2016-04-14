@@ -31,18 +31,18 @@
 using hyperdex::coord_rpc;
 
 coord_rpc :: coord_rpc(uint64_t id,
-                       hyperdex_admin_returncode* s)
-    : yieldable(id, s)
-    , repl_status(REPLICANT_GARBAGE)
-    , repl_output(NULL)
-    , repl_output_sz(0)
+                       hyperdex_admin_returncode *s)
+	: yieldable(id, s)
+	, repl_status(REPLICANT_GARBAGE)
+	, repl_output(NULL)
+	, repl_output_sz(0)
 {
 }
 
 coord_rpc :: ~coord_rpc() throw ()
 {
-    if (repl_output)
-    {
-        free(repl_output);
-    }
+	if (repl_output)
+	{
+		free(repl_output);
+	}
 }

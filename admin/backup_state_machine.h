@@ -49,58 +49,59 @@ class admin;
 
 class backup_state_machine : public multi_yieldable
 {
-    public:
-        backup_state_machine(const char* name,
-                             uint64_t admin_visible_id,
-                             hyperdex_admin_returncode* status,
-                             const char** backups);
-        ~backup_state_machine() throw ();
+public:
+	backup_state_machine(const char *name,
+	                     uint64_t admin_visible_id,
+	                     hyperdex_admin_returncode *status,
+	                     const char **backups);
+	~backup_state_machine() throw ();
 
-    public:
-        bool can_yield();
-        bool yield(hyperdex_admin_returncode* status);
-        bool initialize(admin* adm, hyperdex_admin_returncode* status);
-        bool callback(admin* adm, int64_t id, hyperdex_admin_returncode* status);
+public:
+	bool can_yield();
+	bool yield(hyperdex_admin_returncode *status);
+	bool initialize(admin *adm, hyperdex_admin_returncode *status);
+	bool callback(admin *adm, int64_t id, hyperdex_admin_returncode *status);
 
-    private:
-        friend class e::intrusive_ptr<backup_state_machine>;
-        backup_state_machine(const backup_state_machine&);
-        backup_state_machine& operator = (const backup_state_machine&);
+private:
+	friend class e::intrusive_ptr<backup_state_machine>;
+	backup_state_machine(const backup_state_machine &);
+	backup_state_machine &operator = (const backup_state_machine &);
 
-    private:
-        void backout(admin* adm);
-        bool common_callback(admin* adm, int64_t id);
-        bool check_nested(admin* adm);
-        void callback_unexpected(admin* adm, int64_t id);
-        void callback_set_read_only(admin* adm, int64_t id);
-        void callback_wait_to_quiesce(admin* adm, int64_t id);
-        void callback_daemon_backup(admin* adm, int64_t id);
-        void callback_coord_backup(admin* adm, int64_t id);
-        void callback_wait_to_quiesce_again(admin* adm, int64_t id);
-        void callback_set_read_write(admin* adm, int64_t id);
-        void callback_backout(admin* adm, int64_t id);
+private:
+	void backout(admin *adm);
+	bool common_callback(admin *adm, int64_t id);
+	bool check_nested(admin *adm);
+	void callback_unexpected(admin *adm, int64_t id);
+	void callback_set_read_only(admin *adm, int64_t id);
+	void callback_wait_to_quiesce(admin *adm, int64_t id);
+	void callback_daemon_backup(admin *adm, int64_t id);
+	void callback_coord_backup(admin *adm, int64_t id);
+	void callback_wait_to_quiesce_again(admin *adm, int64_t id);
+	void callback_set_read_write(admin *adm, int64_t id);
+	void callback_backout(admin *adm, int64_t id);
 
-    private:
-        std::string m_name;
-        enum { INITIALIZED,
-               SET_READ_ONLY,
-               WAIT_TO_QUIESCE,
-               DAEMON_BACKUP,
-               COORD_BACKUP,
-               WAIT_TO_QUIESCE_AGAIN,
-               SET_READ_WRITE,
-               DONE,
-               BACKOUT,
-               ERROR,
-               YIELDED } m_state;
-        int64_t m_nested_id;
-        hyperdex_admin_returncode m_nested_rc;
-        uint64_t m_configuration_version;
-        std::vector<std::pair<server_id, po6::net::location> > m_servers;
-        const char* m_backup;
-        std::ostringstream m_backups;
-        std::string m_backups_str;
-        const char** m_backups_c_str;
+private:
+	std::string m_name;
+	enum { INITIALIZED,
+	       SET_READ_ONLY,
+	       WAIT_TO_QUIESCE,
+	       DAEMON_BACKUP,
+	       COORD_BACKUP,
+	       WAIT_TO_QUIESCE_AGAIN,
+	       SET_READ_WRITE,
+	       DONE,
+	       BACKOUT,
+	       ERROR,
+	       YIELDED
+	     } m_state;
+	int64_t m_nested_id;
+	hyperdex_admin_returncode m_nested_rc;
+	uint64_t m_configuration_version;
+	std::vector<std::pair<server_id, po6::net::location> > m_servers;
+	const char *m_backup;
+	std::ostringstream m_backups;
+	std::string m_backups_str;
+	const char **m_backups_c_str;
 };
 
 END_HYPERDEX_NAMESPACE

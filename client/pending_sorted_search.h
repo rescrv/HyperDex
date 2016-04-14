@@ -40,96 +40,97 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class pending_sorted_search : public pending_aggregation
 {
-    public:
-        pending_sorted_search(client* cl,
-                              uint64_t id,
-                              bool maximize,
-                              uint64_t limit,
-                              uint16_t sort_by_idx,
-                              datatype_info* sort_by_di,
-                              hyperdex_client_returncode* status,
-                              const hyperdex_client_attribute** attrs,
-                              size_t* attrs_sz);
-        virtual ~pending_sorted_search() throw ();
+public:
+	pending_sorted_search(client *cl,
+	                      uint64_t id,
+	                      bool maximize,
+	                      uint64_t limit,
+	                      uint16_t sort_by_idx,
+	                      datatype_info *sort_by_di,
+	                      hyperdex_client_returncode *status,
+	                      const hyperdex_client_attribute **attrs,
+	                      size_t *attrs_sz);
+	virtual ~pending_sorted_search() throw ();
 
-    // return to client
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
+	// return to client
+public:
+	virtual bool can_yield();
+	virtual bool yield(hyperdex_client_returncode *status, e::error *error);
 
-    // events
-    public:
-        virtual void handle_sent_to(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode* status,
-                                    e::error* error);
+	// events
+public:
+	virtual void handle_sent_to(const server_id &si,
+	                            const virtual_server_id &vsi);
+	virtual void handle_failure(const server_id &si,
+	                            const virtual_server_id &vsi);
+	virtual bool handle_message(client *,
+	                            const server_id &si,
+	                            const virtual_server_id &vsi,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_client_returncode *status,
+	                            e::error *error);
 
-    public:
-        class item;
+public:
+	class item;
 
-    // noncopyable
-    private:
-        pending_sorted_search(const pending_sorted_search& other);
-        pending_sorted_search& operator = (const pending_sorted_search& rhs);
+	// noncopyable
+private:
+	pending_sorted_search(const pending_sorted_search &other);
+	pending_sorted_search &operator = (const pending_sorted_search &rhs);
 
-    private:
-        client* m_cl;
-        bool m_yield;
-        region_id m_ri;
-        bool m_maximize;
-        const uint64_t m_limit;
-        const uint16_t m_sort_by_idx;
-        datatype_info* m_sort_by_di;
-        const hyperdex_client_attribute** m_attrs;
-        size_t* m_attrs_sz;
-        std::vector<item> m_results;
-        size_t m_results_idx;
+private:
+	client *m_cl;
+	bool m_yield;
+	region_id m_ri;
+	bool m_maximize;
+	const uint64_t m_limit;
+	const uint16_t m_sort_by_idx;
+	datatype_info *m_sort_by_di;
+	const hyperdex_client_attribute **m_attrs;
+	size_t *m_attrs_sz;
+	std::vector<item> m_results;
+	size_t m_results_idx;
 };
 
 class sorted_search_comparator
 {
-    public:
-        sorted_search_comparator(bool maximize,
-                                 uint16_t sort_by_idx,
-								 datatype_info* sort_by_di)
-			: m_maximize(maximize)
-			  , m_sort_by_idx(sort_by_idx)
-			  , m_sort_by_di(sort_by_di)
+public:
+	sorted_search_comparator(bool maximize,
+	                         uint16_t sort_by_idx,
+	                         datatype_info *sort_by_di)
+		: m_maximize(maximize)
+		, m_sort_by_idx(sort_by_idx)
+		, m_sort_by_di(sort_by_di)
 	{
 	}
 
-	public:
-		bool m_maximize;
-		uint16_t m_sort_by_idx;
-        datatype_info* m_sort_by_di;
+public:
+	bool m_maximize;
+	uint16_t m_sort_by_idx;
+	datatype_info *m_sort_by_di;
 };
+
 class pending_sorted_search :: item
 {
-    public:
-        item();
-        item(const sorted_search_comparator *sscobj,
-			 const e::slice& key,
-             const std::vector<e::slice>& value,
-             e::compat::shared_ptr<e::buffer> backing);
-        item(const item&);
-        ~item() throw ();
+public:
+	item();
+	item(const sorted_search_comparator *sscobj,
+	     const e::slice &key,
+	     const std::vector<e::slice> &value,
+	     e::compat::shared_ptr<e::buffer> backing);
+	item(const item &);
+	~item() throw ();
 
-    public:
-        item& operator = (const item&);
+public:
+	item &operator = (const item &);
 
-    public:
-		const sorted_search_comparator *ssc_ptr;
-        e::slice key;
-        std::vector<e::slice> value;
-        e::compat::shared_ptr<e::buffer> backing;
+public:
+	const sorted_search_comparator *ssc_ptr;
+	e::slice key;
+	std::vector<e::slice> value;
+	e::compat::shared_ptr<e::buffer> backing;
 };
 
 END_HYPERDEX_NAMESPACE

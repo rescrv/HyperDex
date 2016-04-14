@@ -36,47 +36,47 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class pending_search_describe : public pending_aggregation
 {
-    public:
-        pending_search_describe(uint64_t client_visible_id,
-                                hyperdex_client_returncode* status,
-                                const char** description);
-        virtual ~pending_search_describe() throw ();
+public:
+	pending_search_describe(uint64_t client_visible_id,
+	                        hyperdex_client_returncode *status,
+	                        const char **description);
+	virtual ~pending_search_describe() throw ();
 
-    // return to client
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
+	// return to client
+public:
+	virtual bool can_yield();
+	virtual bool yield(hyperdex_client_returncode *status, e::error *error);
 
-    // events
-    public:
-        virtual void handle_sent_to(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode* status,
-                                    e::error* error);
+	// events
+public:
+	virtual void handle_sent_to(const server_id &si,
+	                            const virtual_server_id &vsi);
+	virtual void handle_failure(const server_id &si,
+	                            const virtual_server_id &vsi);
+	virtual bool handle_message(client *,
+	                            const server_id &si,
+	                            const virtual_server_id &vsi,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_client_returncode *status,
+	                            e::error *error);
 
-    // add text to description
-    private:
-        void add_text(const hyperdex::virtual_server_id& vid, const e::slice& text);
-        void add_text(const hyperdex::virtual_server_id& vid, const char* text);
+	// add text to description
+private:
+	void add_text(const hyperdex::virtual_server_id &vid, const e::slice &text);
+	void add_text(const hyperdex::virtual_server_id &vid, const char *text);
 
-    // noncopyable
-    private:
-        pending_search_describe(const pending_search_describe& other);
-        pending_search_describe& operator = (const pending_search_describe& rhs);
+	// noncopyable
+private:
+	pending_search_describe(const pending_search_describe &other);
+	pending_search_describe &operator = (const pending_search_describe &rhs);
 
-    private:
-        const char** m_description;
-        bool m_done;
-        std::vector<std::pair<hyperdex::virtual_server_id, std::string> > m_msgs;
-        std::string m_text;
+private:
+	const char **m_description;
+	bool m_done;
+	std::vector<std::pair<hyperdex::virtual_server_id, std::string> > m_msgs;
+	std::string m_text;
 };
 
 END_HYPERDEX_NAMESPACE

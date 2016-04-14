@@ -42,25 +42,25 @@ BEGIN_HYPERDEX_NAMESPACE
 // Convert the key and value vector returned by entity to an array of
 // hyperdex_attribute using the given configuration.
 bool
-value_to_attributes(const configuration& config,
-                    const region_id& rid,
-                    const uint8_t* key,
+value_to_attributes(const configuration &config,
+                    const region_id &rid,
+                    const uint8_t *key,
                     size_t key_sz,
-                    const std::vector<e::slice>& value,
-                    hyperdex_client_returncode* op_status,
-                    e::error* op_error,
-                    const hyperdex_client_attribute** attrs,
-                    size_t* attrs_sz,
+                    const std::vector<e::slice> &value,
+                    hyperdex_client_returncode *op_status,
+                    e::error *op_error,
+                    const hyperdex_client_attribute **attrs,
+                    size_t *attrs_sz,
                     bool convert_types);
 
 bool
-value_to_attributes(const configuration& config,
-                    const region_id& rid,
-                    const std::vector<std::pair<uint16_t, e::slice> >& value,
-                    hyperdex_client_returncode* op_status,
-                    e::error* op_error,
-                    const hyperdex_client_attribute** attrs,
-                    size_t* attrs_sz,
+value_to_attributes(const configuration &config,
+                    const region_id &rid,
+                    const std::vector<std::pair<uint16_t, e::slice> > &value,
+                    hyperdex_client_returncode *op_status,
+                    e::error *op_error,
+                    const hyperdex_client_attribute **attrs,
+                    size_t *attrs_sz,
                     bool convert_types);
 
 END_HYPERDEX_NAMESPACE

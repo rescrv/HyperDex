@@ -40,23 +40,23 @@ BEGIN_HYPERDEX_NAMESPACE
 // a range is inclusive
 class range
 {
-    public:
-        range();
-        range(const range& other);
-        ~range() throw ();
+public:
+	range();
+	range(const range &other);
+	~range() throw ();
 
-    public:
-        range& operator = (const range& rhs);
-        bool operator < (const range& rhs) const;
+public:
+	range &operator = (const range &rhs);
+	bool operator < (const range &rhs) const;
 
-    public:
-        uint16_t attr;
-        hyperdatatype type; // XXX remove
-        e::slice start;
-        e::slice end;
-        bool has_start;
-        bool has_end;
-        bool invalid;
+public:
+	uint16_t attr;
+	hyperdatatype type; // XXX remove
+	e::slice start;
+	e::slice end;
+	bool has_start;
+	bool has_end;
+	bool invalid;
 };
 
 END_HYPERDEX_NAMESPACE

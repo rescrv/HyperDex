@@ -36,48 +36,48 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class datatype_document : public datatype_info
 {
-    public:
-        datatype_document();
-        virtual ~datatype_document() throw ();
+public:
+	datatype_document();
+	virtual ~datatype_document() throw ();
 
-    public:
-        virtual hyperdatatype datatype() const;
-        virtual bool validate(const e::slice& value) const;
-        virtual bool check_args(const funcall& func) const;
-        virtual bool apply(const e::slice& old_value,
-                           const funcall* funcs, size_t funcs_sz,
-                           e::arena* new_memory,
-                           e::slice* new_value) const;
+public:
+	virtual hyperdatatype datatype() const;
+	virtual bool validate(const e::slice &value) const;
+	virtual bool check_args(const funcall &func) const;
+	virtual bool apply(const e::slice &old_value,
+	                   const funcall *funcs, size_t funcs_sz,
+	                   e::arena *new_memory,
+	                   e::slice *new_value) const;
 
-    public:
-        virtual bool client_to_server(const e::slice& client,
-                                      e::arena* new_memory,
-                                      e::slice* server) const;
-        virtual bool server_to_client(const e::slice& server,
-                                      e::arena* new_memory,
-                                      e::slice* client) const;
+public:
+	virtual bool client_to_server(const e::slice &client,
+	                              e::arena *new_memory,
+	                              e::slice *server) const;
+	virtual bool server_to_client(const e::slice &server,
+	                              e::arena *new_memory,
+	                              e::slice *client) const;
 
-    public:
-        virtual bool document() const;
-        virtual bool document_check(const attribute_check& check,
-                                    const e::slice& value) const;
+public:
+	virtual bool document() const;
+	virtual bool document_check(const attribute_check &check,
+	                            const e::slice &value) const;
 
-    public:
-        bool extract_value(const char* path,
-                           const e::slice& data,
-                           hyperdatatype* type,
-                           std::vector<char>* scratch,
-                           e::slice* value) const;
+public:
+	bool extract_value(const char *path,
+	                   const e::slice &data,
+	                   hyperdatatype *type,
+	                   std::vector<char> *scratch,
+	                   e::slice *value) const;
 
-    private:
-        void coerce_primitive_to_binary(hyperdatatype type,
-                                        const e::slice& in,
-                                        std::vector<char>* scratch,
-                                        e::slice* value) const;
-        bool coerce_binary_to_primitive(const e::slice& in,
-                                        hyperdatatype* type,
-                                        std::vector<char>* scratch,
-                                        e::slice* value) const;
+private:
+	void coerce_primitive_to_binary(hyperdatatype type,
+	                                const e::slice &in,
+	                                std::vector<char> *scratch,
+	                                e::slice *value) const;
+	bool coerce_binary_to_primitive(const e::slice &in,
+	                                hyperdatatype *type,
+	                                std::vector<char> *scratch,
+	                                e::slice *value) const;
 };
 
 END_HYPERDEX_NAMESPACE

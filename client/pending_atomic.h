@@ -36,33 +36,33 @@ BEGIN_HYPERDEX_NAMESPACE
 
 class pending_atomic : public pending
 {
-    public:
-        pending_atomic(uint64_t client_visible_id,
-                       hyperdex_client_returncode* status);
-        virtual ~pending_atomic() throw ();
+public:
+	pending_atomic(uint64_t client_visible_id,
+	               hyperdex_client_returncode *status);
+	virtual ~pending_atomic() throw ();
 
-    // return to client
-    public:
-        virtual bool can_yield();
-        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
+	// return to client
+public:
+	virtual bool can_yield();
+	virtual bool yield(hyperdex_client_returncode *status, e::error *error);
 
-    // events
-    public:
-        virtual void handle_sent_to(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual void handle_failure(const server_id& si,
-                                    const virtual_server_id& vsi);
-        virtual bool handle_message(client*,
-                                    const server_id& si,
-                                    const virtual_server_id& vsi,
-                                    network_msgtype mt,
-                                    std::auto_ptr<e::buffer> msg,
-                                    e::unpacker up,
-                                    hyperdex_client_returncode* status,
-                                    e::error* error);
+	// events
+public:
+	virtual void handle_sent_to(const server_id &si,
+	                            const virtual_server_id &vsi);
+	virtual void handle_failure(const server_id &si,
+	                            const virtual_server_id &vsi);
+	virtual bool handle_message(client *,
+	                            const server_id &si,
+	                            const virtual_server_id &vsi,
+	                            network_msgtype mt,
+	                            std::auto_ptr<e::buffer> msg,
+	                            e::unpacker up,
+	                            hyperdex_client_returncode *status,
+	                            e::error *error);
 
-    private:
-        enum { INITIALIZED, SENT, RECV, YIELDED } m_state;
+private:
+	enum { INITIALIZED, SENT, RECV, YIELDED } m_state;
 };
 
 END_HYPERDEX_NAMESPACE

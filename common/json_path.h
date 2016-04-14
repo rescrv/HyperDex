@@ -38,87 +38,82 @@ BEGIN_HYPERDEX_NAMESPACE
 class json_path
 {
 public:
-    json_path(const char* cstr)
-        : path(cstr)
-    {}
+	json_path(const char *cstr)
+		: path(cstr)
+	{}
 
-    json_path(const std::string& path_ = "")
-        : path(path_)
-    {}
+	json_path(const std::string &path_ = "")
+		: path(path_)
+	{}
 
-    json_path(const e::slice& slice)
-        : path(slice.cdata(), slice.size())
-    {}
+	json_path(const e::slice &slice)
+		: path(slice.cdata(), slice.size())
+	{}
 
-    bool empty() const
-    {
-        return str().size() == 0;
-    }
+	bool empty() const
+	{
+		return str().size() == 0;
+	}
 
-    size_t size() const
-    {
-        return str().size();
-    }
+	size_t size() const
+	{
+		return str().size();
+	}
 
-    void append(const std::string elem)
-    {
-        if(empty())
-        {
-            path = elem;
-        }
-        else
-        {
-            path += "." + elem;
-        }
-    }
+	void append(const std::string elem)
+	{
+		if (empty())
+		{
+			path = elem;
+		}
+		else
+		{
+			path += "." + elem;
+		}
+	}
 
-    // Does this path have a subtree?
-    // If not is is just the name of a single element
-    bool has_subtree() const
-    {
-        return path.find(".") != std::string::npos;
-    }
+	// Does this path have a subtree?
+	// If not is is just the name of a single element
+	bool has_subtree() const
+	{
+		return path.find(".") != std::string::npos;
+	}
 
-    // Split path at the first .
-    bool split(std::string& root_name, json_path& subtree) const
-    {
-        size_t pos = path.find('.');
+	// Split path at the first .
+	bool split(std::string &root_name, json_path &subtree) const
+	{
+		size_t pos = path.find('.');
+		if (pos == std::string::npos)
+		{
+			return false;
+		}
+		root_name = path.substr(0, pos);
+		subtree.path = path.substr(pos + 1);
+		return true;
+	}
 
-        if(pos == std::string::npos)
-        {
-            return false;
-        }
+	// Split path at the last '.'
+	// i.e. Retrieve last element in the path
+	bool split_reverse(json_path &parent_path, std::string &child_name) const
+	{
+		size_t pos = path.find_last_of('.');
+		if (pos == std::string::npos)
+		{
+			return false;
+		}
+		child_name = path.substr(pos + 1);
+		parent_path.path = path.substr(0, pos);
+		return true;
+	}
 
-        root_name = path.substr(0, pos);
-        subtree.path = path.substr(pos+1);
-
-        return true;
-    }
-
-    // Split path at the last '.'
-    // i.e. Retrieve last element in the path
-    bool split_reverse(json_path& parent_path, std::string& child_name) const
-    {
-        size_t pos = path.find_last_of('.');
-
-        if(pos == std::string::npos)
-        {
-            return false;
-        }
-
-        child_name = path.substr(pos+1);
-        parent_path.path = path.substr(0, pos);
-        return true;
-    }
-
-    // Get a string representation of the path
-    const std::string& str() const
-    {
-        return path;
-    }
+	// Get a string representation of the path
+	const std::string &str() const
+	{
+		return path;
+	}
 
 private:
-    std::string path;
+	std::string path;
 };
 
 END_HYPERDEX_NAMESPACE

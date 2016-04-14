@@ -67,68 +67,68 @@ class daemon;
 
 class communication
 {
-    public:
-        communication(daemon* d);
-        ~communication() throw ();
+public:
+	communication(daemon *d);
+	~communication() throw ();
 
-    public:
-        void pause() { m_busybee->pause(); }
-        void unpause() { m_busybee->unpause(); }
-        void shutdown() { m_busybee->shutdown(); }
-        void wake_one() { m_busybee->wake_one(); }
+public:
+	void pause() { m_busybee->pause(); }
+	void unpause() { m_busybee->unpause(); }
+	void shutdown() { m_busybee->shutdown(); }
+	void wake_one() { m_busybee->wake_one(); }
 
-    public:
-        bool setup(const po6::net::location& bind_to,
-                   unsigned threads);
-        void teardown();
-        void reconfigure(const configuration& old_config,
-                         const configuration& new_config,
-                         const server_id& us);
+public:
+	bool setup(const po6::net::location &bind_to,
+	           unsigned threads);
+	void teardown();
+	void reconfigure(const configuration &old_config,
+	                 const configuration &new_config,
+	                 const server_id &us);
 
-    public:
-        // Send data to another server (pretending to be a client)
-        bool send_client(const virtual_server_id& from,
-                         const server_id& to,
-                         network_msgtype msg_type,
-                         std::auto_ptr<e::buffer> msg);
-        bool send(const virtual_server_id& from,
-                  const server_id& to,
-                  network_msgtype msg_type,
-                  std::auto_ptr<e::buffer> msg);
-        bool send(const virtual_server_id& from,
-                  const virtual_server_id& to,
-                  network_msgtype msg_type,
-                  std::auto_ptr<e::buffer> msg);
-        bool send(const virtual_server_id& to,
-                  network_msgtype msg_type,
-                  std::auto_ptr<e::buffer> msg);
-        bool send_exact(const virtual_server_id& from,
-                        const virtual_server_id& to,
-                        network_msgtype msg_type,
-                        std::auto_ptr<e::buffer> msg);
-        bool recv(e::garbage_collector::thread_state* ts,
-                  server_id* from,
-                  virtual_server_id* vfrom,
-                  virtual_server_id* vto,
-                  network_msgtype* msg_type,
-                  std::auto_ptr<e::buffer>* msg,
-                  e::unpacker* up);
+public:
+	// Send data to another server (pretending to be a client)
+	bool send_client(const virtual_server_id &from,
+	                 const server_id &to,
+	                 network_msgtype msg_type,
+	                 std::auto_ptr<e::buffer> msg);
+	bool send(const virtual_server_id &from,
+	          const server_id &to,
+	          network_msgtype msg_type,
+	          std::auto_ptr<e::buffer> msg);
+	bool send(const virtual_server_id &from,
+	          const virtual_server_id &to,
+	          network_msgtype msg_type,
+	          std::auto_ptr<e::buffer> msg);
+	bool send(const virtual_server_id &to,
+	          network_msgtype msg_type,
+	          std::auto_ptr<e::buffer> msg);
+	bool send_exact(const virtual_server_id &from,
+	                const virtual_server_id &to,
+	                network_msgtype msg_type,
+	                std::auto_ptr<e::buffer> msg);
+	bool recv(e::garbage_collector::thread_state *ts,
+	          server_id *from,
+	          virtual_server_id *vfrom,
+	          virtual_server_id *vto,
+	          network_msgtype *msg_type,
+	          std::auto_ptr<e::buffer> *msg,
+	          e::unpacker *up);
 
-    private:
-        class early_message;
+private:
+	class early_message;
 
-    private:
-        void handle_disruption(uint64_t id);
+private:
+	void handle_disruption(uint64_t id);
 
-    private:
-        communication(const communication&);
-        communication& operator = (const communication&);
+private:
+	communication(const communication &);
+	communication &operator = (const communication &);
 
-    private:
-        daemon* m_daemon;
-        mapper m_busybee_mapper;
-        std::auto_ptr<busybee_mta> m_busybee;
-        e::lockfree_fifo<early_message> m_early_messages;
+private:
+	daemon *m_daemon;
+	mapper m_busybee_mapper;
+	std::auto_ptr<busybee_mta> m_busybee;
+	e::lockfree_fifo<early_message> m_early_messages;
 };
 
 END_HYPERDEX_NAMESPACE

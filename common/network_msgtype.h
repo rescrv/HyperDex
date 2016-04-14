@@ -38,59 +38,59 @@ BEGIN_HYPERDEX_NAMESPACE
 
 enum network_msgtype
 {
-    REQ_GET         = 8,
-    RESP_GET        = 9,
+	REQ_GET         = 8,
+	RESP_GET        = 9,
 
-    REQ_GET_PARTIAL = 10,
-    RESP_GET_PARTIAL = 11,
+	REQ_GET_PARTIAL = 10,
+	RESP_GET_PARTIAL = 11,
 
-    REQ_ATOMIC      = 16,
-    RESP_ATOMIC     = 17,
+	REQ_ATOMIC      = 16,
+	RESP_ATOMIC     = 17,
 
-    REQ_SEARCH_START    = 32,
-    REQ_SEARCH_NEXT     = 33,
-    REQ_SEARCH_STOP     = 34,
-    RESP_SEARCH_ITEM    = 35,
-    RESP_SEARCH_DONE    = 36,
+	REQ_SEARCH_START    = 32,
+	REQ_SEARCH_NEXT     = 33,
+	REQ_SEARCH_STOP     = 34,
+	RESP_SEARCH_ITEM    = 35,
+	RESP_SEARCH_DONE    = 36,
 
-    REQ_SORTED_SEARCH   = 40,
-    RESP_SORTED_SEARCH  = 41,
+	REQ_SORTED_SEARCH   = 40,
+	RESP_SORTED_SEARCH  = 41,
 
-    /* 48, 49 retired */
+	/* 48, 49 retired */
 
-    REQ_COUNT       = 50,
-    RESP_COUNT      = 51,
+	REQ_COUNT       = 50,
+	RESP_COUNT      = 51,
 
-    REQ_SEARCH_DESCRIBE  = 52,
-    RESP_SEARCH_DESCRIBE = 53,
+	REQ_SEARCH_DESCRIBE  = 52,
+	RESP_SEARCH_DESCRIBE = 53,
 
-    REQ_GROUP_ATOMIC = 54,
-    RESP_GROUP_ATOMIC = 55,
+	REQ_GROUP_ATOMIC = 54,
+	RESP_GROUP_ATOMIC = 55,
 
 	REQ_SUM         = 58,
 	RESP_SUM        = 59,
 
-    CHAIN_OP        = 64,
-    CHAIN_SUBSPACE  = 65,
-    CHAIN_ACK       = 66,
-    /* 67 retired */
+	CHAIN_OP        = 64,
+	CHAIN_SUBSPACE  = 65,
+	CHAIN_ACK       = 66,
+	/* 67 retired */
 
-    XFER_OP  = 80,
-    XFER_ACK = 81,
-    XFER_HS  = 82, // handshake syn
-    XFER_HSA = 83, // handshake syn-ack
-    XFER_HA  = 84, // handshake ack
-    XFER_HW  = 85, // wiped
+	XFER_OP  = 80,
+	XFER_ACK = 81,
+	XFER_HS  = 82, // handshake syn
+	XFER_HSA = 83, // handshake syn-ack
+	XFER_HA  = 84, // handshake ack
+	XFER_HW  = 85, // wiped
 
-    BACKUP = 126,
-    PERF_COUNTERS = 127,
+	BACKUP = 126,
+	PERF_COUNTERS = 127,
 
-    CONFIGMISMATCH  = 254,
-    PACKET_NOP      = 255
+	CONFIGMISMATCH  = 254,
+	PACKET_NOP      = 255
 };
 
-std::ostream&
-operator << (std::ostream& lhs, const network_msgtype& rhs);
+std::ostream &
+operator << (std::ostream &lhs, const network_msgtype &rhs);
 
 END_HYPERDEX_NAMESPACE
 

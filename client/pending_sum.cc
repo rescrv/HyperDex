@@ -32,18 +32,18 @@
 using hyperdex::pending_sum;
 
 pending_sum :: pending_sum(uint64_t id,
-                               uint16_t sum_idx,
-					           datatype_info* sum_di,
-                               hyperdex_client_returncode* status,
-                               uint64_t* count)
-    : pending_aggregation(id, status)
-    , m_sum_idx(sum_idx)
-    , m_sum_di(sum_di)
-    , m_sum(count)
-    , m_done(false)
+                           uint16_t sum_idx,
+                           datatype_info *sum_di,
+                           hyperdex_client_returncode *status,
+                           uint64_t *count)
+	: pending_aggregation(id, status)
+	, m_sum_idx(sum_idx)
+	, m_sum_di(sum_di)
+	, m_sum(count)
+	, m_done(false)
 {
-    set_status(HYPERDEX_CLIENT_SUCCESS);
-    set_error(e::error());
+	set_status(HYPERDEX_CLIENT_SUCCESS);
+	set_error(e::error());
 }
 
 pending_sum :: ~pending_sum() throw ()
@@ -53,65 +53,59 @@ pending_sum :: ~pending_sum() throw ()
 bool
 pending_sum :: can_yield()
 {
-    return this->aggregation_done() && !m_done;
+	return this->aggregation_done() && !m_done;
 }
 
 bool
-pending_sum :: yield(hyperdex_client_returncode* status, e::error* err)
+pending_sum :: yield(hyperdex_client_returncode *status, e::error *err)
 {
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
-    assert(this->can_yield());
-    m_done = true;
-    return true;
+	*status = HYPERDEX_CLIENT_SUCCESS;
+	*err = e::error();
+	assert(this->can_yield());
+	m_done = true;
+	return true;
 }
 
 void
-pending_sum :: handle_failure(const server_id& si,
-                                const virtual_server_id& vsi)
+pending_sum :: handle_failure(const server_id &si,
+                              const virtual_server_id &vsi)
 {
-    PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
-                               << vsi << "/" << si;
-    return pending_aggregation::handle_failure(si, vsi);
+	PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
+	                           << vsi << "/" << si;
+	return pending_aggregation::handle_failure(si, vsi);
 }
 
 bool
-pending_sum :: handle_message(client* cl,
-                                const server_id& si,
-                                const virtual_server_id& vsi,
-                                network_msgtype mt,
-                                std::auto_ptr<e::buffer> msg,
-                                e::unpacker up,
-                                hyperdex_client_returncode* status,
-                                e::error* err)
+pending_sum :: handle_message(client *cl,
+                              const server_id &si,
+                              const virtual_server_id &vsi,
+                              network_msgtype mt,
+                              std::auto_ptr<e::buffer> msg,
+                              e::unpacker up,
+                              hyperdex_client_returncode *status,
+                              e::error *err)
 {
-    bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
-    assert(handled);
-
-    *status = HYPERDEX_CLIENT_SUCCESS;
-    *err = e::error();
-
-    if (mt != RESP_SUM)
-    {
-        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to SUM with " << mt;
-        return true;
-    }
-
-
-    uint64_t local_sum;
-    up = up >> local_sum;
-
-    if (up.error())
-    {
-        PENDING_ERROR(SERVERERROR) << "communication error: server "
-                                   << vsi << " sent corrupt message="
-                                   << msg->as_slice().hex()
-                                   << " in response to a SUM";
-        return true;
-    }
-
-    *m_sum += local_sum;
-    // Don't set the status or error so that errors will carry through.  It was
-    // set to the success state in the constructor
-    return true;
+	bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
+	assert(handled);
+	*status = HYPERDEX_CLIENT_SUCCESS;
+	*err = e::error();
+	if (mt != RESP_SUM)
+	{
+		PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to SUM with " << mt;
+		return true;
+	}
+	uint64_t local_sum;
+	up = up >> local_sum;
+	if (up.error())
+	{
+		PENDING_ERROR(SERVERERROR) << "communication error: server "
+		                           << vsi << " sent corrupt message="
+		                           << msg->as_slice().hex()
+		                           << " in response to a SUM";
+		return true;
+	}
+	*m_sum += local_sum;
+	// Don't set the status or error so that errors will carry through.  It was
+	// set to the success state in the constructor
+	return true;
 }

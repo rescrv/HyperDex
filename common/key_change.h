@@ -40,50 +40,50 @@ BEGIN_HYPERDEX_NAMESPACE
 // A (pending) change to an entry in the database
 class key_change
 {
-    public:
-        key_change();
-        key_change(const key_change& other);
-        ~key_change() throw ();
+public:
+	key_change();
+	key_change(const key_change &other);
+	~key_change() throw ();
 
-    public:
-        bool validate(const schema& sc) const;
+public:
+	bool validate(const schema &sc) const;
 
-        // Check if a key change can be peformed
-        network_returncode check(const schema& sc,
-                                 bool has_old_value,
-                                 const std::vector<e::slice>* old_value) const;
+	// Check if a key change can be peformed
+	network_returncode check(const schema &sc,
+	                         bool has_old_value,
+	                         const std::vector<e::slice> *old_value) const;
 
-    public:
-        key_change& operator = (const key_change&);
+public:
+	key_change &operator = (const key_change &);
 
-    public:
-        e::slice key;
+public:
+	e::slice key;
 
-        // Will this entry be removed?
-        bool erase;
+	// Will this entry be removed?
+	bool erase;
 
-        // Keychange should fail if there is no previous value
-        bool fail_if_not_found;
+	// Keychange should fail if there is no previous value
+	bool fail_if_not_found;
 
-        // Keychange should fail if there is a previous value
-        bool fail_if_found;
+	// Keychange should fail if there is a previous value
+	bool fail_if_found;
 
-        // Checks to be performed before key change
-        std::vector<attribute_check> checks;
+	// Checks to be performed before key change
+	std::vector<attribute_check> checks;
 
-        // The actual keychange is stored here
-        std::vector<funcall> funcs;
+	// The actual keychange is stored here
+	std::vector<funcall> funcs;
 
-        // Authorization info is stored here
-        std::auto_ptr<auth_wallet> auth;
+	// Authorization info is stored here
+	std::auto_ptr<auth_wallet> auth;
 };
 
 e::packer
-operator << (e::packer, const key_change& td);
+operator << (e::packer, const key_change &td);
 e::unpacker
-operator >> (e::unpacker, key_change& td);
+operator >> (e::unpacker, key_change &td);
 size_t
-pack_size(const key_change& td);
+pack_size(const key_change &td);
 
 END_HYPERDEX_NAMESPACE
 

@@ -32,14 +32,14 @@
 #include <busybee_constants.h>
 
 #define HYPERDEX_CLIENT_HEADER_SIZE_REQ (BUSYBEE_HEADER_SIZE \
-                                     + sizeof(uint8_t) /*mt*/ \
-                                     + sizeof(uint8_t) /*flags*/ \
-                                     + sizeof(uint64_t) /*version*/ \
-                                     + sizeof(uint64_t) /*vidt*/ \
-                                     + sizeof(uint64_t) /*nonce*/)
+                                         + sizeof(uint8_t) /*mt*/ \
+                                         + sizeof(uint8_t) /*flags*/ \
+                                         + sizeof(uint64_t) /*version*/ \
+                                         + sizeof(uint64_t) /*vidt*/ \
+                                         + sizeof(uint64_t) /*nonce*/)
 #define HYPERDEX_CLIENT_HEADER_SIZE_RESP (BUSYBEE_HEADER_SIZE \
-                                      + sizeof(uint8_t) /*mt*/ \
-                                      + sizeof(uint64_t) /*vidt*/ \
-                                      + sizeof(uint64_t) /*nonce*/)
+                                          + sizeof(uint8_t) /*mt*/ \
+                                          + sizeof(uint64_t) /*vidt*/ \
+                                          + sizeof(uint64_t) /*nonce*/)
 
 #endif // hyperdex_client_constants_h_

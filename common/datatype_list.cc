@@ -42,10 +42,10 @@
 
 using hyperdex::datatype_list;
 
-datatype_list :: datatype_list(datatype_info* elem)
-    : m_elem(elem)
+datatype_list :: datatype_list(datatype_info *elem)
+	: m_elem(elem)
 {
-    assert(m_elem->containable());
+	assert(m_elem->containable());
 }
 
 datatype_list :: ~datatype_list() throw ()
@@ -55,188 +55,172 @@ datatype_list :: ~datatype_list() throw ()
 hyperdatatype
 datatype_list :: datatype() const
 {
-    return CREATE_CONTAINER(HYPERDATATYPE_LIST_GENERIC, m_elem->datatype());
+	return CREATE_CONTAINER(HYPERDATATYPE_LIST_GENERIC, m_elem->datatype());
 }
 
 bool
-datatype_list :: validate(const e::slice& list) const
+datatype_list :: validate(const e::slice &list) const
 {
-    const uint8_t* ptr = list.data();
-    const uint8_t* end = list.data() + list.size();
-    e::slice elem;
-
-    while (ptr < end)
-    {
-        if (!m_elem->step(&ptr, end, &elem))
-        {
-            return false;
-        }
-    }
-
-    return ptr == end;
+	const uint8_t *ptr = list.data();
+	const uint8_t *end = list.data() + list.size();
+	e::slice elem;
+	while (ptr < end)
+	{
+		if (!m_elem->step(&ptr, end, &elem))
+		{
+			return false;
+		}
+	}
+	return ptr == end;
 }
 
 bool
-datatype_list :: check_args(const funcall& func) const
+datatype_list :: check_args(const funcall &func) const
 {
-    return ((func.arg1_datatype == datatype() ||
-             func.arg1_datatype == HYPERDATATYPE_LIST_GENERIC) &&
-            validate(func.arg1) && func.name == FUNC_SET) ||
-           (func.arg1_datatype == m_elem->datatype() &&
-            m_elem->validate(func.arg1) &&
-            (func.name == FUNC_LIST_LPUSH ||
-             func.name == FUNC_LIST_RPUSH));
+	return ((func.arg1_datatype == datatype() ||
+	         func.arg1_datatype == HYPERDATATYPE_LIST_GENERIC) &&
+	        validate(func.arg1) && func.name == FUNC_SET) ||
+	       (func.arg1_datatype == m_elem->datatype() &&
+	        m_elem->validate(func.arg1) &&
+	        (func.name == FUNC_LIST_LPUSH ||
+	         func.name == FUNC_LIST_RPUSH));
 }
 
 bool
-datatype_list :: apply(const e::slice& old_value,
-                       const funcall* funcs, size_t funcs_sz,
-                       e::arena* new_memory,
-                       e::slice* new_value) const
+datatype_list :: apply(const e::slice &old_value,
+                       const funcall *funcs, size_t funcs_sz,
+                       e::arena *new_memory,
+                       e::slice *new_value) const
 {
-    std::list<e::slice> list;
-    const uint8_t* ptr = old_value.data();
-    const uint8_t* end = old_value.data() + old_value.size();
-    e::slice elem;
-
-    while (ptr < end)
-    {
-        bool stepped = m_elem->step(&ptr, end, &elem);
-        assert(stepped); // safe because of check_args
-        list.push_back(elem);
-    }
-
-    for (size_t i = 0; i < funcs_sz; ++i)
-    {
-        switch (funcs[i].name)
-        {
-            case FUNC_SET:
-                list.clear();
-                ptr = funcs[i].arg1.data();
-                end = funcs[i].arg1.data() + funcs[i].arg1.size();
-
-                while (ptr < end)
-                {
-                    bool stepped = m_elem->step(&ptr, end, &elem);
-                    assert(stepped); // safe because of check_args
-                    list.push_back(elem);
-                }
-
-                break;
-            case FUNC_LIST_LPUSH:
-                list.push_front(funcs[i].arg1);
-                break;
-            case FUNC_LIST_RPUSH:
-                list.push_back(funcs[i].arg1);
-                break;
-            case FUNC_FAIL:
-            case FUNC_STRING_APPEND:
-            case FUNC_STRING_PREPEND:
-            case FUNC_STRING_LTRIM:
-            case FUNC_STRING_RTRIM:
-            case FUNC_NUM_ADD:
-            case FUNC_NUM_SUB:
-            case FUNC_NUM_MUL:
-            case FUNC_NUM_DIV:
-            case FUNC_NUM_MOD:
-            case FUNC_NUM_AND:
-            case FUNC_NUM_OR:
-            case FUNC_NUM_XOR:
-            case FUNC_NUM_MAX:
-            case FUNC_NUM_MIN:
-            case FUNC_SET_ADD:
-            case FUNC_SET_REMOVE:
-            case FUNC_SET_INTERSECT:
-            case FUNC_SET_UNION:
-            case FUNC_MAP_ADD:
-            case FUNC_MAP_REMOVE:
-            case FUNC_DOC_RENAME:
-            case FUNC_DOC_UNSET:
-            default:
-                abort();
-        }
-    }
-
-    size_t sz = 0;
-
-    for (std::list<e::slice>::iterator i = list.begin(); i != list.end(); ++i)
-    {
-        sz += m_elem->write_sz(*i);
-    }
-
-    uint8_t* write_to = NULL;
-    new_memory->allocate(sz, &write_to);
-    *new_value = e::slice(write_to, sz);
-
-    for (std::list<e::slice>::iterator i = list.begin(); i != list.end(); ++i)
-    {
-        write_to = m_elem->write(*i, write_to);
-    }
-
-    return true;
+	std::list<e::slice> list;
+	const uint8_t *ptr = old_value.data();
+	const uint8_t *end = old_value.data() + old_value.size();
+	e::slice elem;
+	while (ptr < end)
+	{
+		bool stepped = m_elem->step(&ptr, end, &elem);
+		assert(stepped); // safe because of check_args
+		list.push_back(elem);
+	}
+	for (size_t i = 0; i < funcs_sz; ++i)
+	{
+		switch (funcs[i].name)
+		{
+		case FUNC_SET:
+			list.clear();
+			ptr = funcs[i].arg1.data();
+			end = funcs[i].arg1.data() + funcs[i].arg1.size();
+			while (ptr < end)
+			{
+				bool stepped = m_elem->step(&ptr, end, &elem);
+				assert(stepped); // safe because of check_args
+				list.push_back(elem);
+			}
+			break;
+		case FUNC_LIST_LPUSH:
+			list.push_front(funcs[i].arg1);
+			break;
+		case FUNC_LIST_RPUSH:
+			list.push_back(funcs[i].arg1);
+			break;
+		case FUNC_FAIL:
+		case FUNC_STRING_APPEND:
+		case FUNC_STRING_PREPEND:
+		case FUNC_STRING_LTRIM:
+		case FUNC_STRING_RTRIM:
+		case FUNC_NUM_ADD:
+		case FUNC_NUM_SUB:
+		case FUNC_NUM_MUL:
+		case FUNC_NUM_DIV:
+		case FUNC_NUM_MOD:
+		case FUNC_NUM_AND:
+		case FUNC_NUM_OR:
+		case FUNC_NUM_XOR:
+		case FUNC_NUM_MAX:
+		case FUNC_NUM_MIN:
+		case FUNC_SET_ADD:
+		case FUNC_SET_REMOVE:
+		case FUNC_SET_INTERSECT:
+		case FUNC_SET_UNION:
+		case FUNC_MAP_ADD:
+		case FUNC_MAP_REMOVE:
+		case FUNC_DOC_RENAME:
+		case FUNC_DOC_UNSET:
+		default:
+			abort();
+		}
+	}
+	size_t sz = 0;
+	for (std::list<e::slice>::iterator i = list.begin(); i != list.end(); ++i)
+	{
+		sz += m_elem->write_sz(*i);
+	}
+	uint8_t *write_to = NULL;
+	new_memory->allocate(sz, &write_to);
+	*new_value = e::slice(write_to, sz);
+	for (std::list<e::slice>::iterator i = list.begin(); i != list.end(); ++i)
+	{
+		write_to = m_elem->write(*i, write_to);
+	}
+	return true;
 }
 
 bool
 datatype_list :: indexable() const
 {
-    return m_elem->indexable();
+	return m_elem->indexable();
 }
 
 bool
 datatype_list :: has_length() const
 {
-    return true;
+	return true;
 }
 
 uint64_t
-datatype_list :: length(const e::slice& list) const
+datatype_list :: length(const e::slice &list) const
 {
-    const uint8_t* ptr = list.data();
-    const uint8_t* end = list.data() + list.size();
-    e::slice elem;
-    uint64_t count = 0;
-
-    while (ptr < end)
-    {
-        bool stepped = m_elem->step(&ptr, end, &elem);
-        assert(stepped);
-        ++count;
-    }
-
-    assert(ptr == end);
-    return count;
+	const uint8_t *ptr = list.data();
+	const uint8_t *end = list.data() + list.size();
+	e::slice elem;
+	uint64_t count = 0;
+	while (ptr < end)
+	{
+		bool stepped = m_elem->step(&ptr, end, &elem);
+		assert(stepped);
+		++count;
+	}
+	assert(ptr == end);
+	return count;
 }
 
 bool
 datatype_list :: has_contains() const
 {
-    return true;
+	return true;
 }
 
 hyperdatatype
 datatype_list :: contains_datatype() const
 {
-    return m_elem->datatype();
+	return m_elem->datatype();
 }
 
 bool
-datatype_list :: contains(const e::slice& list, const e::slice& needle) const
+datatype_list :: contains(const e::slice &list, const e::slice &needle) const
 {
-    const uint8_t* ptr = list.data();
-    const uint8_t* end = list.data() + list.size();
-    e::slice elem;
-
-    while (ptr < end)
-    {
-        bool stepped = m_elem->step(&ptr, end, &elem);
-        assert(stepped);
-
-        if (elem == needle)
-        {
-            return true;
-        }
-    }
-
-    assert(ptr == end);
-    return false;
+	const uint8_t *ptr = list.data();
+	const uint8_t *end = list.data() + list.size();
+	e::slice elem;
+	while (ptr < end)
+	{
+		bool stepped = m_elem->step(&ptr, end, &elem);
+		assert(stepped);
+		if (elem == needle)
+		{
+			return true;
+		}
+	}
+	assert(ptr == end);
+	return false;
 }

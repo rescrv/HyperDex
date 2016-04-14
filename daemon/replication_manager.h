@@ -65,117 +65,117 @@ class daemon;
 // Manage replication.
 class replication_manager
 {
-    public:
-        replication_manager(daemon*);
-        ~replication_manager() throw ();
+public:
+	replication_manager(daemon *);
+	~replication_manager() throw ();
 
-    // Reconfigure this layer.
-    public:
-        bool setup();
-        void teardown();
-        void pause();
-        void unpause();
-        void reconfigure(const configuration& old_config,
-                         const configuration& new_config,
-                         const server_id& us);
-        void debug_dump();
+	// Reconfigure this layer.
+public:
+	bool setup();
+	void teardown();
+	void pause();
+	void unpause();
+	void reconfigure(const configuration &old_config,
+	                 const configuration &new_config,
+	                 const server_id &us);
+	void debug_dump();
 
-    // Network workers call these methods.
-    public:
-        // These are called when the client initiates the action.  This implies
-        // that only the point leader should call these methods.
-        void client_atomic(const server_id& from,
-                           const virtual_server_id& to,
-                           uint64_t nonce,
-                           std::auto_ptr<key_change> kc,
-                           std::auto_ptr<e::buffer> backing);
-        // These are called in response to messages from other hosts.
-        void chain_op(const virtual_server_id& from,
-                      const virtual_server_id& to,
-                      uint64_t old_version,
-                      uint64_t new_version,
-                      bool fresh,
-                      bool has_value,
-                      const e::slice& key,
-                      const std::vector<e::slice>& value,
-                      std::auto_ptr<e::buffer> backing);
-        void chain_subspace(const virtual_server_id& from,
-                            const virtual_server_id& to,
-                            uint64_t old_version,
-                            uint64_t new_version,
-                            const e::slice& key,
-                            const std::vector<e::slice>& value,
-                            std::auto_ptr<e::buffer> backing,
-                            const region_id& prev_region,
-                            const region_id& this_old_region,
-                            const region_id& this_new_region,
-                            const region_id& next_region);
-        void chain_ack(const virtual_server_id& from,
-                       const virtual_server_id& to,
-                       uint64_t version,
-                       const e::slice& key);
-        void begin_checkpoint(uint64_t seq);
-        void end_checkpoint(uint64_t seq);
+	// Network workers call these methods.
+public:
+	// These are called when the client initiates the action.  This implies
+	// that only the point leader should call these methods.
+	void client_atomic(const server_id &from,
+	                   const virtual_server_id &to,
+	                   uint64_t nonce,
+	                   std::auto_ptr<key_change> kc,
+	                   std::auto_ptr<e::buffer> backing);
+	// These are called in response to messages from other hosts.
+	void chain_op(const virtual_server_id &from,
+	              const virtual_server_id &to,
+	              uint64_t old_version,
+	              uint64_t new_version,
+	              bool fresh,
+	              bool has_value,
+	              const e::slice &key,
+	              const std::vector<e::slice> &value,
+	              std::auto_ptr<e::buffer> backing);
+	void chain_subspace(const virtual_server_id &from,
+	                    const virtual_server_id &to,
+	                    uint64_t old_version,
+	                    uint64_t new_version,
+	                    const e::slice &key,
+	                    const std::vector<e::slice> &value,
+	                    std::auto_ptr<e::buffer> backing,
+	                    const region_id &prev_region,
+	                    const region_id &this_old_region,
+	                    const region_id &this_new_region,
+	                    const region_id &next_region);
+	void chain_ack(const virtual_server_id &from,
+	               const virtual_server_id &to,
+	               uint64_t version,
+	               const e::slice &key);
+	void begin_checkpoint(uint64_t seq);
+	void end_checkpoint(uint64_t seq);
 
-    private:
-        class retransmitter_thread;
-        typedef state_hash_table<key_region, key_state> key_map_t;
-        friend class key_state;
+private:
+	class retransmitter_thread;
+	typedef state_hash_table<key_region, key_state> key_map_t;
+	friend class key_state;
 
-    private:
-        // Get the state for the specified key.
-        // Returns NULL if there is no key_state that's currently in use.
-        key_state* get_key_state(const region_id& ri,
-                                 const e::slice& key,
-                                 key_map_t::state_reference* ksr);
-        // Get the state for the specified key.
-        // Will retrieve the state from disk and create the key_state when
-        // necessary.
-        key_state* get_or_create_key_state(const region_id& ri,
-                                           const e::slice& key,
-                                           key_map_t::state_reference* ksr);
-        key_state* post_get_key_state_init(region_id ri, key_state* ks);
-        void respond_to_client(const virtual_server_id& us,
-                               const server_id& client,
-                               uint64_t nonce,
-                               network_returncode ret);
-        bool send_message(const virtual_server_id& us,
-                          const e::slice& key,
-                          e::intrusive_ptr<key_operation> op);
-        bool send_ack(const virtual_server_id& us,
-                      const e::slice& key,
-                      e::intrusive_ptr<key_operation> op);
-        void retransmit(const std::vector<region_id>& point_leaders,
-                        std::vector<std::pair<region_id, uint64_t> >* versions);
-        void collect(const region_id& ri, e::intrusive_ptr<key_operation> op);
-        void collect(const region_id& ri, uint64_t version);
-        void close_gaps(const std::vector<region_id>& point_leaders,
-                        const identifier_generator& peek_ids,
-                        std::vector<std::pair<region_id, uint64_t> >* versions);
-        // call reset_to_unstable holding m_protect_stable_stuff
-        void reset_to_unstable();
-        bool is_check_needed() { return e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 0, 0) == 1; }
-        void check_is_needed() { e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 0, 1); }
-        void check_is_not_needed() { e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 1, 0); }
-        void check_stable();
-        void check_stable(const region_id& ri);
+private:
+	// Get the state for the specified key.
+	// Returns NULL if there is no key_state that's currently in use.
+	key_state *get_key_state(const region_id &ri,
+	                         const e::slice &key,
+	                         key_map_t::state_reference *ksr);
+	// Get the state for the specified key.
+	// Will retrieve the state from disk and create the key_state when
+	// necessary.
+	key_state *get_or_create_key_state(const region_id &ri,
+	                                   const e::slice &key,
+	                                   key_map_t::state_reference *ksr);
+	key_state *post_get_key_state_init(region_id ri, key_state *ks);
+	void respond_to_client(const virtual_server_id &us,
+	                       const server_id &client,
+	                       uint64_t nonce,
+	                       network_returncode ret);
+	bool send_message(const virtual_server_id &us,
+	                  const e::slice &key,
+	                  e::intrusive_ptr<key_operation> op);
+	bool send_ack(const virtual_server_id &us,
+	              const e::slice &key,
+	              e::intrusive_ptr<key_operation> op);
+	void retransmit(const std::vector<region_id> &point_leaders,
+	                std::vector<std::pair<region_id, uint64_t> > *versions);
+	void collect(const region_id &ri, e::intrusive_ptr<key_operation> op);
+	void collect(const region_id &ri, uint64_t version);
+	void close_gaps(const std::vector<region_id> &point_leaders,
+	                const identifier_generator &peek_ids,
+	                std::vector<std::pair<region_id, uint64_t> > *versions);
+	// call reset_to_unstable holding m_protect_stable_stuff
+	void reset_to_unstable();
+	bool is_check_needed() { return e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 0, 0) == 1; }
+	void check_is_needed() { e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 0, 1); }
+	void check_is_not_needed() { e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 1, 0); }
+	void check_stable();
+	void check_stable(const region_id &ri);
 
-    private:
-        daemon* m_daemon;
-        key_map_t m_key_states;
-        identifier_generator m_idgen;
-        identifier_collector m_idcol;
-        identifier_generator m_stable;
-        const std::auto_ptr<retransmitter_thread> m_retransmitter;
-        po6::threads::mutex m_protect_stable_stuff;
-        uint64_t m_checkpoint;
-        uint32_t m_need_check;
-        std::vector<region_timestamp> m_timestamps;
-        std::vector<region_id> m_unstable;
+private:
+	daemon *m_daemon;
+	key_map_t m_key_states;
+	identifier_generator m_idgen;
+	identifier_collector m_idcol;
+	identifier_generator m_stable;
+	const std::auto_ptr<retransmitter_thread> m_retransmitter;
+	po6::threads::mutex m_protect_stable_stuff;
+	uint64_t m_checkpoint;
+	uint32_t m_need_check;
+	std::vector<region_timestamp> m_timestamps;
+	std::vector<region_id> m_unstable;
 
-    private:
-        replication_manager(const replication_manager&);
-        replication_manager& operator = (const replication_manager&);
+private:
+	replication_manager(const replication_manager &);
+	replication_manager &operator = (const replication_manager &);
 };
 
 END_HYPERDEX_NAMESPACE

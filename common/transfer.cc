@@ -31,37 +31,37 @@
 using hyperdex::transfer;
 
 transfer :: transfer()
-    : id()
-    , rid()
-    , src()
-    , vsrc()
-    , dst()
-    , vdst()
+	: id()
+	, rid()
+	, src()
+	, vsrc()
+	, dst()
+	, vdst()
 {
 }
 
-transfer :: transfer(const hyperdex::transfer_id& _id,
-                     const hyperdex::region_id& _rid,
-                     const hyperdex::server_id& _src,
-                     const hyperdex::virtual_server_id& _vsrc,
-                     const hyperdex::server_id& _dst,
-                     const hyperdex::virtual_server_id& _vdst)
-    : id(_id)
-    , rid(_rid)
-    , src(_src)
-    , vsrc(_vsrc)
-    , dst(_dst)
-    , vdst(_vdst)
+transfer :: transfer(const hyperdex::transfer_id &_id,
+                     const hyperdex::region_id &_rid,
+                     const hyperdex::server_id &_src,
+                     const hyperdex::virtual_server_id &_vsrc,
+                     const hyperdex::server_id &_dst,
+                     const hyperdex::virtual_server_id &_vdst)
+	: id(_id)
+	, rid(_rid)
+	, src(_src)
+	, vsrc(_vsrc)
+	, dst(_dst)
+	, vdst(_vdst)
 {
 }
 
-transfer :: transfer(const transfer& other)
-    : id(other.id)
-    , rid(other.rid)
-    , src(other.src)
-    , vsrc(other.vsrc)
-    , dst(other.dst)
-    , vdst(other.vdst)
+transfer :: transfer(const transfer &other)
+	: id(other.id)
+	, rid(other.rid)
+	, src(other.src)
+	, vsrc(other.vsrc)
+	, dst(other.dst)
+	, vdst(other.vdst)
 {
 }
 
@@ -69,94 +69,89 @@ transfer :: ~transfer() throw ()
 {
 }
 
-transfer&
-transfer :: operator = (const transfer& rhs)
+transfer &
+transfer :: operator = (const transfer &rhs)
 {
-    id = rhs.id;
-    rid = rhs.rid;
-    src = rhs.src;
-    vsrc = rhs.vsrc;
-    dst = rhs.dst;
-    vdst = rhs.vdst;
-    return *this;
+	id = rhs.id;
+	rid = rhs.rid;
+	src = rhs.src;
+	vsrc = rhs.vsrc;
+	dst = rhs.dst;
+	vdst = rhs.vdst;
+	return *this;
 }
 
 bool
-transfer :: operator < (const transfer& rhs) const
+transfer :: operator < (const transfer &rhs) const
 {
-    if (id < rhs.id)
-    {
-        return true;
-    }
-    else if (id > rhs.id)
-    {
-        return false;
-    }
-
-    if (rid < rhs.rid)
-    {
-        return true;
-    }
-    else if (rid > rhs.rid)
-    {
-        return false;
-    }
-
-    if (src < rhs.src)
-    {
-        return true;
-    }
-    else if (src > rhs.src)
-    {
-        return false;
-    }
-
-    if (vsrc < rhs.vsrc)
-    {
-        return true;
-    }
-    else if (vsrc > rhs.vsrc)
-    {
-        return false;
-    }
-
-    if (dst < rhs.dst)
-    {
-        return true;
-    }
-    else if (dst > rhs.dst)
-    {
-        return false;
-    }
-
-    return vdst < rhs.vdst;
+	if (id < rhs.id)
+	{
+		return true;
+	}
+	else if (id > rhs.id)
+	{
+		return false;
+	}
+	if (rid < rhs.rid)
+	{
+		return true;
+	}
+	else if (rid > rhs.rid)
+	{
+		return false;
+	}
+	if (src < rhs.src)
+	{
+		return true;
+	}
+	else if (src > rhs.src)
+	{
+		return false;
+	}
+	if (vsrc < rhs.vsrc)
+	{
+		return true;
+	}
+	else if (vsrc > rhs.vsrc)
+	{
+		return false;
+	}
+	if (dst < rhs.dst)
+	{
+		return true;
+	}
+	else if (dst > rhs.dst)
+	{
+		return false;
+	}
+	return vdst < rhs.vdst;
 }
 
-std::ostream&
-hyperdex :: operator << (std::ostream& lhs, const transfer& rhs)
+std::ostream &
+hyperdex :: operator << (std::ostream &lhs, const transfer &rhs)
 {
-    return lhs << "transfer(id=" << rhs.id
-               << ", region=" << rhs.rid
-               << ", src=" << rhs.src
-               << ", vsrc=" << rhs.vsrc
-               << ", dst=" << rhs.dst
-               << ", vdst=" << rhs.vdst << ")";
+	return lhs << "transfer(id=" << rhs.id
+	       << ", region=" << rhs.rid
+	       << ", src=" << rhs.src
+	       << ", vsrc=" << rhs.vsrc
+	       << ", dst=" << rhs.dst
+	       << ", vdst=" << rhs.vdst << ")";
 }
 
 e::packer
-hyperdex :: operator << (e::packer pa, const transfer& t)
+hyperdex :: operator << (e::packer pa, const transfer &t)
 {
-    return pa << t.id << t.rid << t.src << t.vsrc << t.dst << t.vdst;
+	return pa << t.id << t.rid << t.src << t.vsrc << t.dst << t.vdst;
 }
 
 e::unpacker
-hyperdex :: operator >> (e::unpacker up, transfer& t)
+hyperdex :: operator >> (e::unpacker up, transfer &t)
 {
-    return up >> t.id >> t.rid >> t.src >> t.vsrc >> t.dst >> t.vdst;
+	return up >> t.id >> t.rid >> t.src >> t.vsrc >> t.dst >> t.vdst;
 }
 
 size_t
-hyperdex :: pack_size(const transfer&)
+hyperdex :: pack_size(const transfer &)
 {
-    return 6 * sizeof(uint64_t);
+	return 6 * sizeof(uint64_t);
 }

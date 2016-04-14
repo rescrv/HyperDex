@@ -40,30 +40,30 @@ using hyperdex::region_id;
 
 TEST(IdentifierGenerator, Test)
 {
-    identifier_generator ig;
-    uint64_t id;
-    // adopt a region
-    region_id ri(1);
-    ig.adopt(&ri, 1);
-    // try again
-    id = ig.generate_id(ri);
-    ASSERT_EQ(id, 1U);
-    id = ig.generate_id(ri);
-    ASSERT_EQ(id, 2U);
-    id = ig.generate_id(ri);
-    ASSERT_EQ(id, 3U);
-    // resize
-    region_id ris[2];
-    ris[0] = region_id(2);
-    ris[1] = region_id(1);
-    ig.adopt(ris, 2);
-    // generate
-    id = ig.generate_id(ri);
-    ASSERT_EQ(id, 4U);
-    // bump!
-    bool did_it = ig.bump(ri, 8);
-    ASSERT_TRUE(did_it);
-    // generate
-    id = ig.generate_id(ri);
-    ASSERT_EQ(id, 9U);
+	identifier_generator ig;
+	uint64_t id;
+	// adopt a region
+	region_id ri(1);
+	ig.adopt(&ri, 1);
+	// try again
+	id = ig.generate_id(ri);
+	ASSERT_EQ(id, 1U);
+	id = ig.generate_id(ri);
+	ASSERT_EQ(id, 2U);
+	id = ig.generate_id(ri);
+	ASSERT_EQ(id, 3U);
+	// resize
+	region_id ris[2];
+	ris[0] = region_id(2);
+	ris[1] = region_id(1);
+	ig.adopt(ris, 2);
+	// generate
+	id = ig.generate_id(ri);
+	ASSERT_EQ(id, 4U);
+	// bump!
+	bool did_it = ig.bump(ri, 8);
+	ASSERT_TRUE(did_it);
+	// generate
+	id = ig.generate_id(ri);
+	ASSERT_EQ(id, 9U);
 }

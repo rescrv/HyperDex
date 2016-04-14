@@ -31,15 +31,15 @@
 using hyperdex::pending_string;
 
 pending_string :: pending_string(uint64_t id,
-                                 hyperdex_admin_returncode* status,
+                                 hyperdex_admin_returncode *status,
                                  hyperdex_admin_returncode _status,
-                                 const std::string& string,
-                                 const char** store)
-    : pending(id, status)
-    , m_status(_status)
-    , m_string(string)
-    , m_store(store)
-    , m_done(false)
+                                 const std::string &string,
+                                 const char **store)
+	: pending(id, status)
+	, m_status(_status)
+	, m_string(string)
+	, m_store(store)
+	, m_done(false)
 {
 }
 
@@ -50,39 +50,39 @@ pending_string :: ~pending_string() throw ()
 bool
 pending_string :: can_yield()
 {
-    return !m_done;
+	return !m_done;
 }
 
 bool
-pending_string :: yield(hyperdex_admin_returncode* status)
+pending_string :: yield(hyperdex_admin_returncode *status)
 {
-    assert(this->can_yield());
-    m_done = true;
-    *status = HYPERDEX_ADMIN_SUCCESS;
-    set_status(m_status);
-    *m_store = m_string.c_str();
-    return true;
+	assert(this->can_yield());
+	m_done = true;
+	*status = HYPERDEX_ADMIN_SUCCESS;
+	set_status(m_status);
+	*m_store = m_string.c_str();
+	return true;
 }
 
 void
-pending_string :: handle_sent_to(const server_id&)
+pending_string :: handle_sent_to(const server_id &)
 {
-    abort();
+	abort();
 }
 
 void
-pending_string :: handle_failure(const server_id&)
+pending_string :: handle_failure(const server_id &)
 {
-    abort();
+	abort();
 }
 
 bool
-pending_string :: handle_message(admin*,
-                                 const server_id&,
+pending_string :: handle_message(admin *,
+                                 const server_id &,
                                  network_msgtype,
                                  std::auto_ptr<e::buffer>,
                                  e::unpacker,
-                                 hyperdex_admin_returncode*)
+                                 hyperdex_admin_returncode *)
 {
-    abort();
+	abort();
 }
