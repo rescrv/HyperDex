@@ -111,7 +111,6 @@ public:
 	uint16_t m_sort_by_idx;
 	datatype_info *m_sort_by_di;
 };
-
 class pending_sorted_search :: item
 {
 public:
