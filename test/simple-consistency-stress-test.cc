@@ -66,7 +66,7 @@ static long repetitions = 1024;
 static int64_t threads = 16;
 static const char* space = "consistency";
 static const char* host = "127.0.0.1";
-static po6::net::ipaddr coord(host);
+static po6::net::ipaddr coord;
 static long port = 1982;
 static std::auto_ptr<po6::threads::barrier> barrier;
 static po6::threads::mutex results_lock;
@@ -113,6 +113,7 @@ reader_thread();
 int
 main(int argc, const char* argv[])
 {
+    coord.set(host);
     poptContext poptcon;
     poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
     e::guard g = e::makeguard(poptFreeContext, poptcon);
@@ -150,11 +151,7 @@ main(int argc, const char* argv[])
             case 's':
                 break;
             case 'h':
-                try
-                {
-                    coord = po6::net::ipaddr(host);
-                }
-                catch (std::invalid_argument& e)
+                if (!coord.set(host))
                 {
                     std::cerr << "cannot parse coordinator address" << std::endl;
                     return EXIT_FAILURE;
