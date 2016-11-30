@@ -61,7 +61,7 @@
 #include <mach/mach.h>
 #endif
 
-using po6::threads::make_thread_wrapper;
+using po6::threads::make_obj_func;
 using hyperdex::daemon;
 
 int s_interrupts = 0;
@@ -132,7 +132,7 @@ daemon :: daemon()
     , m_perf_backup()
     , m_perf_perf_counters()
     , m_block_stat_path()
-    , m_stat_collector(make_thread_wrapper(&daemon::collect_stats, this))
+    , m_stat_collector(make_obj_func(&daemon::collect_stats, this))
     , m_protect_stats()
     , m_stats_start(0)
     , m_stats()
@@ -345,7 +345,7 @@ daemon :: run(bool daemonize,
     for (size_t i = 0; i < threads; ++i)
     {
         using namespace po6::threads;
-        e::compat::shared_ptr<thread> t(new thread(make_thread_wrapper(&daemon::loop, this, i)));
+        e::compat::shared_ptr<thread> t(new thread(make_obj_func(&daemon::loop, this, i)));
         m_threads.push_back(t);
         t->start();
     }

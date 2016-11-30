@@ -451,7 +451,12 @@ admin :: server_register(uint64_t token, const char* address,
 
     server_id sid(token);
     po6::net::location loc;
-    loc = po6::net::location(address);
+
+    if (!loc.set(address))
+    {
+        *status = HYPERDEX_ADMIN_EXCEPTION;
+        return -1;
+    }
 
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;

@@ -45,7 +45,6 @@
 #include "daemon/daemon.h"
 #include "daemon/replication_manager.h"
 
-using po6::threads::make_thread_wrapper;
 using hyperdex::key_state;
 using hyperdex::reconfigure_returncode;
 using hyperdex::replication_manager;

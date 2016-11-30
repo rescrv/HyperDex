@@ -72,7 +72,6 @@
 
 // ASSUME:  all keys put into leveldb have a first byte without the high bit set
 
-using po6::threads::make_thread_wrapper;
 using hyperdex::datalayer;
 using hyperdex::reconfigure_returncode;
 

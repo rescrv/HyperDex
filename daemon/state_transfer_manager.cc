@@ -45,7 +45,6 @@
 #include "daemon/state_transfer_manager_transfer_in_state.h"
 #include "daemon/state_transfer_manager_transfer_out_state.h"
 
-using po6::threads::make_thread_wrapper;
 using hyperdex::reconfigure_returncode;
 using hyperdex::state_transfer_manager;
 using hyperdex::transfer_id;

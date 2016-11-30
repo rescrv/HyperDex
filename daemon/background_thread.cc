@@ -40,11 +40,11 @@
 #include "daemon/background_thread.h"
 #include "daemon/daemon.h"
 
-using po6::threads::make_thread_wrapper;
+using po6::threads::make_obj_func;
 using hyperdex::background_thread;
 
 background_thread :: background_thread(daemon* d)
-    : m_thread(make_thread_wrapper(&background_thread::run, this))
+    : m_thread(make_obj_func(&background_thread::run, this))
     , m_gc(&d->m_gc)
     , m_protect()
     , m_wakeup_thread(&m_protect)
