@@ -1136,6 +1136,12 @@ hyperdex_client_search(struct hyperdex_client* client,
                        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
                        enum hyperdex_client_returncode* status,
                        const struct hyperdex_client_attribute** attrs, size_t* attrs_sz);
+int64_t
+hyperdex_client_volume_search(struct hyperdex_client* client,
+                       const char* space,
+                       const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                       enum hyperdex_client_returncode* status,
+                       const struct hyperdex_client_attribute** attrs, size_t* attrs_sz);
 
 int64_t
 hyperdex_client_search_describe(struct hyperdex_client* client,
