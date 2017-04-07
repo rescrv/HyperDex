@@ -1,0 +1,220 @@
+<!--Copyright (c) 2014, Pierre Rochard
+    All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of HyperDex nor the names of its contributors may be
+      used to endorse or promote products derived from this software without
+      specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE. -->
+
+{% extends "base.html" %}
+{% block content %}
+
+    <div class="container">
+
+      <div class="row row-offcanvas row-offcanvas-right">
+
+        <div class="col-xs-12 col-sm-9">
+          <p class="pull-right visible-xs">
+            <button type="button" class="btn btn-primary btn-xs" data-toggle="offcanvas">Toggle nav</button>
+          </p>
+          <div class="jumbotron">
+            <h2>Network Operations Console</h2>
+          </div>
+
+
+          <div class="row">
+
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <center>
+                <h2>Coordinator</h2>
+              </center>
+              <br>
+
+              {% if not coordstatus %}
+
+              <p>
+                <center>
+                  <button type="button" disabled="disabled" class="btn btn-lg btn-warning">Offline</button>
+                </center>
+              </p>
+              <br>
+
+              <p>
+                <center>
+                      <a class="btn btn-default" href="{{ url_for('start_coordinator')}}">
+                        Start Coordinator
+                      </a>
+                </center>
+              </p>
+
+              {% elif coordstatus %}
+
+              <p>
+                <center>
+                  <button type="button"  disabled="disabled" class="btn btn-lg btn-success">Online</button>
+                </center>
+              </p>
+              <br>
+              <p>
+                <center>
+
+                      <a class="btn btn-default" href="{{ url_for('stop_coordinator')}}">
+                        Stop Coordinator
+                      </a>
+                      <br>
+                      <br>
+                  {% if flags == '1' %}
+                      <a class="btn btn-default" href="{{ url_for('rw')}}">
+                        Set Read-Write
+                      </a>
+                      <br>
+
+                  {% elif flags == '0' %}
+                      <a class="btn btn-default" href="{{ url_for('ro')}}">
+                        Set Read-Only
+                      </a>
+                  {% endif %}
+                </center>
+              </p>
+              {% else %}
+
+              Problem
+
+              {% endif %}
+              <br>
+              <p>Cluster: {{cluster}}</p>
+              <p>Version: {{version}}</p>
+              <p>Flags: {{flags}}</p>
+              <p>Server: {{server}}</p>
+
+            </div><!--/span-->
+
+
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <center>
+                <h2>Nodes</h2>
+              </center>
+              <br>
+              {% if not nodestatus %}
+              <p>
+                <center>
+                  <button type="button" disabled="disabled" class="btn btn-lg btn-warning">Offline</button>
+                </center>
+              </p>
+              <br>
+
+              <p>
+                <center>
+                      <a class="btn btn-default" href="{{ url_for('start_node')}}">
+                        Start Node
+                      </a>
+                </center>
+              </p>
+
+              {% elif nodestatus %}
+
+              <p>
+                <center>
+                  <button type="button"  disabled="disabled" class="btn btn-lg btn-success">Online</button>
+                </center>
+              </p>
+              <br>
+              <p>
+                <center>
+                      <a class="btn btn-default" href="{{ url_for('stop_node')}}">
+                        Stop Node
+                      </a>
+                </center>
+              </p>
+              {% else %}
+
+              Problem
+
+              {% endif %}
+
+
+            </div><!--/span-->
+
+
+
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <center>
+                <h2>Spaces</h2>
+              </center>
+              <br>
+              <br>
+              <ul class="list-group">
+              {% for space in spacelist %}
+                <a class="list-group-item" href="{{url_for('explore_space', space = space) }}"><center>{{space}}</center></a>
+              {% endfor %}
+              </ul>
+            </div><!--/span-->
+          </div><!--/row-->
+            <br>
+            <br>
+            <div class="alert-danger">
+              <center>
+                Warning: These currently remove all coordinator, node, and space data without confirmation.
+              </center>
+            </div><!--/span-->
+            <br>
+          <div class="row">
+
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <p>
+                <center>
+                      <a class="btn btn-default" href="{{ url_for('delete_coordinator')}}">
+                        Delete Coordinator Data
+                      </a>
+                </center>
+              </p>
+            </div>
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <p>
+                <center>
+                      <a class="btn btn-default" href="{{ url_for('delete_node')}}">
+                        Delete Node Data
+                      </a>
+                </center>
+              </p>
+            </div>
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <ul class="list-group">
+              {% for space in spacelist %}
+                <a class="list-group-item list-group-item-danger" href="{{ url_for('delete_space', space = space) }}"><center>Delete Space - {{space}}</center></a>
+              {% endfor %}
+              </ul>
+            </div>
+          </div>
+
+
+
+        </div><!--/span-->
+      </div><!--/row-->
+    </div><!--/.container-->
+{% endblock %}

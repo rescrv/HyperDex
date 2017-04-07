@@ -36,7 +36,8 @@
 /config.h.in
 /config.h.in~
 /config.log
-/config.status
+/config.
+us
 /config.sub
 /configure
 /daemon/test/identifier_collector
@@ -89,6 +90,12 @@
 /Makefile
 /Makefile.in
 /missing
+/noc-py/app/data/coordata/*
+/noc-py/app/data/coorlog/*
+/noc-py/app/data/nodedata/*
+/noc-py/app/data/nodelog/*
+/noc-py/ignore/*
+/stats/*
 /stamp-h1
 /test/replication-stress-test
 /test/search-stress-test
