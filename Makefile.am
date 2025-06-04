@@ -35,7 +35,11 @@ EXTRA_DIST = \
 			hyperdex-coordinator \
 			hyperdex-coordinator-control \
 			$(libhyperclient_extra_dist) \
-			$(ycsb_extra_dist)
+			$(ycsb_extra_dist) \
+			hyperclient/nodejs/sync_test.js \
+			hyperclient/nodejs/async_test.js \
+			hyperclient/nodejs/hyperclient.cc \
+			wscript
 
 lib_LTLIBRARIES = \
 			libhyperspacehashing.la \
