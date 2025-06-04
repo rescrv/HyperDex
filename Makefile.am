@@ -356,8 +356,10 @@ hyperdex_daemon_LDADD = \
 			libhyperdisk.la \
 			libhyperspacehashing.la \
 			$(E_LIBS) \
+			$(BUSYBEE_LIBS) \
+			-lbusybee-mta \
 			$(COVERAGE_LDADD) \
-			-lcityhash -lbusybee-mta -lpopt -lglog -lrt
+			-lcityhash -lpopt -lglog -lrt
 hyperdex_daemon_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdisk \
@@ -398,8 +400,9 @@ libhyperclient_la_SOURCES = \
 			${libhyperdex_sources}
 libhyperclient_la_LIBADD = \
 			libhyperspacehashing.la \
-			-lbusybee-st \
 			$(E_LIBS) \
+			$(BUSYBEE_LIBS) \
+			-lbusybee-st \
 			$(COVERAGE_LDADD)
 libhyperclient_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
